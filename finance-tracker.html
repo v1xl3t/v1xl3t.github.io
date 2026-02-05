@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker</title>
+    <link rel="stylesheet" href="finance-tracker.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="light-mode">
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button id="themeToggle" aria-label="Toggle dark mode">
+            <span class="icon-sun">☀️</span>
+            <span class="icon-moon">🌙</span>
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="app-header">
+                <h1>Finance Tracker</h1>
+                <p class="year-selector">
+                    <button id="prevYear" aria-label="Previous year">←</button>
+                    <span id="currentYear">2026</span>
+                    <button id="nextYear" aria-label="Next year">→</button>
+                </p>
+            </div>
+            
+            <ul class="nav-menu">
+                <li><a href="#" data-view="dashboard" class="nav-link active">
+                    <span class="nav-icon">📊</span>Dashboard
+                </a></li>
+                <li><a href="#" data-view="monthly" class="nav-link">
+                    <span class="nav-icon">📅</span>Monthly Overview
+                </a></li>
+                <li><a href="#" data-view="credit" class="nav-link">
+                    <span class="nav-icon">💳</span>Credit Cards
+                </a></li>
+                <li><a href="#" data-view="loans" class="nav-link">
+                    <span class="nav-icon">🏦</span>Loans
+                </a></li>
+                <li><a href="#" data-view="subscriptions" class="nav-link">
+                    <span class="nav-icon">🔄</span>Subscriptions
+                </a></li>
+                <li><a href="#" data-view="calendar" class="nav-link">
+                    <span class="nav-icon">📆</span>Calendar
+                </a></li>
+                <li><a href="#" data-view="settings" class="nav-link">
+                    <span class="nav-icon">⚙️</span>Settings
+                </a></li>
+            </ul>
+
+            <!-- Data Management -->
+            <div class="data-controls">
+                <button id="exportBtn" class="btn-secondary">
+                    <span>📤</span> Export Data
+                </button>
+                <button id="importBtn" class="btn-secondary">
+                    <span>📥</span> Import Data
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="view active">
+                <div class="view-header">
+                    <h2>Financial Dashboard</h2>
+                    <p class="view-subtitle">Overview of your financial health</p>
+                </div>
+                
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <h3>Total Income (This Month)</h3>
+                        <p class="stat-value" id="dashTotalIncome">$0.00</p>
+                        <p class="stat-change positive" id="dashIncomeChange">+$0.00 from last month</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Total Debt</h3>
+                        <p class="stat-value" id="dashTotalDebt">$0.00</p>
+                        <p class="stat-change" id="dashDebtChange">+$0.00 from last month</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Total Spending (This Month)</h3>
+                        <p class="stat-value" id="dashTotalSpending">$0.00</p>
+                        <p class="stat-change" id="dashSpendingChange">+$0.00 from last month</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Net Cash Flow</h3>
+                        <p class="stat-value" id="dashNetFlow">$0.00</p>
+                        <p class="stat-subtitle">Income - Spending</p>
+                    </div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="chart-container" style="flex: 2;">
+                        <h3>Income vs. Spending Trend</h3>
+                        <canvas id="dashboardChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container" style="flex: 1;">
+                        <h3>Spending Breakdown</h3>
+                        <canvas id="spendingPieChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="chart-container" style="flex: 1;">
+                        <h3>Debt Overview</h3>
+                        <canvas id="debtPieChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container" style="flex: 1;">
+                        <h3>Budget Progress</h3>
+                        <div id="budgetProgressContainer" style="padding: 1rem;">
+                            <!-- Generated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="quickAddIncome()">+ Add Income</button>
+                        <button class="btn-primary" onclick="quickAddExpense()">+ Add Expense</button>
+                        <button class="btn-primary" onclick="quickPayCredit()">💳 Log Credit Payment</button>
+                        <button class="btn-primary" onclick="quickPayLoan()">🏦 Log Loan Payment</button>
+                    </div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(124, 58, 237, 0.1)); 
+                            padding: 1.5rem; border-radius: 12px; margin-top: 2rem; border-left: 4px solid var(--accent-primary);">
+                    <h3 style="margin-bottom: 0.5rem;">💡 Upcoming Payments</h3>
+                    <div id="upcomingPaymentsContainer">
+                        <!-- Generated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Overview View -->
+            <div id="monthlyView" class="view">
+                <div class="view-header">
+                    <h2><span id="monthlyViewYear">2026</span> Monthly Overview</h2>
+                    <p class="view-subtitle">Track income, spending, and debt across the year</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(124, 58, 237, 0.1)); 
+                            padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; 
+                            border-left: 4px solid var(--accent-primary);">
+                    <p style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.2rem;">ℹ️</span>
+                        <strong>Auto-Sync Enabled!</strong> Fields marked with 
+                        <span style="color: var(--accent-primary);">🔄</span> are automatically calculated 
+                        from your Credit Cards, Loans, and Subscriptions data.
+                    </p>
+                </div>
+                
+                <div class="table-controls">
+                    <button id="addMonthlyCategory" class="btn-secondary">+ Add Category</button>
+                    <button id="expandAllMonthly" class="btn-secondary">Expand All</button>
+                    <button id="collapseAllMonthly" class="btn-secondary">Collapse All</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="monthlyTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sticky-col">Category</th>
+                                <th>Jan</th>
+                                <th>Feb</th>
+                                <th>Mar</th>
+                                <th>Apr</th>
+                                <th>May</th>
+                                <th>Jun</th>
+                                <th>Jul</th>
+                                <th>Aug</th>
+                                <th>Sep</th>
+                                <th>Oct</th>
+                                <th>Nov</th>
+                                <th>Dec</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyTableBody">
+                            <!-- Generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Credit Cards View -->
+            <div id="creditView" class="view">
+                <div class="view-header">
+                    <h2><span id="creditViewYear">2026</span> Credit Cards</h2>
+                    <p class="view-subtitle">Manage credit accounts and track payments</p>
+                </div>
+                
+                <div class="table-controls">
+                    <button id="addCreditCard" class="btn-primary">+ Add Credit Card</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <div id="creditTableContainer">
+                        <!-- Generated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loans View -->
+            <div id="loansView" class="view">
+                <div class="view-header">
+                    <h2><span id="loansViewYear">2026</span> Loans</h2>
+                    <p class="view-subtitle">Track loan balances and payments</p>
+                </div>
+                
+                <div class="table-controls">
+                    <button id="addLoan" class="btn-primary">+ Add Loan</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <div id="loansTableContainer">
+                        <!-- Generated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subscriptions View -->
+            <div id="subscriptionsView" class="view">
+                <div class="view-header">
+                    <h2><span id="subscriptionsViewYear">2026</span> Subscriptions</h2>
+                    <p class="view-subtitle">Manage recurring payments and subscriptions</p>
+                </div>
+                
+                <div class="table-controls">
+                    <button id="addSubscription" class="btn-primary">+ Add Subscription</button>
+                    <div class="filter-group">
+                        <label>Filter by Status:</label>
+                        <select id="subStatusFilter">
+                            <option value="all">All</option>
+                            <option value="annual">Annual</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="custom">Custom</option>
+                            <option value="discontinued">Discontinued</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="subscriptionsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date of Payment</th>
+                                <th>Subscription To</th>
+                                <th>Renewal</th>
+                                <th>Purpose</th>
+                                <th>Charge</th>
+                                <th>$ per Cycle</th>
+                                <th>Annual Total</th>
+                                <th>Monthly Total</th>
+                                <th>Payment Method</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscriptionsTableBody">
+                            <!-- Generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div id="calendarView" class="view">
+                <div class="view-header">
+                    <h2>Financial Calendar</h2>
+                    <p class="view-subtitle">View and manage upcoming payments and due dates</p>
+                </div>
+                
+                <div class="calendar-controls">
+                    <button id="calPrevMonth">←</button>
+                    <h3 id="calendarMonth">January 2026</h3>
+                    <button id="calNextMonth">→</button>
+                    <button id="calToday" class="btn-secondary">Today</button>
+                </div>
+
+                <div id="calendarGrid" class="calendar-grid">
+                    <!-- Generated dynamically -->
+                </div>
+
+                <div class="calendar-legend">
+                    <div class="legend-item"><span class="legend-color credit"></span> Credit Payment Due</div>
+                    <div class="legend-item"><span class="legend-color loan"></span> Loan Payment Due</div>
+                    <div class="legend-item"><span class="legend-color subscription"></span> Subscription Renewal</div>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="settingsView" class="view">
+                <div class="view-header">
+                    <h2>Settings</h2>
+                    <p class="view-subtitle">Customize categories and preferences</p>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Category Management</h3>
+                    <p>Customize income, spending, and debt categories</p>
+                    <button id="manageCategoriesBtn" class="btn-primary">Manage Categories</button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Budget Settings</h3>
+                    <p>Set monthly budget limits by category</p>
+                    <button id="manageBudgetsBtn" class="btn-primary">Manage Budgets</button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Data Management</h3>
+                    <div class="data-io-section">
+                        <h4>Import/Export JSON</h4>
+                        <div class="import-export-controls">
+                            <button id="exportDataBtn" class="btn-secondary">Export to Clipboard</button>
+                            <button id="importClipboardBtn" class="btn-secondary">Import from Clipboard</button>
+                        </div>
+                        <div class="json-textarea-wrapper">
+                            <label for="jsonTextarea">Or paste JSON data here:</label>
+                            <textarea id="jsonTextarea" placeholder='{"year": 2026, "monthly": {...}, "credit": {...}}'></textarea>
+                            <button id="importTextareaBtn" class="btn-primary">Import from Textarea</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Danger Zone</h3>
+                    <button id="resetDataBtn" class="btn-danger">Reset All Data</button>
+                    <p class="warning-text">⚠️ This will delete all your financial data. Export first!</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">×</button>
+            <div id="modalBody">
+                <!-- Dynamic modal content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="finance-tracker.js"></script>
+    <script src="finance-tracker-migration.js"></script>
+    <script src="finance-tracker-views-dashboard.js"></script>
+    <script src="finance-tracker-views-credit-loans.js"></script>
+    <script src="finance-tracker-views-subscriptions-calendar.js"></script>
+    <script src="finance-tracker-integration.js"></script>
+    <script src="finance-tracker-custom-categories.js"></script>
+    <script src="finance-tracker-budgets.js"></script>
+    <script src="finance-tracker-charts.js"></script>
+    <script src="finance-tracker-export.js"></script>
+    <script src="finance-tracker-multiyear.js"></script>
+</body>
+</html>
