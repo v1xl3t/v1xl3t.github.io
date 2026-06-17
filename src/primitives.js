@@ -30,6 +30,7 @@ export const DEFAULT_PARAMS = {
   tube:     { outer: 10, inner: 6, height: 20, segments: 48 },
   wedge:    { width: 20, height: 20, depth: 20, round: 0 },
   prism:    { sides: 6, radius: 10, height: 20, round: 0 },
+  loft:     { width: 20, depth: 20, topWidth: 12, topDepth: 12, height: 20, round: 0, twist: 0 },
 };
 
 // A reusable "corner radius" field for primitives that support rounding.
@@ -82,6 +83,15 @@ export const PARAM_SCHEMA = {
     { key: 'radius', label: 'Radius', min: 0.1, step: 0.5 },
     { key: 'height', label: 'Height', min: 0.1, step: 0.5 },
     ROUND_FIELD,
+  ],
+  loft: [
+    { key: 'width',    label: 'Base width (X)',  min: 0.1, step: 0.5 },
+    { key: 'depth',    label: 'Base depth (Z)',  min: 0.1, step: 0.5 },
+    { key: 'topWidth', label: 'Top width (X)',   min: 0.1, step: 0.5 },
+    { key: 'topDepth', label: 'Top depth (Z)',   min: 0.1, step: 0.5 },
+    { key: 'height',   label: 'Height',          min: 0.1, step: 0.5 },
+    ROUND_FIELD,
+    { key: 'twist',    label: 'Twist (°)',       step: 5 },
   ],
 };
 
@@ -147,6 +157,70 @@ function regularPolygonVerts(sides, radius) {
     verts.push(new THREE.Vector2(Math.cos(a) * radius, Math.sin(a) * radius));
   }
   return verts;
+}
+
+// A centered rounded-rectangle Shape (used as loft cross-sections). round=0 → rect.
+function roundedRectShape(w, d, round) {
+  const r = clamp(round, 0, Math.min(w, d) / 2 - 0.01);
+  const x = -w / 2, z = -d / 2;
+  const s = new THREE.Shape();
+  s.moveTo(x + r, z);
+  s.lineTo(x + w - r, z);
+  s.quadraticCurveTo(x + w, z, x + w, z + r);
+  s.lineTo(x + w, z + d - r);
+  s.quadraticCurveTo(x + w, z + d, x + w - r, z + d);
+  s.lineTo(x + r, z + d);
+  s.quadraticCurveTo(x, z + d, x, z + d - r);
+  s.lineTo(x, z + r);
+  s.quadraticCurveTo(x, z, x + r, z);
+  return s;
+}
+
+// Loft: a solid skinned between a bottom and a top rounded-rectangle profile over
+// a height, with optional twist. Linear blend of corresponding perimeter points
+// (so a square base can taper/twist into a smaller square top, etc.). Built as a
+// watertight indexed mesh — rings of N points at K+1 layers + a centroid cap at
+// each end. Winding chosen so Manifold reads a positive solid (validated headless).
+function buildLoft(params) {
+  const N = 80;                                       // perimeter samples per ring
+  const H = params.height;
+  const round = params.round || 0;
+  const twist = (params.twist || 0) * Math.PI / 180;
+  const K = Math.max(1, Math.min(96, Math.round(Math.abs(params.twist || 0) / 4))); // smooth twist
+
+  const sample = (shape) => shape.getSpacedPoints(N).slice(0, N);
+  const base = sample(roundedRectShape(params.width, params.depth, round));
+  const top  = sample(roundedRectShape(params.topWidth, params.topDepth, round));
+
+  const verts = [];
+  for (let j = 0; j <= K; j++) {
+    const t = j / K, ang = twist * t, ca = Math.cos(ang), sa = Math.sin(ang), y = H * t;
+    for (let i = 0; i < N; i++) {
+      const px = base[i].x + (top[i].x - base[i].x) * t;
+      const pz = base[i].y + (top[i].y - base[i].y) * t;   // Shape's Y maps to world Z
+      verts.push(px * ca - pz * sa, y, px * sa + pz * ca);
+    }
+  }
+  const cb = verts.length / 3; verts.push(0, 0, 0);   // bottom centroid
+  const ct = verts.length / 3; verts.push(0, H, 0);   // top centroid
+
+  const idx = [];
+  for (let j = 0; j < K; j++) {                       // side walls
+    for (let i = 0; i < N; i++) {
+      const i2 = (i + 1) % N;
+      const a = j * N + i, b = j * N + i2, c = (j + 1) * N + i2, dPt = (j + 1) * N + i;
+      idx.push(a, dPt, b, b, dPt, c);                 // outward winding (validated)
+    }
+  }
+  for (let i = 0; i < N; i++) idx.push(cb, i, (i + 1) % N);                 // bottom cap (faces -Y)
+  const tb = K * N;
+  for (let i = 0; i < N; i++) idx.push(ct, tb + (i + 1) % N, tb + i);       // top cap (faces +Y)
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
 }
 
 export function buildGeometry(kind, params) {
@@ -229,6 +303,9 @@ export function buildGeometry(kind, params) {
         geo = new THREE.CylinderGeometry(params.radius, params.radius, params.height, Math.max(3, Math.round(params.sides)));
         geo.translate(0, params.height / 2, 0);
       }
+      break;
+    case 'loft':
+      geo = buildLoft(params);
       break;
     default:
       throw new Error(`Unknown primitive kind: ${kind}`);
