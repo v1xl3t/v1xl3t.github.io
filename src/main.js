@@ -512,9 +512,33 @@ function setMeasure(on) {
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('measure-btn')?.classList.toggle('active', on);
   if (!on) clearMeasure();
-  flash(on ? 'Measure on — click two points on objects. Esc or M to exit.' : 'Measure off.');
+  flash(on ? 'Measure on — click two points (snaps to nearby corners). Esc or M to exit.' : 'Measure off.');
 }
 function toggleMeasure() { setMeasure(!measureOn); }
+
+// Snap a measure click to the nearest geometry vertex of the clicked object when
+// the cursor is within a few pixels of one — so distances land on exact corners,
+// not arbitrary surface points. Falls back to the raw surface hit otherwise.
+function snapToVertex(hit, e) {
+  const mesh = hit.object;
+  const posAttr = mesh.geometry?.getAttribute('position');
+  if (!posAttr) return hit.point.clone();
+  mesh.updateWorldMatrix(true, false);
+  const r = renderer.domElement.getBoundingClientRect();
+  const v = new THREE.Vector3();
+  let best = null, bestPx = 14;                              // snap radius, screen pixels
+  const step = Math.max(1, Math.floor(posAttr.count / 4000)); // cap work on dense meshes
+  for (let i = 0; i < posAttr.count; i += step) {
+    v.fromBufferAttribute(posAttr, i).applyMatrix4(mesh.matrixWorld);
+    const p = v.clone().project(camera);
+    if (p.z > 1) continue;
+    const sx = (p.x * 0.5 + 0.5) * r.width + r.left;
+    const sy = (-p.y * 0.5 + 0.5) * r.height + r.top;
+    const px = Math.hypot(sx - e.clientX, sy - e.clientY);
+    if (px < bestPx) { bestPx = px; best = v.clone(); }
+  }
+  return best || hit.point.clone();
+}
 
 function measureClick(e) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -525,7 +549,7 @@ function measureClick(e) {
   const hit = ray.intersectObjects(meshes, false)[0];
   if (!hit) { flash('Click on an object surface to drop a measure point.'); return; }
   if (measurePts.length >= 2) clearMeasure();   // a third click starts a fresh measurement
-  measurePts.push(hit.point.clone());
+  measurePts.push(snapToVertex(hit, e));
   drawMeasure();
   if (measurePts.length === 2) {
     const [a, b] = measurePts;
