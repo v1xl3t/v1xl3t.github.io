@@ -62,6 +62,13 @@
       </div>
 
       <div class="group">
+        <div class="group-label">View</div>
+        <button data-action="frame" title="Re-center & fit the selection (whole scene if nothing is selected)">Frame <span class="hint">(F)</span></button>
+        <button data-action="lasso" id="lasso-btn" class="tool" title="Lasso tool: drag a freehand loop to select everything inside it">Lasso select <span class="hint">(L)</span></button>
+        <button data-action="measure" id="measure-btn" class="tool" title="Measure tool: click two points on objects to read the distance between them">Measure <span class="hint">(M)</span></button>
+      </div>
+
+      <div class="group">
         <div class="group-label">Edit</div>
         <button data-action="duplicate">Duplicate</button>
         <button data-action="delete" class="danger">Delete</button>
@@ -72,6 +79,8 @@
         <div class="group-label">Export</div>
         <button data-action="export-stl">Download STL</button>
         <button data-action="export-3mf">Download 3MF</button>
+        <button data-action="export-png" title="Save the current view as a PNG image">Screenshot (PNG)</button>
+        <button data-action="export-shots" title="Render the scene from 6 preset angles and download them as a zip">Orbit shots (zip)</button>
       </div>
 
       <div class="group">
@@ -79,6 +88,31 @@
         <button data-action="save-project">Save Project</button>
         <button data-action="load-project">Load Project</button>
         <input type="file" id="file-input" accept=".json,.cadence.json,application/json" hidden />
+      </div>
+
+      <div class="group">
+        <div class="group-label">Settings</div>
+        <div class="setrow">
+          <label for="set-ui" title="The look of the whole app — palette and button styling. Flip through to pick a favorite.">UI style</label>
+          <select id="set-ui"></select>
+        </div>
+        <div class="setrow">
+          <label for="set-render" title="How solids are drawn in the viewport — shaded, flat clay, wireframe, or see-through.">Render</label>
+          <select id="set-render"></select>
+        </div>
+        <div class="setrow">
+          <label for="set-controls" title="Mouse navigation scheme — match the CAD/3D app you're used to, or build your own below.">Controls</label>
+          <select id="set-controls"></select>
+        </div>
+        <div class="setrow">
+          <label title="Assign each mouse button. Editing any of these switches to a Custom scheme you can save.">Buttons</label>
+          <div class="btnmap">
+            <select id="map-left" title="Left mouse button"></select>
+            <select id="map-middle" title="Middle mouse button"></select>
+            <select id="map-right" title="Right mouse button"></select>
+          </div>
+        </div>
+        <button data-action="save-preset" title="Save the current button mapping as a named preset you can reuse">Save controls preset…</button>
       </div>
 
       <div class="group">

@@ -17,12 +17,16 @@ import { Outliner } from './outliner.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
+import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, CONTROL_PRESETS, NAV_VERBS, controlMap } from './settings.js';
+import { zipSync } from 'fflate';
 
 // ---------------------------------------------------------------- scene setup
 const canvas = document.getElementById('viewport');
 // logarithmicDepthBuffer keeps depth precision sane across the huge near:far
 // range below, so distant objects don't z-fight or sink behind the grid.
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
+// preserveDrawingBuffer keeps the last frame readable after render, so the PNG /
+// orbit-shot exporters can grab the canvas pixels reliably.
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -67,6 +71,7 @@ orbit.dampingFactor = 0.08;
 orbit.target.set(0, 10, 0);
 orbit.minDistance = 0.5;
 orbit.maxDistance = 500_000;   // effectively unlimited dolly-out, no hard stop
+// Mouse-button scheme is set by the active control preset (see Settings, below).
 
 const gizmo = new TransformControls(camera, renderer.domElement);
 gizmo.setSize(0.9);
@@ -174,21 +179,29 @@ const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 let downAt = null;
 
-renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (lassoOn && e.button === 0) { lassoStart(e); return; }
+  downAt = { x: e.clientX, y: e.clientY };
+});
+renderer.domElement.addEventListener('pointermove', (e) => { if (lassoActive) lassoMove(e); });
 renderer.domElement.addEventListener('pointerup', (e) => {
+  if (lassoActive) { lassoEnd(e); return; }
   if (gizmo.dragging || !downAt) return;
   // Treat as a click only if the pointer barely moved (otherwise it was an orbit).
   if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) return;
+  if (measureOn) { measureClick(e); return; }
+  pickAt(e);
+});
 
+function pickAt(e) {
   const r = renderer.domElement.getBoundingClientRect();
   ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1;
   ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1;
   ray.setFromCamera(ptr, camera);
-
   const meshes = doc.list.map((o) => o.mesh);
   const hit = ray.intersectObjects(meshes, false)[0];
   doc.select(hit ? hit.object.userData.cadId : null, e.shiftKey); // Shift = add to selection
-});
+}
 
 // ---------------------------------------------------------------- toolbar
 document.getElementById('toolbar').addEventListener('click', (e) => {
@@ -203,6 +216,12 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
   }
 
   switch (btn.dataset.action) {
+    case 'frame':     frameSelection(); break;
+    case 'lasso':     toggleLasso(); break;
+    case 'measure':   toggleMeasure(); break;
+    case 'export-png':   exportScreenshot(); break;
+    case 'export-shots': exportOrbitShots(); break;
+    case 'save-preset':  saveControlsPreset(); break;
     case 'delete':    doc.removeSelected(); break;
     case 'duplicate': if (doc.selectedId) doc.duplicate(doc.selectedId); break;
     case 'group':     groupSelected(); break;
@@ -276,7 +295,10 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'g') { e.preventDefault(); e.shiftKey ? ungroupSelected() : groupSelected(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
   else if (k === 'f') frameSelection();
-  else if (k === 'escape') doc.select(null);
+  else if (k === 'l') toggleLasso();
+  else if (k === 'm') toggleMeasure();
+  else if (k.startsWith('arrow') && doc.selection.size) { e.preventDefault(); nudgeSelection(k, e.shiftKey, e.repeat); }
+  else if (k === 'escape') { if (lassoOn) setLasso(false); else if (measureOn) setMeasure(false); else doc.select(null); }
 });
 
 function setMode(mode) {
@@ -284,13 +306,31 @@ function setMode(mode) {
   document.querySelectorAll('button.mode').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
 }
 
+// Arrow keys nudge the selection by the snap step (1 mm if snapping is off) in
+// the ground plane; hold Shift to nudge vertically (Y). One undo step per hold.
+function nudgeSelection(key, shift, repeat) {
+  const step = snapToggle.checked ? (parseFloat(document.getElementById('snap-move').value) || 1) : 1;
+  const d = new THREE.Vector3();
+  if (key === 'arrowleft') d.x = -step;
+  else if (key === 'arrowright') d.x = step;
+  else if (key === 'arrowup') shift ? (d.y = step) : (d.z = -step);
+  else if (key === 'arrowdown') shift ? (d.y = -step) : (d.z = step);
+  else return;
+  if (!repeat) doc.commit();
+  for (const o of doc.selectedObjects) o.mesh.position.add(d);
+  if (doc.selected) doc.touch(doc.selected);
+  setStatus();
+}
+
 // ---------------------------------------------------------------- status bar
 const statusbar = document.getElementById('statusbar');
 function setStatus() {
+  if (measureOn && measureText) { statusbar.innerHTML = `<span>${measureText}</span><span class="units">units: mm</span>`; return; }
   const sel = doc.selected;
   const n = doc.selection.size;
   let left;
-  if (n > 1) left = `<b>${n}</b> objects selected — Group (Ctrl+G) to combine`;
+  if (measureOn) left = 'Measure: click two points on objects to read the distance. Esc/M to exit.';
+  else if (n > 1) left = `<b>${n}</b> objects selected — Group (Ctrl+G) to combine`;
   else if (sel) left = `<b>${sel.name}</b> · ${sel.kind}${sel.role === 'hole' ? ` · <span style="color:#ff8a8a">${ROLE_LABELS.hole}</span>` : ''} · pos (${fmt(sel.mesh.position)}) mm`;
   else left = `${doc.list.length} object${doc.list.length === 1 ? '' : 's'} — click to select · Shift-click adds`;
   statusbar.innerHTML = `<span>${left}</span><span class="units">units: mm</span>`;
@@ -299,6 +339,378 @@ const fmt = (v) => [v.x, v.y, v.z].map((n) => n.toFixed(1)).join(', ');
 function flash(msg) {
   statusbar.innerHTML = `<span>${msg}</span><span class="units">units: mm</span>`;
   setTimeout(setStatus, 2500);
+}
+
+// ---------------------------------------------------------------- render modes
+// How solids are drawn. Implemented as reversible tweaks on each object's own
+// MeshStandardMaterial (never a swap), so selection-emissive, holes, and undo all
+// keep working — and any mode is one step from baseline.
+let renderMode = 'shaded';
+
+function styleMaterial(o) {
+  const m = o.mesh.material;
+  if (!m || !('wireframe' in m)) return;
+  const isHole = o.role === 'hole';
+  // Reset to the baseline CadObject._material() produces…
+  m.wireframe = false;
+  m.metalness = 0.05; m.roughness = 0.65;
+  m.transparent = isHole; m.opacity = isHole ? 0.35 : 1; m.depthWrite = !isHole;
+  // …then layer the active mode on top.
+  if (renderMode === 'wireframe') m.wireframe = true;
+  else if (renderMode === 'matte') { m.metalness = 0; m.roughness = 1; }
+  else if (renderMode === 'xray') { m.transparent = true; m.opacity = 0.3; m.depthWrite = false; }
+  m.needsUpdate = true;
+}
+
+function applyRenderMode(id) { renderMode = id; for (const o of doc.list) styleMaterial(o); }
+
+// Keep the active render mode applied as the scene changes identity (add, undo,
+// regroup all mint fresh meshes/materials).
+doc.addEventListener('add', (e) => styleMaterial(e.detail));
+doc.addEventListener('change', (e) => { if (e.detail) styleMaterial(e.detail); });
+doc.addEventListener('regroup', () => doc.list.forEach(styleMaterial));
+doc.addEventListener('undo', () => doc.list.forEach(styleMaterial));
+
+// ---------------------------------------------------------------- lasso select
+// A mode (toolbar button / L): while on, left-drag draws a freehand loop and
+// everything whose center falls inside it gets selected. Orbit is suspended so
+// the drag belongs to the lasso; Esc or L exits.
+const SVGNS = 'http://www.w3.org/2000/svg';
+let lassoOn = false, lassoActive = false, lassoPts = [], lassoShift = false;
+let lassoSvg = null, lassoPath = null;
+
+function ensureLassoSvg() {
+  if (lassoSvg) return;
+  lassoSvg = document.createElementNS(SVGNS, 'svg');
+  lassoSvg.id = 'lasso-svg';
+  lassoPath = document.createElementNS(SVGNS, 'path');
+  lassoSvg.appendChild(lassoPath);
+  document.getElementById('app').appendChild(lassoSvg);
+}
+
+function setLasso(on) {
+  lassoOn = on;
+  if (on && measureOn) setMeasure(false);    // one viewport mode at a time
+  orbit.enabled = !on;                       // give the drag to the lasso, not the camera
+  renderer.domElement.style.cursor = on ? 'crosshair' : '';
+  document.getElementById('lasso-btn')?.classList.toggle('active', on);
+  if (!on) clearLasso();
+  flash(on ? 'Lasso on — drag a loop around objects. Esc or L to exit.' : 'Lasso off.');
+}
+function toggleLasso() { setLasso(!lassoOn); }
+
+function clearLasso() {
+  lassoActive = false; lassoPts = [];
+  if (lassoPath) lassoPath.removeAttribute('d');
+}
+
+function lassoStart(e) {
+  ensureLassoSvg();
+  lassoActive = true; lassoShift = e.shiftKey; lassoPts = [[e.clientX, e.clientY]];
+  updateLassoPath();
+}
+function lassoMove(e) { lassoPts.push([e.clientX, e.clientY]); updateLassoPath(); }
+function updateLassoPath() {
+  if (!lassoPath || !lassoPts.length) return;
+  lassoPath.setAttribute('d', lassoPts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ') + ' Z');
+}
+
+function lassoEnd(e) {
+  const pts = lassoPts.slice();
+  clearLasso();
+  // A tiny loop is really a click — fall back to single-pick so the tool still
+  // selects one object cleanly.
+  if (pts.length < 3 || polyArea(pts) < 25) { pickAt(e); return; }
+
+  const inside = [];
+  for (const o of doc.list) {
+    if (o.mesh.visible === false) continue;
+    const sp = objScreenPoint(o);
+    if (sp && pointInPoly(sp, pts)) inside.push(o.id);
+  }
+  if (!lassoShift) doc.select(null);
+  if (!inside.length) { flash('Lasso caught nothing.'); return; }
+  for (const id of inside) doc.select(id, true);
+  flash(`Lassoed ${inside.length} object${inside.length === 1 ? '' : 's'}.`);
+}
+
+function objScreenPoint(o) {
+  o.mesh.updateWorldMatrix(true, false);
+  const c = new THREE.Box3().setFromObject(o.mesh).getCenter(new THREE.Vector3());
+  c.project(camera);
+  if (c.z > 1) return null;                  // behind the camera — not on screen
+  const r = renderer.domElement.getBoundingClientRect();
+  return [(c.x * 0.5 + 0.5) * r.width + r.left, (-c.y * 0.5 + 0.5) * r.height + r.top];
+}
+function pointInPoly(p, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if (((yi > p[1]) !== (yj > p[1])) && (p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function polyArea(poly) {
+  let a = 0;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) a += (poly[j][0] + poly[i][0]) * (poly[j][1] - poly[i][1]);
+  return Math.abs(a / 2);
+}
+
+// ---------------------------------------------------------------- measure tool
+// A mode (toolbar / M): click two points on object surfaces to read the straight-
+// line distance and per-axis deltas. Orbit stays live, so drag still rotates.
+let measureOn = false;
+let measurePts = [];          // up to 2 world-space points
+let measureText = '';
+const measureGroup = new THREE.Group();
+scene.add(measureGroup);
+const MEASURE_COLOR = 0xffd54a;
+
+function disposeMeasureChildren() {
+  for (const c of [...measureGroup.children]) { c.geometry?.dispose(); c.material?.dispose(); measureGroup.remove(c); }
+}
+function clearMeasure() { measurePts = []; measureText = ''; disposeMeasureChildren(); }
+
+function setMeasure(on) {
+  measureOn = on;
+  if (on && lassoOn) setLasso(false);          // one viewport mode at a time
+  renderer.domElement.style.cursor = on ? 'crosshair' : '';
+  document.getElementById('measure-btn')?.classList.toggle('active', on);
+  if (!on) clearMeasure();
+  flash(on ? 'Measure on — click two points on objects. Esc or M to exit.' : 'Measure off.');
+}
+function toggleMeasure() { setMeasure(!measureOn); }
+
+function measureClick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(ptr, camera);
+  const meshes = doc.list.map((o) => o.mesh).filter((m) => m.visible !== false);
+  const hit = ray.intersectObjects(meshes, false)[0];
+  if (!hit) { flash('Click on an object surface to drop a measure point.'); return; }
+  if (measurePts.length >= 2) clearMeasure();   // a third click starts a fresh measurement
+  measurePts.push(hit.point.clone());
+  drawMeasure();
+  if (measurePts.length === 2) {
+    const [a, b] = measurePts;
+    measureText = `Distance: <b>${a.distanceTo(b).toFixed(2)}</b> mm &nbsp;(Δ ${Math.abs(b.x - a.x).toFixed(2)}, ${Math.abs(b.y - a.y).toFixed(2)}, ${Math.abs(b.z - a.z).toFixed(2)})`;
+  } else {
+    measureText = 'First point set — click a second point.';
+  }
+  setStatus();
+}
+
+function drawMeasure() {
+  disposeMeasureChildren();
+  for (const p of measurePts) {
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), new THREE.MeshBasicMaterial({ color: MEASURE_COLOR, depthTest: false }));
+    dot.position.copy(p); dot.renderOrder = 999;
+    measureGroup.add(dot);
+  }
+  if (measurePts.length === 2) {
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(measurePts), new THREE.LineBasicMaterial({ color: MEASURE_COLOR, depthTest: false }));
+    line.renderOrder = 999;
+    measureGroup.add(line);
+  }
+}
+
+// ---------------------------------------------------------------- image export
+function dataURLToU8(url) {
+  const bin = atob(url.split(',')[1]);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function snapshotURL() { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); }
+
+function exportScreenshot() {
+  const a = document.createElement('a');
+  a.href = snapshotURL(); a.download = 'cadence-view.png'; a.click();
+  flash('Saved screenshot (PNG).');
+}
+
+// Six canonical angles; each entry is a direction the camera sits along, looking
+// back at the framed scene center.
+const SHOT_VIEWS = {
+  iso:   [1, 0.8, 1],
+  front: [0, 0, 1],
+  back:  [0, 0, -1],
+  right: [1, 0, 0],
+  left:  [-1, 0, 0],
+  top:   [0, 1, 0.001],   // tiny z so 'up' isn't parallel to the view direction
+};
+
+function exportOrbitShots() {
+  if (!doc.list.length) { flash('Nothing to shoot — add a solid first.'); return; }
+  const box = new THREE.Box3();
+  for (const o of doc.list) { o.mesh.updateWorldMatrix(true, false); box.expandByObject(o.mesh); }
+  if (box.isEmpty()) { flash('Nothing visible to shoot.'); return; }
+  const center = box.getCenter(new THREE.Vector3());
+  const diag = box.getSize(new THREE.Vector3()).length() || 40;
+  const dist = (diag * 0.5) / Math.tan((camera.fov * Math.PI / 180) / 2) * 1.5;
+
+  const savePos = camera.position.clone();
+  const saveTarget = orbit.target.clone();
+  const files = {};
+  for (const [name, dir] of Object.entries(SHOT_VIEWS)) {
+    const d = new THREE.Vector3(dir[0], dir[1], dir[2]).normalize();
+    camera.position.copy(center).addScaledVector(d, Math.max(dist, diag));
+    camera.lookAt(center);
+    camera.updateMatrixWorld();
+    files[`cadence-${name}.png`] = dataURLToU8(snapshotURL());
+  }
+  // Restore the user's exact viewpoint.
+  camera.position.copy(savePos);
+  orbit.target.copy(saveTarget);
+  orbit.update();
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([zipSync(files)], { type: 'application/zip' }));
+  a.download = 'cadence-shots.zip'; a.click();
+  URL.revokeObjectURL(a.href);
+  flash('Saved 6 orbit shots (zip).');
+}
+
+// ---------------------------------------------------------------- hover hints
+// Mousing over any control writes its explanation into the status bar (bottom
+// left). Reads data-hint, falling back to the element's title.
+function wireHints() {
+  document.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('[data-hint], [title]');
+    const hint = el && (el.dataset.hint || el.getAttribute('title'));
+    if (hint) statusbar.innerHTML = `<span>${hint}</span><span class="units">units: mm</span>`;
+  });
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest('[data-hint], [title]')) setStatus();
+  });
+}
+
+// ---------------------------------------------------------------- collapsible panels
+// Adds a –/+ toggle to a panel's header; collapsing hides all but that header.
+function makeCollapsible(panelId, headSelector) {
+  const panel = document.getElementById(panelId);
+  const head = panel?.querySelector(headSelector);
+  if (!head) return;
+  const btn = document.createElement('button');
+  btn.className = 'collapse-btn';
+  btn.title = 'Collapse / expand this panel';
+  btn.textContent = '–';
+  btn.addEventListener('click', () => { btn.textContent = panel.classList.toggle('collapsed') ? '+' : '–'; });
+  head.appendChild(btn);
+}
+
+// ---------------------------------------------------------------- settings
+const settings = loadSettings();
+
+function fillSelect(id, items, current) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = items.map((it) => `<option value="${it.id}">${it.label}</option>`).join('');
+  sel.value = current;
+}
+
+function applyUiStyle(id) {
+  document.documentElement.dataset.ui = id;
+  // Tie the viewport background to the palette so panel + scene feel cohesive.
+  const bg = { paper: 0xdfe3e8, blueprint: 0x0a1622, neon: 0x0d0a18, graphite: 0x0b0d10 }[id] ?? 0x0e1116;
+  scene.background = new THREE.Color(bg);
+}
+
+// --- controls: built-in presets + per-button custom + saveable user presets ---
+function allControlPresets() { return [...CONTROL_PRESETS, ...(settings.userPresets || [])]; }
+function presetMap(id) { const p = allControlPresets().find((x) => x.id === id); return p ? p.map : null; }
+// The map actually applied: an explicit custom/saved map wins, else derive from
+// the selected built-in preset.
+function activeMap() { return settings.map || presetMap(settings.controls) || controlMap('cadence'); }
+
+function applyControlsMap(map) {
+  const v = (verb) => (verb === 'NONE' ? -1 : THREE.MOUSE[verb]);   // -1 = button does nothing
+  orbit.mouseButtons = { LEFT: v(map.LEFT), MIDDLE: v(map.MIDDLE), RIGHT: v(map.RIGHT) };
+}
+
+function fillControlsSelect() {
+  const sel = document.getElementById('set-controls');
+  sel.innerHTML = allControlPresets().map((p) => `<option value="${p.id}">${p.label}</option>`).join('')
+    + '<option value="custom">Custom…</option>';
+  sel.value = settings.controls;
+}
+
+const MAP_SELECTS = [['map-left', 'LEFT'], ['map-middle', 'MIDDLE'], ['map-right', 'RIGHT']];
+function fillButtonMap(map) {
+  for (const [id, btn] of MAP_SELECTS) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = NAV_VERBS.map((v) => `<option value="${v.id}">${v.label}</option>`).join('');
+    sel.value = map[btn];
+  }
+}
+
+// Apply a map, remember it, and sync every control widget to it.
+function setControls(map, presetId) {
+  settings.map = { ...map };
+  settings.controls = presetId;
+  applyControlsMap(map);
+  fillButtonMap(map);
+  document.getElementById('set-controls').value = presetId;
+  saveSettings(settings);
+}
+
+function readButtonMap() {
+  return {
+    LEFT: document.getElementById('map-left').value,
+    MIDDLE: document.getElementById('map-middle').value,
+    RIGHT: document.getElementById('map-right').value,
+  };
+}
+
+function saveControlsPreset() {
+  const name = prompt('Name this controls preset:');
+  if (!name || !name.trim()) return;
+  const id = 'user-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
+  settings.userPresets = settings.userPresets || [];
+  settings.userPresets.push({ id, label: name.trim(), map: { ...activeMap() } });
+  settings.controls = id;
+  saveSettings(settings);
+  fillControlsSelect();
+  document.getElementById('set-controls').value = id;
+  flash(`Saved controls preset "${name.trim()}".`);
+}
+
+function initControls() {
+  const m = activeMap();
+  fillControlsSelect();
+  fillButtonMap(m);
+  applyControlsMap(m);
+
+  document.getElementById('set-controls').addEventListener('change', (e) => {
+    const id = e.target.value;
+    if (id === 'custom') { settings.controls = 'custom'; saveSettings(settings); return; }
+    const map = presetMap(id);
+    if (map) { setControls(map, id); flash(`Controls: ${e.target.selectedOptions[0].text}.`); }
+  });
+
+  for (const [id] of MAP_SELECTS) {
+    document.getElementById(id).addEventListener('change', () => { setControls(readButtonMap(), 'custom'); flash('Custom controls applied.'); });
+  }
+}
+
+function initSettings() {
+  fillSelect('set-ui', UI_STYLES, settings.ui);
+  fillSelect('set-render', RENDER_MODES, settings.render);
+  applyUiStyle(settings.ui);
+  applyRenderMode(settings.render);
+  initControls();
+
+  const bind = (id, key, apply) => document.getElementById(id).addEventListener('change', (e) => {
+    settings[key] = e.target.value; apply(settings[key]); saveSettings(settings);
+    flash(`${e.target.previousElementSibling.textContent}: ${e.target.selectedOptions[0].text}.`);
+  });
+  bind('set-ui', 'ui', applyUiStyle);
+  bind('set-render', 'render', applyRenderMode);
+
+  makeCollapsible('toolbar', '.brand');
+  makeCollapsible('inspector', '.group-label');
+  makeCollapsible('outliner', '.group-label');
+  wireHints();
 }
 
 // ---------------------------------------------------------------- resize + loop
@@ -320,6 +732,10 @@ tick();
 
 // Pre-warm the boolean kernel in the background so the first Group is snappy.
 warmKernel();
+
+// Apply saved preferences (UI style, render mode, controls) and wire hover hints
+// before seeding, so the first object is drawn in the active render mode.
+initSettings();
 
 // Seed the scene so first load isn't empty.
 doc.add('box');

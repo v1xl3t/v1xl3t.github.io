@@ -14,7 +14,9 @@ import { zipSync, strToU8 } from 'fflate';
 
 // CADence works Y-up; slicers expect Z-up. Bake this rotation into exports so
 // parts drop onto the print bed upright instead of lying on their side.
-const Z_UP = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
+// +90° about X sends CADence's +Y (up) to the slicer's +Z (up); the -90° we
+// used before sent it to -Z, which landed parts upside down on the bed.
+const Z_UP = new THREE.Matrix4().makeRotationX(Math.PI / 2);
 
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);

@@ -41,12 +41,36 @@ html, body {
 #toolbar { left: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
 #inspector { right: 12px; max-height: 52vh; overflow-y: auto; }
 
+/* Slim, themed scrollbars — replaces the chunky default OS bar inside panels. */
+.panel { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.panel::-webkit-scrollbar { width: 8px; height: 8px; }
+.panel::-webkit-scrollbar-track { background: transparent; }
+.panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.panel::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); background-clip: content-box; }
+
 .brand { font-weight: 600; font-size: 15px; margin-bottom: 12px; letter-spacing: .2px; }
 .tag {
   font-size: 10px; font-weight: 600; color: var(--accent);
   border: 1px solid var(--accent-dim); border-radius: 5px;
   padding: 1px 5px; margin-left: 4px; vertical-align: middle;
 }
+
+/* Per-panel collapse toggle (top-right). Collapsing hides everything but the
+   panel's header line, reclaiming screen for the viewport. */
+button.collapse-btn {
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px; margin: 0; padding: 0;
+  text-align: center; line-height: 18px; font-size: 15px;
+  color: var(--muted);
+}
+button.collapse-btn:hover { color: var(--text); }
+.panel.collapsed { padding-bottom: 10px; }
+.panel.collapsed > *:not(:first-child) { display: none; }
 
 .group { margin-bottom: 14px; }
 .group-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 6px; }
@@ -71,6 +95,26 @@ button:active { transform: translateY(1px); }
 button.mode { width: calc(33% - 4px); display: inline-block; text-align: center; padding: 7px 2px; }
 button.mode.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
 button.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+button.tool.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+
+/* Settings rows — label + dropdown */
+.setrow { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.setrow label { flex: none; width: 58px; font-size: 11px; color: var(--muted); }
+.setrow select {
+  flex: 1; padding: 5px 6px;
+  background: #0c1014; color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  font: inherit; cursor: pointer;
+}
+.setrow select:focus { outline: none; border-color: var(--accent); }
+.btnmap { flex: 1; display: flex; gap: 4px; }
+.btnmap select {
+  flex: 1; min-width: 0; padding: 4px 3px; font-size: 11px;
+  background: #0c1014; color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+.btnmap select:focus { outline: none; border-color: var(--accent); }
 
 .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--muted); font-size: 12px; cursor: pointer; }
 .check input { accent-color: var(--accent); }
@@ -130,3 +174,55 @@ input[type="number"]:focus, input[type="text"]:focus { outline: none; border-col
   display: flex; justify-content: space-between;
 }
 #statusbar .units { color: var(--text); }
+
+/* Lasso overlay — a freehand selection loop drawn over the viewport. */
+#lasso-svg { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+#lasso-svg path { fill: var(--accent); fill-opacity: 0.10; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
+
+/* ============================================================
+   UI styles — flip live via Settings ▸ UI style. Each overrides
+   the palette (and a few button traits) so the whole app re-skins.
+   "midnight" is the base defined in :root above.
+   ============================================================ */
+html[data-ui="graphite"] {
+  --bg: #0b0d10; --panel: #14171ccc; --panel-solid: #14171c;
+  --border: #2c2f36; --text: #d4d7dc; --muted: #767b84;
+  --accent: #9aa0aa; --accent-dim: #3a3f47;
+}
+html[data-ui="graphite"] button,
+html[data-ui="graphite"] .panel,
+html[data-ui="graphite"] .setrow select { border-radius: 4px; }
+
+html[data-ui="blueprint"] {
+  --bg: #0a1622; --panel: #0f2236cc; --panel-solid: #0f2236;
+  --border: #1d3a55; --text: #cfe6f5; --muted: #6f96b3;
+  --accent: #4fc3f7; --accent-dim: #15466b;
+}
+html[data-ui="blueprint"] button,
+html[data-ui="blueprint"] .setrow select { border-radius: 3px; }
+html[data-ui="blueprint"] .group-label { color: #4fc3f7; }
+
+html[data-ui="paper"] {
+  --bg: #eef0f3; --panel: #ffffffe6; --panel-solid: #ffffff;
+  --border: #d3d8e0; --text: #1b2230; --muted: #5d6675;
+  --accent: #2f6df6; --accent-dim: #bcd2ff;
+}
+html[data-ui="paper"] button { background: #f3f5f8; }
+html[data-ui="paper"] button:hover { background: #e9edf3; }
+html[data-ui="paper"] input[type="number"],
+html[data-ui="paper"] input[type="text"],
+html[data-ui="paper"] .setrow select,
+html[data-ui="paper"] .snaprow input { background: #fbfcfe; }
+html[data-ui="paper"] button.mode.active,
+html[data-ui="paper"] button.tool.active { color: #0b2f8a; }
+
+html[data-ui="neon"] {
+  --bg: #0d0a18; --panel: #160f2acc; --panel-solid: #160f2a;
+  --border: #2e2350; --text: #ece6ff; --muted: #9d8fc7;
+  --accent: #b36bff; --accent-dim: #3c2a63; --good: #38e8c0;
+}
+html[data-ui="neon"] button,
+html[data-ui="neon"] .panel,
+html[data-ui="neon"] .setrow select { border-radius: 12px; }
+html[data-ui="neon"] button.mode.active,
+html[data-ui="neon"] button.tool.active { box-shadow: 0 0 10px -2px var(--accent); }
