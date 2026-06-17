@@ -34,12 +34,25 @@ html, body {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
-  width: 200px;
   z-index: 10;
 }
 
-#toolbar { left: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
-#inspector { right: 12px; max-height: 52vh; overflow-y: auto; }
+#toolbar  { left: 12px;  width: var(--toolbar-w, 200px); max-height: calc(100vh - 24px); overflow-y: auto; }
+#inspector { right: 12px; width: var(--side-w, 200px);    max-height: 52vh; overflow-y: auto; }
+
+/* Drag handle to resize a panel by its inner edge. */
+.resize-handle {
+  position: absolute; top: 0; bottom: 0; width: 8px;
+  cursor: ew-resize; z-index: 11; touch-action: none;
+}
+.resize-handle.right { right: -8px; }   /* toolbar: drag its right edge (sits over canvas, clear of scrollbar) */
+.resize-handle.left  { left: -8px; }    /* inspector/outliner: drag the left edge */
+.resize-handle::after {
+  content: ''; position: absolute; top: 50%; transform: translateY(-50%);
+  left: 2px; width: 3px; height: 28px; border-radius: 3px;
+  background: var(--border); opacity: 0; transition: opacity .15s;
+}
+.resize-handle:hover::after, .panel.resizing .resize-handle::after { opacity: 1; background: var(--accent); }
 
 /* Slim, themed scrollbars — replaces the chunky default OS bar inside panels. */
 .panel { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
@@ -137,12 +150,16 @@ button[data-add] { width: calc(50% - 3px); text-align: center; padding: 7px 4px;
 .axis.y span { color: #4ade80; }
 .axis.z span { color: #5b9bff; }
 input[type="number"], input[type="text"] {
-  width: 100%; padding: 5px 6px;
+  width: 100%; padding: 5px 4px;
   background: #0c1014; color: var(--text);
   border: 1px solid var(--border); border-radius: 6px;
   font: inherit;
 }
 input[type="number"]:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
+/* Drop the spinner arrows — they steal ~16px and clip values like "-68.0". */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .swatch-row { display: flex; align-items: center; gap: 8px; }
 .swatch-row input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; }
 .meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
@@ -155,7 +172,7 @@ input[type="number"]:focus, input[type="text"]:focus { outline: none; border-col
 .seg button[data-role="hole"].on { background: #5c2b2b; border-color: var(--danger); }
 
 /* Outliner (Objects panel) */
-#outliner { right: 12px; bottom: 36px; top: auto; max-height: 38vh; overflow-y: auto; }
+#outliner { right: 12px; width: var(--side-w, 200px); bottom: 36px; top: auto; max-height: 38vh; overflow-y: auto; }
 .orow { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
 .orow:hover { background: #1f262f; }
 .orow.sel { background: var(--accent-dim); }

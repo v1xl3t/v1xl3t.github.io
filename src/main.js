@@ -183,9 +183,8 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
   if (lassoOn && e.button === 0) { lassoStart(e); return; }
   downAt = { x: e.clientX, y: e.clientY };
 });
-renderer.domElement.addEventListener('pointermove', (e) => { if (lassoActive) lassoMove(e); });
 renderer.domElement.addEventListener('pointerup', (e) => {
-  if (lassoActive) { lassoEnd(e); return; }
+  if (lassoActive) return;            // lasso runs its own window-level drag
   if (gizmo.dragging || !downAt) return;
   // Treat as a click only if the pointer barely moved (otherwise it was an orbit).
   if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) return;
@@ -393,25 +392,34 @@ function setLasso(on) {
   if (on && measureOn) setMeasure(false);    // one viewport mode at a time
   orbit.enabled = !on;                       // give the drag to the lasso, not the camera
   gizmo.enabled = !on;                       // stop the transform gizmo eating the drag
+  gizmo.visible = !on;                        // and hide it so the loop reads clearly
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('lasso-btn')?.classList.toggle('active', on);
-  if (!on) clearLasso();
+  if (!on) { clearLasso(); refreshSelectionView(); }   // restore gizmo on the primary
   flash(on ? 'Lasso on — drag a loop around objects. Esc or L to exit.' : 'Lasso off.');
 }
 function toggleLasso() { setLasso(!lassoOn); }
 
 function clearLasso() {
   lassoActive = false; lassoPts = [];
+  window.removeEventListener('pointermove', lassoMove, true);
+  window.removeEventListener('pointerup', lassoUp, true);
   if (lassoPath) lassoPath.removeAttribute('d');
 }
 
 function lassoStart(e) {
   ensureLassoSvg();
-  try { renderer.domElement.setPointerCapture(e.pointerId); } catch { /* non-fatal */ }
+  e.preventDefault();
   lassoActive = true; lassoShift = e.shiftKey; lassoPts = [[e.clientX, e.clientY]];
   updateLassoPath();
+  // Track on window (capture) so the drag survives leaving the canvas or a missed
+  // pointer-capture — the old canvas-only listeners left lassoActive stuck if the
+  // pointer was released off-canvas.
+  window.addEventListener('pointermove', lassoMove, true);
+  window.addEventListener('pointerup', lassoUp, true);
 }
-function lassoMove(e) { lassoPts.push([e.clientX, e.clientY]); updateLassoPath(); }
+function lassoMove(e) { if (!lassoActive) return; lassoPts.push([e.clientX, e.clientY]); updateLassoPath(); }
+function lassoUp(e) { if (lassoActive) lassoEnd(e); }
 function updateLassoPath() {
   if (!lassoPath || !lassoPts.length) return;
   lassoPath.setAttribute('d', lassoPts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ') + ' Z');
@@ -603,6 +611,43 @@ function makeCollapsible(panelId, headSelector) {
   head.appendChild(btn);
 }
 
+// ---------------------------------------------------------------- resizable panels
+// A drag handle on a panel's inner edge sets a CSS width variable (persisted), so
+// the left toolbar and right inspector/outliner can be widened — handy when long
+// numbers would otherwise clip.
+const PANEL_MIN = 170, PANEL_MAX = 560;
+function makeResizable(panelId, edge, cssVar) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const handle = document.createElement('div');
+  handle.className = `resize-handle ${edge}`;
+  handle.dataset.hint = 'Drag to resize this panel';
+  panel.appendChild(handle);
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    panel.classList.add('resizing');
+    const startX = e.clientX, startW = panel.getBoundingClientRect().width;
+    const onMove = (ev) => {
+      const delta = edge === 'right' ? ev.clientX - startX : startX - ev.clientX;
+      const w = Math.max(PANEL_MIN, Math.min(PANEL_MAX, Math.round(startW + delta)));
+      document.documentElement.style.setProperty(cssVar, w + 'px');
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      panel.classList.remove('resizing');
+      const w = document.documentElement.style.getPropertyValue(cssVar);
+      if (w) localStorage.setItem('cad.' + cssVar, w);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+}
+function restorePanelWidth(cssVar) {
+  const w = localStorage.getItem('cad.' + cssVar);
+  if (w) document.documentElement.style.setProperty(cssVar, w);
+}
+
 // ---------------------------------------------------------------- settings
 const settings = loadSettings();
 
@@ -713,6 +758,12 @@ function initSettings() {
   makeCollapsible('toolbar', '.brand');
   makeCollapsible('inspector', '.group-label');
   makeCollapsible('outliner', '.group-label');
+
+  restorePanelWidth('--toolbar-w');
+  restorePanelWidth('--side-w');
+  makeResizable('toolbar', 'right', '--toolbar-w');     // left panel: drag right edge
+  makeResizable('inspector', 'left', '--side-w');        // right panels share one width
+  makeResizable('outliner', 'left', '--side-w');
   wireHints();
 }
 
