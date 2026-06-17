@@ -5,379 +5,1061 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vi Ellis — Engineer · Product Developer · Composer</title>
 <meta name="description" content="Vi Ellis — full-stack engineer, hardware product developer, and award-winning composer. Production AI agents, a 100-unit hardware run, GDC-showcased game audio." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' rx='3' fill='%234fc3f7'/%3E%3Ctext x='8' y='12' font-size='10' text-anchor='middle' fill='%230a0f16' font-family='sans-serif' font-weight='700'%3EV%3C/text%3E%3C/svg%3E" />
+<meta name="theme-color" content="#0a0f16" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0f16'/%3E%3Cpath d='M16 18 L32 46 L48 18' fill='none' stroke='%234fc3f7' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <style>
-  :root{
-    --bg:#0a0f16; --bg2:#0e151f; --panel:#121b27; --border:#1f3147;
-    --text:#e7eef6; --muted:#8aa0b6; --accent:#4fc3f7; --accent-dim:#15466b;
-    --max:1080px;
+/* ============================================================
+   Vi Ellis — Portfolio
+   Design system: dark, precise, cross-disciplinary.
+   The signature motif: a hero canvas where a waveform resolves
+   into a circuit trace and a wireframe mesh — code · sound · hardware.
+   ============================================================ */
+:root{
+  --bg:#0a0f16;
+  --bg-2:#0c121b;
+  --panel:#121b27;
+  --panel-2:#15202f;
+  --border:#1f3147;
+  --border-soft:#172335;
+  --text:#e7eef6;
+  --muted:#8aa0b6;
+  --muted-2:#6f87a0;
+  --accent:#4fc3f7;
+  --accent-2:#9d7bff;     /* sound */
+  --accent-3:#5ce0b0;     /* hardware */
+  --accent-4:#ffb454;     /* teaching */
+  --accent-dim:#15466b;
+  --accent-glow:rgba(79,195,247,.25);
+
+  --radius:16px;
+  --radius-sm:10px;
+  --radius-pill:999px;
+  --maxw:1080px;
+
+  --shadow:0 1px 0 rgba(255,255,255,.02), 0 18px 40px -24px rgba(0,0,0,.8);
+  --shadow-lift:0 1px 0 rgba(255,255,255,.04), 0 30px 60px -28px rgba(0,0,0,.9);
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --step--1: clamp(.78rem, .76rem + .1vw, .85rem);
+  --step-0:  clamp(.95rem, .92rem + .15vw, 1.02rem);
+  --step-1:  clamp(1.1rem, 1.02rem + .4vw, 1.3rem);
+  --step-2:  clamp(1.4rem, 1.2rem + .9vw, 1.9rem);
+  --step-3:  clamp(2rem, 1.5rem + 2.4vw, 3.4rem);
+  --step-4:  clamp(2.6rem, 1.7rem + 4.4vw, 4.9rem);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+
+body{
+  margin:0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(79,195,247,.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(157,123,255,.06), transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:var(--step-0);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 clamp(18px,4vw,40px)}
+
+/* skip link */
+.skip{
+  position:absolute; left:12px; top:-60px; z-index:200;
+  background:var(--accent); color:#04121d; font-weight:700;
+  padding:10px 16px; border-radius:var(--radius-sm);
+  transition:top .2s ease;
+}
+.skip:focus{top:12px; text-decoration:none}
+
+/* ---------------- focus visibility ---------------- */
+a:focus-visible, button:focus-visible, summary:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:3px;
+  border-radius:6px;
+}
+
+/* ============================= HEADER / NAV ============================= */
+header{
+  position:sticky; top:0; z-index:100;
+  background:rgba(10,15,22,.72);
+  backdrop-filter:saturate(140%) blur(12px);
+  -webkit-backdrop-filter:saturate(140%) blur(12px);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s ease, background .3s ease;
+}
+header.scrolled{ border-bottom-color:var(--border); background:rgba(9,13,20,.86) }
+
+nav{
+  max-width:var(--maxw); margin:0 auto;
+  padding:14px clamp(18px,4vw,40px);
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.brand{
+  display:inline-flex; align-items:center; gap:10px;
+  font-weight:800; letter-spacing:-.01em; color:var(--text);
+  font-size:1.05rem;
+}
+.brand:hover{text-decoration:none}
+.brand .mark{
+  width:30px; height:30px; flex:none;
+  display:grid; place-items:center;
+  border-radius:9px;
+  background:linear-gradient(140deg, var(--accent-dim), #0e2236);
+  border:1px solid var(--border);
+  color:var(--accent); font-weight:900;
+  box-shadow:inset 0 0 12px rgba(79,195,247,.15);
+}
+.nav-links{display:flex; align-items:center; gap:4px}
+.nav-links a{
+  color:var(--muted); font-weight:600; font-size:.93rem;
+  padding:8px 12px; border-radius:var(--radius-pill);
+  position:relative; transition:color .2s ease, background .2s ease;
+}
+.nav-links a:hover{color:var(--text); text-decoration:none; background:rgba(255,255,255,.04)}
+.nav-links a.active{color:var(--text)}
+.nav-links a.active::after{
+  content:""; position:absolute; left:12px; right:12px; bottom:2px; height:2px;
+  background:var(--accent); border-radius:2px;
+}
+.nav-links a.cta{
+  color:#04121d; background:var(--accent); font-weight:700;
+  box-shadow:0 6px 20px -8px var(--accent-glow);
+}
+.nav-links a.cta:hover{background:#6fd0fb; color:#04121d}
+
+.menu-btn{
+  display:none; background:transparent; border:1px solid var(--border);
+  color:var(--text); width:42px; height:42px; border-radius:11px;
+  cursor:pointer; align-items:center; justify-content:center;
+}
+.menu-btn svg{display:block}
+
+@media (max-width:760px){
+  .menu-btn{display:inline-flex}
+  .nav-links{
+    position:fixed; inset:62px 0 auto 0;
+    flex-direction:column; align-items:stretch; gap:2px;
+    background:rgba(9,13,20,.97);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    padding:12px clamp(18px,4vw,40px) 18px;
+    transform:translateY(-12px); opacity:0; pointer-events:none;
+    transition:transform .22s ease, opacity .22s ease;
   }
-  *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  a{color:var(--accent); text-decoration:none;}
-  a:hover{text-decoration:underline;}
-  .wrap{max-width:var(--max); margin:0 auto; padding:0 22px;}
-  h1,h2,h3{line-height:1.2; margin:0;}
-  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+  .nav-links.open{transform:translateY(0); opacity:1; pointer-events:auto}
+  .nav-links a{padding:13px 14px; font-size:1rem; border-radius:10px}
+  .nav-links a.active::after{display:none}
+  .nav-links a.active{background:rgba(79,195,247,.1)}
+  .nav-links a.cta{margin-top:6px; text-align:center}
+}
+@media (prefers-reduced-motion: reduce){
+  .nav-links{transition:none}
+}
 
-  /* nav */
-  header{position:sticky; top:0; z-index:50; background:rgba(10,15,22,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--border);}
-  nav{display:flex; align-items:center; justify-content:space-between; height:60px;}
-  .brand{font-weight:700; letter-spacing:.3px; font-size:17px;}
-  .brand b{color:var(--accent);}
-  .navlinks{display:flex; gap:22px;}
-  .navlinks a{color:var(--muted); font-size:14.5px; font-weight:500;}
-  .navlinks a:hover{color:var(--text); text-decoration:none;}
-  @media(max-width:640px){ .navlinks{gap:14px; font-size:13px;} .navlinks .opt{display:none;} }
+/* ============================= HERO ============================= */
+.hero{position:relative; padding:clamp(56px,9vw,118px) 0 clamp(40px,6vw,72px); overflow:hidden}
+#heroCanvas{
+  position:absolute; inset:0; width:100%; height:100%;
+  z-index:0; opacity:.85;
+  -webkit-mask-image:linear-gradient(to bottom, #000 55%, transparent 100%);
+  mask-image:linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+.hero .wrap{position:relative; z-index:1}
 
-  /* hero */
-  .hero{padding:84px 0 64px; border-bottom:1px solid var(--border);
-    background:radial-gradient(900px 420px at 78% -10%, rgba(79,195,247,.12), transparent 70%);}
-  .eyebrow{color:var(--accent); font-weight:600; letter-spacing:.14em; text-transform:uppercase; font-size:12.5px; margin-bottom:16px;}
-  .hero h1{font-size:clamp(30px,5.2vw,52px); font-weight:800; max-width:18ch;}
-  .hero .lede{color:var(--muted); font-size:clamp(16px,2.2vw,20px); max-width:60ch; margin-top:20px;}
-  .cta{display:flex; gap:12px; margin-top:30px; flex-wrap:wrap;}
-  .btn{display:inline-block; padding:11px 20px; border-radius:9px; font-weight:600; font-size:15px; border:1px solid var(--border);}
-  .btn.primary{background:var(--accent); color:#06121c; border-color:var(--accent);}
-  .btn.primary:hover{filter:brightness(1.08); text-decoration:none;}
-  .btn.ghost{color:var(--text);}
-  .btn.ghost:hover{border-color:var(--accent); text-decoration:none;}
+.eyebrow{
+  display:inline-flex; align-items:center; gap:9px;
+  font-family:var(--mono); font-size:var(--step--1);
+  letter-spacing:.12em; text-transform:uppercase;
+  color:var(--accent);
+  background:rgba(79,195,247,.07);
+  border:1px solid var(--border);
+  padding:7px 14px; border-radius:var(--radius-pill);
+}
+.eyebrow .dot{width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px rgba(79,195,247,.18)}
 
-  /* pillars */
-  .pillars{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:50px;}
-  @media(max-width:820px){ .pillars{grid-template-columns:repeat(2,1fr);} }
-  @media(max-width:460px){ .pillars{grid-template-columns:1fr;} }
-  .pillar{background:var(--panel); border:1px solid var(--border); border-radius:11px; padding:16px;}
-  .pillar h3{font-size:14.5px; color:var(--accent);}
-  .pillar p{color:var(--muted); font-size:13.5px; margin:7px 0 0;}
+h1.hero-title{
+  font-size:var(--step-4); line-height:1.04; letter-spacing:-.025em;
+  font-weight:800; margin:.55em 0 0; max-width:16ch;
+}
+h1.hero-title .accent{
+  background:linear-gradient(100deg, var(--accent), #8fe1ff 60%, var(--accent-2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.lede{
+  margin:1.1em 0 0; max-width:60ch;
+  font-size:var(--step-1); color:#c6d4e3; line-height:1.55;
+}
+.lede strong{color:var(--text); font-weight:700}
 
-  /* sections */
-  section{padding:70px 0; border-bottom:1px solid var(--border);}
-  .sec-label{color:var(--accent); font-weight:600; letter-spacing:.14em; text-transform:uppercase; font-size:12.5px; margin-bottom:10px;}
-  .sec-title{font-size:clamp(24px,3.6vw,34px); font-weight:800; margin-bottom:8px;}
-  .sec-sub{color:var(--muted); max-width:64ch; margin-bottom:28px;}
+.cta-row{display:flex; flex-wrap:wrap; gap:14px; margin-top:1.8em}
+.btn{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:13px 22px; border-radius:var(--radius-pill);
+  font-weight:700; font-size:.98rem; cursor:pointer;
+  border:1px solid transparent; transition:transform .15s ease, background .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.btn:hover{text-decoration:none; transform:translateY(-2px)}
+.btn-primary{background:var(--accent); color:#04121d; box-shadow:0 10px 30px -10px var(--accent-glow)}
+.btn-primary:hover{background:#6fd0fb; box-shadow:0 16px 38px -12px var(--accent-glow)}
+.btn-ghost{background:transparent; color:var(--text); border-color:var(--border)}
+.btn-ghost:hover{border-color:var(--accent); background:rgba(79,195,247,.06)}
+@media (prefers-reduced-motion: reduce){ .btn:hover{transform:none} }
 
-  /* work filter + grid */
-  .filters{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:26px;}
-  .filters button{background:var(--panel); color:var(--muted); border:1px solid var(--border); border-radius:999px;
-    padding:8px 15px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer;}
-  .filters button:hover{color:var(--text);}
-  .filters button.on{background:var(--accent-dim); color:#fff; border-color:var(--accent);}
-  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:18px;}
-  @media(max-width:760px){ .grid{grid-template-columns:1fr;} }
-  .card{background:var(--panel); border:1px solid var(--border); border-radius:13px; padding:20px; display:flex; flex-direction:column;}
-  .card .tags{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px;}
-  .chip{font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:999px;
-    background:var(--accent-dim); color:#cdeafe;}
-  .chip.muted{background:#16202d; color:var(--muted);}
-  .card h3{font-size:18px; margin-bottom:7px;}
-  .card .blurb{color:var(--text); font-size:14.5px;}
-  .card .outcome{color:var(--muted); font-size:13.5px; margin-top:11px;}
-  .card .outcome b{color:var(--accent);}
-  .stack{display:flex; gap:6px; flex-wrap:wrap; margin-top:13px;}
-  .stack span{font-size:11.5px; color:var(--muted); background:#0e1722; border:1px solid var(--border); border-radius:6px; padding:2px 8px;}
-  details{margin-top:13px; border-top:1px solid var(--border); padding-top:11px;}
-  details summary{cursor:pointer; color:var(--accent); font-size:13.5px; font-weight:600; list-style:none;}
-  details summary::-webkit-details-marker{display:none;}
-  details summary::before{content:"+ "; }
-  details[open] summary::before{content:"– "; }
-  details .dl{font-size:13.5px; color:var(--muted); margin-top:10px;}
-  details .dl b{color:var(--text); font-weight:600;}
-  .media-note{font-size:12px; color:#5e718a; font-style:italic; margin-top:10px;}
+/* pillars */
+.pillars{
+  margin-top:clamp(40px,6vw,68px);
+  display:grid; gap:14px;
+  grid-template-columns:repeat(4,1fr);
+}
+@media (max-width:880px){ .pillars{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:460px){ .pillars{grid-template-columns:1fr} }
+.pillar{
+  background:linear-gradient(180deg, var(--panel), var(--bg-2));
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius); padding:18px 18px 20px;
+  position:relative; overflow:hidden;
+  transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.pillar::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--pc, var(--accent)); opacity:.85;
+}
+.pillar:hover{transform:translateY(-3px); border-color:var(--border); box-shadow:var(--shadow)}
+@media (prefers-reduced-motion: reduce){ .pillar:hover{transform:none} }
+.pillar .pi{
+  width:38px; height:38px; border-radius:11px; display:grid; place-items:center;
+  background:rgba(255,255,255,.03); border:1px solid var(--border-soft);
+  color:var(--pc, var(--accent)); margin-bottom:12px;
+}
+.pillar .pi svg{display:block}
+.pillar h3{margin:0 0 5px; font-size:1rem; letter-spacing:-.01em}
+.pillar p{margin:0; color:var(--muted); font-size:.9rem; line-height:1.5}
 
-  /* about */
-  .about p{color:var(--muted); max-width:72ch; margin:0 0 16px;}
-  .about p b{color:var(--text);}
-  .recog{display:flex; gap:9px; flex-wrap:wrap; margin-top:6px;}
-  .recog span{font-size:13px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:6px 12px;}
+/* ============================= SECTIONS ============================= */
+section{padding:clamp(56px,8vw,96px) 0; position:relative}
+.section-label{
+  font-family:var(--mono); font-size:var(--step--1);
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:12px; margin:0 0 10px;
+}
+.section-label::before{content:""; width:26px; height:1px; background:var(--accent); opacity:.6}
+.section-title{font-size:var(--step-3); line-height:1.08; letter-spacing:-.02em; margin:0; font-weight:800}
+.section-sub{margin:.9em 0 0; color:var(--muted); max-width:62ch; font-size:1.02rem}
 
-  /* contact */
-  .contact-links{display:flex; gap:14px; flex-wrap:wrap; margin-top:18px;}
-  .contact-links a{background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:11px 18px; color:var(--text); font-weight:600; font-size:14.5px;}
-  .contact-links a:hover{border-color:var(--accent); text-decoration:none;}
-  .note{color:#5e718a; font-size:12.5px; font-style:italic; margin-top:14px;}
+/* ============================= WORK / FILTERS ============================= */
+.filters{
+  display:flex; flex-wrap:wrap; gap:9px;
+  margin:clamp(26px,4vw,38px) 0 clamp(20px,3vw,28px);
+}
+.filter{
+  font:inherit; cursor:pointer;
+  padding:9px 16px; border-radius:var(--radius-pill);
+  background:var(--panel); color:var(--muted);
+  border:1px solid var(--border-soft); font-weight:600; font-size:.9rem;
+  transition:color .18s ease, background .18s ease, border-color .18s ease;
+}
+.filter:hover{color:var(--text); border-color:var(--border)}
+.filter[aria-pressed="true"]{
+  color:#04121d; background:var(--accent);
+  border-color:var(--accent); box-shadow:0 8px 22px -10px var(--accent-glow);
+}
+.filter .count{opacity:.6; font-family:var(--mono); font-size:.8em; margin-left:6px}
+.filter[aria-pressed="true"] .count{opacity:.7}
 
-  footer{padding:30px 0 50px; color:var(--muted); font-size:13px; text-align:center;}
+.grid{
+  display:grid; gap:18px;
+  grid-template-columns:repeat(2,1fr);
+}
+@media (max-width:720px){ .grid{grid-template-columns:1fr} }
+
+.card{
+  background:linear-gradient(180deg, var(--panel), var(--bg-2));
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius); padding:22px 22px 20px;
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column;
+  transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease, opacity .35s ease;
+}
+.card::after{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:radial-gradient(440px 200px at var(--mx,50%) -10%, rgba(79,195,247,.1), transparent 70%);
+  opacity:0; transition:opacity .3s ease; pointer-events:none;
+}
+.card:hover{transform:translateY(-4px); border-color:var(--border); box-shadow:var(--shadow-lift)}
+.card:hover::after{opacity:1}
+@media (prefers-reduced-motion: reduce){ .card:hover{transform:none} }
+
+/* filter hide/animate */
+.card[hidden]{display:none}
+.card.filtering{opacity:0; transform:translateY(8px)}
+
+.tags{display:flex; flex-wrap:wrap; gap:7px; margin-bottom:13px}
+.chip{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.03em;
+  padding:5px 10px; border-radius:var(--radius-pill);
+  background:rgba(255,255,255,.03); border:1px solid var(--border-soft);
+  color:var(--muted);
+}
+.chip.lane{color:var(--text)}
+.chip.lane[data-l="ai"]{border-color:rgba(79,195,247,.4); color:#bfe6fb; background:rgba(79,195,247,.08)}
+.chip.lane[data-l="audio"]{border-color:rgba(157,123,255,.4); color:#d6c9ff; background:rgba(157,123,255,.08)}
+.chip.lane[data-l="hardware"]{border-color:rgba(92,224,176,.4); color:#bff2df; background:rgba(92,224,176,.08)}
+.chip.lane[data-l="teaching"]{border-color:rgba(255,180,84,.4); color:#ffe0b8; background:rgba(255,180,84,.08)}
+
+.card h3{margin:0 0 8px; font-size:var(--step-1); line-height:1.2; letter-spacing:-.015em}
+.blurb{margin:0; color:#cbd8e6; font-size:.98rem; line-height:1.55}
+.outcome{
+  margin:14px 0 0; padding:12px 14px;
+  background:rgba(92,224,176,.05);
+  border:1px solid rgba(92,224,176,.18);
+  border-left:3px solid var(--accent-3);
+  border-radius:var(--radius-sm);
+  font-size:.9rem; color:#d6e4ef; line-height:1.5;
+}
+.outcome::before{
+  content:"Outcome"; display:block;
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--accent-3); margin-bottom:4px;
+}
+.stack{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 0}
+.stack span{
+  font-family:var(--mono); font-size:.72rem;
+  padding:4px 9px; border-radius:7px;
+  background:rgba(255,255,255,.025); border:1px solid var(--border-soft);
+  color:var(--muted-2);
+}
+
+details{margin-top:16px; border-top:1px solid var(--border-soft); padding-top:6px}
+details summary{
+  list-style:none; cursor:pointer; padding:10px 0 6px;
+  font-weight:600; font-size:.88rem; color:var(--accent);
+  display:flex; align-items:center; gap:8px; user-select:none;
+}
+details summary::-webkit-details-marker{display:none}
+details summary .chev{
+  width:14px; height:14px; transition:transform .2s ease; flex:none;
+}
+details[open] summary .chev{transform:rotate(90deg)}
+@media (prefers-reduced-motion: reduce){ details summary .chev{transition:none} }
+.dl{margin:6px 0 0; font-size:.92rem; color:#c0cfdf; line-height:1.55}
+.dl b{color:var(--text); font-weight:700; display:block; font-size:.82rem;
+  font-family:var(--mono); letter-spacing:.04em; text-transform:uppercase; margin-top:10px; color:var(--muted)}
+.dl b:first-child{margin-top:4px}
+.media-note{
+  margin-top:14px; padding:11px 13px;
+  border:1px dashed var(--border);
+  border-radius:var(--radius-sm);
+  background:repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 10px, transparent 10px 20px);
+  color:var(--muted-2); font-size:.82rem; font-style:italic;
+  display:flex; gap:9px; align-items:flex-start;
+}
+.media-note::before{
+  content:""; flex:none; width:16px; height:16px; margin-top:2px;
+  background:var(--muted-2);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.no-results{
+  display:none; margin-top:8px; color:var(--muted);
+  padding:26px; text-align:center; border:1px dashed var(--border);
+  border-radius:var(--radius);
+}
+.no-results.show{display:block}
+
+/* ============================= ABOUT ============================= */
+#about .wrap{max-width:880px}
+.about-body p{margin:0 0 1.1em; color:#cbd8e6; font-size:1.05rem; line-height:1.7}
+.about-body p:first-of-type{font-size:1.15rem; color:var(--text)}
+.recog{display:flex; flex-wrap:wrap; gap:9px; margin-top:8px}
+.recog span{
+  font-size:.84rem; padding:8px 14px; border-radius:var(--radius-pill);
+  background:rgba(255,255,255,.03); border:1px solid var(--border-soft); color:#cdd9e6;
+}
+
+/* ============================= PRESS ============================= */
+.press-list{list-style:none; margin:clamp(22px,3vw,30px) 0 0; padding:0; display:grid; gap:10px}
+.press-list li{
+  display:flex; align-items:flex-start; gap:14px;
+  padding:16px 18px;
+  background:linear-gradient(180deg, var(--panel), var(--bg-2));
+  border:1px solid var(--border-soft); border-radius:var(--radius);
+  font-size:.98rem; color:#d4e0ec;
+  transition:border-color .2s ease, transform .2s ease;
+}
+.press-list li:hover{border-color:var(--border); transform:translateX(3px)}
+@media (prefers-reduced-motion: reduce){ .press-list li:hover{transform:none} }
+.press-list li::before{
+  content:""; flex:none; width:9px; height:9px; margin-top:7px; border-radius:50%;
+  background:var(--accent); box-shadow:0 0 0 4px rgba(79,195,247,.12);
+}
+
+/* ============================= CONTACT ============================= */
+#contact{
+  border-top:1px solid var(--border-soft);
+  background:radial-gradient(800px 380px at 50% 0%, rgba(79,195,247,.07), transparent 70%);
+}
+.contact-links{display:flex; flex-wrap:wrap; gap:12px; margin:clamp(24px,3vw,34px) 0 0}
+.contact-links a{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:13px 20px; border-radius:var(--radius-pill);
+  background:var(--panel); border:1px solid var(--border-soft);
+  color:var(--text); font-weight:600; font-size:.95rem;
+  transition:border-color .2s ease, transform .2s ease, background .2s ease;
+}
+.contact-links a:hover{text-decoration:none; border-color:var(--accent); transform:translateY(-2px); background:rgba(79,195,247,.06)}
+.contact-links a.primary{background:var(--accent); color:#04121d; border-color:var(--accent)}
+.contact-links a.primary:hover{background:#6fd0fb}
+@media (prefers-reduced-motion: reduce){ .contact-links a:hover{transform:none} }
+.contact-links a svg{display:block; opacity:.85}
+.note{
+  margin-top:24px; padding:14px 16px; max-width:70ch;
+  border:1px dashed var(--border); border-radius:var(--radius-sm);
+  color:var(--muted-2); font-size:.85rem; font-style:italic;
+}
+
+/* ============================= FOOTER ============================= */
+footer{
+  border-top:1px solid var(--border-soft);
+  padding:30px 0 40px; color:var(--muted-2); font-size:.88rem;
+}
+footer .wrap{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; justify-content:space-between}
+footer .dotsep{display:inline-flex; gap:10px; align-items:center}
+
+/* ============================= SCROLL REVEAL ============================= */
+.reveal{opacity:0; transform:translateY(20px); transition:opacity .6s ease, transform .6s ease}
+.reveal.in{opacity:1; transform:none}
+.reveal.d1{transition-delay:.06s}
+.reveal.d2{transition-delay:.12s}
+.reveal.d3{transition-delay:.18s}
+@media (prefers-reduced-motion: reduce){
+  .reveal{opacity:1; transform:none; transition:none}
+}
 </style>
 </head>
 <body>
+<a class="skip" href="#work">Skip to work</a>
 
-<header>
-  <div class="wrap">
-    <nav>
-      <div class="brand"><b>Vi</b> Ellis</div>
-      <div class="navlinks">
-        <a href="#work">Work</a>
-        <a href="#about">About</a>
-        <a class="opt" href="#press">Press &amp; Awards</a>
-        <a href="Vi_Ellis_Resume.pdf">Résumé</a>
-        <a href="#contact">Contact</a>
-      </div>
-    </nav>
-  </div>
+<header id="top">
+  <nav aria-label="Primary">
+    <a class="brand" href="#top" aria-label="Vi Ellis — home">
+      <span class="mark" aria-hidden="true">V</span>
+      <span>Vi Ellis</span>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="nav-links" id="navLinks">
+      <a href="#work">Work</a>
+      <a href="#about">About</a>
+      <a class="opt" href="#press">Press &amp; Awards</a>
+      <a href="Vi_Ellis_Resume.pdf">Résumé</a>
+      <a class="cta" href="#contact">Contact</a>
+    </div>
+  </nav>
 </header>
 
-<!-- HERO -->
-<div class="hero">
+<main id="main">
+<!-- ============================= HERO ============================= -->
+<section class="hero" aria-labelledby="hero-title">
+  <canvas id="heroCanvas" aria-hidden="true"></canvas>
   <div class="wrap">
-    <div class="eyebrow">Engineer · Product Developer · Composer</div>
-    <h1>I build the whole thing — from production AI agents to a 100-unit hardware run.</h1>
-    <p class="lede">Applied AI · full-stack web · hardware &amp; CAD · game audio. I designed a production Claude agent system in 5 days, took an instrument from breadboard to a 100-unit run, and scored 30+ shipped games and films along the way.</p>
-    <div class="cta">
-      <a class="btn primary" href="#work">View Work</a>
-      <a class="btn ghost" href="Vi_Ellis_Resume.pdf">Download résumé</a>
+    <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Engineer · Product Developer · Composer</span>
+    <h1 class="hero-title" id="hero-title">I build the whole thing — from <span class="accent">production AI agents</span> to a 100-unit hardware run.</h1>
+    <p class="lede">Applied AI · full-stack web · hardware &amp; CAD · game audio. I designed a <strong>production Claude agent system in 5 days</strong>, took an instrument from breadboard to a <strong>100-unit run</strong>, and scored <strong>30+ shipped games and films</strong> along the way.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#work">View Work
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn btn-ghost" href="Vi_Ellis_Resume.pdf">Download résumé
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+      </a>
     </div>
 
     <div class="pillars">
-      <div class="pillar"><h3>Applied AI &amp; Engineering</h3><p>Claude agent infrastructure, React platforms, automation pipelines.</p></div>
-      <div class="pillar"><h3>Hardware &amp; CAD</h3><p>Circuit → firmware → CAD → manufacturing, end to end.</p></div>
-      <div class="pillar"><h3>Audio &amp; Music</h3><p>Award-winning scores and adaptive game-audio systems.</p></div>
-      <div class="pillar"><h3>Teaching</h3><p>University sound-design instructor; curriculum across 10+ courses.</p></div>
+      <div class="pillar reveal" style="--pc:var(--accent)">
+        <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg></div>
+        <h3>Applied AI &amp; Engineering</h3>
+        <p>Claude agent infrastructure, React platforms, automation pipelines.</p>
+      </div>
+      <div class="pillar reveal d1" style="--pc:var(--accent-3)">
+        <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg></div>
+        <h3>Hardware &amp; CAD</h3>
+        <p>Circuit → firmware → CAD → manufacturing, end to end.</p>
+      </div>
+      <div class="pillar reveal d2" style="--pc:var(--accent-2)">
+        <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 16 3-9 2 4h6"/></svg></div>
+        <h3>Audio &amp; Music</h3>
+        <p>Award-winning scores and adaptive game-audio systems.</p>
+      </div>
+      <div class="pillar reveal d3" style="--pc:var(--accent-4)">
+        <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+        <h3>Teaching</h3>
+        <p>University sound-design instructor; curriculum across 10+ courses.</p>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<!-- WORK -->
-<section id="work">
+<!-- ============================= WORK ============================= -->
+<section id="work" aria-labelledby="work-title">
   <div class="wrap">
-    <div class="sec-label">Selected Work</div>
-    <h2 class="sec-title">Things I've shipped</h2>
-    <p class="sec-sub">Filter by discipline. Each project follows the same shape: the problem, my role, the approach, and what came of it.</p>
+    <p class="section-label reveal">Selected Work</p>
+    <h2 class="section-title reveal" id="work-title">Things I've shipped</h2>
+    <p class="section-sub reveal">Filter by discipline. Each project follows the same shape: the problem, my role, the approach, and what came of it.</p>
 
-    <div class="filters" id="filters">
-      <button data-f="all" class="on">All</button>
-      <button data-f="ai">AI &amp; Engineering</button>
-      <button data-f="audio">Audio &amp; Music</button>
-      <button data-f="hardware">Hardware &amp; CAD</button>
-      <button data-f="teaching">Teaching</button>
+    <div class="filters reveal" role="group" aria-label="Filter projects by discipline">
+      <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">11</span></button>
+      <button class="filter" data-filter="ai" aria-pressed="false">AI &amp; Engineering <span class="count">5</span></button>
+      <button class="filter" data-filter="audio" aria-pressed="false">Audio &amp; Music <span class="count">2</span></button>
+      <button class="filter" data-filter="hardware" aria-pressed="false">Hardware &amp; CAD <span class="count">4</span></button>
+      <button class="filter" data-filter="teaching" aria-pressed="false">Teaching <span class="count">1</span></button>
     </div>
 
-    <div class="grid" id="grid">
+    <div class="grid" id="workGrid">
 
-      <!-- 1 Skill Tree -->
-      <article class="card" data-lanes="ai">
-        <div class="tags"><span class="chip">AI &amp; Engineering</span><span class="chip muted">2025 · Treobytes</span></div>
+      <!-- 1 -->
+      <article class="card reveal" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">AI &amp; Engineering</span><span class="chip">2025 · Treobytes</span></div>
         <h3>Claude AI Skill Tree</h3>
         <p class="blurb">A production three-layer Claude agent system, built solo in 5 days — now run daily by non-engineers.</p>
-        <p class="outcome">Shipped <b>solo in 5 days</b>; a non-engineer submitted a real EUSD district proposal through it, and the batch generator produced <b>27 of 27</b> Mesa College course timelines in one session.</p>
+        <p class="outcome">Shipped solo in 5 days; a non-engineer submitted a real EUSD district proposal through it, and the batch generator produced 27 of 27 Mesa College course timelines in one session.</p>
         <div class="stack"><span>Claude API</span><span>agent skills</span><span>Python</span><span>JSON schema</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Problem.</b> Do expert-level knowledge work at a volume the team couldn't reach by hand — without hiring engineers to run it.</p>
-          <p class="dl"><b>Approach.</b> L1 primitives compose into L2 domain skills, which compose into L3 workflows that mirror how the team actually works — keeping each piece testable and recombinable.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
+          <p class="dl"><b>Problem</b>Do expert-level knowledge work at a volume the team couldn't reach by hand — without hiring engineers to run it.<b>Approach</b>L1 primitives compose into L2 domain skills, which compose into L3 workflows that mirror how the team actually works — keeping each piece testable and recombinable.</p>
           <p class="media-note">Media to add: neural-map walkthrough · architecture diagram</p>
         </details>
       </article>
 
-      <!-- 2 CADence -->
-      <article class="card" data-lanes="hardware ai">
-        <div class="tags"><span class="chip">Hardware &amp; CAD</span><span class="chip muted">2026 · in progress</span></div>
+      <!-- 2 -->
+      <article class="card reveal d1" data-lanes="hardware ai">
+        <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2026 · in progress</span></div>
         <h3>CADence</h3>
         <p class="blurb">A browser 3D modeler fusing TinkerCAD's ease with OnShape's precision — and a mesh↔parametric swap neither tool allows.</p>
         <p class="outcome">Working primitives, boolean solids/holes, a precise numeric inspector, STL/3MF export, and a validated headless B-rep export pipeline.</p>
         <div class="stack"><span>JavaScript</span><span>Three.js</span><span>Manifold</span><span>OpenCascade</span><span>WebGL</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Problem.</b> Beginner tools are easy but imprecise; pro CAD is precise but steep — and neither moves fluidly between sculptural and parametric modeling.</p>
-          <p class="dl"><b>Approach.</b> Every object carries a <b>recipe</b>; the mesh is generated from it, never the source of truth — which makes the sculptural↔parametric swap tractable.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
+          <p class="dl"><b>Problem</b>Beginner tools are easy but imprecise; pro CAD is precise but steep — and neither moves fluidly between sculptural and parametric modeling.<b>Approach</b>Every object carries a recipe; the mesh is generated from it, never the source of truth — which makes the sculptural↔parametric swap tractable.</p>
           <p class="media-note">Media to add: CADence demo screen recording</p>
         </details>
       </article>
 
-      <!-- 3 MIDI keyboard -->
-      <article class="card" data-lanes="hardware">
-        <div class="tags"><span class="chip">Hardware &amp; CAD</span><span class="chip muted">Treobytes</span></div>
+      <!-- 3 -->
+      <article class="card reveal d2" data-lanes="hardware">
+        <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Treobytes</span></div>
         <h3>Arduino MIDI Keyboard (TEMPLiT)</h3>
         <p class="blurb">A MIDI instrument taken from breadboard to a 100+ unit manufacturing run — circuit, firmware, CAD, and production.</p>
-        <p class="outcome">Concept → a <b>production run of 100+ units</b>, manufactured and deployed.</p>
+        <p class="outcome">Concept → a production run of 100+ units, manufactured and deployed.</p>
         <div class="stack"><span>Arduino Leonardo</span><span>USB-HID firmware</span><span>C++</span><span>OnShape</span><span>DXF</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Problem.</b> An affordable, plug-and-play classroom MIDI instrument, durable enough to manufacture at volume.</p>
-          <p class="dl"><b>Approach.</b> Designed the circuit and wrote USB-HID firmware on the ATmega32u4 so it enumerates as a native MIDI device — no drivers. OnShape enclosure → DXF for laser cutting → production.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
+          <p class="dl"><b>Problem</b>An affordable, plug-and-play classroom MIDI instrument, durable enough to manufacture at volume.<b>Approach</b>Designed the circuit and wrote USB-HID firmware on the ATmega32u4 so it enumerates as a native MIDI device — no drivers. OnShape enclosure → DXF for laser cutting → production.</p>
           <p class="media-note">Media to add: build photos · schematic · housing renders · production line</p>
         </details>
       </article>
 
-      <!-- 4 GDC tool -->
-      <article class="card" data-lanes="audio ai">
-        <div class="tags"><span class="chip">Audio &amp; Engineering</span><span class="chip muted">2022–23 · Necro.World</span></div>
+      <!-- 4 -->
+      <article class="card reveal" data-lanes="audio ai">
+        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022–23 · Necro.World</span></div>
         <h3>Generative Game-Audio Tool</h3>
         <p class="blurb">An Unreal Engine 5 Blueprint tool that gives every game session a unique soundtrack — showcased at GDC San Francisco 2024.</p>
-        <p class="outcome"><b>Showcased at GDC San Francisco 2024.</b> Shipped as the audio backbone of the studio's game.</p>
+        <p class="outcome">Showcased at GDC San Francisco 2024. Shipped as the audio backbone of the studio's game.</p>
         <div class="stack"><span>Unreal Engine 5</span><span>UE Blueprint</span><span>Wwise / FMOD</span><span>data tables</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Problem.</b> Linear soundtracks repeat and flatten replay value; the studio wanted music that recombines fresh every session.</p>
-          <p class="dl"><b>Approach.</b> A UE5 Blueprint tool treating musical layers and SFX as interchangeable building blocks — composed so any combination stays coherent — assembling a unique mix per session.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
+          <p class="dl"><b>Problem</b>Linear soundtracks repeat and flatten replay value; the studio wanted music that recombines fresh every session.<b>Approach</b>A UE5 Blueprint tool treating musical layers and SFX as interchangeable building blocks — composed so any combination stays coherent — assembling a unique mix per session.</p>
           <p class="media-note">Media to add: GDC showcase photo · tool demo clip</p>
         </details>
       </article>
 
-      <!-- 5 TreoTools -->
-      <article class="card" data-lanes="ai">
-        <div class="tags"><span class="chip">Engineering</span><span class="chip muted">Treobytes</span></div>
+      <!-- 5 -->
+      <article class="card reveal d1" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">Engineering</span><span class="chip">Treobytes</span></div>
         <h3>TreoTools</h3>
         <p class="blurb">An internal React platform built from the ground up — in daily use, including an algorithmic seating-chart generator.</p>
-        <p class="outcome">In <b>real daily use</b>; consolidated scattered manual processes into one tool.</p>
+        <p class="outcome">In real daily use; consolidated scattered manual processes into one tool.</p>
         <div class="stack"><span>React</span><span>JavaScript</span><span>Node.js</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> Built the platform end to end. Standout feature: a seating-chart generator combining brute-force search with a greedy sort, fast enough to use interactively.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Built the platform end to end. Standout feature: a seating-chart generator combining brute-force search with a greedy sort, fast enough to use interactively.</p>
           <p class="media-note">Media to add: seating-chart demo · dashboard screenshots</p>
         </details>
       </article>
 
-      <!-- 6 Kuka -->
-      <article class="card" data-lanes="hardware">
-        <div class="tags"><span class="chip">Hardware &amp; CAD</span><span class="chip muted">Research</span></div>
+      <!-- 6 -->
+      <article class="card reveal d2" data-lanes="hardware">
+        <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Research</span></div>
         <h3>Kuka Generative 3D-Printing Research</h3>
         <p class="blurb">Sole programmer on robotic-arm 3D-printing research that turned algorithms into sculptural objects — featured in the LA Times.</p>
-        <p class="outcome">Fabricated sculptural pieces from a code-driven pipeline; <b>featured in the LA Times (2022)</b>.</p>
+        <p class="outcome">Fabricated sculptural pieces from a code-driven pipeline; featured in the LA Times (2022).</p>
         <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>robotic fabrication</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> Wrote the generative geometry in Python + Grasshopper, translating algorithmic forms into printable .stl toolpaths for robotic-arm fabrication.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Wrote the generative geometry in Python + Grasshopper, translating algorithmic forms into printable .stl toolpaths for robotic-arm fabrication.</p>
           <p class="media-note">Media to add: print-path animation · fabricated pieces · LA Times link</p>
         </details>
       </article>
 
-      <!-- 7 primes -->
-      <article class="card" data-lanes="ai">
-        <div class="tags"><span class="chip">Creative Code</span><span class="chip muted">Independent</span></div>
+      <!-- 7 -->
+      <article class="card reveal" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip">Independent</span></div>
         <h3>Primes / L-System Visualization</h3>
         <p class="blurb">A generative p5.js visualization of prime &amp; L-system structure — featured in Dezeen.</p>
-        <p class="outcome"><b>Featured in Dezeen (2023).</b></p>
+        <p class="outcome">Featured in Dezeen (2023).</p>
         <div class="stack"><span>p5.js</span><span>JavaScript</span><span>generative</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> An interactive p5.js sketch rendering prime / L-system patterns as generative fractal forms in the browser.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>An interactive p5.js sketch rendering prime / L-system patterns as generative fractal forms in the browser.</p>
           <p class="media-note">Media to add: live demo (after rehost) · Dezeen link</p>
         </details>
       </article>
 
-      <!-- 8 HAIKU -->
-      <article class="card" data-lanes="audio">
-        <div class="tags"><span class="chip">Audio &amp; Music</span><span class="chip muted">Film</span></div>
+      <!-- 8 -->
+      <article class="card reveal d1" data-lanes="audio">
+        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">Film</span></div>
         <h3>HAIKU — Original Score</h3>
         <p class="blurb">Original score for the short film HAIKU — Silver, Best Composer, Tokyo Film Awards 2022.</p>
-        <p class="outcome"><b>Silver, Best Composer — Tokyo Film Awards 2022</b>; Best Original Music nominee, New Creators Film Awards 2022.</p>
+        <p class="outcome">Silver, Best Composer — Tokyo Film Awards 2022; Best Original Music nominee, New Creators Film Awards 2022.</p>
         <div class="stack"><span>Composition</span><span>Orchestration</span><span>Mixing / Mastering</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> Wrote, orchestrated, mixed, and mastered the original score, shaping the film's emotional arc through music. Featured in IndieWrap's 2023 short-film collection.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Wrote, orchestrated, mixed, and mastered the original score, shaping the film's emotional arc through music. Featured in IndieWrap's 2023 short-film collection.</p>
           <p class="media-note">Media to add: score excerpt audio · poster · awards links</p>
         </details>
       </article>
 
-      <!-- 9 Wang Shui -->
-      <article class="card" data-lanes="hardware">
-        <div class="tags"><span class="chip">3D / Art</span><span class="chip muted">Contract</span></div>
+      <!-- 9 -->
+      <article class="card reveal d2" data-lanes="hardware">
+        <div class="tags"><span class="chip lane" data-l="hardware">3D / Art</span><span class="chip">Contract</span></div>
         <h3>Wang Shui — Installation Prototype</h3>
         <p class="blurb">3D modeling &amp; Unity projection-mapping prototype for a contemporary artist's installation — exhibited in Berlin.</p>
-        <p class="outcome">Final installation exhibited at the <b>Julia Stoschek Collection, Berlin (2022)</b>.</p>
+        <p class="outcome">Final installation exhibited at the Julia Stoschek Collection, Berlin (2022).</p>
         <div class="stack"><span>Maya</span><span>Unity</span><span>projection mapping</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> Built the 3D models in Maya from the artist's sketches and assembled a Unity environment with a projection-mapping simulation — a navigable digital prototype of the planned piece.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Built the 3D models in Maya from the artist's sketches and assembled a Unity environment with a projection-mapping simulation — a navigable digital prototype of the planned piece.</p>
           <p class="media-note">Media to add: Unity capture · model renders · install photo</p>
         </details>
       </article>
 
-      <!-- 10 GAME 203 -->
-      <article class="card" data-lanes="teaching">
-        <div class="tags"><span class="chip">Teaching</span><span class="chip muted">Woodbury University</span></div>
+      <!-- 10 -->
+      <article class="card reveal" data-lanes="teaching">
+        <div class="tags"><span class="chip lane" data-l="teaching">Teaching</span><span class="chip">Woodbury University</span></div>
         <h3>GAME 203: Sound Design Fundamentals</h3>
         <p class="blurb">A university course I developed and teach — adaptive game audio, from DAW fundamentals to engine implementation.</p>
         <p class="outcome">Students leave able to design and implement adaptive audio in a game engine — not just describe it.</p>
         <div class="stack"><span>Unity</span><span>Unreal Engine 5</span><span>Wwise / FMOD</span><span>C#</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> Developed and deliver the curriculum: lectures and labs from DAW fundamentals through adaptive audio via C# scripting and UE Blueprint with audio middleware.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Developed and deliver the curriculum: lectures and labs from DAW fundamentals through adaptive audio via C# scripting and UE Blueprint with audio middleware.</p>
         </details>
       </article>
 
-      <!-- 11 LCAP -->
-      <article class="card" data-lanes="ai">
-        <div class="tags"><span class="chip">Automation</span><span class="chip muted">Treobytes</span></div>
+      <!-- 11 -->
+      <article class="card reveal d1" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">Automation</span><span class="chip">Treobytes</span></div>
         <h3>LCAP → CRM Pipeline</h3>
         <p class="blurb">A repeatable pipeline that turns public school-district plans into scored, prioritized BD prospects across 20+ districts.</p>
-        <p class="outcome">Applied across <b>20+ districts</b>, turning a manual reading slog into a ranked prospecting list.</p>
+        <p class="outcome">Applied across 20+ districts, turning a manual reading slog into a ranked prospecting list.</p>
         <div class="stack"><span>Python</span><span>JSON schema</span><span>scoring rubric</span><span>CRM</span></div>
-        <details><summary>Details</summary>
-          <p class="dl"><b>Approach.</b> Ingests district LCAP documents, extracts structured data against a JSON schema, scores each with a rubric, and feeds prioritized prospects into the CRM.</p>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Ingests district LCAP documents, extracts structured data against a JSON schema, scores each with a rubric, and feeds prioritized prospects into the CRM.</p>
         </details>
       </article>
 
     </div>
+    <p class="no-results" id="noResults" role="status">No projects in this discipline.</p>
   </div>
 </section>
 
-<!-- ABOUT -->
-<section id="about" class="about">
+<!-- ============================= ABOUT ============================= -->
+<section id="about" aria-labelledby="about-title">
   <div class="wrap">
-    <div class="sec-label">About</div>
-    <h2 class="sec-title">About Vi</h2>
-    <p>I'm a <b>full-stack engineer, hardware product developer, and composer</b> based in Little Italy, San Diego. What ties my work together is simple: I build the whole thing. Code, circuit, CAD, sound — and the curriculum to teach it.</p>
-    <p>At <b>Treobytes</b>, I designed and shipped a production three-layer Claude AI agent system — solo, in five days — that non-engineers now use to do real expert work. I also built the team's internal React platform from the ground up, wrote automation pipelines that turn unstructured public documents into scored prospects, and took an Arduino MIDI instrument from breadboard to a 100+ unit manufacturing run.</p>
-    <p>That range isn't an accident. I've showcased a generative game-audio tool at <b>GDC San Francisco</b>, scored 17 games and 14 films and TV projects — earning Silver for Best Composer at the <b>2022 Tokyo Film Awards</b> — and seen my computational-design research featured in <b>Dezeen</b> and the <b>LA Times</b>. I hold a B.S. in Applied Computer Science — Media Arts from the <b>University of Redlands</b> (Magna Cum Laude, Best Thesis Award), and I teach Sound Design Fundamentals at <b>Woodbury University</b>.</p>
-    <p>I'm happiest at the seam between disciplines — where applied AI meets real products, where software meets hardware, where precision meets craft. I'm currently building <b>CADence</b>, a browser 3D modeler.</p>
-    <div class="recog">
-      <span>🏆 Best Composer (Silver) — Tokyo Film Awards 2022</span>
-      <span>🎤 GDC San Francisco 2024</span>
-      <span>📰 Dezeen 2023 · LA Times 2022</span>
-      <span>🎓 Magna Cum Laude · Best Thesis</span>
-      <span>🎬 17 games · 14 film/TV</span>
+    <p class="section-label reveal">About</p>
+    <h2 class="section-title reveal" id="about-title">About Vi</h2>
+    <div class="about-body">
+      <p class="reveal">I'm a full-stack engineer, hardware product developer, and composer based in Little Italy, San Diego. What ties my work together is simple: I build the whole thing. Code, circuit, CAD, sound — and the curriculum to teach it.</p>
+      <p class="reveal">At Treobytes, I designed and shipped a production three-layer Claude AI agent system — solo, in five days — that non-engineers now use to do real expert work. I also built the team's internal React platform from the ground up, wrote automation pipelines that turn unstructured public documents into scored prospects, and took an Arduino MIDI instrument from breadboard to a 100+ unit manufacturing run.</p>
+      <p class="reveal">That range isn't an accident. I've showcased a generative game-audio tool at GDC San Francisco, scored 17 games and 14 films and TV projects — earning Silver for Best Composer at the 2022 Tokyo Film Awards — and seen my computational-design research featured in Dezeen and the LA Times. I hold a B.S. in Applied Computer Science — Media Arts from the University of Redlands (Magna Cum Laude, Best Thesis Award), and I teach Sound Design Fundamentals at Woodbury University.</p>
+      <p class="reveal">I'm happiest at the seam between disciplines — where applied AI meets real products, where software meets hardware, where precision meets craft. I'm currently building CADence, a browser 3D modeler.</p>
+      <div class="recog reveal">
+        <span>Best Composer (Silver) — Tokyo Film Awards 2022</span>
+        <span>GDC San Francisco 2024</span>
+        <span>Dezeen 2023 · LA Times 2022</span>
+        <span>Magna Cum Laude · Best Thesis</span>
+        <span>17 games · 14 film/TV</span>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- PRESS -->
-<section id="press">
+<!-- ============================= PRESS ============================= -->
+<section id="press" aria-labelledby="press-title">
   <div class="wrap">
-    <div class="sec-label">Press &amp; Awards</div>
-    <h2 class="sec-title">Recognition</h2>
-    <div class="recog" style="flex-direction:column; gap:10px; max-width:70ch;">
-      <span><b>Silver, Best Composer</b> — Tokyo Film Awards 2022 (<i>HAIKU</i>)</span>
-      <span><b>Best Original Music — Nominee</b> — New Creators Film Awards 2022 (<i>HAIKU</i>)</span>
-      <span><b>Showcased</b> — GDC San Francisco 2024 (generative game-audio tool)</span>
-      <span><b>Featured</b> — Dezeen (2023), computational design</span>
-      <span><b>Featured</b> — LA Times (2022), 3D-printing research</span>
-      <span><b>Exhibited</b> — Julia Stoschek Collection, Berlin (2022)</span>
-      <span><b>Magna Cum Laude · Best Thesis Award</b> — University of Redlands</span>
-    </div>
+    <p class="section-label reveal">Press &amp; Awards</p>
+    <h2 class="section-title reveal" id="press-title">Recognition</h2>
+    <ul class="press-list">
+      <li class="reveal">Silver, Best Composer — Tokyo Film Awards 2022 (HAIKU)</li>
+      <li class="reveal">Best Original Music — Nominee — New Creators Film Awards 2022 (HAIKU)</li>
+      <li class="reveal">Showcased — GDC San Francisco 2024 (generative game-audio tool)</li>
+      <li class="reveal">Featured — Dezeen (2023), computational design</li>
+      <li class="reveal">Featured — LA Times (2022), 3D-printing research</li>
+      <li class="reveal">Exhibited — Julia Stoschek Collection, Berlin (2022)</li>
+      <li class="reveal">Magna Cum Laude · Best Thesis Award — University of Redlands</li>
+    </ul>
   </div>
 </section>
 
-<!-- CONTACT -->
-<section id="contact" style="border-bottom:none;">
+<!-- ============================= CONTACT ============================= -->
+<section id="contact" aria-labelledby="contact-title">
   <div class="wrap">
-    <div class="sec-label">Contact</div>
-    <h2 class="sec-title">Let's build something</h2>
-    <p class="sec-sub">Open to engineering and product roles across California or remote. If you're working at the intersection of software, hardware, and human craft, I'd love to talk.</p>
-    <div class="contact-links">
-      <a href="mailto:CONTACT_EMAIL">Email</a>
-      <a href="https://www.linkedin.com/in/vi-ellis" target="_blank" rel="noopener">LinkedIn</a>
-      <a href="https://github.com/v1xl3t" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDB</a>
-      <a href="https://www.youtube.com/@vi-ellis" target="_blank" rel="noopener">YouTube</a>
-      <a href="Vi_Ellis_Resume.pdf">Résumé (PDF)</a>
+    <p class="section-label reveal">Contact</p>
+    <h2 class="section-title reveal" id="contact-title">Let's build something</h2>
+    <p class="section-sub reveal">Open to engineering and product roles across California or remote. If you're working at the intersection of software, hardware, and human craft, I'd love to talk.</p>
+    <div class="contact-links reveal">
+      <a class="primary" href="mailto:CONTACT_EMAIL">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Email</a>
+      <a href="https://www.linkedin.com/in/vi-ellis">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 17v-7"/></svg>LinkedIn</a>
+      <a href="https://github.com/v1xl3t">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-4 1.5-4-2-6-2.5m12 4v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6 0C6.7 2.3 5.6 2.6 5.6 2.6a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>GitHub</a>
+      <a href="https://www.imdb.com/name/nm14300781">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 9v6M11 9v6l2-3 2 3V9"/></svg>IMDB</a>
+      <a href="https://www.youtube.com/@vi-ellis">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/></svg>YouTube</a>
+      <a href="Vi_Ellis_Resume.pdf">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Résumé (PDF)</a>
     </div>
-    <p class="note">Note for Vi: swap <code>CONTACT_EMAIL</code> in the Email link for whatever address you want public, and double-check the LinkedIn / GitHub / YouTube handles — I used best guesses.</p>
+    <p class="note">Note for Vi: swap CONTACT_EMAIL in the Email link for whatever address you want public, and double-check the LinkedIn / GitHub / YouTube handles — I used best guesses.</p>
   </div>
 </section>
+</main>
 
 <footer>
-  <div class="wrap">© <span id="yr"></span> Vi Ellis · San Diego, CA · built with care</div>
+  <div class="wrap">
+    <span class="dotsep">© <span id="year"></span> Vi Ellis</span>
+    <span class="dotsep">San Diego, CA · built with care</span>
+  </div>
 </footer>
 
 <script>
-  // Year
-  document.getElementById('yr').textContent = new Date().getFullYear();
-  // Work filter
-  const filters = document.getElementById('filters');
-  const cards = [...document.querySelectorAll('#grid .card')];
-  filters.addEventListener('click', (e) => {
-    const btn = e.target.closest('button'); if(!btn) return;
-    filters.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
-    const f = btn.dataset.f;
-    cards.forEach(c => { c.style.display = (f === 'all' || c.dataset.lanes.split(' ').includes(f)) ? '' : 'none'; });
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- footer year ---------- */
+  var y = document.getElementById("year");
+  if (y) y.textContent = new Date().getFullYear();
+
+  /* ---------- header shadow on scroll ---------- */
+  var header = document.querySelector("header");
+  function onScroll(){ if (header) header.classList.toggle("scrolled", window.scrollY > 8); }
+  onScroll();
+  window.addEventListener("scroll", onScroll, {passive:true});
+
+  /* ---------- mobile menu ---------- */
+  var menuBtn = document.getElementById("menuBtn");
+  var navLinks = document.getElementById("navLinks");
+  function closeMenu(){ navLinks.classList.remove("open"); menuBtn.setAttribute("aria-expanded","false"); }
+  if (menuBtn && navLinks){
+    menuBtn.addEventListener("click", function(){
+      var open = navLinks.classList.toggle("open");
+      menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    navLinks.addEventListener("click", function(e){ if (e.target.closest("a")) closeMenu(); });
+    document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeMenu(); });
+  }
+
+  /* ---------- work filter ---------- */
+  var filters = Array.prototype.slice.call(document.querySelectorAll(".filter"));
+  var cards = Array.prototype.slice.call(document.querySelectorAll("#workGrid .card"));
+  var noResults = document.getElementById("noResults");
+
+  function applyFilter(val){
+    var shown = 0;
+    cards.forEach(function(card){
+      var lanes = (card.getAttribute("data-lanes") || "").split(/\s+/);
+      var match = (val === "all") || lanes.indexOf(val) !== -1;
+      if (match){
+        card.hidden = false; shown++;
+        if (!reduceMotion){
+          card.classList.add("filtering");
+          // force reflow then release for a gentle fade-in
+          void card.offsetWidth;
+          card.classList.remove("filtering");
+        }
+      } else {
+        card.hidden = true;
+      }
+    });
+    if (noResults) noResults.classList.toggle("show", shown === 0);
+  }
+
+  filters.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      filters.forEach(function(b){ b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
+      applyFilter(btn.getAttribute("data-filter"));
+    });
   });
+
+  /* ---------- scroll reveal ---------- */
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+  if (reduceMotion || !("IntersectionObserver" in window)){
+    revealEls.forEach(function(el){ el.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+      });
+    }, {rootMargin:"0px 0px -8% 0px", threshold:0.08});
+    revealEls.forEach(function(el){ io.observe(el); });
+  }
+
+  /* ---------- card hover glow tracking ---------- */
+  if (!reduceMotion){
+    cards.forEach(function(card){
+      card.addEventListener("pointermove", function(e){
+        var r = card.getBoundingClientRect();
+        card.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      });
+    });
+  }
+
+  /* ---------- active-section nav highlighting ---------- */
+  var sectionLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-links a[href^="#"]'));
+  var idToLink = {};
+  sectionLinks.forEach(function(a){
+    var id = a.getAttribute("href").slice(1);
+    if (id) idToLink[id] = a;
+  });
+  var watched = Object.keys(idToLink)
+    .map(function(id){ return document.getElementById(id); })
+    .filter(Boolean);
+
+  if ("IntersectionObserver" in window && watched.length){
+    var current = null;
+    var navIO = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting) current = en.target.id;
+      });
+      sectionLinks.forEach(function(a){ a.classList.remove("active"); });
+      if (current && idToLink[current]) idToLink[current].classList.add("active");
+    }, {rootMargin:"-45% 0px -50% 0px", threshold:0});
+    watched.forEach(function(s){ navIO.observe(s); });
+  }
+
+  /* =========================================================
+     SIGNATURE HERO MOTIF
+     A single horizontal line that morphs across three states:
+       0 = waveform (sound)
+       1 = circuit trace with nodes (hardware)
+       2 = wireframe mesh ribbon (code / CAD)
+     Plus a drifting node constellation behind it.
+     Gated behind prefers-reduced-motion (renders a single static frame).
+     ========================================================= */
+  var canvas = document.getElementById("heroCanvas");
+  if (canvas && canvas.getContext){
+    var ctx = canvas.getContext("2d");
+    var W = 0, H = 0, DPR = 1;
+    var N = 90;                     // sample points along the line
+    var nodes = [];                 // background constellation
+    var t0 = performance.now();
+    var running = true;
+
+    function rand(a,b){ return a + Math.random()*(b-a); }
+
+    function buildNodes(){
+      nodes = [];
+      var count = Math.max(18, Math.min(46, Math.floor(W/26)));
+      for (var i=0;i<count;i++){
+        nodes.push({
+          x: rand(0,W), y: rand(0,H),
+          vx: rand(-0.12,0.12), vy: rand(-0.10,0.10),
+          r: rand(0.6,1.8)
+        });
+      }
+    }
+
+    function resize(){
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      canvas.width = Math.max(1, Math.floor(W*DPR));
+      canvas.height = Math.max(1, Math.floor(H*DPR));
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+      buildNodes();
+    }
+
+    // three target shapes for a given x in [0,1], returns y offset in [-1,1]
+    function shapeWave(x, phase){
+      return Math.sin(x*Math.PI*6 + phase) * (0.55 + 0.25*Math.sin(x*Math.PI*2 + phase*0.5));
+    }
+    function shapeCircuit(x){
+      // stepped square-ish trace
+      var steps = 7;
+      var s = Math.floor(x*steps);
+      var levels = [0.2,-0.5,-0.5,0.6,0.6,-0.2,0.4,0.4];
+      return levels[s % levels.length];
+    }
+    function shapeMesh(x, phase){
+      // tighter interfering sines → ribbon look
+      return 0.5*Math.sin(x*Math.PI*10 + phase*1.4) + 0.3*Math.sin(x*Math.PI*4 - phase);
+    }
+
+    function lerp(a,b,t){ return a + (b-a)*t; }
+    function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+    function draw(now){
+      var time = (now - t0) / 1000;
+      ctx.clearRect(0,0,W,H);
+
+      // ----- constellation -----
+      ctx.save();
+      for (var i=0;i<nodes.length;i++){
+        var n = nodes[i];
+        if (running){ n.x += n.vx; n.y += n.vy; }
+        if (n.x < 0) n.x += W; if (n.x > W) n.x -= W;
+        if (n.y < 0) n.y += H; if (n.y > H) n.y -= H;
+      }
+      // links
+      ctx.lineWidth = 1;
+      for (var a=0;a<nodes.length;a++){
+        for (var b=a+1;b<nodes.length;b++){
+          var dx = nodes[a].x - nodes[b].x, dy = nodes[a].y - nodes[b].y;
+          var d2 = dx*dx + dy*dy;
+          if (d2 < 120*120){
+            var alpha = (1 - d2/(120*120)) * 0.18;
+            ctx.strokeStyle = "rgba(79,195,247," + alpha.toFixed(3) + ")";
+            ctx.beginPath();
+            ctx.moveTo(nodes[a].x, nodes[a].y);
+            ctx.lineTo(nodes[b].x, nodes[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+      // dots
+      for (var k=0;k<nodes.length;k++){
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(138,160,182,0.35)";
+        ctx.arc(nodes[k].x, nodes[k].y, nodes[k].r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // ----- morphing signature line -----
+      // cycle through 3 states; each ~3.2s, with eased crossfade
+      var cycle = 3.2;
+      var phaseT = (time / cycle);
+      var stateA = Math.floor(phaseT) % 3;
+      var stateB = (stateA + 1) % 3;
+      var blend = easeInOut(phaseT - Math.floor(phaseT));
+      var anim = running ? time : 0; // freeze internal animation under reduced motion
+
+      var midY = H * 0.5;
+      var amp = Math.min(H*0.22, 150);
+      var pad = Math.min(W*0.08, 80);
+      var usableW = W - pad*2;
+
+      function shapeAt(state, x){
+        if (state === 0) return shapeWave(x, anim*1.4);
+        if (state === 1) return shapeCircuit(x);
+        return shapeMesh(x, anim*1.0);
+      }
+
+      var pts = [];
+      for (var p=0;p<=N;p++){
+        var xx = p / N;
+        var yA = shapeAt(stateA, xx);
+        var yB = shapeAt(stateB, xx);
+        var yv = lerp(yA, yB, blend);
+        pts.push({ x: pad + xx*usableW, y: midY + yv*amp });
+      }
+
+      // glow stroke
+      var grad = ctx.createLinearGradient(pad, 0, pad+usableW, 0);
+      grad.addColorStop(0, "rgba(79,195,247,0.95)");
+      grad.addColorStop(0.55, "rgba(143,225,255,0.95)");
+      grad.addColorStop(1, "rgba(157,123,255,0.95)");
+
+      ctx.save();
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.shadowColor = "rgba(79,195,247,0.5)";
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (var q=1;q<pts.length;q++) ctx.lineTo(pts[q].x, pts[q].y);
+      ctx.stroke();
+      ctx.restore();
+
+      // node markers — pronounced when circuit state dominant
+      var nodeWeight = (stateA===1 ? (1-blend) : 0) + (stateB===1 ? blend : 0);
+      if (nodeWeight > 0.02){
+        ctx.save();
+        ctx.fillStyle = "rgba(143,225,255," + (0.9*nodeWeight).toFixed(3) + ")";
+        for (var m=0;m<=N;m+=Math.round(N/7)){
+          var pt = pts[m];
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 3.2, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // mesh verticals — pronounced when mesh state dominant
+      var meshWeight = (stateA===2 ? (1-blend) : 0) + (stateB===2 ? blend : 0);
+      if (meshWeight > 0.02){
+        ctx.save();
+        ctx.strokeStyle = "rgba(157,123,255," + (0.28*meshWeight).toFixed(3) + ")";
+        ctx.lineWidth = 1;
+        for (var v=0;v<=N;v+=Math.round(N/16)){
+          var pv = pts[v];
+          ctx.beginPath();
+          ctx.moveTo(pv.x, midY - amp*0.9);
+          ctx.lineTo(pv.x, midY + amp*0.9);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (running) requestAnimationFrame(draw);
+    }
+
+    resize();
+    window.addEventListener("resize", function(){
+      // debounce-ish: just re-measure
+      resize();
+      if (!running){ draw(performance.now()); } // redraw static frame
+    }, {passive:true});
+
+    if (reduceMotion){
+      running = false;
+      draw(t0 + 600); // a single representative static frame
+    } else {
+      // pause animation when tab hidden to save battery
+      document.addEventListener("visibilitychange", function(){
+        if (document.hidden){ running = false; }
+        else if (!running){ running = true; t0 = performance.now(); requestAnimationFrame(draw); }
+      });
+      requestAnimationFrame(draw);
+    }
+  }
+})();
 </script>
 </body>
 </html>
