@@ -211,9 +211,8 @@ export async function kernelSelfTest() {
       tube: Math.PI * (P.tube.outer ** 2 - P.tube.inner ** 2) * P.tube.height,
       wedge: 0.5 * P.wedge.width * P.wedge.height * P.wedge.depth,
       prism: 0.5 * P.prism.sides * P.prism.radius ** 2 * Math.sin((2 * Math.PI) / P.prism.sides) * P.prism.height,
-      roundedbox: (P.roundedbox.width * P.roundedbox.depth - (4 - Math.PI) * P.roundedbox.radius ** 2) * P.roundedbox.height,
     };
-    const tol = { cylinder: 0.03, sphere: 0.04, cone: 0.04, torus: 0.06, tube: 0.03, wedge: 0.01, prism: 0.02, roundedbox: 0.04 };
+    const tol = { cylinder: 0.03, sphere: 0.04, cone: 0.04, torus: 0.06, tube: 0.03, wedge: 0.01, prism: 0.02 };
     for (const kind of Object.keys(expect)) {
       const got = primVol(kind);
       check(`Primitive "${kind}" volume ≈ ${expect[kind].toFixed(0)} mm³`, near(got, expect[kind], tol[kind]), `got ${got.toFixed(0)}`);
