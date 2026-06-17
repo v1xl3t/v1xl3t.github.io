@@ -172,9 +172,11 @@ nav{
 .hero{position:relative; padding:clamp(56px,9vw,118px) 0 clamp(40px,6vw,72px); overflow:hidden}
 #heroCanvas{
   position:absolute; inset:0; width:100%; height:100%;
-  z-index:0; opacity:.85;
-  -webkit-mask-image:linear-gradient(to bottom, #000 55%, transparent 100%);
-  mask-image:linear-gradient(to bottom, #000 55%, transparent 100%);
+  z-index:0; opacity:.45;
+  /* Clear the top band so nothing animates behind the headline/lede; the wave
+     lives in the lower portion of the hero where it won't fight the text. */
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, transparent 34%, #000 52%, #000 90%, transparent 100%);
+  mask-image:linear-gradient(to bottom, transparent 0%, transparent 34%, #000 52%, #000 90%, transparent 100%);
 }
 .hero .wrap{position:relative; z-index:1}
 
@@ -885,7 +887,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 
     function buildNodes(){
       nodes = [];
-      var count = Math.max(18, Math.min(46, Math.floor(W/26)));
+      var count = Math.max(10, Math.min(26, Math.floor(W/42)));
       for (var i=0;i<count;i++){
         nodes.push({
           x: rand(0,W), y: rand(0,H),
@@ -904,24 +906,17 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       buildNodes();
     }
 
-    // three target shapes for a given x in [0,1], returns y offset in [-1,1]
-    function shapeWave(x, phase){
-      return Math.sin(x*Math.PI*6 + phase) * (0.55 + 0.25*Math.sin(x*Math.PI*2 + phase*0.5));
+    // A traveling, audio-like waveform for x in [0,1] → y offset in [-1,1].
+    // Layered harmonics scroll with time (the "moving sound wave"); a sine
+    // envelope tapers it to zero at both ends so it reads as a clean signal.
+    function wave(x, t){
+      var env = Math.pow(Math.sin(x*Math.PI), 0.85);   // 0 at edges, 1 in the middle
+      var travel = x*Math.PI*7 - t*1.5;                // scrolls left→right over time
+      var y = Math.sin(travel)
+            + 0.42*Math.sin(travel*2.15 + 0.6)         // harmonic → organic audio look
+            + 0.22*Math.sin(travel*0.5 - t*0.7);       // slow swell
+      return (y / 1.64) * env;
     }
-    function shapeCircuit(x){
-      // stepped square-ish trace
-      var steps = 7;
-      var s = Math.floor(x*steps);
-      var levels = [0.2,-0.5,-0.5,0.6,0.6,-0.2,0.4,0.4];
-      return levels[s % levels.length];
-    }
-    function shapeMesh(x, phase){
-      // tighter interfering sines → ribbon look
-      return 0.5*Math.sin(x*Math.PI*10 + phase*1.4) + 0.3*Math.sin(x*Math.PI*4 - phase);
-    }
-
-    function lerp(a,b,t){ return a + (b-a)*t; }
-    function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
 
     function draw(now){
       var time = (now - t0) / 1000;
@@ -942,7 +937,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
           var dx = nodes[a].x - nodes[b].x, dy = nodes[a].y - nodes[b].y;
           var d2 = dx*dx + dy*dy;
           if (d2 < 120*120){
-            var alpha = (1 - d2/(120*120)) * 0.18;
+            var alpha = (1 - d2/(120*120)) * 0.09;
             ctx.strokeStyle = "rgba(79,195,247," + alpha.toFixed(3) + ")";
             ctx.beginPath();
             ctx.moveTo(nodes[a].x, nodes[a].y);
@@ -954,88 +949,49 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       // dots
       for (var k=0;k<nodes.length;k++){
         ctx.beginPath();
-        ctx.fillStyle = "rgba(138,160,182,0.35)";
+        ctx.fillStyle = "rgba(138,160,182,0.18)";
         ctx.arc(nodes[k].x, nodes[k].y, nodes[k].r, 0, Math.PI*2);
         ctx.fill();
       }
       ctx.restore();
 
-      // ----- morphing signature line -----
-      // cycle through 3 states; each ~3.2s, with eased crossfade
-      var cycle = 3.2;
-      var phaseT = (time / cycle);
-      var stateA = Math.floor(phaseT) % 3;
-      var stateB = (stateA + 1) % 3;
-      var blend = easeInOut(phaseT - Math.floor(phaseT));
-      var anim = running ? time : 0; // freeze internal animation under reduced motion
-
-      var midY = H * 0.5;
-      var amp = Math.min(H*0.22, 150);
+      // ----- the moving sound wave -----
+      var anim = running ? time : 0;   // frozen frame under reduced motion
+      var midY = H * 0.62;             // sit in the lower band, clear of the text
+      var amp = Math.min(H*0.16, 92);
       var pad = Math.min(W*0.08, 80);
       var usableW = W - pad*2;
 
-      function shapeAt(state, x){
-        if (state === 0) return shapeWave(x, anim*1.4);
-        if (state === 1) return shapeCircuit(x);
-        return shapeMesh(x, anim*1.0);
+      function pointsFor(offset){
+        var arr = [];
+        for (var p=0;p<=N;p++){
+          var xx = p / N;
+          arr.push({ x: pad + xx*usableW, y: midY + wave(xx, anim + offset)*amp });
+        }
+        return arr;
       }
 
-      var pts = [];
-      for (var p=0;p<=N;p++){
-        var xx = p / N;
-        var yA = shapeAt(stateA, xx);
-        var yB = shapeAt(stateB, xx);
-        var yv = lerp(yA, yB, blend);
-        pts.push({ x: pad + xx*usableW, y: midY + yv*amp });
-      }
-
-      // glow stroke
       var grad = ctx.createLinearGradient(pad, 0, pad+usableW, 0);
-      grad.addColorStop(0, "rgba(79,195,247,0.95)");
+      grad.addColorStop(0, "rgba(79,195,247,0.9)");
       grad.addColorStop(0.55, "rgba(143,225,255,0.95)");
-      grad.addColorStop(1, "rgba(157,123,255,0.95)");
+      grad.addColorStop(1, "rgba(157,123,255,0.9)");
 
-      ctx.save();
-      ctx.lineJoin = "round"; ctx.lineCap = "round";
-      ctx.shadowColor = "rgba(79,195,247,0.5)";
-      ctx.shadowBlur = 16;
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (var q=1;q<pts.length;q++) ctx.lineTo(pts[q].x, pts[q].y);
-      ctx.stroke();
-      ctx.restore();
-
-      // node markers — pronounced when circuit state dominant
-      var nodeWeight = (stateA===1 ? (1-blend) : 0) + (stateB===1 ? blend : 0);
-      if (nodeWeight > 0.02){
+      function strokeWave(pts, width, glow){
         ctx.save();
-        ctx.fillStyle = "rgba(143,225,255," + (0.9*nodeWeight).toFixed(3) + ")";
-        for (var m=0;m<=N;m+=Math.round(N/7)){
-          var pt = pts[m];
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 3.2, 0, Math.PI*2);
-          ctx.fill();
-        }
+        ctx.lineJoin = "round"; ctx.lineCap = "round";
+        if (glow){ ctx.shadowColor = "rgba(79,195,247,0.45)"; ctx.shadowBlur = 12; }
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (var q=1;q<pts.length;q++) ctx.lineTo(pts[q].x, pts[q].y);
+        ctx.stroke();
         ctx.restore();
       }
 
-      // mesh verticals — pronounced when mesh state dominant
-      var meshWeight = (stateA===2 ? (1-blend) : 0) + (stateB===2 ? blend : 0);
-      if (meshWeight > 0.02){
-        ctx.save();
-        ctx.strokeStyle = "rgba(157,123,255," + (0.28*meshWeight).toFixed(3) + ")";
-        ctx.lineWidth = 1;
-        for (var v=0;v<=N;v+=Math.round(N/16)){
-          var pv = pts[v];
-          ctx.beginPath();
-          ctx.moveTo(pv.x, midY - amp*0.9);
-          ctx.lineTo(pv.x, midY + amp*0.9);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
+      // a faint trailing echo for depth, then the bright primary wave
+      ctx.globalAlpha = 0.35; strokeWave(pointsFor(-0.5), 1.3, false); ctx.globalAlpha = 1;
+      strokeWave(pointsFor(0), 2.2, true);
 
       if (running) requestAnimationFrame(draw);
     }
