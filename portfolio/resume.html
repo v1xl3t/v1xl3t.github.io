@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vi Ellis · Résumé</title>
+<meta name="description" content="Vi Ellis, full-stack engineer, hardware product developer, and award-winning composer. Condensed résumé." />
+<style>
+  :root{ --ink:#15202b; --soft:#4a5a6a; --line:#d7dee6; --accent:#1f7ab0; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:#eef1f4; color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .sheet{ max-width:820px; margin:24px auto; background:#fff; padding:46px 54px;
+    box-shadow:0 10px 40px -16px rgba(0,0,0,.3); border-radius:6px; }
+  a{ color:var(--accent); text-decoration:none } a:hover{ text-decoration:underline }
+  h1{ margin:0; font-size:30px; letter-spacing:-.02em }
+  .tagline{ color:var(--soft); font-weight:600; margin:4px 0 0 }
+  .contact{ margin:10px 0 0; font-size:13px; color:var(--soft); display:flex; flex-wrap:wrap; gap:4px 14px }
+  .back{ font-size:13px; margin-bottom:14px; display:inline-block }
+  h2{ font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--accent);
+    border-bottom:1.5px solid var(--line); padding-bottom:4px; margin:24px 0 12px }
+  .sum{ font-size:15px; color:#2a3744 }
+  .role{ margin:0 0 14px }
+  .role .top{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:baseline }
+  .role .ttl{ font-weight:700 } .role .org{ color:var(--soft) }
+  .role .when{ color:var(--soft); font-size:13px; white-space:nowrap }
+  ul{ margin:6px 0 0; padding-left:18px } li{ margin:3px 0 }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:4px 26px }
+  .kv b{ display:block; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--soft) }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px } .chips span{ font-size:12.5px; background:#eef3f7; border:1px solid var(--line); border-radius:6px; padding:2px 9px }
+  .note{ color:#8a96a2; font-size:12px; font-style:italic; margin-top:6px }
+  @media print{
+    body{ background:#fff } .sheet{ box-shadow:none; margin:0; max-width:none; padding:0 } .back{ display:none }
+    a{ color:var(--ink) }
+  }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <a class="back" href="index.html">&larr; Back to portfolio</a>
+    <header>
+      <h1>Vi Ellis</h1>
+      <p class="tagline">Full-Stack Engineer · Hardware Product Developer · Composer</p>
+      <div class="contact">
+        <span>San Diego, CA · open to California or remote</span>
+        <span><a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></span>
+        <span><a href="https://www.linkedin.com/in/vi-ellis">linkedin.com/in/vi-ellis</a></span>
+        <span><a href="https://vi-ellis.com">vi-ellis.com</a></span>
+        <span><a href="https://www.imdb.com/name/nm14300781">IMDb</a></span>
+      </div>
+    </header>
+
+    <h2>Summary</h2>
+    <p class="sum">Engineer and product developer who ships across software, hardware, and sound. Built production Claude AI agent infrastructure and a React platform in daily use, took a hardware product from concept to a 100-unit manufacturing run, and scored 30+ released games and films, including a Tokyo Film Awards Best Composer win. Adjunct professor of sound design.</p>
+
+    <h2>Experience</h2>
+    <div class="role">
+      <div class="top"><span><span class="ttl">Product Development Specialist</span>, <span class="org">Treobytes</span></span><span class="when">Aug 2025 &ndash; Present</span></div>
+      <ul>
+        <li>Designed and shipped a production three-layer Claude AI agent system solo in 5 days; non-engineers now use it for expert work (submitted a live school-district proposal through it; generated 27 of 27 course timelines in one session).</li>
+        <li>Built <a href="https://treotools.github.io">TreoTools</a>, an internal React platform in daily use, including an algorithmic seating-chart generator.</li>
+        <li>Took an Arduino MIDI instrument from concept to a 100+ unit manufacturing run: circuit, USB-HID firmware, OnShape enclosure, laser fabrication.</li>
+        <li>Built an automation pipeline that scores 20+ school districts from public planning documents into a prioritized CRM prospect list.</li>
+      </ul>
+    </div>
+    <div class="role">
+      <div class="top"><span><span class="ttl">Adjunct Professor, Game Art &amp; Design</span>, <span class="org">Woodbury University</span></span><span class="when">Aug 2024 &ndash; Present</span></div>
+      <ul><li>Developed and teach GAME 203: Sound Design Fundamentals, adaptive game audio via C# and Unreal Blueprint with Wwise/FMOD.</li></ul>
+    </div>
+    <div class="role">
+      <div class="top"><span><span class="ttl">Technical Audio Designer / Tools Developer</span>, <span class="org">Necro.World Studios</span></span><span class="when">2022 &ndash; 2023</span></div>
+      <ul><li>Built a UE5 Blueprint tool generating a unique soundtrack per game session, showcased at GDC San Francisco 2024.</li></ul>
+    </div>
+    <div class="role">
+      <div class="top"><span><span class="ttl">Composer-in-Residence / Technical Audio Designer</span>, <span class="org">Odd Orca Studios</span></span><span class="when">Nov 2021 &ndash; Present</span></div>
+      <ul><li>Compose and engineer original music and adaptive game audio for indie titles.</li></ul>
+    </div>
+    <div class="role">
+      <div class="top"><span><span class="ttl">Film &amp; TV Composer</span>, <span class="org">Freelance</span></span><span class="when">2018 &ndash; Present</span></div>
+      <ul><li>14 film/TV credits. Silver, Best Composer, Tokyo Film Awards 2022 (HAIKU).</li></ul>
+    </div>
+
+    <h2>Selected Projects</h2>
+    <ul>
+      <li><b>CADence</b>: browser 3D modeler fusing TinkerCAD ease with OnShape precision (JavaScript, Three.js, WebGL, OpenCascade).</li>
+      <li><b>Computational design / generative 3D-printing research</b>: Python and Grasshopper; featured in <a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/">Dezeen</a> (2023).</li>
+      <li><b>Installation prototype for artist Wang Shui</b>: Maya and Unity; exhibited at the Julia Stoschek Collection, Berlin (2022).</li>
+    </ul>
+
+    <h2>Education</h2>
+    <p>B.S. Applied Computer Science (Media Arts), University of Redlands, 2023.<br>
+    Magna Cum Laude (GPA 3.8) · Best Thesis Award · Academic Excellence Awards 2022 &amp; 2023 · Dean's List, all semesters.</p>
+
+    <h2>Awards &amp; Recognition</h2>
+    <p>Silver, Best Composer, Tokyo Film Awards 2022 (HAIKU) · Best Original Music Nominee, New Creators Film Awards 2022 · Showcased at GDC San Francisco 2024 · Featured in Dezeen (2023) · Exhibited at Julia Stoschek Collection, Berlin (2022).</p>
+
+    <h2>Skills</h2>
+    <div class="chips">
+      <span>Python</span><span>JavaScript</span><span>React</span><span>Node.js</span><span>Claude API / agent design</span>
+      <span>C++ / Arduino firmware</span><span>OnShape · Rhino · Grasshopper</span><span>3D printing &amp; laser fab</span>
+      <span>Unreal Engine 5 · Unity</span><span>Wwise · FMOD</span><span>Audio engineering &amp; composition</span>
+    </div>
+
+    <p class="note">Replace CONTACT_EMAIL with your preferred public address. Print or "Save as PDF" from your browser for a PDF copy.</p>
+  </div>
+</body>
+</html>
