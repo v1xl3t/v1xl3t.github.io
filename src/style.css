@@ -40,19 +40,20 @@ html, body {
 #toolbar  { left: 12px;  width: var(--toolbar-w, 200px); max-height: calc(100vh - 24px); overflow-y: auto; }
 #inspector { right: 12px; width: var(--side-w, 200px);    max-height: 52vh; overflow-y: auto; }
 
-/* Drag handle to resize a panel by its inner edge. */
+/* Resize handles live in #app (not the panels — a panel's overflow:auto clips
+   horizontal overflow). Full-height gutter strips anchored to each panel edge. */
 .resize-handle {
-  position: absolute; top: 0; bottom: 0; width: 8px;
-  cursor: ew-resize; z-index: 11; touch-action: none;
+  position: absolute; top: 12px; bottom: 12px; width: 11px;
+  cursor: ew-resize; z-index: 30; touch-action: none;
 }
-.resize-handle.right { right: -8px; }   /* toolbar: drag its right edge (sits over canvas, clear of scrollbar) */
-.resize-handle.left  { left: -8px; }    /* inspector/outliner: drag the left edge */
+.resize-handle.toolbar { left:  calc(12px + var(--toolbar-w, 200px) + 1px); }   /* just over the canvas, clear of the scrollbar */
+.resize-handle.side    { right: calc(12px + var(--side-w, 200px) + 1px); }
 .resize-handle::after {
-  content: ''; position: absolute; top: 50%; transform: translateY(-50%);
-  left: 2px; width: 3px; height: 28px; border-radius: 3px;
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 3px; height: 30px; border-radius: 3px;
   background: var(--border); opacity: 0; transition: opacity .15s;
 }
-.resize-handle:hover::after, .panel.resizing .resize-handle::after { opacity: 1; background: var(--accent); }
+.resize-handle:hover::after, .resize-handle.dragging::after { opacity: 1; background: var(--accent); }
 
 /* Slim, themed scrollbars — replaces the chunky default OS bar inside panels. */
 .panel { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
@@ -84,6 +85,11 @@ button.collapse-btn {
 button.collapse-btn:hover { color: var(--text); }
 .panel.collapsed { padding-bottom: 10px; }
 .panel.collapsed > *:not(:first-child) { display: none; }
+
+/* Arrange tools — a label plus three compact axis buttons on one row. */
+.arrange-row { display: flex; align-items: center; gap: 5px; margin: 3px 0; }
+.arrange-lbl { flex: 1; font-size: 12px; color: var(--muted); }
+button.mini { width: 30px; margin: 0; padding: 6px 0; text-align: center; flex: 0 0 auto; }
 
 .group { margin-bottom: 14px; }
 .group-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 6px; }
@@ -246,3 +252,29 @@ html[data-ui="neon"] .panel,
 html[data-ui="neon"] .setrow select { border-radius: 12px; }
 html[data-ui="neon"] button.mode.active,
 html[data-ui="neon"] button.tool.active { box-shadow: 0 0 10px -2px var(--accent); }
+
+/* ---------------------------------------------------------------- shortcuts overlay */
+#shortcuts-overlay {
+  position: absolute; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(2px);
+}
+#shortcuts-overlay[hidden] { display: none; }
+.shortcuts-card {
+  background: var(--panel-solid); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 20px; max-width: 620px;
+  box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.6);
+}
+.shortcuts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.shortcuts-head span { font-size: 15px; font-weight: 600; }
+#shortcuts-close { width: 28px; height: 28px; margin: 0; padding: 0; text-align: center; }
+.shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 28px; }
+.sc-col > div { font-size: 12.5px; color: var(--text); margin: 4px 0; }
+.sc-sec { font-size: 11px !important; text-transform: uppercase; letter-spacing: .5px; color: var(--muted) !important; margin-top: 12px !important; }
+.sc-col > .sc-sec:first-child { margin-top: 0 !important; }
+kbd {
+  display: inline-block; min-width: 16px; padding: 1px 5px; margin: 0 1px;
+  font: 11px/1.5 inherit; text-align: center;
+  background: #1f262f; border: 1px solid var(--border); border-radius: 4px;
+}
+html[data-ui="paper"] kbd { background: #eef0f3; }

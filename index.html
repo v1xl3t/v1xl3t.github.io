@@ -62,10 +62,28 @@
       </div>
 
       <div class="group">
+        <div class="group-label">Arrange <span class="hint">(multi-select first)</span></div>
+        <div class="arrange-row">
+          <span class="arrange-lbl" title="Align the centers of the selected objects on an axis">Align ctr</span>
+          <button data-align="x" class="mini" title="Align centers on X">X</button>
+          <button data-align="y" class="mini" title="Align centers on Y (height)">Y</button>
+          <button data-align="z" class="mini" title="Align centers on Z">Z</button>
+        </div>
+        <div class="arrange-row">
+          <span class="arrange-lbl" title="Space 3+ objects evenly between the outermost two on an axis">Distribute</span>
+          <button data-distribute="x" class="mini" title="Distribute evenly on X">X</button>
+          <button data-distribute="y" class="mini" title="Distribute evenly on Y">Y</button>
+          <button data-distribute="z" class="mini" title="Distribute evenly on Z">Z</button>
+        </div>
+        <button data-action="drop-floor" title="Drop each selected object so its bottom sits on the Y=0 ground plane — handy before exporting to print">Drop to floor</button>
+      </div>
+
+      <div class="group">
         <div class="group-label">View</div>
         <button data-action="frame" title="Re-center & fit the selection (whole scene if nothing is selected)">Frame <span class="hint">(F)</span></button>
         <button data-action="lasso" id="lasso-btn" class="tool" title="Lasso tool: drag a freehand loop to select everything inside it">Lasso select <span class="hint">(L)</span></button>
         <button data-action="measure" id="measure-btn" class="tool" title="Measure tool: click two points on objects to read the distance between them">Measure <span class="hint">(M)</span></button>
+        <button data-action="shortcuts" title="Show the keyboard shortcut cheat-sheet">Shortcuts <span class="hint">(?)</span></button>
       </div>
 
       <div class="group">
@@ -130,6 +148,40 @@
     </aside>
 
     <div id="statusbar"></div>
+
+    <!-- Keyboard shortcut cheat-sheet (toggled by the Shortcuts button or "?") -->
+    <div id="shortcuts-overlay" hidden>
+      <div class="shortcuts-card">
+        <div class="shortcuts-head">
+          <span>Keyboard shortcuts</span>
+          <button id="shortcuts-close" title="Close (Esc)">✕</button>
+        </div>
+        <div class="shortcuts-grid">
+          <div class="sc-col">
+            <div class="sc-sec">Transform</div>
+            <div><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> Move / Rotate / Scale</div>
+            <div><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> Nudge by snap step</div>
+            <div><kbd>Shift</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> Nudge up / down</div>
+            <div class="sc-sec">Select &amp; view</div>
+            <div><kbd>L</kbd> Lasso · <kbd>M</kbd> Measure</div>
+            <div><kbd>F</kbd> Frame selection</div>
+            <div><kbd>Ctrl</kbd>+<kbd>A</kbd> Select all</div>
+            <div><kbd>Esc</kbd> Deselect / exit mode</div>
+          </div>
+          <div class="sc-col">
+            <div class="sc-sec">Edit</div>
+            <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo</div>
+            <div><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> Copy / Paste</div>
+            <div><kbd>Ctrl</kbd>+<kbd>D</kbd> Duplicate</div>
+            <div><kbd>Del</kbd> Delete selection</div>
+            <div class="sc-sec">Combine</div>
+            <div><kbd>Ctrl</kbd>+<kbd>G</kbd> Group → boolean</div>
+            <div><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> Ungroup</div>
+            <div><kbd>Ctrl</kbd>+<kbd>I</kbd> Intersect</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="./src/main.js"></script>

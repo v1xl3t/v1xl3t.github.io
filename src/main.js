@@ -180,9 +180,17 @@ const ptr = new THREE.Vector2();
 let downAt = null;
 
 renderer.domElement.addEventListener('pointerdown', (e) => {
-  if (lassoOn && e.button === 0) { lassoStart(e); return; }
   downAt = { x: e.clientX, y: e.clientY };
 });
+// Lasso begins on a window capture-phase listener so it runs BEFORE OrbitControls
+// and TransformControls (whose listeners are on the canvas) and can't be swallowed
+// by them — and stopPropagation keeps them from also acting on the same press.
+window.addEventListener('pointerdown', (e) => {
+  if (!lassoOn || e.button !== 0) return;
+  if (e.target !== renderer.domElement) return;   // ignore clicks on panels/buttons
+  e.stopPropagation();
+  lassoStart(e);
+}, true);
 renderer.domElement.addEventListener('pointerup', (e) => {
   if (lassoActive) return;            // lasso runs its own window-level drag
   if (gizmo.dragging || !downAt) return;
@@ -208,6 +216,8 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
   if (!btn) return;
 
   if (btn.dataset.add) doc.add(btn.dataset.add);
+  if (btn.dataset.align) alignCenter(btn.dataset.align);
+  if (btn.dataset.distribute) distribute(btn.dataset.distribute);
 
   if (btn.dataset.mode) {
     gizmo.setMode(btn.dataset.mode);
@@ -235,6 +245,8 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
       if (export3MF(doc.list)) flash('Exported 3MF (mm units).');
       else flash('Nothing printable to export — add a solid first.');
       break;
+    case 'drop-floor':   dropToFloor(); break;
+    case 'shortcuts':    toggleShortcuts(); break;
     case 'save-project':
       if (doc.list.length) { downloadJSON(doc.toJSON()); flash('Project saved.'); }
       else flash('Nothing to save yet.');
@@ -296,8 +308,20 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'f') frameSelection();
   else if (k === 'l') toggleLasso();
   else if (k === 'm') toggleMeasure();
+  else if (k === '?') toggleShortcuts();
   else if (k.startsWith('arrow') && doc.selection.size) { e.preventDefault(); nudgeSelection(k, e.shiftKey, e.repeat); }
-  else if (k === 'escape') { if (lassoOn) setLasso(false); else if (measureOn) setMeasure(false); else doc.select(null); }
+  else if (k === 'escape') {
+    if (!document.getElementById('shortcuts-overlay').hidden) toggleShortcuts(false);
+    else if (lassoOn) setLasso(false);
+    else if (measureOn) setMeasure(false);
+    else doc.select(null);
+  }
+});
+
+// Shortcuts overlay: close on its ✕ button or by clicking the dim backdrop.
+document.getElementById('shortcuts-close').addEventListener('click', () => toggleShortcuts(false));
+document.getElementById('shortcuts-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'shortcuts-overlay') toggleShortcuts(false);
 });
 
 function setMode(mode) {
@@ -597,6 +621,54 @@ function wireHints() {
   });
 }
 
+// ---------------------------------------------------------------- arrange tools
+// Align / distribute / drop-to-floor work on world-space bounding boxes, so they
+// behave intuitively regardless of an object's rotation or scale.
+function worldBox(o) { o.mesh.updateWorldMatrix(true, false); return new THREE.Box3().setFromObject(o.mesh); }
+function boxCenter(b, a) { return (b.min[a] + b.max[a]) / 2; }
+
+function alignCenter(axis) {
+  const objs = doc.selectedObjects;
+  if (objs.length < 2) { flash('Select 2+ objects to align (Shift-click them).'); return; }
+  doc.commit();
+  const boxes = objs.map(worldBox);
+  const lo = Math.min(...boxes.map((b) => b.min[axis]));
+  const hi = Math.max(...boxes.map((b) => b.max[axis]));
+  const target = (lo + hi) / 2;
+  objs.forEach((o, i) => { o.mesh.position[axis] += target - boxCenter(boxes[i], axis); doc.touch(o); });
+  setStatus();
+  flash(`Aligned ${objs.length} on ${axis.toUpperCase()} center.`);
+}
+
+function distribute(axis) {
+  const objs = doc.selectedObjects;
+  if (objs.length < 3) { flash('Select 3+ objects to distribute evenly.'); return; }
+  doc.commit();
+  const items = objs.map((o) => ({ o, center: boxCenter(worldBox(o), axis) })).sort((a, b) => a.center - b.center);
+  const lo = items[0].center, hi = items[items.length - 1].center;
+  const gap = (hi - lo) / (items.length - 1);
+  items.forEach((it, i) => { it.o.mesh.position[axis] += (lo + gap * i) - it.center; doc.touch(it.o); });
+  setStatus();
+  flash(`Distributed ${objs.length} on ${axis.toUpperCase()}.`);
+}
+
+// Sit each object's bottom on the ground (Y=0) — independent per object, so a
+// scene is print-ready in one click.
+function dropToFloor() {
+  const objs = doc.selectedObjects.length ? doc.selectedObjects : doc.list;
+  if (!objs.length) { flash('Nothing to drop.'); return; }
+  doc.commit();
+  for (const o of objs) { o.mesh.position.y -= worldBox(o).min.y; doc.touch(o); }
+  setStatus();
+  flash(`Dropped ${objs.length} to the floor (Y=0).`);
+}
+
+// ---------------------------------------------------------------- shortcuts overlay
+function toggleShortcuts(force) {
+  const ov = document.getElementById('shortcuts-overlay');
+  ov.hidden = force != null ? !force : !ov.hidden;
+}
+
 // ---------------------------------------------------------------- collapsible panels
 // Adds a –/+ toggle to a panel's header; collapsing hides all but that header.
 function makeCollapsible(panelId, headSelector) {
@@ -616,31 +688,34 @@ function makeCollapsible(panelId, headSelector) {
 // the left toolbar and right inspector/outliner can be widened — handy when long
 // numbers would otherwise clip.
 const PANEL_MIN = 170, PANEL_MAX = 560;
-function makeResizable(panelId, edge, cssVar) {
-  const panel = document.getElementById(panelId);
-  if (!panel) return;
+// The handle lives in #app (overflow:visible), NOT inside the panel — a panel's
+// `overflow-y:auto` also clips horizontal overflow, which hid the old edge handle.
+// It's a full-height gutter strip anchored to the panel edge via the width var.
+function makeResizable(cls, cssVar, grows) {
+  const app = document.getElementById('app');
   const handle = document.createElement('div');
-  handle.className = `resize-handle ${edge}`;
+  handle.className = `resize-handle ${cls}`;
   handle.dataset.hint = 'Drag to resize this panel';
-  panel.appendChild(handle);
+  app.appendChild(handle);
+  const curW = () => parseInt(getComputedStyle(document.documentElement).getPropertyValue(cssVar), 10) || 200;
   handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    panel.classList.add('resizing');
-    const startX = e.clientX, startW = panel.getBoundingClientRect().width;
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add('dragging');
+    const startX = e.clientX, startW = curW();
     const onMove = (ev) => {
-      const delta = edge === 'right' ? ev.clientX - startX : startX - ev.clientX;
+      const delta = grows === 'right' ? ev.clientX - startX : startX - ev.clientX;
       const w = Math.max(PANEL_MIN, Math.min(PANEL_MAX, Math.round(startW + delta)));
       document.documentElement.style.setProperty(cssVar, w + 'px');
     };
     const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      panel.classList.remove('resizing');
-      const w = document.documentElement.style.getPropertyValue(cssVar);
-      if (w) localStorage.setItem('cad.' + cssVar, w);
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.classList.remove('dragging');
+      localStorage.setItem('cad.' + cssVar, document.documentElement.style.getPropertyValue(cssVar));
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
   });
 }
 function restorePanelWidth(cssVar) {
@@ -761,9 +836,8 @@ function initSettings() {
 
   restorePanelWidth('--toolbar-w');
   restorePanelWidth('--side-w');
-  makeResizable('toolbar', 'right', '--toolbar-w');     // left panel: drag right edge
-  makeResizable('inspector', 'left', '--side-w');        // right panels share one width
-  makeResizable('outliner', 'left', '--side-w');
+  makeResizable('toolbar', '--toolbar-w', 'right');   // left panel: drag its right edge
+  makeResizable('side', '--side-w', 'left');           // right panels share one edge handle
   wireHints();
 }
 
