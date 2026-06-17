@@ -392,6 +392,7 @@ function setLasso(on) {
   lassoOn = on;
   if (on && measureOn) setMeasure(false);    // one viewport mode at a time
   orbit.enabled = !on;                       // give the drag to the lasso, not the camera
+  gizmo.enabled = !on;                       // stop the transform gizmo eating the drag
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('lasso-btn')?.classList.toggle('active', on);
   if (!on) clearLasso();
@@ -406,6 +407,7 @@ function clearLasso() {
 
 function lassoStart(e) {
   ensureLassoSvg();
+  try { renderer.domElement.setPointerCapture(e.pointerId); } catch { /* non-fatal */ }
   lassoActive = true; lassoShift = e.shiftKey; lassoPts = [[e.clientX, e.clientY]];
   updateLassoPath();
 }
@@ -474,6 +476,7 @@ function clearMeasure() { measurePts = []; measureText = ''; disposeMeasureChild
 function setMeasure(on) {
   measureOn = on;
   if (on && lassoOn) setLasso(false);          // one viewport mode at a time
+  gizmo.enabled = !on;                         // don't let the gizmo swallow measure clicks
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('measure-btn')?.classList.toggle('active', on);
   if (!on) clearMeasure();

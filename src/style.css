@@ -98,6 +98,9 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 button.tool.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
 
+/* Primitive buttons in 2 columns — keeps the toolbar from getting tall/crowded. */
+button[data-add] { width: calc(50% - 3px); text-align: center; padding: 7px 4px; }
+
 /* Settings rows — label + dropdown */
 .setrow { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
 .setrow label { flex: none; width: 58px; font-size: 11px; color: var(--muted); }
