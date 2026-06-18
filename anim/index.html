@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Layerloop — layered & stated pixel animation</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' rx='3' fill='%237c5cff'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --panel2:#1d212b; --border:#2a3040;
+    --text:#e8ebf2; --muted:#8b93a7; --accent:#7c5cff; --accent2:#33d6a6; --danger:#ff5d6c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+  button,select,input{font:inherit;color:inherit}
+  button{background:#222734;border:1px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .danger:hover{border-color:var(--danger);color:var(--danger)}
+  input[type=number],select{background:#0e1117;border:1px solid var(--border);border-radius:6px;padding:4px 6px}
+  input[type=number]{width:58px}
+
+  #app{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+
+  /* top bar */
+  header{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--panel);flex-wrap:wrap}
+  .brand{font-weight:800;letter-spacing:-.01em}
+  .brand b{color:var(--accent)}
+  .sep{width:1px;height:24px;background:var(--border);margin:0 2px}
+  .tool.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .swatch{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);padding:0;cursor:pointer}
+  .palette{display:flex;gap:4px;flex-wrap:wrap;max-width:230px}
+  .pcell{width:18px;height:18px;border-radius:4px;border:1px solid #0008;cursor:pointer}
+  .pcell.sel{outline:2px solid var(--accent);outline-offset:1px}
+  .grow{flex:1}
+  .hint{color:var(--muted);font-size:12px}
+
+  /* middle: canvas + right rail */
+  main{display:grid;grid-template-columns:1fr 268px;min-height:0}
+  .stage{display:flex;align-items:center;justify-content:center;overflow:auto;background:
+    repeating-conic-gradient(#15181f 0% 25%, #1b1f28 0% 50%) 50%/24px 24px;padding:18px}
+  #canvas{image-rendering:pixelated;background:transparent;box-shadow:0 0 0 1px var(--border),0 20px 60px -20px #000;cursor:crosshair;touch-action:none}
+
+  aside{border-left:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+  .rail-h{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--border)}
+  .rail-h b{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .layers{overflow:auto;flex:1}
+  .layer{display:flex;align-items:center;gap:7px;padding:8px 10px;border-bottom:1px solid #20242f;cursor:pointer}
+  .layer.sel{background:#222a3a}
+  .layer .eye{width:24px;text-align:center;opacity:.85}
+  .layer .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .layer input.nm{background:#0e1117;border:1px solid var(--border);border-radius:5px;padding:2px 5px}
+  .layer .st{font-size:11px;color:var(--muted)}
+  .statebar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .mini{padding:3px 7px;font-size:12px}
+
+  /* bottom: frames timeline */
+  footer{border-top:1px solid var(--border);background:var(--panel);padding:8px 12px}
+  .tl-h{display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap}
+  .frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+  .frame{flex:none;width:54px}
+  .frame canvas{width:54px;height:54px;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:
+    repeating-conic-gradient(#15181f 0% 25%, #1b1f28 0% 50%) 50%/10px 10px;display:block;cursor:pointer}
+  .frame.sel canvas{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .frame .lbl{font-size:10px;color:var(--muted);text-align:center;margin-top:2px}
+  .frame.add canvas{display:grid;place-items:center;color:var(--muted);font-size:22px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand"><b>Layer</b>loop <span class="hint">v0.1</span></div>
+    <div class="sep"></div>
+    <button class="tool on" data-tool="pen" title="Pencil (B)">✏️</button>
+    <button class="tool" data-tool="erase" title="Eraser (E)">🧽</button>
+    <button class="tool" data-tool="fill" title="Fill (G)">🪣</button>
+    <button class="tool" data-tool="pick" title="Eyedropper (I)">🎯</button>
+    <input type="color" class="swatch" id="color" value="#7c5cff" title="Color" />
+    <div class="palette" id="palette"></div>
+    <div class="sep"></div>
+    <button id="onion" title="Onion skin (O)">👻 Onion</button>
+    <div class="grow"></div>
+    <button id="play" title="Play / stop (Space)">▶ Play</button>
+    <label class="hint">FPS <input type="number" id="fps" value="12" min="1" max="60" /></label>
+    <div class="sep"></div>
+    <button id="export-frame" title="Export the composited current frame as PNG">PNG frame</button>
+    <button id="export-sheet" title="Export the whole loop as a horizontal sprite sheet PNG">Sprite sheet</button>
+    <button id="save" title="Download project (.json)">Save</button>
+    <button id="load" title="Load a project (.json)">Load</button>
+    <input type="file" id="file" accept=".json" hidden />
+  </header>
+
+  <main>
+    <div class="stage"><canvas id="canvas"></canvas></div>
+    <aside>
+      <div class="statebar">
+        <b class="hint" style="text-transform:uppercase;letter-spacing:.08em">State</b>
+        <select id="stateSel" title="Active animation state for the selected layer"></select>
+        <button class="mini" id="state-add" title="Add a new state (a swappable animation sheet) to this layer">＋</button>
+        <button class="mini" id="state-ren" title="Rename this state">✎</button>
+        <button class="mini danger" id="state-del" title="Delete this state">🗑</button>
+      </div>
+      <div class="rail-h"><b>Layers</b>
+        <span>
+          <button class="mini" id="layer-up" title="Move layer up">▲</button>
+          <button class="mini" id="layer-dn" title="Move layer down">▼</button>
+          <button class="mini" id="layer-add" title="Add layer">＋</button>
+          <button class="mini danger" id="layer-del" title="Delete layer">🗑</button>
+        </span>
+      </div>
+      <div class="layers" id="layers"></div>
+      <div class="rail-h" style="border-top:1px solid var(--border)"><b>Canvas</b>
+        <span class="hint"><input type="number" id="cw" value="32" min="1" max="256" style="width:48px"> × <input type="number" id="ch" value="32" min="1" max="256" style="width:48px"> <button class="mini" id="resize">Set</button></span>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="tl-h">
+      <b class="hint" style="text-transform:uppercase;letter-spacing:.08em">Loop frames</b>
+      <span class="hint" id="frameLabel">1 / 1</span>
+      <div class="grow"></div>
+      <span class="hint">Every visible layer shares this loop length, so layered states stay in sync.</span>
+    </div>
+    <div class="frames" id="frames"></div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+// ----------------------------------------------------------------------------
+// Layerloop — a layered & stated pixel animation tool.
+// Core idea (from the "multi-layered / hybrid stated animation" technique):
+//   * The animation is built from several LAYERS composited together.
+//   * Every layer shares one LOOP LENGTH so frames stay aligned.
+//   * Each layer can hold multiple STATES (swappable animation sheets); you pick
+//     which state is active per layer, and playback composites the active state
+//     of every visible layer at the current loop frame.
+// Data is a plain serialisable object (localStorage autosave + JSON export).
+// ----------------------------------------------------------------------------
+
+const DEFAULT_PALETTE = ['#000000','#ffffff','#7c5cff','#33d6a6','#ff5d6c','#ffb454','#4fc3f7','#ff8edb','#7a8194','#2a3040'];
+const uid = () => Math.random().toString(36).slice(2, 9);
+const blankFrame = (n) => new Array(n).fill(null);
+const newState = (name, loop, n) => ({ name, frames: Array.from({length: loop}, () => blankFrame(n)) });
+const newLayer = (name, loop, n) => ({ id: uid(), name, visible: true, opacity: 1, states: [newState('default', loop, n)], active: 0 });
+
+function freshProject(w = 32, h = 32, loop = 8) {
+  return { w, h, loop, fps: 12, palette: [...DEFAULT_PALETTE], layers: [newLayer('Layer 1', loop, w*h)], sel: 0, frame: 0, onion: true };
+}
+
+let P = load() || freshProject();
+let tool = 'pen';
+let color = document.getElementById('color').value;
+let playing = false, playTimer = null, playFrame = 0;
+
+// --- shorthands -------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const layer = () => P.layers[P.sel];
+const state = () => layer().states[layer().active];
+const cells = (f = P.frame) => state().frames[f];
+
+// --- persistence ------------------------------------------------------------
+function save() { try { localStorage.setItem('layerloop', JSON.stringify(P)); } catch {} }
+function load() { try { return JSON.parse(localStorage.getItem('layerloop')); } catch { return null; } }
+
+// ============================================================ canvas display
+const canvas = $('canvas'), ctx = canvas.getContext('2d');
+let SCALE = 16;
+function fitScale() {
+  const stage = canvas.parentElement.getBoundingClientRect();
+  SCALE = Math.max(2, Math.floor(Math.min((stage.width - 40) / P.w, (stage.height - 40) / P.h)));
+  canvas.width = P.w * SCALE; canvas.height = P.h * SCALE;
+}
+function drawCells(c, arr, alpha) {
+  c.globalAlpha = alpha;
+  for (let i = 0; i < arr.length; i++) {
+    if (!arr[i]) continue;
+    c.fillStyle = arr[i];
+    c.fillRect((i % P.w) * SCALE, ((i / P.w) | 0) * SCALE, SCALE, SCALE);
+  }
+  c.globalAlpha = 1;
+}
+function compositeInto(c, frameIdx) {
+  for (const L of P.layers) {
+    if (!L.visible) continue;
+    const st = L.states[L.active];
+    const fr = st.frames[frameIdx % P.loop];
+    if (fr) drawCells(c, fr, L.opacity);
+  }
+}
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (playing) { compositeInto(ctx, playFrame); return; }
+  // edit view: faint other layers, onion skin, then the active layer's frame on top
+  for (const L of P.layers) {
+    if (!L.visible || L === layer()) continue;
+    const fr = L.states[L.active].frames[P.frame];
+    if (fr) drawCells(ctx, fr, L.opacity * 0.5);
+  }
+  if (P.onion && P.frame > 0) drawCells(ctx, state().frames[P.frame - 1], 0.25);
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+  for (let x = 0; x <= P.w; x++) { ctx.beginPath(); ctx.moveTo(x*SCALE+.5,0); ctx.lineTo(x*SCALE+.5,canvas.height); ctx.stroke(); }
+  for (let y = 0; y <= P.h; y++) { ctx.beginPath(); ctx.moveTo(0,y*SCALE+.5); ctx.lineTo(canvas.width,y*SCALE+.5); ctx.stroke(); }
+  drawCells(ctx, cells(), layer().opacity);
+}
+
+// ============================================================ drawing
+function cellAt(e) {
+  const r = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - r.left) / SCALE), y = Math.floor((e.clientY - r.top) / SCALE);
+  if (x < 0 || y < 0 || x >= P.w || y >= P.h) return -1;
+  return y * P.w + x;
+}
+function paint(i) {
+  if (i < 0) return;
+  const arr = cells();
+  if (tool === 'pen') arr[i] = color;
+  else if (tool === 'erase') arr[i] = null;
+  else if (tool === 'pick') { if (arr[i]) { color = arr[i]; $('color').value = arr[i]; syncPalette(); } return; }
+  else if (tool === 'fill') { floodFill(arr, i); }
+}
+function floodFill(arr, i) {
+  const target = arr[i] || null; if (target === color) return;
+  const stack = [i];
+  while (stack.length) {
+    const k = stack.pop();
+    if (arr[k] !== target) continue;
+    arr[k] = color;
+    const x = k % P.w, y = (k / P.w) | 0;
+    if (x > 0) stack.push(k - 1); if (x < P.w - 1) stack.push(k + 1);
+    if (y > 0) stack.push(k - P.w); if (y < P.h - 1) stack.push(k + P.w);
+  }
+}
+let drawing = false;
+canvas.addEventListener('pointerdown', (e) => { if (playing) return; drawing = true; canvas.setPointerCapture(e.pointerId); paint(cellAt(e)); render(); thumbDirty(); });
+canvas.addEventListener('pointermove', (e) => { if (!drawing) return; if (tool === 'pen' || tool === 'erase') { paint(cellAt(e)); render(); } });
+canvas.addEventListener('pointerup', () => { if (!drawing) return; drawing = false; commit(); });
+
+// ============================================================ UI: palette
+function buildPalette() {
+  const el = $('palette'); el.innerHTML = '';
+  P.palette.forEach((c) => {
+    const b = document.createElement('button');
+    b.className = 'pcell' + (c === color ? ' sel' : ''); b.style.background = c; b.title = c;
+    b.onclick = () => { color = c; $('color').value = c; syncPalette(); };
+    el.appendChild(b);
+  });
+}
+function syncPalette() { [...document.querySelectorAll('.pcell')].forEach((b) => b.classList.toggle('sel', b.title === color)); }
+$('color').addEventListener('input', (e) => { color = e.target.value; syncPalette(); });
+
+// ============================================================ UI: tools
+document.querySelectorAll('.tool').forEach((b) => b.onclick = () => {
+  tool = b.dataset.tool;
+  document.querySelectorAll('.tool').forEach((x) => x.classList.toggle('on', x === b));
+});
+
+// ============================================================ UI: layers
+function buildLayers() {
+  const el = $('layers'); el.innerHTML = '';
+  // top layer first in the list
+  P.layers.slice().reverse().forEach((L) => {
+    const idx = P.layers.indexOf(L);
+    const row = document.createElement('div');
+    row.className = 'layer' + (idx === P.sel ? ' sel' : '');
+    row.innerHTML = `<span class="eye">${L.visible ? '👁' : '—'}</span><span class="nm">${L.name}</span><span class="st">${L.states.length}st</span>`;
+    row.querySelector('.eye').onclick = (e) => { e.stopPropagation(); L.visible = !L.visible; commit(); };
+    row.onclick = () => { P.sel = idx; refreshAll(); };
+    row.ondblclick = () => renameLayer(L, row);
+    el.appendChild(row);
+  });
+}
+function renameLayer(L, row) {
+  const nm = row.querySelector('.nm');
+  const inp = document.createElement('input'); inp.className = 'nm'; inp.value = L.name;
+  nm.replaceWith(inp); inp.focus(); inp.select();
+  const done = () => { L.name = inp.value.trim() || L.name; commit(); };
+  inp.onblur = done; inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
+}
+$('layer-add').onclick = () => { P.layers.push(newLayer('Layer ' + (P.layers.length + 1), P.loop, P.w*P.h)); P.sel = P.layers.length - 1; commit(); };
+$('layer-del').onclick = () => { if (P.layers.length <= 1) return; P.layers.splice(P.sel, 1); P.sel = Math.max(0, P.sel - 1); commit(); };
+$('layer-up').onclick = () => { if (P.sel < P.layers.length - 1) { [P.layers[P.sel], P.layers[P.sel+1]] = [P.layers[P.sel+1], P.layers[P.sel]]; P.sel++; commit(); } };
+$('layer-dn').onclick = () => { if (P.sel > 0) { [P.layers[P.sel], P.layers[P.sel-1]] = [P.layers[P.sel-1], P.layers[P.sel]]; P.sel--; commit(); } };
+
+// ============================================================ UI: states
+function buildStates() {
+  const sel = $('stateSel'); sel.innerHTML = '';
+  layer().states.forEach((s, i) => { const o = document.createElement('option'); o.value = i; o.textContent = s.name; sel.appendChild(o); });
+  sel.value = layer().active;
+}
+$('stateSel').onchange = (e) => { layer().active = +e.target.value; commit(); };
+$('state-add').onclick = () => { const n = prompt('New state name:', 'state ' + (layer().states.length + 1)); if (n == null) return; layer().states.push(newState(n.trim() || 'state', P.loop, P.w*P.h)); layer().active = layer().states.length - 1; commit(); };
+$('state-ren').onclick = () => { const n = prompt('Rename state:', state().name); if (n) { state().name = n.trim(); commit(); } };
+$('state-del').onclick = () => { if (layer().states.length <= 1) return; layer().states.splice(layer().active, 1); layer().active = 0; commit(); };
+
+// ============================================================ UI: frames strip
+function buildFrames() {
+  const el = $('frames'); el.innerHTML = '';
+  for (let f = 0; f < P.loop; f++) {
+    const wrap = document.createElement('div'); wrap.className = 'frame' + (f === P.frame ? ' sel' : '');
+    const c = document.createElement('canvas'); c.width = P.w; c.height = P.h;
+    const cc = c.getContext('2d'); compositeInto(cc, f);
+    c.onclick = () => { P.frame = f; refreshAll(); };
+    wrap.appendChild(c);
+    const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = f + 1; wrap.appendChild(lbl);
+    el.appendChild(wrap);
+  }
+  // add / remove frame controls
+  const addBtn = document.createElement('div'); addBtn.className='frame add';
+  addBtn.innerHTML = `<div style="width:54px;height:54px;display:grid;place-items:center;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font-size:22px">＋</div><div class="lbl">add</div>`;
+  addBtn.onclick = addFrame;
+  el.appendChild(addBtn);
+  if (P.loop > 1) {
+    const del = document.createElement('div'); del.className='frame add';
+    del.innerHTML = `<div style="width:54px;height:54px;display:grid;place-items:center;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font-size:18px">🗑</div><div class="lbl">del</div>`;
+    del.title = 'Delete the current loop frame from every layer/state';
+    del.onclick = delFrame; el.appendChild(del);
+  }
+  $('frameLabel').textContent = `${P.frame + 1} / ${P.loop}`;
+}
+function addFrame() {
+  P.loop++;
+  for (const L of P.layers) for (const s of L.states) s.frames.push(blankFrame(P.w*P.h));
+  P.frame = P.loop - 1; commit();
+}
+function delFrame() {
+  if (P.loop <= 1) return;
+  const f = P.frame;
+  for (const L of P.layers) for (const s of L.states) s.frames.splice(f, 1);
+  P.loop--; P.frame = Math.min(P.frame, P.loop - 1); commit();
+}
+
+// just refresh frame thumbnails (cheap) during a stroke
+function thumbDirty() { /* thumbnails refresh on commit; live stroke only redraws main canvas */ }
+
+// ============================================================ playback
+function togglePlay() {
+  playing = !playing; $('play').textContent = playing ? '⏹ Stop' : '▶ Play';
+  $('play').classList.toggle('on', playing);
+  if (playing) { playFrame = 0; const ms = 1000 / Math.max(1, P.fps); playTimer = setInterval(() => { playFrame = (playFrame + 1) % P.loop; render(); }, ms); render(); }
+  else { clearInterval(playTimer); render(); }
+}
+$('play').onclick = togglePlay;
+$('fps').onchange = (e) => { P.fps = Math.max(1, Math.min(60, +e.target.value || 12)); if (playing) { togglePlay(); togglePlay(); } save(); };
+$('onion').onclick = () => { P.onion = !P.onion; $('onion').classList.toggle('on', P.onion); render(); save(); };
+
+// ============================================================ export
+function compositeToCanvas(frameIdx) {
+  const c = document.createElement('canvas'); c.width = P.w; c.height = P.h;
+  compositeInto(c.getContext('2d'), frameIdx); return c;
+}
+function downloadCanvas(c, name) { const a = document.createElement('a'); a.download = name; a.href = c.toDataURL('image/png'); a.click(); }
+$('export-frame').onclick = () => downloadCanvas(compositeToCanvas(P.frame), `layerloop-frame-${P.frame+1}.png`);
+$('export-sheet').onclick = () => {
+  const sheet = document.createElement('canvas'); sheet.width = P.w * P.loop; sheet.height = P.h;
+  const sc = sheet.getContext('2d');
+  for (let f = 0; f < P.loop; f++) sc.drawImage(compositeToCanvas(f), f * P.w, 0);
+  downloadCanvas(sheet, `layerloop-sheet-${P.loop}f.png`);
+};
+
+// ============================================================ save / load / resize
+$('save').onclick = () => { const a = document.createElement('a'); a.download = 'animation.layerloop.json'; a.href = URL.createObjectURL(new Blob([JSON.stringify(P)], {type:'application/json'})); a.click(); };
+$('load').onclick = () => $('file').click();
+$('file').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { P = JSON.parse(await f.text()); commit(true); } catch { alert('Could not read that file.'); } e.target.value = ''; };
+$('resize').onclick = () => {
+  const w = Math.max(1, Math.min(256, +$('cw').value || P.w)), h = Math.max(1, Math.min(256, +$('ch').value || P.h));
+  if (w === P.w && h === P.h) return;
+  // remap every frame onto the new size (top-left aligned)
+  const remap = (arr) => { const out = blankFrame(w*h); for (let y = 0; y < Math.min(h, P.h); y++) for (let x = 0; x < Math.min(w, P.w); x++) out[y*w+x] = arr[y*P.w+x]; return out; };
+  for (const L of P.layers) for (const s of L.states) s.frames = s.frames.map(remap);
+  P.w = w; P.h = h; commit(true);
+};
+
+// ============================================================ refresh + commit
+function refreshAll() { buildPalette(); buildLayers(); buildStates(); buildFrames(); render(); }
+function commit(relayout) { if (relayout) fitScale(); save(); refreshAll(); }
+
+// keyboard
+window.addEventListener('keydown', (e) => {
+  if (e.target.matches('input,select,textarea')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'b') setTool('pen'); else if (k === 'e') setTool('erase'); else if (k === 'g') setTool('fill');
+  else if (k === 'i') setTool('pick'); else if (k === 'o') $('onion').onclick();
+  else if (k === ' ') { e.preventDefault(); togglePlay(); }
+  else if (k === 'arrowright') { P.frame = (P.frame + 1) % P.loop; refreshAll(); }
+  else if (k === 'arrowleft') { P.frame = (P.frame - 1 + P.loop) % P.loop; refreshAll(); }
+});
+function setTool(t) { tool = t; document.querySelectorAll('.tool').forEach((x) => x.classList.toggle('on', x.dataset.tool === t)); }
+
+// boot
+$('fps').value = P.fps; $('cw').value = P.w; $('ch').value = P.h; $('onion').classList.toggle('on', P.onion);
+window.addEventListener('resize', () => { fitScale(); render(); });
+fitScale(); refreshAll();
+</script>
+</body>
+</html>
