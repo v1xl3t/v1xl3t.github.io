@@ -16,6 +16,7 @@
 
 import { buildGeometry, DEFAULT_PARAMS } from './primitives.js';
 import { booleanCombine, booleanIntersect } from './kernel.js';
+import { History } from './history.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 
@@ -114,8 +115,25 @@ export class CadDocument extends EventTarget {
     this.objects = new Map();      // id -> CadObject
     this.selection = new Set();    // multi-select set of ids
     this.selectedId = null;        // primary selection (drives gizmo + inspector)
-    this._undo = [];
+
+    // --- history TREE (replaces the old linear undo stack) ---------------
+    // commit() is called just BEFORE every undoable action; we capture the
+    // RESULT of that action into a node moments later (flushed by the next
+    // commit, by a settle-debounce, or explicitly before any time-travel).
+    this.history = new History();
+    this.history.init(this.toJSON());     // root = the empty starting scene
+    this._armed = false;                  // a step is in progress, awaiting capture
+    this._armedLabel = 'Edit';
+    this._timer = null;
+    this._restoring = false;              // true while applying a snapshot (don't re-record)
+    this._thumb = null;                   // optional () => dataURL provided by the view
+
+    // A burst of 'change' events (a gizmo drag, rapid field edits) should settle
+    // into ONE node: each change pushes the capture out to just after the last one.
+    this.addEventListener('change', () => { if (this._armed) this._bump(); });
   }
+
+  setThumbnailProvider(fn) { this._thumb = fn; }
 
   get selected() { return this.selectedId ? this.objects.get(this.selectedId) : null; }
   get list() { return [...this.objects.values()]; }
@@ -131,7 +149,7 @@ export class CadDocument extends EventTarget {
   }
 
   add(kind, params, role = 'solid') {
-    this.commit();
+    this.commit('Add ' + cap(kind));
     const obj = new CadObject({ kind, params, role });
     obj.name = this._uniqueName(obj.name);
     this.objects.set(obj.id, obj);
@@ -143,7 +161,7 @@ export class CadDocument extends EventTarget {
   remove(id) {
     const obj = this.objects.get(id);
     if (!obj) return;
-    this.commit();
+    this.commit('Delete');
     obj.mesh.geometry.dispose();
     obj.mesh.material.dispose();
     this.objects.delete(id);
@@ -155,7 +173,7 @@ export class CadDocument extends EventTarget {
   duplicate(id) {
     const src = this.objects.get(id);
     if (!src) return;
-    this.commit();
+    this.commit('Duplicate');
 
     let copy;
     if (src.kind === 'boolean') {
@@ -212,7 +230,7 @@ export class CadDocument extends EventTarget {
   removeSelected() {
     const ids = [...this.selection];
     if (!ids.length) return;
-    this.commit();
+    this.commit(ids.length > 1 ? `Delete ${ids.length}` : 'Delete');
     for (const id of ids) {
       const o = this.objects.get(id);
       if (!o) continue;
@@ -232,7 +250,7 @@ export class CadDocument extends EventTarget {
 
   paste(clip) {
     if (!clip || !clip.length) return null;
-    this.commit();
+    this.commit('Paste');
     this.selection.clear();
     let last = null;
     for (const d of clip) {
@@ -258,7 +276,7 @@ export class CadDocument extends EventTarget {
     if (objs.length < 2) return null;
     // Run the kernel first; if it fails, the document is left untouched.
     const result = await booleanCombine(objs.map((o) => ({ mesh: o.mesh, role: o.role })));
-    if (!result) { this.commit(); this._disband(objs); this.select(null); this._emit('regroup'); return null; } // all holes
+    if (!result) { this.commit('Cut (holes only)'); this._disband(objs); this.select(null); this._emit('regroup'); return null; } // all holes
     return this._bakeGroup(objs, result.geometry, 'Group');
   }
 
@@ -279,7 +297,7 @@ export class CadDocument extends EventTarget {
 
   // Consume `objs` into one watertight boolean body built from `geometry`.
   _bakeGroup(objs, geometry, name) {
-    this.commit();
+    this.commit(name === 'Intersection' ? 'Intersect' : 'Group');
     const children = objs.map((o) => o.snapshot());   // world-space recipes for ungroup
     this._disband(objs);
 
@@ -304,7 +322,7 @@ export class CadDocument extends EventTarget {
   ungroup(id) {
     const grp = this.objects.get(id);
     if (!grp || grp.kind !== 'boolean' || !grp.children) return;
-    this.commit();
+    this.commit('Ungroup');
 
     // Apply only the DELTA the group moved since creation, so children land back
     // exactly where they were (their recipes are stored in world space).
@@ -336,31 +354,138 @@ export class CadDocument extends EventTarget {
     return restored;
   }
 
-  // --- undo -------------------------------------------------------------
-  commit() {
-    this._undo.push(this.list.map((o) => o.snapshot()));
-    if (this._undo.length > 50) this._undo.shift();
-  }
+  // --- parametric propagation: re-edit a baked group's part ------------
+  // The genuine parametric dependency in CADence: a boolean body is computed
+  // FROM its parts. This edits one part's recipe and re-runs the kernel, so the
+  // group recomputes in place — "change a feature, everything downstream rebuilds"
+  // without ungrouping. Returns the updated group, or null if the edit fails.
+  async rebakeGroupChild(id, childIndex, key, value) {
+    const grp = this.objects.get(id);
+    if (!grp || grp.kind !== 'boolean' || !grp.children || !grp.children[childIndex]) return null;
+    const child = grp.children[childIndex];
+    if (child.kind === 'boolean') return null;          // nested-group params: Phase 3
+    const prevParams = { ...child.params };
+    child.params = { ...child.params, [key]: value };
 
-  undo() {
-    const snap = this._undo.pop();
-    if (!snap) return;
-    for (const o of this.list) { o.mesh.geometry.dispose(); o.mesh.material.dispose(); }
-    this.objects.clear();
-    for (const s of snap) {
-      const obj = new CadObject(
+    // Rebuild every part in the group's CURRENT world frame — children are stored
+    // in the frame at group time, so apply the same delta ungroup() uses.
+    grp.mesh.updateMatrix();
+    const base = grp.baseMatrix ? grp.baseMatrix.clone() : new THREE.Matrix4();
+    const M = grp.mesh.matrix.clone().multiply(base.invert());
+    const parts = grp.children.map((s) => {
+      const o = new CadObject(
         s.kind === 'boolean'
-          ? { kind: 'boolean', params: s.params, name: s.name, role: s.role, geometry: s.geometryClone,
-              children: s.children, baseMatrix: s.baseMatrix ? new THREE.Matrix4().fromArray(s.baseMatrix) : null }
+          ? { kind: 'boolean', params: s.params, name: s.name, role: s.role, geometry: s.geometryClone, children: s.children }
           : { kind: s.kind, params: s.params, name: s.name, role: s.role }
       );
-      obj.id = s.id; obj.mesh.userData.cadId = s.id;
-      obj.applySnapshot(s);
-      this.objects.set(s.id, obj);
+      o.mesh.position.fromArray(s.position);
+      o.mesh.rotation.set(...s.rotation);
+      o.mesh.scale.fromArray(s.scale);
+      o.mesh.applyMatrix4(M);
+      o.mesh.updateMatrixWorld(true);
+      return o;
+    });
+
+    let result;
+    try {
+      result = await booleanCombine(parts.map((o) => ({ mesh: o.mesh, role: o.role })));
+    } catch (err) {
+      child.params = prevParams;                        // restore on kernel failure
+      parts.forEach((o) => { o.mesh.geometry.dispose(); o.mesh.material.dispose(); });
+      throw err;
     }
-    this.selection = new Set([...this.selection].filter((id) => this.objects.has(id)));
-    this.selectedId = this.objects.has(this.selectedId) ? this.selectedId : null;
-    this._emit('undo');
+    // Bake the applied delta back into the recipes (now current-frame) so repeated
+    // edits and a later ungroup stay consistent, then free the temp meshes.
+    parts.forEach((o, i) => {
+      const s = grp.children[i];
+      s.position = o.mesh.position.toArray();
+      s.rotation = [o.mesh.rotation.x, o.mesh.rotation.y, o.mesh.rotation.z];
+      s.scale = o.mesh.scale.toArray();
+      o.mesh.geometry.dispose(); o.mesh.material.dispose();
+    });
+    if (!result) { child.params = prevParams; return null; }
+
+    this.commit('Edit part');                           // record AFTER the async work
+    const geometry = result.geometry;
+    geometry.computeBoundingBox();
+    const center = new THREE.Vector3();
+    geometry.boundingBox.getCenter(center);
+    geometry.translate(-center.x, -center.y, -center.z);
+
+    grp.mesh.geometry.dispose();
+    grp.mesh.geometry = geometry;
+    grp.mesh.position.copy(center);
+    grp.mesh.rotation.set(0, 0, 0);
+    grp.mesh.scale.set(1, 1, 1);
+    grp.mesh.updateMatrix();
+    grp.baseMatrix = grp.mesh.matrix.clone();           // delta is now baked in
+
+    this._emit('regroup');
+    this.select(grp.id);
+    this.touch(grp);                                    // settles the history capture
+    return grp;
+  }
+
+  // --- history (commit / undo / time-travel) ---------------------------
+  // Called just before an undoable action, with a label for the step it's about
+  // to perform. We first flush the previous step (whose result is now settled),
+  // then arm capture of this one.
+  commit(label = 'Edit') {
+    if (this._restoring) return;
+    this._flush();
+    this._armed = true;
+    this._armedLabel = label;
+    this._bump();
+  }
+
+  _bump() {
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this._flush(), 200);
+  }
+
+  // Write the armed step's result (the live scene) as a new history node.
+  _flush() {
+    if (!this._armed) return;
+    this._armed = false;
+    clearTimeout(this._timer);
+    const thumb = this._thumb ? this._thumb() : null;
+    this.history.record(this._armedLabel, this.toJSON(), thumb);
+    this._emit('history');
+  }
+
+  // Ctrl+Z = step to the parent node (non-destructive: the children remain, so
+  // you can branch back into them). Redo is "click a child in the timeline".
+  undo() {
+    this._flush();
+    const cur = this.history.current;
+    if (!cur || cur.parentId == null) return;
+    this.goToHistory(cur.parentId);
+  }
+
+  // Jump the scene to any node in the tree. Acting after this forks a branch.
+  goToHistory(id) {
+    const node = this.history.get(id);
+    if (!node) return;
+    this._flush();
+    this.history.goto(id);
+    this._restoreSnapshot(node.snapshot);
+    this._emit('history');
+  }
+
+  // Apply a serialized scene without recording a step (used by time-travel and
+  // file load). Mirrors loadJSON's rebuild, guarded so it can't re-trigger capture.
+  _restoreSnapshot(data) {
+    this._restoring = true;
+    for (const o of this.list) { o.mesh.geometry.dispose(); o.mesh.material.dispose(); }
+    this.objects.clear(); this.selection.clear(); this.selectedId = null;
+    for (const d of (data.objects || [])) {
+      const obj = deserializeObject(d);
+      this.objects.set(obj.id, obj);
+      ensureId(parseInt(String(obj.id).replace(/\D/g, ''), 10) || 0);
+    }
+    this._emit('regroup');     // the view rebuilds the scene from the document
+    this.select(null);
+    this._restoring = false;
   }
 
   // --- save / load ------------------------------------------------------
@@ -370,17 +495,12 @@ export class CadDocument extends EventTarget {
 
   loadJSON(data) {
     if (!data || !Array.isArray(data.objects)) throw new Error('Not a CADence project file');
-    this.commit();
-    for (const o of this.list) { o.mesh.geometry.dispose(); o.mesh.material.dispose(); }
-    this.objects.clear(); this.selection.clear(); this.selectedId = null;
-
-    for (const d of data.objects) {
-      const obj = deserializeObject(d);
-      this.objects.set(obj.id, obj);
-      ensureId(parseInt(String(obj.id).replace(/\D/g, ''), 10) || 0);
-    }
-    this._emit('regroup');   // main.js rebuilds the scene from the document
-    this.select(null);
+    this._flush();                       // close out any in-flight step first
+    this._restoreSnapshot(data);         // apply without recording…
+    // …then record the load as its own history step so it's on the timeline.
+    const thumb = this._thumb ? this._thumb() : null;
+    this.history.record('Load file', this.toJSON(), thumb);
+    this._emit('history');
   }
 
   _emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }

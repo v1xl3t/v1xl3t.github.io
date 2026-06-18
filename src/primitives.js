@@ -31,6 +31,10 @@ export const DEFAULT_PARAMS = {
   wedge:    { width: 20, height: 20, depth: 20, round: 0 },
   prism:    { sides: 6, radius: 10, height: 20, round: 0 },
   loft:     { width: 20, depth: 20, topWidth: 12, topDepth: 12, height: 20, round: 0, twist: 0 },
+  // A sketch is a closed 2D profile (points, mm) turned into a solid by a feature
+  // operation: 'extrude' (straight pull up by `depth`) or 'revolve' (spin the
+  // profile around the Y axis by `angle`°). Default profile = a 20mm square.
+  sketch:   { profile: [[-10, -10], [10, -10], [10, 10], [-10, 10]], op: 'extrude', depth: 20, angle: 360, segments: 48 },
 };
 
 // A reusable "corner radius" field for primitives that support rounding.
@@ -92,6 +96,13 @@ export const PARAM_SCHEMA = {
     { key: 'height',   label: 'Height',          min: 0.1, step: 0.5 },
     ROUND_FIELD,
     { key: 'twist',    label: 'Twist (°)',       step: 5 },
+  ],
+  // Profile points are edited by drawing/dragging in the sketch tool, not as scalar
+  // fields. The feature scalars (extrude depth, revolve angle) are dimension-editable.
+  sketch: [
+    { key: 'depth', label: 'Extrude (mm)', min: 0.1, step: 0.5 },
+    { key: 'angle', label: 'Revolve (°)',  min: 1,   step: 5 },
+    { key: 'segments', label: 'Facets',    min: 3,   step: 1, advanced: true, integer: true },
   ],
 };
 
@@ -307,6 +318,27 @@ export function buildGeometry(kind, params) {
     case 'loft':
       geo = buildLoft(params);
       break;
+    case 'sketch': {
+      const prof = (params.profile && params.profile.length >= 3) ? params.profile : DEFAULT_PARAMS.sketch.profile;
+      if (params.op === 'revolve') {
+        // Spin the profile around the Y axis. Treat each point's x as a radius
+        // (clamped ≥0 so it can't cross the axis) and y as height.
+        const pts = prof.map((p) => new THREE.Vector2(Math.max(0, p[0]), p[1]));
+        const ang = clamp((params.angle ?? 360), 1, 360) * Math.PI / 180;
+        geo = new THREE.LatheGeometry(pts, Math.max(3, params.segments ?? 48), 0, ang);
+      } else {
+        // Extrude the closed profile straight up. Build the Shape in (x, -y) so the
+        // sketch plane's +y maps to world +Z, then stand the extrusion up along Y.
+        const shape = new THREE.Shape();
+        prof.forEach((p, i) => (i === 0 ? shape.moveTo(p[0], -p[1]) : shape.lineTo(p[0], -p[1])));
+        shape.closePath();
+        geo = new THREE.ExtrudeGeometry(shape, { depth: Math.max(0.1, params.depth ?? 20), bevelEnabled: false });
+        geo.rotateX(-Math.PI / 2);            // extrude runs along Z → stand up along Y
+      }
+      geo.computeBoundingBox();               // rest the result on the y=0 build plate
+      geo.translate(0, -geo.boundingBox.min.y, 0);
+      break;
+    }
     default:
       throw new Error(`Unknown primitive kind: ${kind}`);
   }

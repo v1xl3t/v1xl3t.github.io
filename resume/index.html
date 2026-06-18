@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Résumé Studio</title>
+<!--
+  Résumé Studio — a no-build, single-file résumé/document editor.
+  Edit in place (everything with a dotted underline is editable), autosaves to
+  localStorage, exports clean JSON, and prints to a pixel-clean PDF via the
+  browser. Ships with PLACEHOLDER content only — no personal data in the repo.
+  Accessibility: semantic HTML (header/section/h1-2/ul), labeled controls,
+  keyboard-friendly, high-contrast print.
+-->
+<style>
+  :root {
+    --bg:#0e1116; --chrome:#161b22; --border:#2a313c; --text:#d7dde5; --muted:#7d8794;
+    --accent:#4c8dff; --paper:#ffffff; --ink:#1a1f29; --ink-soft:#54607a;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--text); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+
+  /* ---- toolbar (not printed) ---- */
+  .bar { position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+         padding:10px 14px; background:var(--chrome); border-bottom:1px solid var(--border); }
+  .bar .brand { font-weight:700; margin-right:8px; }
+  .bar .brand span { color:var(--accent); }
+  .bar button, .bar select, .bar label.swatch {
+    font:inherit; color:var(--text); background:#1f262f; border:1px solid var(--border);
+    border-radius:7px; padding:6px 10px; cursor:pointer; }
+  .bar button:hover { border-color:var(--accent); }
+  .bar .spacer { flex:1; }
+  .bar input[type=color] { width:26px; height:26px; padding:0; border:1px solid var(--border); border-radius:6px; background:none; }
+  .bar .hint { color:var(--muted); font-size:12px; }
+
+  /* ---- the page ---- */
+  .sheet-wrap { display:flex; justify-content:center; padding:24px 16px 60px; }
+  .sheet {
+    width:8.5in; min-height:11in; background:var(--paper); color:var(--ink);
+    padding:0.7in 0.8in; box-shadow:0 8px 40px #0009; border-radius:2px;
+  }
+  [data-ed] { outline:none; border-radius:3px; }
+  [data-ed]:hover { background:#4c8dff10; }
+  [data-ed]:focus { background:#4c8dff18; box-shadow:0 0 0 2px var(--accent); }
+  [data-ed]:empty::before { content:attr(data-ph); color:#aab; }
+
+  header.r-head { border-bottom:2px solid var(--accent); padding-bottom:10px; margin-bottom:14px; }
+  .r-name { font-size:30px; font-weight:800; letter-spacing:-.3px; color:var(--ink); }
+  .r-title { font-size:15px; font-weight:600; color:var(--accent); margin-top:2px; }
+  .r-contact { font-size:12.5px; color:var(--ink-soft); margin-top:8px; display:flex; flex-wrap:wrap; gap:4px 14px; }
+  section.r-sec { margin:16px 0; }
+  .r-sec > h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--accent);
+                border-bottom:1px solid #d8dde6; padding-bottom:3px; margin:0 0 8px; }
+  .r-summary { font-size:13.5px; color:var(--ink); }
+  .r-job { margin-bottom:12px; }
+  .r-job-top { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+  .r-role { font-weight:700; font-size:14px; }
+  .r-org { font-weight:600; color:var(--ink-soft); }
+  .r-dates { font-size:12px; color:var(--ink-soft); white-space:nowrap; }
+  ul.r-bullets { margin:5px 0 0; padding-left:18px; }
+  ul.r-bullets li { font-size:13px; margin:3px 0; }
+  .r-skills { display:flex; flex-wrap:wrap; gap:6px; }
+  .r-skills .chip { background:#eef1f6; border:1px solid #dde2ea; border-radius:999px; padding:2px 10px; font-size:12.5px; }
+  .r-edu { font-size:13px; margin-bottom:6px; }
+  .add { font-size:12px; color:var(--accent); background:none; border:1px dashed var(--accent); border-radius:6px;
+         padding:2px 8px; cursor:pointer; margin-top:4px; }
+  .del { font-size:11px; color:#c0392b; background:none; border:none; cursor:pointer; opacity:.5; }
+  .del:hover { opacity:1; }
+  .row-tools { display:inline-flex; gap:6px; }
+
+  /* ---- print ---- */
+  @media print {
+    .bar, .add, .del, .row-tools { display:none !important; }
+    body { background:#fff; }
+    .sheet-wrap { padding:0; }
+    .sheet { box-shadow:none; width:auto; min-height:auto; padding:0.5in 0.6in; border-radius:0; }
+    [data-ed]:hover, [data-ed]:focus { background:none; box-shadow:none; }
+  }
+  html[data-tpl="modern"] .r-name { color:var(--accent); }
+  html[data-tpl="modern"] header.r-head { border-bottom-width:4px; }
+</style>
+</head>
+<body>
+  <div class="bar" role="toolbar" aria-label="Résumé tools">
+    <div class="brand">Résumé<span>Studio</span></div>
+    <button id="add-job">+ Experience</button>
+    <button id="add-edu">+ Education</button>
+    <label class="swatch">Accent <input type="color" id="accent" value="#4c8dff" aria-label="Accent color" /></label>
+    <select id="tpl" aria-label="Template"><option value="classic">Classic</option><option value="modern">Modern</option></select>
+    <div class="spacer"></div>
+    <span class="hint">Everything underlined is editable · autosaves</span>
+    <button id="print">Print / PDF</button>
+    <button id="save">Save JSON</button>
+    <button id="load">Load</button>
+    <input type="file" id="file" accept="application/json,.json" hidden />
+  </div>
+
+  <div class="sheet-wrap">
+    <article class="sheet" id="sheet" aria-label="Résumé document"></article>
+  </div>
+
+<script>
+"use strict";
+// ---- data model (placeholder content only — no personal data ships) ----
+const SAMPLE = {
+  name: "Your Name", title: "Your Professional Title",
+  contact: { email: "you@email.com", phone: "(555) 555-5555", location: "City, ST", link: "yoursite.com" },
+  summary: "A one- or two-line summary of who you are and the value you bring. Click to edit any field on this page.",
+  experience: [
+    { role: "Most Recent Role", org: "Company", dates: "2023 — Present",
+      bullets: ["Achievement or responsibility, ideally with a number.", "Another impact statement — what you built or improved."] },
+    { role: "Previous Role", org: "Company", dates: "2021 — 2023",
+      bullets: ["Something you shipped, led, or delivered."] },
+  ],
+  skills: ["Skill one", "Skill two", "Skill three", "Skill four"],
+  education: [ { line: "Degree — School, Year" } ],
+};
+
+const LS = "resume-studio";
+let R = load() || structuredClone(SAMPLE);
+
+function load() { try { return JSON.parse(localStorage.getItem(LS)); } catch { return null; } }
+function save() { try { localStorage.setItem(LS, JSON.stringify(R)); } catch {} }
+
+// set a value at a dotted path: setPath(R,"experience.0.role","x")
+function setPath(obj, path, val) {
+  const keys = path.split("."); let o = obj;
+  for (let i = 0; i < keys.length - 1; i++) o = o[keys[i]];
+  o[keys[keys.length - 1]] = val;
+}
+function getPath(path){ return path.split(".").reduce((o,k)=>o?.[k], R) ?? ""; }
+
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+const ed = (path, cls, ph) => `<span class="${cls || ''}" data-ed data-field="${path}" data-ph="${ph || ''}" role="textbox" aria-label="${ph || path}">${esc(getPath(path))}</span>`;
+
+// ---- render ----
+const sheet = document.getElementById("sheet");
+function render() {
+  sheet.innerHTML = `
+    <header class="r-head">
+      <div class="r-name">${ed("name","")}</div>
+      <div class="r-title">${ed("title","")}</div>
+      <div class="r-contact">
+        ${ed("contact.email","","email")} · ${ed("contact.phone","","phone")} ·
+        ${ed("contact.location","","location")} · ${ed("contact.link","","website")}
+      </div>
+    </header>
+
+    <section class="r-sec">
+      <h2>Summary</h2>
+      <div class="r-summary">${ed("summary","","Your professional summary…")}</div>
+    </section>
+
+    <section class="r-sec">
+      <h2>Experience</h2>
+      ${R.experience.map((j,i)=>`
+        <div class="r-job">
+          <div class="r-job-top">
+            <div><span class="r-role">${ed(`experience.${i}.role`,"","Role")}</span> —
+                 <span class="r-org">${ed(`experience.${i}.org`,"","Company")}</span></div>
+            <div class="r-dates">${ed(`experience.${i}.dates`,"","Dates")}
+              <span class="row-tools"><button class="del" data-deljob="${i}" title="Remove role">✕</button></span></div>
+          </div>
+          <ul class="r-bullets">
+            ${j.bullets.map((b,bi)=>`<li>${ed(`experience.${i}.bullets.${bi}`,"","Accomplishment…")}
+              <button class="del" data-delbul="${i}.${bi}" title="Remove bullet">✕</button></li>`).join("")}
+          </ul>
+          <button class="add" data-addbul="${i}">+ bullet</button>
+        </div>`).join("")}
+    </section>
+
+    <section class="r-sec">
+      <h2>Skills</h2>
+      <div class="r-skills">
+        ${R.skills.map((s,i)=>`<span class="chip">${ed(`skills.${i}`,"","skill")}
+          <button class="del" data-delskill="${i}" title="Remove">✕</button></span>`).join("")}
+        <button class="add" id="add-skill">+ skill</button>
+      </div>
+    </section>
+
+    <section class="r-sec">
+      <h2>Education</h2>
+      ${R.education.map((e,i)=>`<div class="r-edu">${ed(`education.${i}.line`,"","Degree — School, Year")}
+        <button class="del" data-deledu="${i}" title="Remove">✕</button></div>`).join("")}
+    </section>`;
+  wire();
+  save();
+}
+
+// ---- editing + structural actions ----
+function wire() {
+  sheet.querySelectorAll("[data-ed]").forEach((el) => {
+    el.contentEditable = "true";
+    el.addEventListener("input", () => { setPath(R, el.dataset.field, el.textContent); save(); });
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" && !el.classList.contains("r-summary")) { e.preventDefault(); el.blur(); } });
+  });
+  sheet.querySelectorAll("[data-addbul]").forEach((b)=>b.onclick=()=>{ R.experience[+b.dataset.addbul].bullets.push("New accomplishment"); render(); });
+  sheet.querySelectorAll("[data-delbul]").forEach((b)=>b.onclick=()=>{ const [i,bi]=b.dataset.delbul.split("."); R.experience[+i].bullets.splice(+bi,1); render(); });
+  sheet.querySelectorAll("[data-deljob]").forEach((b)=>b.onclick=()=>{ R.experience.splice(+b.dataset.deljob,1); render(); });
+  sheet.querySelectorAll("[data-delskill]").forEach((b)=>b.onclick=()=>{ R.skills.splice(+b.dataset.delskill,1); render(); });
+  sheet.querySelectorAll("[data-deledu]").forEach((b)=>b.onclick=()=>{ R.education.splice(+b.dataset.deledu,1); render(); });
+  const as = document.getElementById("add-skill"); if (as) as.onclick=()=>{ R.skills.push("New skill"); render(); };
+}
+
+// ---- toolbar ----
+document.getElementById("add-job").onclick = () => { R.experience.push({ role:"New Role", org:"Company", dates:"Year — Year", bullets:["Accomplishment"] }); render(); };
+document.getElementById("add-edu").onclick = () => { R.education.push({ line:"Degree — School, Year" }); render(); };
+document.getElementById("print").onclick = () => window.print();
+document.getElementById("save").onclick = () => {
+  const a = document.createElement("a");
+  a.download = "resume.json"; a.href = URL.createObjectURL(new Blob([JSON.stringify(R,null,2)], {type:"application/json"}));
+  a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById("load").onclick = () => document.getElementById("file").click();
+document.getElementById("file").onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { R = JSON.parse(await f.text()); render(); } catch { alert("Could not read that file."); }
+  e.target.value = "";
+};
+const accent = document.getElementById("accent");
+accent.oninput = () => { document.documentElement.style.setProperty("--accent", accent.value); R._accent = accent.value; save(); };
+document.getElementById("tpl").onchange = (e) => { document.documentElement.dataset.tpl = e.target.value; R._tpl = e.target.value; save(); };
+
+// boot
+if (R._accent) { accent.value = R._accent; document.documentElement.style.setProperty("--accent", R._accent); }
+if (R._tpl) { document.getElementById("tpl").value = R._tpl; document.documentElement.dataset.tpl = R._tpl; }
+render();
+</script>
+</body>
+</html>

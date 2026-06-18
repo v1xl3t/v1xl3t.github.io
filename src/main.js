@@ -14,6 +14,8 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { CadDocument } from './model.js';
 import { Inspector } from './ui.js';
 import { Outliner } from './outliner.js';
+import { Timeline } from './timeline.js';
+import { DimChips } from './dimchips.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
@@ -76,7 +78,8 @@ orbit.maxDistance = 500_000;   // effectively unlimited dolly-out, no hard stop
 const gizmo = new TransformControls(camera, renderer.domElement);
 gizmo.setSize(0.9);
 gizmo.addEventListener('dragging-changed', (e) => { orbit.enabled = !e.value; });
-gizmo.addEventListener('mouseDown', () => doc.commit());          // one undo step per drag
+gizmo.addEventListener('mouseDown', () =>                          // one history step per drag
+  doc.commit({ translate: 'Move', rotate: 'Rotate', scale: 'Scale' }[gizmo.getMode()] || 'Transform'));
 gizmo.addEventListener('objectChange', () => {
   const obj = doc.selected;
   if (obj) doc.dispatchEvent(new CustomEvent('change', { detail: obj }));
@@ -174,6 +177,30 @@ function frameSelection() {
 const inspector = new Inspector(doc, { onChange: () => setStatus() });
 const outliner = new Outliner(doc);
 
+// Recipe Timeline — the multiverse history strip. Clicking a tile time-travels;
+// acting from a past tile forks a new branch (5D-chess style).
+const timeline = new Timeline(doc, { onGoto: (id) => doc.goToHistory(id) });
+// Each history step gets a small snapshot of the viewport for its tile.
+doc.setThumbnailProvider(() => {
+  try {
+    renderer.render(scene, camera);
+    const c = document.createElement('canvas'); c.width = 96; c.height = 60;
+    c.getContext('2d').drawImage(renderer.domElement, 0, 0, c.width, c.height);
+    return c.toDataURL('image/png');
+  } catch { return null; }
+});
+
+// In-canvas dimension chips — edit a part's dimensions right on the geometry.
+const dimchips = new DimChips(doc, {
+  camera, renderer,
+  onEdit: (obj, key, val) => {
+    doc.commit('Edit ' + obj.name);
+    obj.params[key] = val;
+    obj.rebuild();
+    doc.touch(obj);
+  },
+});
+
 // ---------------------------------------------------------------- picking
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
@@ -196,6 +223,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   if (gizmo.dragging || !downAt) return;
   // Treat as a click only if the pointer barely moved (otherwise it was an orbit).
   if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) return;
+  if (sketchOn) { sketchClick(e); return; }
   if (measureOn) { measureClick(e); return; }
   pickAt(e);
 });
@@ -246,6 +274,8 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
       else flash('Nothing printable to export — add a solid first.');
       break;
     case 'drop-floor':   dropToFloor(); break;
+    case 'sketch':       toggleSketch(); break;
+    case 'timeline':     timeline.toggle(); break;
     case 'shortcuts':    toggleShortcuts(); break;
     case 'save-project':
       if (doc.list.length) { downloadJSON(doc.toJSON()); flash('Project saved.'); }
@@ -306,12 +336,16 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'g') { e.preventDefault(); e.shiftKey ? ungroupSelected() : groupSelected(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
   else if (k === 'f') frameSelection();
+  else if (k === 't') timeline.toggle();
   else if (k === 'l') toggleLasso();
   else if (k === 'm') toggleMeasure();
+  else if (k === 's' && !e.ctrlKey && !e.metaKey) toggleSketch();
+  else if (k === 'enter' && sketchOn) { e.preventDefault(); closeSketch(); }
   else if (k === '?') toggleShortcuts();
   else if (k.startsWith('arrow') && doc.selection.size) { e.preventDefault(); nudgeSelection(k, e.shiftKey, e.repeat); }
   else if (k === 'escape') {
     if (!document.getElementById('shortcuts-overlay').hidden) toggleShortcuts(false);
+    else if (sketchOn) setSketch(false);
     else if (lassoOn) setLasso(false);
     else if (measureOn) setMeasure(false);
     else doc.select(null);
@@ -319,6 +353,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 // Shortcuts overlay: close on its ✕ button or by clicking the dim backdrop.
+document.getElementById('tl-close').addEventListener('click', () => timeline.toggle(false));
 document.getElementById('shortcuts-close').addEventListener('click', () => toggleShortcuts(false));
 document.getElementById('shortcuts-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'shortcuts-overlay') toggleShortcuts(false);
@@ -339,7 +374,7 @@ function nudgeSelection(key, shift, repeat) {
   else if (key === 'arrowup') shift ? (d.y = step) : (d.z = -step);
   else if (key === 'arrowdown') shift ? (d.y = -step) : (d.z = step);
   else return;
-  if (!repeat) doc.commit();
+  if (!repeat) doc.commit('Nudge');
   for (const o of doc.selectedObjects) o.mesh.position.add(d);
   if (doc.selected) doc.touch(doc.selected);
   setStatus();
@@ -574,6 +609,79 @@ function drawMeasure() {
   }
 }
 
+// ---------------------------------------------------------------- sketch tool
+// A mode (toolbar / S): click points on the ground plane to lay down a closed 2D
+// profile, then Enter (or click back on the first point) to turn it into a solid
+// via the sketch feature — extrude by default. The result is a parametric sketch
+// object (profile + op + depth), so it's editable and lands on the Recipe Timeline.
+let sketchOn = false;
+let sketchPts = [];                 // world-space ground points (THREE.Vector3)
+const sketchGroup = new THREE.Group();
+scene.add(sketchGroup);
+const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const SKETCH_COLOR = 0x4fd0ff;
+
+function disposeSketchPreview() {
+  for (const c of [...sketchGroup.children]) { c.geometry?.dispose(); c.material?.dispose(); sketchGroup.remove(c); }
+}
+function setSketch(on) {
+  sketchOn = on;
+  if (on) { if (lassoOn) setLasso(false); if (measureOn) setMeasure(false); }
+  gizmo.enabled = !on;                          // don't let the gizmo eat sketch clicks
+  renderer.domElement.style.cursor = on ? 'crosshair' : '';
+  document.getElementById('sketch-btn')?.classList.toggle('active', on);
+  if (!on) { sketchPts = []; disposeSketchPreview(); }
+  flash(on ? 'Sketch on — click points on the ground; Enter (or click the first point) to finish. Esc cancels.' : 'Sketch off.');
+}
+function toggleSketch() { setSketch(!sketchOn); }
+
+function groundPoint(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(ptr, camera);
+  const hit = new THREE.Vector3();
+  return ray.ray.intersectPlane(GROUND, hit) ? hit : null;
+}
+
+function sketchClick(e) {
+  const p = groundPoint(e);
+  if (!p) { flash('Aim at the ground plane to drop a sketch point.'); return; }
+  // Click near the first point to close the loop.
+  if (sketchPts.length >= 3 && p.distanceTo(sketchPts[0]) < 3) { closeSketch(); return; }
+  sketchPts.push(p.clone());
+  drawSketchPreview();
+}
+
+function drawSketchPreview() {
+  disposeSketchPreview();
+  for (const p of sketchPts) {
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 8), new THREE.MeshBasicMaterial({ color: SKETCH_COLOR, depthTest: false }));
+    dot.position.copy(p); dot.renderOrder = 999;
+    sketchGroup.add(dot);
+  }
+  if (sketchPts.length >= 2) {
+    const loop = sketchPts.length >= 3 ? [...sketchPts, sketchPts[0]] : sketchPts;
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(loop), new THREE.LineBasicMaterial({ color: SKETCH_COLOR, depthTest: false }));
+    line.renderOrder = 999;
+    sketchGroup.add(line);
+  }
+}
+
+function closeSketch() {
+  if (sketchPts.length < 3) { flash('Need at least 3 points to close a sketch.'); return; }
+  // Center the profile on its centroid, place the object there — keeps the recipe
+  // tidy and the geometry local.
+  const cx = sketchPts.reduce((s, p) => s + p.x, 0) / sketchPts.length;
+  const cz = sketchPts.reduce((s, p) => s + p.z, 0) / sketchPts.length;
+  const profile = sketchPts.map((p) => [p.x - cx, p.z - cz]);
+  const obj = doc.add('sketch', { profile, op: 'extrude', depth: 20 });
+  obj.mesh.position.set(cx, 0, cz);
+  doc.touch(obj);
+  setSketch(false);
+  flash('Sketch extruded into a solid. Edit its profile, extrude, or switch to revolve in the Inspector.');
+}
+
 // ---------------------------------------------------------------- image export
 function dataURLToU8(url) {
   const bin = atob(url.split(',')[1]);
@@ -654,7 +762,7 @@ function boxCenter(b, a) { return (b.min[a] + b.max[a]) / 2; }
 function alignCenter(axis) {
   const objs = doc.selectedObjects;
   if (objs.length < 2) { flash('Select 2+ objects to align (Shift-click them).'); return; }
-  doc.commit();
+  doc.commit('Align ' + axis.toUpperCase());
   const boxes = objs.map(worldBox);
   const lo = Math.min(...boxes.map((b) => b.min[axis]));
   const hi = Math.max(...boxes.map((b) => b.max[axis]));
@@ -667,7 +775,7 @@ function alignCenter(axis) {
 function distribute(axis) {
   const objs = doc.selectedObjects;
   if (objs.length < 3) { flash('Select 3+ objects to distribute evenly.'); return; }
-  doc.commit();
+  doc.commit('Distribute ' + axis.toUpperCase());
   const items = objs.map((o) => ({ o, center: boxCenter(worldBox(o), axis) })).sort((a, b) => a.center - b.center);
   const lo = items[0].center, hi = items[items.length - 1].center;
   const gap = (hi - lo) / (items.length - 1);
@@ -681,7 +789,7 @@ function distribute(axis) {
 function dropToFloor() {
   const objs = doc.selectedObjects.length ? doc.selectedObjects : doc.list;
   if (!objs.length) { flash('Nothing to drop.'); return; }
-  doc.commit();
+  doc.commit('Drop to floor');
   for (const o of objs) { o.mesh.position.y -= worldBox(o).min.y; doc.touch(o); }
   setStatus();
   flash(`Dropped ${objs.length} to the floor (Y=0).`);
@@ -879,6 +987,7 @@ function tick() {
   requestAnimationFrame(tick);
   orbit.update();
   renderer.render(scene, camera);
+  dimchips.update();
 }
 tick();
 

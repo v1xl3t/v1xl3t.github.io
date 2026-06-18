@@ -9,6 +9,8 @@ import * as THREE from 'three';
 const RAD2DEG = 180 / Math.PI;
 const DEG2RAD = Math.PI / 180;
 const round = (n, p = 3) => Number(n.toFixed(p));
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export class Inspector {
   constructor(doc, { onChange } = {}) {
@@ -54,11 +56,42 @@ export class Inspector {
         </div>
       </div>`;
 
+    // For a baked group, expose its parts as live, editable recipes — changing a
+    // part re-runs the boolean (parametric propagation), no ungroup needed.
+    const partsRow = isBool && obj.children?.length ? `
+      <div class="field">
+        <label>Parts <span class="hint">(live · edits re-bake the group)</span></label>
+        ${obj.children.map((c, i) => {
+          const sch = (PARAM_SCHEMA[c.kind] || []).filter((f) => !f.advanced);
+          const fields = sch.map((f) => `
+            <div class="axis">
+              <span>${f.label}</span>
+              <input type="number" data-part="${i}" data-pkey="${f.key}" value="${round(c.params[f.key])}"
+                     step="${f.step ?? 0.5}" ${f.min != null ? `min="${f.min}"` : ''} />
+            </div>`).join('');
+          return `<div class="part">
+            <div class="part-nm">${esc(c.name || cap(c.kind))}${c.role === 'hole' ? ' <span class="muted">· cut</span>' : ''}</div>
+            ${fields || '<div class="muted">nested group</div>'}
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
+    // A sketch's feature operation: pull the profile straight up (extrude) or spin
+    // it around the Y axis (revolve).
+    const opRow = obj.kind === 'sketch' ? `
+      <div class="field">
+        <label>Feature</label>
+        <div class="seg">
+          <button type="button" data-op="extrude" class="${obj.params.op !== 'revolve' ? 'on' : ''}">Extrude</button>
+          <button type="button" data-op="revolve" class="${obj.params.op === 'revolve' ? 'on' : ''}">Revolve</button>
+        </div>
+      </div>` : '';
+
     const dimRow = dimFields ? `
       <div class="field">
         <label>Dimensions (mm)</label>
         ${dimFields}
-      </div>` : `<div class="meta">A group's shape comes from its parts — <b>Ungroup</b> to edit them, then regroup.</div>`;
+      </div>` : (partsRow || `<div class="meta">A group's shape comes from its parts — <b>Ungroup</b> to edit them, then regroup.</div>`);
 
     this.body.innerHTML = `
       <div class="meta">${meta}</div>
@@ -70,6 +103,7 @@ export class Inspector {
       </div>
 
       ${roleRow}
+      ${opRow}
       ${dimRow}
 
       ${this._vecRow('position', 'Position (mm)', obj.mesh.position, 0.5)}
@@ -136,6 +170,27 @@ export class Inspector {
         this.render();           // reflect color + active state
       });
     });
+    // Sketch feature toggle (extrude / revolve).
+    this.body.querySelectorAll('button[data-op]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (obj.params.op === btn.dataset.op) return;
+        this.doc.commit('Sketch: ' + btn.dataset.op);
+        obj.params.op = btn.dataset.op;
+        obj.rebuild();
+        this.doc.touch(obj);
+        this.render();
+      });
+    });
+    // Group part edits re-bake the boolean (parametric propagation).
+    this.body.querySelectorAll('input[data-part]').forEach((input) => {
+      input.addEventListener('change', async () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        input.disabled = true;
+        try { await this.doc.rebakeGroupChild(obj.id, +input.dataset.part, input.dataset.pkey, v); }
+        catch (e) { console.error('[CADence] part re-bake failed:', e); input.disabled = false; }
+      });
+    });
   }
 
   _apply(obj, input) {
@@ -168,5 +223,7 @@ export class Inspector {
       set(`[data-bind="scale:${a}"]`, obj.mesh.scale[a]);
       set(`[data-bind="rotation:${a}"]`, obj.mesh.rotation[a] * RAD2DEG);
     }
+    // Keep dimension fields in step with edits made via the in-canvas chips.
+    for (const key of Object.keys(obj.params || {})) set(`[data-bind="dim:${key}"]`, obj.params[key]);
   }
 }

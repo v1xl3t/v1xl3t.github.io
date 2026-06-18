@@ -25,6 +25,9 @@
   <div id="app">
     <canvas id="viewport"></canvas>
 
+    <!-- Floating, editable dimension chips that ride on the selected part -->
+    <div id="dimchips"></div>
+
     <!-- Left: creation + transform tools (the TinkerCAD-easy half) -->
     <aside id="toolbar" class="panel">
       <div class="brand">CADence <span class="tag">Stage 1</span></div>
@@ -44,6 +47,7 @@
       <div class="group">
         <div class="group-label">Construct <span class="hint">(blended forms)</span></div>
         <button data-add="loft" title="Loft: a solid blended between a bottom and top profile, with taper, twist, and corner radius">Loft</button>
+        <button data-action="sketch" id="sketch-btn" class="tool" title="Sketch: click points on the ground plane to draw a closed 2D profile, then Enter to extrude/revolve it into a parametric solid">Sketch <span class="hint">(S)</span></button>
       </div>
 
       <div class="group">
@@ -87,6 +91,7 @@
         <button data-action="frame" title="Re-center & fit the selection (whole scene if nothing is selected)">Frame <span class="hint">(F)</span></button>
         <button data-action="lasso" id="lasso-btn" class="tool" title="Lasso tool: drag a freehand loop to select everything inside it">Lasso select <span class="hint">(L)</span></button>
         <button data-action="measure" id="measure-btn" class="tool" title="Measure tool: click two points on objects to read the distance between them">Measure <span class="hint">(M)</span></button>
+        <button data-action="timeline" id="timeline-btn" class="tool" title="Recipe Timeline: scrub your modeling history; click any step to time-travel, and acting from the past forks a new branch (5D-chess style)">Timeline <span class="hint">(T)</span></button>
         <button data-action="shortcuts" title="Show the keyboard shortcut cheat-sheet">Shortcuts <span class="hint">(?)</span></button>
       </div>
 
@@ -149,6 +154,16 @@
     <aside id="outliner" class="panel">
       <div class="group-label">Objects</div>
       <div id="outliner-list"></div>
+    </aside>
+
+    <!-- Recipe Timeline: the multiverse history strip (toggled by Timeline / T) -->
+    <aside id="timeline" class="panel" hidden>
+      <div class="tl-head">
+        <span class="group-label">Timeline</span>
+        <span class="tl-hint">click a step to time-travel · acting from the past forks a branch</span>
+        <button id="tl-close" title="Hide timeline (T)">✕</button>
+      </div>
+      <div class="tl-scroll"><div class="tl-canvas"><svg class="tl-svg"></svg></div></div>
     </aside>
 
     <div id="statusbar"></div>
