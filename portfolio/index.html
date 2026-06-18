@@ -283,6 +283,7 @@ section{padding:clamp(56px,8vw,96px) 0; position:relative}
 .grid{
   display:grid; gap:18px;
   grid-template-columns:repeat(2,1fr);
+  align-items:start;   /* each card sizes to its own content, so expanding one doesn't stretch its neighbor */
 }
 @media (max-width:720px){ .grid{grid-template-columns:1fr} }
 
@@ -451,10 +452,11 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 }
 
 /* project links (real examples on the web) */
-.links{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
-.links a{font-size:.78rem; font-weight:600; color:var(--accent); border:1px solid var(--border-soft); border-radius:999px; padding:5px 11px}
-.links a:hover{text-decoration:none; border-color:var(--accent); background:rgba(79,195,247,.07)}
-.links a::after{content:" \2197"; opacity:.65}
+.links{display:flex; flex-wrap:wrap; gap:9px; margin-top:16px}
+.links a{font-size:.84rem; font-weight:700; color:#04121d; background:var(--accent); border:1px solid var(--accent); border-radius:9px; padding:8px 14px; box-shadow:0 6px 18px -10px var(--accent-glow); transition:background .18s ease, transform .15s ease}
+.links a:hover{text-decoration:none; background:#6fd0fb; border-color:#6fd0fb; transform:translateY(-2px)}
+.links a::after{content:" \2197"; font-weight:800; opacity:.85}
+@media (prefers-reduced-motion: reduce){ .links a:hover{transform:none} }
 
 /* expandable press / awards rows */
 .press-list li{display:block}
@@ -551,12 +553,12 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">AI &amp; Engineering</span><span class="chip">2025 · Treobytes</span></div>
         <h3>Claude AI Skill Tree</h3>
-        <p class="blurb">A production three-layer Claude agent system, built solo in 5 days, now run daily by non-engineers.</p>
-        <p class="outcome">Shipped solo in 5 days; a non-engineer submitted a real EUSD district proposal through it, and the batch generator produced 27 of 27 Mesa College course timelines in one session.</p>
-        <div class="stack"><span>Claude API</span><span>agent skills</span><span>Python</span><span>JSON schema</span></div>
+        <p class="blurb">A production AI system that lets non-engineers do expert-level knowledge work. Built solo in 5 days.</p>
+        <p class="outcome">Now used daily by non-technical staff to produce expert documents and analyses that used to require a specialist, work that previously took hours done in minutes.</p>
+        <div class="stack"><span>Claude API</span><span>AI agents</span><span>Python</span><span>JSON schema</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>Do expert-level knowledge work at a volume the team couldn't reach by hand, without hiring engineers to run it.<b>Approach</b>L1 primitives compose into L2 domain skills, which compose into L3 workflows that mirror how the team actually works, keeping each piece testable and recombinable.</p>
+          <p class="dl"><b>Problem</b>A small team needed to produce expert work (proposals, schedules, structured analyses) far faster than people could by hand, and without hiring engineers to operate it.<b>Approach</b>A layered design: small reusable skills combine into broader domain skills, which combine into complete workflows. The layering keeps every piece reliable and recombinable, so the system grows without becoming brittle.</p>
           <p class="media-note">Media to add: neural-map walkthrough · architecture diagram</p>
         </details>
       </article>
@@ -565,13 +567,13 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal d1" data-lanes="hardware ai">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2026 · in progress</span></div>
         <h3>CADence</h3>
-        <p class="blurb">A browser 3D modeler fusing TinkerCAD's ease with OnShape's precision, and a mesh↔parametric swap neither tool allows.</p>
-        <p class="outcome">Working primitives, boolean solids/holes, a precise numeric inspector, STL/3MF export, and a validated headless B-rep export pipeline.</p>
-        <div class="stack"><span>JavaScript</span><span>Three.js</span><span>Manifold</span><span>OpenCascade</span><span>WebGL</span></div>
+        <p class="blurb">A 3D modeling app in the browser that makes precise, professional-grade CAD as approachable as a toy.</p>
+        <p class="outcome">Solid modeling with exact dimensions and clean file export, plus the thing beginner and pro tools both miss: switching between freeform sculpting and precise, editable design on the fly.</p>
+        <div class="stack"><span>JavaScript</span><span>Three.js</span><span>WebGL</span><span>Geometry kernels</span></div>
         <div class="links"><a href="https://v1xl3t.github.io/" target="_blank" rel="noopener">Live demo</a></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>Beginner tools are easy but imprecise; pro CAD is precise but steep, and neither moves fluidly between sculptural and parametric modeling.<b>Approach</b>Every object carries a recipe; the mesh is generated from it, never the source of truth, which makes the sculptural↔parametric swap tractable.</p>
+          <p class="dl"><b>Problem</b>Beginner 3D tools are easy but imprecise; professional CAD is precise but intimidating, and neither lets you move freely between freeform sculpting and exact, editable design.<b>Approach</b>Every shape is stored as a recipe of exact parameters, and the 3D model is generated from that recipe. Keeping that history is what makes switching between freeform and precise modeling possible.</p>
           <p class="media-note">Media to add: CADence demo screen recording</p>
         </details>
       </article>
@@ -580,24 +582,23 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal d2" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Treobytes</span></div>
         <h3>Arduino MIDI Keyboard (TEMPLiT)</h3>
-        <p class="blurb">A MIDI instrument taken from breadboard to a 100+ unit manufacturing run, circuit, firmware, CAD, and production.</p>
-        <p class="outcome">Concept → a production run of 100+ units, manufactured and deployed.</p>
-        <div class="stack"><span>Arduino Leonardo</span><span>USB-HID firmware</span><span>C++</span><span>OnShape</span><span>DXF</span></div>
+        <p class="blurb">A music keyboard I designed and manufactured end to end, from the circuit board to a 100-unit production run.</p>
+        <p class="outcome">Taken from a single hand-wired prototype to 100+ finished units, manufactured and deployed in classrooms.</p>
+        <div class="stack"><span>Arduino Leonardo</span><span>USB-HID firmware</span><span>C++</span><span>OnShape</span><span>Laser cutting</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>An affordable, plug-and-play classroom MIDI instrument, durable enough to manufacture at volume.<b>Approach</b>Designed the circuit and wrote USB-HID firmware on the ATmega32u4 so it enumerates as a native MIDI device, no drivers. OnShape enclosure → DXF for laser cutting → production.</p>
+          <p class="dl"><b>Problem</b>An affordable music controller that works the moment you plug it in, simple enough for a classroom and durable enough to mass-produce.<b>Approach</b>Designed the circuit and wrote the firmware so it is recognized as a plug-and-play MIDI device with no drivers or software. Designed the enclosure in CAD and prepared it for laser-cut manufacturing.</p>
           <p class="media-note">Media to add: build photos · schematic · housing renders · production line</p>
         </details>
       </article>
 
       <!-- 4 -->
       <article class="card reveal" data-lanes="audio ai">
-        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022–23 · Necro.World</span></div>
+        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022–23 · Indie game studio</span></div>
         <h3>Generative Game-Audio Tool</h3>
-        <p class="blurb">An Unreal Engine 5 Blueprint tool that gives every game session a unique soundtrack, showcased at GDC San Francisco 2024.</p>
-        <p class="outcome">Showcased at GDC San Francisco 2024. Shipped as the audio backbone of the studio's game.</p>
-        <div class="stack"><span>Unreal Engine 5</span><span>UE Blueprint</span><span>Wwise / FMOD</span><span>data tables</span></div>
-        <div class="links"><a href="https://necro.world" target="_blank" rel="noopener">Necro.World</a></div>
+        <p class="blurb">A tool that gives a video game a fresh, unique soundtrack on every playthrough. Showcased at GDC San Francisco 2024.</p>
+        <p class="outcome">Showcased at the Game Developers Conference, San Francisco 2024, and shipped as the audio engine of an indie studio's game.</p>
+        <div class="stack"><span>Unreal Engine 5</span><span>UE Blueprint</span><span>Wwise / FMOD</span><span>adaptive audio</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
           <p class="dl"><b>Problem</b>Linear soundtracks repeat and flatten replay value; the studio wanted music that recombines fresh every session.<b>Approach</b>A UE5 Blueprint tool treating musical layers and SFX as interchangeable building blocks, composed so any combination stays coherent, assembling a unique mix per session.</p>
@@ -609,13 +610,13 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal d1" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">Engineering</span><span class="chip">Treobytes</span></div>
         <h3>TreoTools</h3>
-        <p class="blurb">An internal React platform built from the ground up, in daily use, including an algorithmic seating-chart generator.</p>
-        <p class="outcome">In real daily use; consolidated scattered manual processes into one tool.</p>
+        <p class="blurb">An internal web app I built from scratch that replaced a team's scattered spreadsheets and manual processes.</p>
+        <p class="outcome">In daily use across the team, including a feature that generates optimal seating arrangements in seconds.</p>
         <div class="stack"><span>React</span><span>JavaScript</span><span>Node.js</span></div>
         <div class="links"><a href="https://treotools.github.io" target="_blank" rel="noopener">Live</a></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Built the platform end to end. Standout feature: a seating-chart generator combining brute-force search with a greedy sort, fast enough to use interactively.</p>
+          <p class="dl"><b>Approach</b>Built end to end in React. A standout feature pairs an exhaustive search with a fast heuristic to satisfy seating constraints quickly enough to use live.</p>
           <p class="media-note">Media to add: seating-chart demo · dashboard screenshots</p>
         </details>
       </article>
@@ -623,13 +624,13 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <!-- 6 -->
       <article class="card reveal d2" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Research</span></div>
-        <h3>Kuka Generative 3D-Printing Research</h3>
-        <p class="blurb">Sole programmer on robotic-arm 3D-printing research that turned algorithms into sculptural objects.</p>
-        <p class="outcome">Fabricated sculptural pieces from a code-driven pipeline.</p>
-        <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>robotic fabrication</span></div>
+        <h3>Robotic 3D-Printing Research</h3>
+        <p class="blurb">Research that turns algorithms into physical sculptures, 3D-printed by a robotic arm.</p>
+        <p class="outcome">Wrote the software that converts generative designs into print paths for robotic fabrication, producing finished sculptural pieces.</p>
+        <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>Robotic fabrication</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Wrote the generative geometry in Python + Grasshopper, translating algorithmic forms into printable .stl toolpaths for robotic-arm fabrication.</p>
+          <p class="dl"><b>Approach</b>Wrote generative geometry that translates algorithmic forms into tool paths a robotic arm can print, bridging computational design and physical making.</p>
           <p class="media-note">Media to add: print-path animation · fabricated pieces</p>
         </details>
       </article>
@@ -638,9 +639,9 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip">Independent</span></div>
         <h3>Primes / L-System Visualization</h3>
-        <p class="blurb">A generative p5.js visualization of prime &amp; L-system structure, featured in Dezeen.</p>
-        <p class="outcome">Featured in Dezeen (2023).</p>
-        <div class="stack"><span>p5.js</span><span>JavaScript</span><span>generative</span></div>
+        <p class="blurb">An interactive generative artwork that turns mathematical patterns into living visuals. Featured in Dezeen.</p>
+        <p class="outcome">Featured in Dezeen's design coverage (2023).</p>
+        <div class="stack"><span>p5.js</span><span>JavaScript</span><span>Generative art</span></div>
         <div class="links"><a href="https://editor.p5js.org/levi.e.82568/full/OpG8HU3Jt" target="_blank" rel="noopener">Live demo</a><a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -652,8 +653,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <!-- 8 -->
       <article class="card reveal d1" data-lanes="audio">
         <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">Film</span></div>
-        <h3>HAIKU, Original Score</h3>
-        <p class="blurb">Original score for the short film HAIKU, Silver, Best Composer, Tokyo Film Awards 2022.</p>
+        <h3>HAIKU: Original Score</h3>
+        <p class="blurb">An original film score that won Silver for Best Composer at the Tokyo Film Awards.</p>
         <p class="outcome">Silver, Best Composer, Tokyo Film Awards 2022; Best Original Music nominee, New Creators Film Awards 2022.</p>
         <div class="stack"><span>Composition</span><span>Orchestration</span><span>Mixing / Mastering</span></div>
         <div class="links"><a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a><a href="https://indiewrapmag.com/film/explore-the-boundless-creativity-of-short-films-in-indiewraps-new-book/" target="_blank" rel="noopener">IndieWrap</a></div>
@@ -667,8 +668,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <!-- 9 -->
       <article class="card reveal d2" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">3D / Art</span><span class="chip">Contract</span></div>
-        <h3>Wang Shui, Installation Prototype</h3>
-        <p class="blurb">3D modeling &amp; Unity projection-mapping prototype for a contemporary artist's installation, exhibited in Berlin.</p>
+        <h3>Gallery Installation Prototype</h3>
+        <p class="blurb">A 3D digital prototype I built for a contemporary artist's gallery installation, later exhibited in Berlin.</p>
         <p class="outcome">Final installation exhibited at the Julia Stoschek Collection, Berlin (2022).</p>
         <div class="stack"><span>Maya</span><span>Unity</span><span>projection mapping</span></div>
         <details>
@@ -682,8 +683,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal" data-lanes="teaching">
         <div class="tags"><span class="chip lane" data-l="teaching">Teaching</span><span class="chip">Woodbury University</span></div>
         <h3>GAME 203: Sound Design Fundamentals</h3>
-        <p class="blurb">A university course I developed and teach, adaptive game audio, from DAW fundamentals to engine implementation.</p>
-        <p class="outcome">Students leave able to design and implement adaptive audio in a game engine, not just describe it.</p>
+        <p class="blurb">A university course I created and teach on designing sound and music for games.</p>
+        <p class="outcome">Students leave able to build working game audio in a real game engine, not just talk about it.</p>
         <div class="stack"><span>Unity</span><span>Unreal Engine 5</span><span>Wwise / FMOD</span><span>C#</span></div>
         <div class="links"><a href="https://woodbury.edu/faculty/vi-ellis" target="_blank" rel="noopener">Faculty page</a></div>
         <details>
@@ -695,13 +696,13 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <!-- 11 -->
       <article class="card reveal d1" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">Automation</span><span class="chip">Treobytes</span></div>
-        <h3>LCAP → CRM Pipeline</h3>
-        <p class="blurb">A repeatable pipeline that turns public school-district plans into scored, prioritized BD prospects across 20+ districts.</p>
-        <p class="outcome">Applied across 20+ districts, turning a manual reading slog into a ranked prospecting list.</p>
-        <div class="stack"><span>Python</span><span>JSON schema</span><span>scoring rubric</span><span>CRM</span></div>
+        <h3>Document-to-Leads Automation</h3>
+        <p class="blurb">An automation pipeline that reads long public documents and turns them into a ranked list of sales leads.</p>
+        <p class="outcome">Processed plans from 20+ organizations, replacing hours of manual reading with an automatically scored, prioritized list.</p>
+        <div class="stack"><span>Python</span><span>JSON schema</span><span>Scoring rubric</span><span>CRM</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Ingests district LCAP documents, extracts structured data against a JSON schema, scores each with a rubric, and feeds prioritized prospects into the CRM.</p>
+          <p class="dl"><b>Approach</b>Pulls structured data from lengthy public documents against a defined schema, scores each against a rubric, and feeds the prioritized leads into the CRM.</p>
         </details>
       </article>
 
@@ -718,8 +719,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Treobytes</span></div>
         <h3>Classroom Hardware Line</h3>
-        <p class="blurb">A fleet of educational electronics kits designed for STEM classrooms, from light toys to robotics.</p>
-        <p class="outcome">Designed and prototyped multiple hardware kits (ByteLight, Tri-Tone, RC boat, and more) end to end.</p>
+        <p class="blurb">A fleet of educational electronics kits designed for STEM classrooms, from simple light and sound toys to remote-control builds.</p>
+        <p class="outcome">Designed and prototyped multiple hands-on hardware kits end to end, from circuit to enclosure.</p>
         <div class="stack"><span>Arduino</span><span>Circuit design</span><span>OnShape</span><span>3D printing</span><span>Laser cutting</span></div>
       </article>
 
@@ -775,7 +776,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     <h2 class="section-title reveal" id="press-title">Recognition</h2>
     <ul class="press-list">
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Silver, Best Composer, Tokyo Film Awards 2022</summary><p class="dl">Awarded for the original score of the short film <i>HAIKU</i>. The film also took a Best Original Music nomination at the 2022 New Creators Film Awards and was featured in IndieWrap's 2023 published short-film collection. <a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Showcased at GDC San Francisco 2024</summary><p class="dl">A generative game-audio tool, built in Unreal Engine 5 Blueprint at Necro.World, was showcased at the Game Developers Conference in San Francisco. It assembles a unique soundtrack per game session from interchangeable musical layers. <a href="https://necro.world" target="_blank" rel="noopener">Necro.World</a></p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Showcased at GDC San Francisco 2024</summary><p class="dl">A generative game-audio tool, built in Unreal Engine 5 for an indie game studio, was showcased at the Game Developers Conference in San Francisco. It assembles a unique soundtrack per game session from interchangeable musical layers.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Featured in Dezeen, 2023</summary><p class="dl">Computational-design work was featured in Dezeen's School Shows. The generative piece computes natural numbers and runs an L-system through multiple iterations to grow fractal forms in the browser. <a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a> · <a href="https://editor.p5js.org/levi.e.82568/full/OpG8HU3Jt" target="_blank" rel="noopener">Live demo</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Exhibited at Julia Stoschek Collection, Berlin, 2022</summary><p class="dl">A 3D-modeled and Unity projection-mapping prototype, built for contemporary artist Wang Shui, became part of an installation exhibited at the Julia Stoschek Collection in Berlin.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Magna Cum Laude, University of Redlands</summary><p class="dl">B.S. in Applied Computer Science (Media Arts), 2023, with a 3.8 GPA. Recognized with the Best Thesis Award for the graduating class, Academic Excellence Awards in 2022 and 2023, and Dean's List every semester.</p></details></li>
