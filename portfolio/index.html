@@ -283,9 +283,20 @@ section{padding:clamp(56px,8vw,96px) 0; position:relative}
 .grid{
   display:grid; gap:18px;
   grid-template-columns:repeat(2,1fr);
-  align-items:start;   /* each card sizes to its own content, so expanding one doesn't stretch its neighbor */
+  align-items:start;   /* fallback before JS masonry takes over */
 }
 @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+
+/* JS masonry: cards flow into the shortest column independently, so expanding
+   one card only pushes the cards BELOW IT in its own column (true masonry).
+   Layout uses the `translate` property; `transform` stays free for hover lift
+   + scroll-reveal so all three compose without fighting. */
+.grid.masonry{ display:block; position:relative; }
+.grid.masonry .card{ position:absolute; top:0; left:0; margin:0; will-change:translate }
+.grid.masonry .card{ transition:translate .42s cubic-bezier(.22,.61,.36,1), transform .2s ease, opacity .5s ease, border-color .2s ease, box-shadow .2s ease }
+@media (prefers-reduced-motion: reduce){
+  .grid.masonry .card{ transition:opacity .01s, border-color .2s ease, box-shadow .2s ease }
+}
 
 .card{
   background:linear-gradient(180deg, var(--panel), var(--bg-2));
@@ -535,8 +546,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
   <canvas id="heroCanvas" aria-hidden="true"></canvas>
   <div class="wrap">
     <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Engineer · Product Developer · Composer</span>
-    <h1 class="hero-title" id="hero-title">I build the whole thing, from <span class="accent">production Claude AI agents</span> to a 100-unit hardware run.</h1>
-    <p class="lede">Applied computer scientist shipping production AI on the Claude API. I built an agent system that turns live data into compliant, submission-ready documents with RAG, cutting turnaround from <strong>four days to five hours</strong>, took an instrument from breadboard to a <strong>100-unit run</strong>, and hold <strong>31 shipped game and film credits</strong>.</p>
+    <h1 class="hero-title" id="hero-title">I build the whole thing, from <span class="accent">the AI</span> to the hardware it runs on.</h1>
+    <p class="lede">I'm an applied computer scientist who ships production software. At Treobytes I built an AI agent system on the Claude API that cut document turnaround from <strong>four days to five hours</strong>. I've also taken an instrument from breadboard to a <strong>100-unit run</strong> and scored <strong>31 shipped games and films</strong>.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="#work">View Work
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -967,16 +978,57 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     btn.addEventListener("click", function(){
       filters.forEach(function(b){ b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
       applyFilter(btn.getAttribute("data-filter"));
+      relayoutMasonry();
     });
   });
+
+  /* ---------- masonry layout for the work grid ----------
+     Each visible card drops into the shortest column, so expanding one card
+     only pushes the cards below it in ITS column. Position via the `translate`
+     property (transform stays free for hover + reveal). A ResizeObserver on
+     each card re-flows the columns whenever a card grows/shrinks. */
+  var workGrid = document.getElementById("workGrid");
+  var gridCards = workGrid ? Array.prototype.slice.call(workGrid.querySelectorAll(".card")) : [];
+  var layoutQueued = false;
+
+  function layoutMasonry(){
+    if (!workGrid || !workGrid.classList.contains("masonry")) return;
+    var gap = 18, width = workGrid.clientWidth;
+    var cols = width < 720 ? 1 : 2;
+    var colW = (width - gap * (cols - 1)) / cols;
+    var colH = []; for (var i = 0; i < cols; i++) colH.push(0);
+    gridCards.forEach(function(card){
+      if (card.hidden) return;
+      var w = colW + "px";
+      if (card.style.width !== w) card.style.width = w;   // guard: avoid RO loop
+      var c = 0; for (var j = 1; j < cols; j++){ if (colH[j] < colH[c]) c = j; }
+      card.style.translate = (c * (colW + gap)) + "px " + colH[c] + "px";
+      colH[c] += card.offsetHeight + gap;
+    });
+    workGrid.style.height = Math.max.apply(null, colH) + "px";
+  }
+  function relayoutMasonry(){
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(function(){ layoutQueued = false; layoutMasonry(); });
+  }
+
+  if (workGrid && gridCards.length){
+    workGrid.classList.add("masonry");
+    layoutMasonry();
+    window.addEventListener("load", layoutMasonry);
+    window.addEventListener("resize", relayoutMasonry, { passive: true });
+    if ("ResizeObserver" in window){
+      var ro = new ResizeObserver(relayoutMasonry);
+      gridCards.forEach(function(c){ ro.observe(c); });
+    }
+  }
 
   /* ---------- scroll reveal (incl. directional / scale variants) ---------- */
   // Cascade: stagger items within the work grid and the press / experience lists
   // so each group flows in rather than snapping in all at once.
-  ["#workGrid .card", ".press-list li"].forEach(function(sel){
-    Array.prototype.slice.call(document.querySelectorAll(sel)).forEach(function(el, i){
-      el.style.transitionDelay = ((i % 6) * 0.05).toFixed(2) + "s";
-    });
+  Array.prototype.slice.call(document.querySelectorAll(".press-list li")).forEach(function(el, i){
+    el.style.transitionDelay = ((i % 6) * 0.05).toFixed(2) + "s";
   });
   var revealEls = Array.prototype.slice.call(document.querySelectorAll(".reveal, .reveal-l, .reveal-r, .reveal-scale"));
   if (reduceMotion || !("IntersectionObserver" in window)){
