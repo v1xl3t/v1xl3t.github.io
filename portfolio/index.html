@@ -386,6 +386,74 @@ details[open] summary .chev{transform:rotate(90deg)}
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E") center/contain no-repeat;
 }
 
+/* ---------------- card media thumbnails ---------------- */
+.thumbs{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0}
+.thumb{
+  position:relative; flex:0 0 auto;
+  width:86px; height:64px; padding:0; cursor:zoom-in;
+  border-radius:var(--radius-sm); overflow:hidden;
+  border:1px solid var(--border-soft); background:var(--bg-2);
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.thumb img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .3s ease}
+.thumb::after{
+  content:""; position:absolute; inset:0;
+  background:rgba(4,18,29,.4) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e7eef6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3M11 8v6M8 11h6'/%3E%3C/svg%3E") center/22px no-repeat;
+  opacity:0; transition:opacity .2s ease;
+}
+.thumb:hover, .thumb:focus-visible{transform:translateY(-2px); border-color:var(--accent); box-shadow:0 8px 20px -10px var(--accent-glow); outline:none}
+.thumb:hover::after, .thumb:focus-visible::after{opacity:1}
+.thumb:hover img{transform:scale(1.06)}
+@media (prefers-reduced-motion: reduce){ .thumb:hover{transform:none} .thumb:hover img{transform:none} }
+
+/* ---------------- media modal / lightbox ---------------- */
+.modal{
+  position:fixed; inset:0; z-index:300;
+  display:none; align-items:center; justify-content:center;
+  padding:clamp(14px,4vw,48px);
+  background:radial-gradient(1200px 700px at 50% -5%, rgba(79,195,247,.08), transparent 60%), rgba(4,8,13,.88);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  opacity:0; transition:opacity .25s ease;
+}
+.modal.open{display:flex}
+.modal.show{opacity:1}
+.modal-stage{position:relative; width:100%; max-width:min(1100px,100%); max-height:100%;
+  display:flex; flex-direction:column; gap:12px}
+.modal-frame{
+  position:relative; flex:1 1 auto; min-height:0;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  border-radius:var(--radius); border:1px solid var(--border);
+  background:linear-gradient(180deg, var(--panel), var(--bg-2)); box-shadow:var(--shadow-lift);
+}
+.modal-img{
+  max-width:100%; max-height:78vh; display:block; object-fit:contain;
+  cursor:zoom-in; user-select:none; -webkit-user-drag:none; touch-action:none;
+  transform:translate(0,0) scale(1); transform-origin:center center;
+  transition:transform .25s cubic-bezier(.22,.61,.36,1);
+}
+.modal.zoomed .modal-img{cursor:grab}
+.modal.zoomed .modal-img.dragging{cursor:grabbing; transition:none}
+@media (prefers-reduced-motion: reduce){ .modal, .modal-img{transition:opacity .01s} }
+.modal-close, .modal-nav{
+  position:absolute; z-index:2; cursor:pointer; color:var(--text);
+  background:rgba(10,15,22,.72); border:1px solid var(--border); border-radius:50%;
+  display:grid; place-items:center;
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  transition:background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.modal-close svg, .modal-nav svg{display:block}
+.modal-close:hover, .modal-nav:hover{border-color:var(--accent); background:rgba(79,195,247,.16)}
+.modal-close{top:14px; right:14px; width:44px; height:44px}
+.modal-nav{top:50%; transform:translateY(-50%); width:50px; height:50px}
+.modal-nav:hover{transform:translateY(-50%) scale(1.06)}
+.modal-nav.prev{left:14px} .modal-nav.next{right:14px}
+.modal-nav[hidden]{display:none}
+.modal-bar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:0 4px}
+.modal-cap{flex:1 1 200px; color:var(--text); font-size:.92rem; line-height:1.45}
+.modal-count{font-family:var(--mono); font-size:.8rem; letter-spacing:.08em; color:var(--accent)}
+.modal-hint{font-family:var(--mono); font-size:.72rem; color:var(--muted-2)}
+@media (max-width:560px){ .modal-hint{display:none} .modal-nav{width:42px; height:42px} }
+
 .no-results{
   display:none; margin-top:8px; color:var(--muted);
   padding:26px; text-align:center; border:1px dashed var(--border);
@@ -609,7 +677,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
           <p class="dl"><b>Problem</b>A small team needed compliant, submission-ready documents far faster than people could produce them by hand, and without hiring engineers to operate the system.<b>Approach</b>A three-layer agent architecture: reusable primitives compose into domain skills, which compose into full workflows. RAG pulls live data, and an automated LLM-as-judge review gates every output against policy and brand guidelines before delivery, so the system scales to non-technical users without becoming brittle.</p>
-          <p class="media-note">Media to add: neural-map walkthrough · architecture diagram</p>
         </details>
       </article>
 
@@ -624,7 +691,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
           <p class="dl"><b>Problem</b>Beginner 3D tools are easy but imprecise; professional CAD is precise but intimidating, and neither lets you move freely between freeform sculpting and exact, editable design.<b>Approach</b>Every shape is stored as a recipe of exact parameters, and the 3D model is generated from that recipe. Keeping that history is what makes switching between freeform and precise modeling possible.</p>
-          <p class="media-note">Media to add: CADence demo screen recording</p>
         </details>
       </article>
 
@@ -638,7 +704,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
           <p class="dl"><b>Problem</b>An affordable music controller that works the moment you plug it in, simple enough for a classroom and durable enough to mass-produce.<b>Approach</b>Designed the circuit and wrote the firmware so it is recognized as a plug-and-play MIDI device with no drivers or software. Designed the enclosure in CAD and prepared it for laser-cut manufacturing.</p>
-          <p class="media-note">Media to add: build photos · schematic · housing renders · production line</p>
         </details>
       </article>
 
@@ -649,10 +714,17 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <p class="blurb">A tool that gives a video game a fresh, unique soundtrack on every playthrough. Showcased at GDC San Francisco 2024.</p>
         <p class="outcome">Showcased at the Game Developers Conference, San Francisco 2024, and shipped as the audio engine of an indie studio's game.</p>
         <div class="stack"><span>Unreal Engine 5</span><span>UE Blueprint</span><span>Wwise / FMOD</span><span>adaptive audio</span></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/nightshift/nightshift-01.png" data-cap="Night Shift, my thesis game built to showcase the adaptive audio package (teaser)"><img src="media/nightshift/nightshift-01.png" alt="Night Shift teaser art" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/nightshift/nightshift-02.png" data-cap="Night Shift, in-engine gameplay"><img src="media/nightshift/nightshift-02.png" alt="Night Shift in-engine gameplay" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/nightshift/nightshift-03.png" data-cap="Night Shift, in-engine scene"><img src="media/nightshift/nightshift-03.png" alt="Night Shift in-engine scene" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/nightshift/nightshift-04.png" data-cap="Night Shift, in-engine scene"><img src="media/nightshift/nightshift-04.png" alt="Night Shift in-engine scene" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/nightshift/nightshift-05.png" data-cap="Night Shift, in-engine scene"><img src="media/nightshift/nightshift-05.png" alt="Night Shift in-engine scene" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/nightshift/nightshift-06.png" data-cap="Night Shift, thesis key art"><img src="media/nightshift/nightshift-06.png" alt="Night Shift thesis key art" loading="lazy"></button>
+        </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>Linear soundtracks repeat and flatten replay value; the studio wanted music that recombines fresh every session.<b>Approach</b>A UE5 Blueprint tool treating musical layers and SFX as interchangeable building blocks, composed so any combination stays coherent, assembling a unique mix per session.</p>
-          <p class="media-note">Media to add: GDC showcase photo · tool demo clip</p>
+          <p class="dl"><b>Problem</b>Linear soundtracks repeat and flatten replay value; the studio wanted music that recombines fresh every session.<b>Approach</b>A two-Blueprint adaptive and dynamic audio package treats musical layers and SFX as interchangeable building blocks, composed so any combination stays coherent, assembling a unique mix per session, with a dialogue datatable system that drives in-game voice lines from structured data.<b>Demo: Night Shift</b>I built Night Shift as my thesis game to showcase the package end to end. Solo build of the Blueprints, music, and systems, with voice acting, in-game UI art, and the logo by Emanuel Nation, an opening voice-line cameo by game designer Cameron Williams, and 3D assets from Unreal Engine Marketplace artists.</p>
         </details>
       </article>
 
@@ -667,7 +739,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Built end to end in React. A standout feature pairs an exhaustive search with a fast heuristic to satisfy seating constraints quickly enough to use live.</p>
-          <p class="media-note">Media to add: seating-chart demo · dashboard screenshots</p>
         </details>
       </article>
 
@@ -681,7 +752,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Wrote generative geometry that translates algorithmic forms into tool paths a robotic arm can print, bridging computational design and physical making.</p>
-          <p class="media-note">Media to add: print-path animation · fabricated pieces</p>
         </details>
       </article>
 
@@ -692,11 +762,18 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <p class="blurb">An interactive generative artwork that turns mathematical patterns into living visuals. Featured in Dezeen.</p>
         <p class="outcome">Featured in Dezeen's design coverage (2023).</p>
         <div class="stack"><span>p5.js</span><span>JavaScript</span><span>Generative art</span></div>
-        <div class="links"><a href="https://editor.p5js.org/levi.e.82568/full/OpG8HU3Jt" target="_blank" rel="noopener">Live demo</a><a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a></div>
+        <div class="links"><a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/primes/primes-01-dezeen.png" data-cap="Prime / L-system visualization featured in Dezeen (iterations 1 to 8)"><img src="media/primes/primes-01-dezeen.png" alt="Prime visualization featured in Dezeen" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-02-sketch.png" data-cap="Live p5.js sketch capture"><img src="media/primes/primes-02-sketch.png" alt="p5.js sketch capture" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-03-sketch.png" data-cap="Live p5.js sketch capture"><img src="media/primes/primes-03-sketch.png" alt="p5.js sketch capture" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-04.png" data-cap="Generative output"><img src="media/primes/primes-04.png" alt="Generative output" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-05.png" data-cap="Generative output"><img src="media/primes/primes-05.png" alt="Generative output" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-06.png" data-cap="Generative output"><img src="media/primes/primes-06.png" alt="Generative output" loading="lazy"></button>
+        </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>An interactive p5.js sketch rendering prime / L-system patterns as generative fractal forms in the browser.</p>
-          <p class="media-note">Media to add: live demo (after rehost) · Dezeen link</p>
         </details>
       </article>
 
@@ -711,7 +788,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Wrote, orchestrated, mixed, and mastered the original score, shaping the film's emotional arc through music. Featured in IndieWrap's 2023 short-film collection.</p>
-          <p class="media-note">Media to add: score excerpt audio · poster · awards links</p>
         </details>
       </article>
 
@@ -725,7 +801,6 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Built the 3D models in Maya from the artist's sketches and assembled a Unity environment with a projection-mapping simulation, a navigable digital prototype of the planned piece.</p>
-          <p class="media-note">Media to add: Unity capture · model renders · install photo</p>
         </details>
       </article>
 
@@ -828,6 +903,14 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <p class="blurb">A generative adversarial network I trained from scratch to synthesize images, owning the full pipeline rather than calling a model as a black box.</p>
         <p class="outcome">Trained on 2,500+ images in 48 hours, handling data prep, GPU training, checkpointing, and evaluation end to end.</p>
         <div class="stack"><span>Python</span><span>GANs</span><span>GPU training</span><span>Evaluation</span></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/gan/gan-01.jpg" data-cap="Style-mixed output from the trained network"><img src="media/gan/gan-01.jpg" alt="GAN style-mixed output" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-02.jpg" data-cap="Style-mixed output from the trained network"><img src="media/gan/gan-02.jpg" alt="GAN style-mixed output" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-03.jpg" data-cap="Style-mixed output from the trained network"><img src="media/gan/gan-03.jpg" alt="GAN style-mixed output" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-04.jpg" data-cap="Generated sample"><img src="media/gan/gan-04.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-05.jpg" data-cap="Generated sample"><img src="media/gan/gan-05.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-06.jpg" data-cap="Generated sample"><img src="media/gan/gan-06.jpg" alt="GAN generated sample" loading="lazy"></button>
+        </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Assembled and cleaned the dataset, built and trained the adversarial network on GPU with checkpointing, and evaluated outputs across runs, so I reason about inference cost and model behavior firsthand.</p>
@@ -920,6 +1003,29 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     <span class="dotsep">San Diego, CA · built with care</span>
   </div>
 </footer>
+
+<!-- ============================= MEDIA MODAL ============================= -->
+<div class="modal" id="mediaModal" role="dialog" aria-modal="true" aria-label="Project media viewer" hidden>
+  <button class="modal-close" id="modalClose" type="button" aria-label="Close viewer (Esc)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <button class="modal-nav prev" id="modalPrev" type="button" aria-label="Previous image">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
+  <button class="modal-nav next" id="modalNext" type="button" aria-label="Next image">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <div class="modal-stage">
+    <div class="modal-frame">
+      <img class="modal-img" id="modalImg" alt="" draggable="false">
+    </div>
+    <div class="modal-bar">
+      <span class="modal-cap" id="modalCap"></span>
+      <span class="modal-count" id="modalCount"></span>
+      <span class="modal-hint">click image to zoom &middot; scroll to zoom &middot; drag to pan</span>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -1046,6 +1152,19 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
      Wrap each details body so we can animate its height. Horizontal grid
      neighbors stay put (the grid sizes each cell independently); rows below
      glide down as the body grows. Native instant toggle under reduced motion. */
+  // Single-open within the work grid: opening one card's dropdown collapses the
+  // others. Scoped to #workGrid so the experience/education accordions are free.
+  function collapseOthers(except){
+    var scope = except.closest("#workGrid");
+    if (!scope) return;
+    Array.prototype.slice.call(scope.querySelectorAll("details[open]")).forEach(function(other){
+      if (other === except) return;
+      if (reduceMotion){ other.open = false; return; }
+      if (other.classList.contains("animating")) return;
+      var s = other.querySelector("summary");
+      if (s) s.click();   // reuse the animated collapse path
+    });
+  }
   Array.prototype.slice.call(document.querySelectorAll("details")).forEach(function(d){
     var summary = d.querySelector("summary");
     if (!summary) return;
@@ -1055,12 +1174,16 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     while (node){ var next = node.nextSibling; body.appendChild(node); node = next; }
     d.appendChild(body);
 
-    if (reduceMotion) return; // keep native instant behavior
+    if (reduceMotion){ // keep native instant behavior, still single-open
+      summary.addEventListener("click", function(){ if (!d.open) collapseOthers(d); });
+      return;
+    }
 
     summary.addEventListener("click", function(e){
       e.preventDefault();
       if (d.classList.contains("animating")) return;
       var opening = !d.open;
+      if (opening) collapseOthers(d);        // single-open: close other cards
       if (opening) d.open = true;            // reveal before measuring
       var target = body.scrollHeight;
       d.classList.add("animating");
@@ -1117,6 +1240,111 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     }, {rootMargin:"-45% 0px -50% 0px", threshold:0});
     watched.forEach(function(s){ navIO.observe(s); });
   }
+
+  /* ---------- media modal (thumbnail gallery + zoom/pan) ---------- */
+  (function(){
+    var modal = document.getElementById("mediaModal");
+    if (!modal) return;
+    var imgEl   = document.getElementById("modalImg");
+    var capEl   = document.getElementById("modalCap");
+    var countEl = document.getElementById("modalCount");
+    var btnClose= document.getElementById("modalClose");
+    var btnPrev = document.getElementById("modalPrev");
+    var btnNext = document.getElementById("modalNext");
+    var gallery = [], index = 0, lastFocus = null;
+    var zoom = 1, panX = 0, panY = 0;
+
+    function pad(n){ n = String(n); return n.length < 2 ? "0" + n : n; }
+    function applyTransform(){ imgEl.style.transform = "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")"; }
+    function resetZoom(){ zoom = 1; panX = 0; panY = 0; modal.classList.remove("zoomed"); applyTransform(); }
+
+    function render(){
+      var item = gallery[index]; if (!item) return;
+      resetZoom();
+      imgEl.src = item.src; imgEl.alt = item.cap || "";
+      capEl.textContent = item.cap || "";
+      countEl.textContent = pad(index + 1) + " / " + pad(gallery.length);
+      var multi = gallery.length > 1;
+      btnPrev.hidden = !multi; btnNext.hidden = !multi;
+    }
+    function open(items, start){
+      gallery = items; index = start || 0; lastFocus = document.activeElement;
+      modal.hidden = false; modal.classList.add("open");
+      requestAnimationFrame(function(){ modal.classList.add("show"); });
+      document.body.style.overflow = "hidden";
+      render(); btnClose.focus();
+    }
+    function close(){
+      modal.classList.remove("show");
+      var done = function(){
+        modal.classList.remove("open"); modal.hidden = true;
+        modal.removeEventListener("transitionend", done);
+        document.body.style.overflow = "";
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+      };
+      modal.addEventListener("transitionend", done);
+      setTimeout(done, 320);
+    }
+    function step(dir){ if (gallery.length < 2) return; index = (index + dir + gallery.length) % gallery.length; render(); }
+
+    Array.prototype.slice.call(document.querySelectorAll(".thumbs")).forEach(function(group){
+      var thumbs = Array.prototype.slice.call(group.querySelectorAll(".thumb"));
+      var items = thumbs.map(function(t){ return { src: t.getAttribute("data-full"), cap: t.getAttribute("data-cap") || "" }; });
+      thumbs.forEach(function(t, i){ t.addEventListener("click", function(){ open(items, i); }); });
+    });
+
+    btnClose.addEventListener("click", close);
+    btnPrev.addEventListener("click", function(){ step(-1); });
+    btnNext.addEventListener("click", function(){ step(1); });
+    modal.addEventListener("click", function(e){ if (e.target === modal || e.target.classList.contains("modal-stage") || e.target.classList.contains("modal-frame")) close(); });
+
+    imgEl.addEventListener("click", function(e){
+      e.stopPropagation();
+      if (zoom === 1){
+        zoom = 2.4; modal.classList.add("zoomed");
+        var r = imgEl.getBoundingClientRect();
+        panX = -(e.clientX - (r.left + r.width / 2)) * (zoom - 1);
+        panY = -(e.clientY - (r.top + r.height / 2)) * (zoom - 1);
+        applyTransform();
+      } else { resetZoom(); }
+    });
+    imgEl.addEventListener("wheel", function(e){
+      if (modal.hidden) return;
+      e.preventDefault();
+      zoom = Math.min(4, Math.max(1, zoom + (e.deltaY < 0 ? 0.25 : -0.25)));
+      if (zoom === 1) resetZoom(); else { modal.classList.add("zoomed"); applyTransform(); }
+    }, { passive: false });
+
+    var dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    imgEl.addEventListener("pointerdown", function(e){
+      if (zoom === 1) return;
+      dragging = true; sx = e.clientX; sy = e.clientY; ox = panX; oy = panY;
+      imgEl.classList.add("dragging");
+      try { imgEl.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    imgEl.addEventListener("pointermove", function(e){
+      if (!dragging) return;
+      panX = ox + (e.clientX - sx); panY = oy + (e.clientY - sy); applyTransform();
+    });
+    function endDrag(){ dragging = false; imgEl.classList.remove("dragging"); }
+    imgEl.addEventListener("pointerup", endDrag);
+    imgEl.addEventListener("pointercancel", endDrag);
+
+    document.addEventListener("keydown", function(e){
+      if (modal.hidden) return;
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowLeft") step(-1);
+      else if (e.key === "ArrowRight") step(1);
+    });
+    modal.addEventListener("keydown", function(e){
+      if (e.key !== "Tab") return;
+      var f = [btnClose, btnPrev, btnNext].filter(function(b){ return !b.hidden; });
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    });
+  })();
 
   /* =========================================================
      SIGNATURE HERO MOTIF
