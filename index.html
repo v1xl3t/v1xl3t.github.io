@@ -1,208 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CADence — Stage 1</title>
-  <!-- Inline favicon so the browser stops 404-ing on /favicon.ico -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='2' y='2' width='12' height='12' rx='2' fill='%234c8dff'/%3E%3C/svg%3E" />
-
-  <!-- No build step: Three.js + addons resolved straight from a CDN via an import map.
-       Keeps this OneDrive folder light (no node_modules) and instantly runnable. -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-      "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js"
-    }
-  }
-  </script>
-
-  <link rel="stylesheet" href="./src/style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="refresh" content="0; url=./portfolio/" />
+<title>Vi Ellis</title>
+<link rel="canonical" href="./portfolio/" />
+<meta name="robots" content="noindex" />
+<style>
+  html,body{height:100%;margin:0}
+  body{display:grid;place-items:center;background:#0a0f16;color:#8aa0b6;
+    font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:#4fc3f7}
+</style>
+<script>
+  // Preserve any query/hash and forward to the portfolio hub.
+  location.replace("./portfolio/" + location.search + location.hash);
+</script>
 </head>
 <body>
-  <div id="app">
-    <canvas id="viewport"></canvas>
-
-    <!-- Floating, editable dimension chips that ride on the selected part -->
-    <div id="dimchips"></div>
-
-    <!-- Left: creation + transform tools (the TinkerCAD-easy half) -->
-    <aside id="toolbar" class="panel">
-      <div class="brand">CADence <span class="tag">Stage 1</span></div>
-
-      <div class="group">
-        <div class="group-label">Add primitive</div>
-        <button data-add="box">Box</button>
-        <button data-add="cylinder">Cylinder</button>
-        <button data-add="sphere">Sphere</button>
-        <button data-add="cone">Cone</button>
-        <button data-add="torus">Torus</button>
-        <button data-add="tube">Tube</button>
-        <button data-add="wedge">Wedge</button>
-        <button data-add="prism">Prism</button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Construct <span class="hint">(blended forms)</span></div>
-        <button data-add="loft" title="Loft: a solid blended between a bottom and top profile, with taper, twist, and corner radius">Loft</button>
-        <button data-action="sketch" id="sketch-btn" class="tool" title="Sketch: click points on the ground plane to draw a closed 2D profile, then Enter to extrude/revolve it into a parametric solid">Sketch <span class="hint">(S)</span></button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Transform <span class="hint">(or press W/E/R)</span></div>
-        <button data-mode="translate" class="mode active">Move</button>
-        <button data-mode="rotate" class="mode">Rotate</button>
-        <button data-mode="scale" class="mode">Scale</button>
-        <label class="check"><input type="checkbox" id="snap-toggle" checked /> Snapping</label>
-        <div class="snaprow">
-          <label>move mm <input type="number" id="snap-move" value="1" min="0.01" step="0.1" /></label>
-          <label>rot ° <input type="number" id="snap-rot" value="15" min="1" step="1" /></label>
-        </div>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Combine <span class="hint">(Shift-click to multi-select)</span></div>
-        <button data-action="group">Group → Boolean</button>
-        <button data-action="intersect">Intersect</button>
-        <button data-action="ungroup">Ungroup</button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Arrange <span class="hint">(multi-select first)</span></div>
-        <div class="arrange-row">
-          <span class="arrange-lbl" title="Align the centers of the selected objects on an axis">Align ctr</span>
-          <button data-align="x" class="mini" title="Align centers on X">X</button>
-          <button data-align="y" class="mini" title="Align centers on Y (height)">Y</button>
-          <button data-align="z" class="mini" title="Align centers on Z">Z</button>
-        </div>
-        <div class="arrange-row">
-          <span class="arrange-lbl" title="Space 3+ objects evenly between the outermost two on an axis">Distribute</span>
-          <button data-distribute="x" class="mini" title="Distribute evenly on X">X</button>
-          <button data-distribute="y" class="mini" title="Distribute evenly on Y">Y</button>
-          <button data-distribute="z" class="mini" title="Distribute evenly on Z">Z</button>
-        </div>
-        <button data-action="drop-floor" title="Drop each selected object so its bottom sits on the Y=0 ground plane — handy before exporting to print">Drop to floor</button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">View</div>
-        <button data-action="frame" title="Re-center & fit the selection (whole scene if nothing is selected)">Frame <span class="hint">(F)</span></button>
-        <button data-action="lasso" id="lasso-btn" class="tool" title="Lasso tool: drag a freehand loop to select everything inside it">Lasso select <span class="hint">(L)</span></button>
-        <button data-action="measure" id="measure-btn" class="tool" title="Measure tool: click two points on objects to read the distance between them">Measure <span class="hint">(M)</span></button>
-        <button data-action="timeline" id="timeline-btn" class="tool" title="Recipe Timeline: scrub your modeling history; click any step to time-travel, and acting from the past forks a new branch (5D-chess style)">Timeline <span class="hint">(T)</span></button>
-        <button data-action="shortcuts" title="Show the keyboard shortcut cheat-sheet">Shortcuts <span class="hint">(?)</span></button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Edit</div>
-        <button data-action="duplicate">Duplicate</button>
-        <button data-action="delete" class="danger">Delete</button>
-        <button data-action="undo">Undo</button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Export</div>
-        <button data-action="export-stl">Download STL</button>
-        <button data-action="export-3mf">Download 3MF</button>
-        <button data-action="export-png" title="Save the current view as a PNG image">Screenshot (PNG)</button>
-        <button data-action="export-shots" title="Render the scene from 6 preset angles and download them as a zip">Orbit shots (zip)</button>
-      </div>
-
-      <div class="group">
-        <div class="group-label">Project</div>
-        <button data-action="save-project">Save Project</button>
-        <button data-action="load-project">Load Project</button>
-        <input type="file" id="file-input" accept=".json,.cadence.json,application/json" hidden />
-      </div>
-
-      <div class="group">
-        <div class="group-label">Settings</div>
-        <div class="setrow">
-          <label for="set-ui" title="The look of the whole app — palette and button styling. Flip through to pick a favorite.">UI style</label>
-          <select id="set-ui"></select>
-        </div>
-        <div class="setrow">
-          <label for="set-render" title="How solids are drawn in the viewport — shaded, flat clay, wireframe, or see-through.">Render</label>
-          <select id="set-render"></select>
-        </div>
-        <div class="setrow">
-          <label for="set-controls" title="Mouse navigation scheme — match the CAD/3D app you're used to, or build your own below.">Controls</label>
-          <select id="set-controls"></select>
-        </div>
-        <div class="setrow">
-          <label title="Assign each mouse button. Editing any of these switches to a Custom scheme you can save.">Buttons</label>
-          <div class="btnmap">
-            <select id="map-left" title="Left mouse button"></select>
-            <select id="map-middle" title="Middle mouse button"></select>
-            <select id="map-right" title="Right mouse button"></select>
-          </div>
-        </div>
-        <button data-action="save-preset" title="Save the current button mapping as a named preset you can reuse">Save controls preset…</button>
-      </div>
-    </aside>
-
-    <!-- Right: numeric precision (the OnShape-precise half) -->
-    <aside id="inspector" class="panel">
-      <div class="group-label">Inspector</div>
-      <div id="inspector-empty" class="muted">Nothing selected.<br />Click an object in the scene.</div>
-      <div id="inspector-body" hidden></div>
-    </aside>
-
-    <!-- Bottom-right: scene tree -->
-    <aside id="outliner" class="panel">
-      <div class="group-label">Objects</div>
-      <div id="outliner-list"></div>
-    </aside>
-
-    <!-- Recipe Timeline: the multiverse history strip (toggled by Timeline / T) -->
-    <aside id="timeline" class="panel" hidden>
-      <div class="tl-head">
-        <span class="group-label">Timeline</span>
-        <span class="tl-hint">click a step to time-travel · acting from the past forks a branch</span>
-        <button id="tl-close" title="Hide timeline (T)">✕</button>
-      </div>
-      <div class="tl-scroll"><div class="tl-canvas"><svg class="tl-svg"></svg></div></div>
-    </aside>
-
-    <div id="statusbar"></div>
-
-    <!-- Keyboard shortcut cheat-sheet (toggled by the Shortcuts button or "?") -->
-    <div id="shortcuts-overlay" hidden>
-      <div class="shortcuts-card">
-        <div class="shortcuts-head">
-          <span>Keyboard shortcuts</span>
-          <button id="shortcuts-close" title="Close (Esc)">✕</button>
-        </div>
-        <div class="shortcuts-grid">
-          <div class="sc-col">
-            <div class="sc-sec">Transform</div>
-            <div><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> Move / Rotate / Scale</div>
-            <div><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> Nudge by snap step</div>
-            <div><kbd>Shift</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> Nudge up / down</div>
-            <div class="sc-sec">Select &amp; view</div>
-            <div><kbd>L</kbd> Lasso · <kbd>M</kbd> Measure</div>
-            <div><kbd>F</kbd> Frame selection</div>
-            <div><kbd>Ctrl</kbd>+<kbd>A</kbd> Select all</div>
-            <div><kbd>Esc</kbd> Deselect / exit mode</div>
-          </div>
-          <div class="sc-col">
-            <div class="sc-sec">Edit</div>
-            <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo</div>
-            <div><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> Copy / Paste</div>
-            <div><kbd>Ctrl</kbd>+<kbd>D</kbd> Duplicate</div>
-            <div><kbd>Del</kbd> Delete selection</div>
-            <div class="sc-sec">Combine</div>
-            <div><kbd>Ctrl</kbd>+<kbd>G</kbd> Group → boolean</div>
-            <div><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> Ungroup</div>
-            <div><kbd>Ctrl</kbd>+<kbd>I</kbd> Intersect</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="./src/main.js"></script>
+<p>Redirecting to the <a href="./portfolio/">Vi Ellis portfolio</a>&hellip;</p>
 </body>
 </html>

@@ -466,6 +466,44 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 .press-list summary .chev{width:14px; height:14px; flex:none; transition:transform .2s ease}
 .press-list details[open] summary .chev{transform:rotate(90deg)}
 @media (prefers-reduced-motion: reduce){ .press-list summary .chev{transition:none} }
+
+/* ============================= ADDITIONS ============================= */
+/* AI-assisted-build badge (built WITH AI help; distinct from lane chips) */
+.chip.ai-built{
+  border-color:rgba(157,123,255,.35); color:#d6c9ff;
+  background:rgba(157,123,255,.08);
+  display:inline-flex; align-items:center; gap:5px;
+}
+.chip.ai-built::before{ content:"\2726"; font-size:.85em; line-height:1; opacity:.9 }
+
+/* Experience rows reuse .press-list; right-aligned mono date */
+.press-list summary{ flex-wrap:wrap; gap:6px 10px }
+.exp-meta{ margin-left:auto; color:var(--muted-2); font-weight:500;
+  font-family:var(--mono); font-size:.78rem; letter-spacing:.02em }
+@media (max-width:560px){ .exp-meta{ margin-left:0; width:100% } }
+
+/* faint asymmetric accent behind the Experience section */
+#experience{ position:relative; overflow:hidden }
+#experience::before{
+  content:""; position:absolute; right:-70px; top:54px;
+  width:260px; height:260px; pointer-events:none; z-index:0;
+  border:1px solid var(--border-soft); opacity:.22;
+  border-radius:42% 58% 55% 45% / 48% 42% 58% 52%;
+  transform:rotate(12deg);
+}
+#experience .wrap{ position:relative; z-index:1 }
+
+/* smooth <details> expand/collapse (JS-driven height) */
+.details-body{ overflow:hidden }
+
+/* directional / scale reveal variants */
+.reveal-l{opacity:0; transform:translateX(-24px); transition:opacity .6s ease, transform .6s ease}
+.reveal-r{opacity:0; transform:translateX(24px); transition:opacity .6s ease, transform .6s ease}
+.reveal-scale{opacity:0; transform:scale(.96); transition:opacity .6s ease, transform .6s ease}
+.reveal-l.in,.reveal-r.in,.reveal-scale.in{opacity:1; transform:none}
+@media (prefers-reduced-motion: reduce){
+  .reveal-l,.reveal-r,.reveal-scale{opacity:1; transform:none; transition:none}
+}
 </style>
 </head>
 <body>
@@ -482,9 +520,10 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     </button>
     <div class="nav-links" id="navLinks">
       <a href="#work">Work</a>
+      <a href="#experience">Experience</a>
       <a href="#about">About</a>
       <a class="opt" href="#press">Press &amp; Awards</a>
-      <a href="resume.html">Résumé</a>
+      <a href="resume.html">Resume</a>
       <a class="cta" href="#contact">Contact</a>
     </div>
   </nav>
@@ -496,13 +535,13 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
   <canvas id="heroCanvas" aria-hidden="true"></canvas>
   <div class="wrap">
     <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Engineer · Product Developer · Composer</span>
-    <h1 class="hero-title" id="hero-title">I build the whole thing, from <span class="accent">production AI agents</span> to a 100-unit hardware run.</h1>
-    <p class="lede">Applied AI · full-stack web · hardware &amp; CAD · game audio. I designed a <strong>production Claude agent system in 5 days</strong>, took an instrument from breadboard to a <strong>100-unit run</strong>, and scored <strong>30+ shipped games and films</strong> along the way.</p>
+    <h1 class="hero-title" id="hero-title">I build the whole thing, from <span class="accent">production Claude AI agents</span> to a 100-unit hardware run.</h1>
+    <p class="lede">Applied computer scientist shipping production AI on the Claude API. I built an agent system that turns live data into compliant, submission-ready documents with RAG, cutting turnaround from <strong>four days to five hours</strong>, took an instrument from breadboard to a <strong>100-unit run</strong>, and hold <strong>31 shipped game and film credits</strong>.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="#work">View Work
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </a>
-      <a class="btn btn-ghost" href="resume.html">Download résumé
+      <a class="btn btn-ghost" href="resume.html">Download resume
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
       </a>
     </div>
@@ -511,22 +550,22 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <div class="pillar reveal" style="--pc:var(--accent)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg></div>
         <h3>Applied AI &amp; Engineering</h3>
-        <p>Claude agent infrastructure, React platforms, automation pipelines.</p>
+        <p>Production Claude API agents, RAG, LLM-as-judge review, internal React platforms.</p>
       </div>
       <div class="pillar reveal d1" style="--pc:var(--accent-3)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg></div>
         <h3>Hardware &amp; CAD</h3>
-        <p>Circuit → firmware → CAD → manufacturing, end to end.</p>
+        <p>Circuit, USB-HID firmware, CAD, and a 100-unit manufacturing run, end to end.</p>
       </div>
       <div class="pillar reveal d2" style="--pc:var(--accent-2)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 16 3-9 2 4h6"/></svg></div>
         <h3>Audio &amp; Music</h3>
-        <p>Award-winning scores and adaptive game-audio systems.</p>
+        <p>Award-winning scores and adaptive game-audio systems across 31 credits.</p>
       </div>
       <div class="pillar reveal d3" style="--pc:var(--accent-4)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
         <h3>Teaching</h3>
-        <p>University sound-design instructor; curriculum across 10+ courses.</p>
+        <p>University sound-design professor; trained 200+ students and 30+ facilitators.</p>
       </div>
     </div>
   </div>
@@ -535,13 +574,13 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 <!-- ============================= WORK ============================= -->
 <section id="work" aria-labelledby="work-title">
   <div class="wrap">
-    <p class="section-label reveal">Selected Work</p>
+    <p class="section-label reveal-l">Selected Work</p>
     <h2 class="section-title reveal" id="work-title">Things I've shipped</h2>
     <p class="section-sub reveal">Filter by discipline. Each project follows the same shape: the problem, my role, the approach, and what came of it.</p>
 
     <div class="filters reveal" role="group" aria-label="Filter projects by discipline">
-      <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">15</span></button>
-      <button class="filter" data-filter="ai" aria-pressed="false">AI &amp; Engineering <span class="count">6</span></button>
+      <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">18</span></button>
+      <button class="filter" data-filter="ai" aria-pressed="false">AI &amp; Engineering <span class="count">9</span></button>
       <button class="filter" data-filter="audio" aria-pressed="false">Audio &amp; Music <span class="count">5</span></button>
       <button class="filter" data-filter="hardware" aria-pressed="false">Hardware &amp; CAD <span class="count">5</span></button>
       <button class="filter" data-filter="teaching" aria-pressed="false">Teaching <span class="count">1</span></button>
@@ -553,24 +592,24 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">AI &amp; Engineering</span><span class="chip">2025 · Treobytes</span></div>
         <h3>Claude AI Skill Tree</h3>
-        <p class="blurb">A production AI system that lets non-engineers do expert-level knowledge work. Built solo in 5 days.</p>
-        <p class="outcome">Now used daily by non-technical staff to produce expert documents and analyses that used to require a specialist, work that previously took hours done in minutes.</p>
-        <div class="stack"><span>Claude API</span><span>AI agents</span><span>Python</span><span>JSON schema</span></div>
+        <p class="blurb">A production AI agent system on the Claude API that generates compliant, submission-ready proposals and grant documents from live data via RAG. Designed and shipped solo.</p>
+        <p class="outcome">Cut team turnaround from four days to five hours, with an automated LLM-as-judge review flagging policy and brand-guideline violations before anything reaches a client.</p>
+        <div class="stack"><span>Claude API</span><span>RAG</span><span>LLM-as-judge</span><span>Python</span><span>JSON schema</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>A small team needed to produce expert work (proposals, schedules, structured analyses) far faster than people could by hand, and without hiring engineers to operate it.<b>Approach</b>A layered design: small reusable skills combine into broader domain skills, which combine into complete workflows. The layering keeps every piece reliable and recombinable, so the system grows without becoming brittle.</p>
+          <p class="dl"><b>Problem</b>A small team needed compliant, submission-ready documents far faster than people could produce them by hand, and without hiring engineers to operate the system.<b>Approach</b>A three-layer agent architecture: reusable primitives compose into domain skills, which compose into full workflows. RAG pulls live data, and an automated LLM-as-judge review gates every output against policy and brand guidelines before delivery, so the system scales to non-technical users without becoming brittle.</p>
           <p class="media-note">Media to add: neural-map walkthrough · architecture diagram</p>
         </details>
       </article>
 
       <!-- 2 -->
       <article class="card reveal d1" data-lanes="hardware ai">
-        <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2026 · in progress</span></div>
+        <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026 · in progress</span></div>
         <h3>CADence</h3>
-        <p class="blurb">A 3D modeling app in the browser that makes precise, professional-grade CAD as approachable as a toy.</p>
-        <p class="outcome">Solid modeling with exact dimensions and clean file export, plus the thing beginner and pro tools both miss: switching between freeform sculpting and precise, editable design on the fly.</p>
-        <div class="stack"><span>JavaScript</span><span>Three.js</span><span>WebGL</span><span>Geometry kernels</span></div>
-        <div class="links"><a href="https://v1xl3t.github.io/" target="_blank" rel="noopener">Live demo</a></div>
+        <p class="blurb">A browser 3D modeler that makes precise, professional-grade CAD as approachable as a toy.</p>
+        <p class="outcome">Solid modeling with exact dimensions and clean STEP export, plus the move beginner and pro tools both miss, switching between freeform sculpting and precise, editable parametric design on the fly.</p>
+        <div class="stack"><span>JavaScript</span><span>Three.js</span><span>WebGL</span><span>Geometry kernel</span><span>B-rep</span></div>
+        <div class="links"><a href="/cadence/" target="_blank" rel="noopener">Live demo</a></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
           <p class="dl"><b>Problem</b>Beginner 3D tools are easy but imprecise; professional CAD is precise but intimidating, and neither lets you move freely between freeform sculpting and exact, editable design.<b>Approach</b>Every shape is stored as a recipe of exact parameters, and the 3D model is generated from that recipe. Keeping that history is what makes switching between freeform and precise modeling possible.</p>
@@ -594,7 +633,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 
       <!-- 4 -->
       <article class="card reveal" data-lanes="audio ai">
-        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022–23 · Indie game studio</span></div>
+        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022-23 · Indie game studio</span></div>
         <h3>Generative Game-Audio Tool</h3>
         <p class="blurb">A tool that gives a video game a fresh, unique soundtrack on every playthrough. Showcased at GDC San Francisco 2024.</p>
         <p class="outcome">Showcased at the Game Developers Conference, San Francisco 2024, and shipped as the audio engine of an indie studio's game.</p>
@@ -610,9 +649,9 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal d1" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">Engineering</span><span class="chip">Treobytes</span></div>
         <h3>TreoTools</h3>
-        <p class="blurb">An internal web app I built from scratch that replaced a team's scattered spreadsheets and manual processes.</p>
-        <p class="outcome">In daily use across the team, including a feature that generates optimal seating arrangements in seconds.</p>
-        <div class="stack"><span>React</span><span>JavaScript</span><span>Node.js</span></div>
+        <p class="blurb">An internal React platform I built from the ground up, pairing a daily-use facilitator app with a management admin console.</p>
+        <p class="outcome">Adopted org-wide as the central hub for daily operations and oversight, including a seating-chart generator that pairs exhaustive search with a greedy heuristic to solve constraints in seconds.</p>
+        <div class="stack"><span>React</span><span>Node.js</span><span>Express</span><span>PostgreSQL</span></div>
         <div class="links"><a href="https://treotools.github.io" target="_blank" rel="noopener">Live</a></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -625,8 +664,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal d2" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Research</span></div>
         <h3>Robotic 3D-Printing Research</h3>
-        <p class="blurb">Research that turns algorithms into physical sculptures, 3D-printed by a robotic arm.</p>
-        <p class="outcome">Wrote the software that converts generative designs into print paths for robotic fabrication, producing finished sculptural pieces.</p>
+        <p class="blurb">Sole programmer on my university's first large-scale robotic 3D-printing team, turning generative algorithms into sculptures printed by a robotic arm.</p>
+        <p class="outcome">Wrote Python generative pipelines in Rhino and Grasshopper that produced sculptural geometry and fabrication-ready exports for a custom print head. Featured in the LA Times and Dezeen.</p>
         <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>Robotic fabrication</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -697,8 +736,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <article class="card reveal d1" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">Automation</span><span class="chip">Treobytes</span></div>
         <h3>Document-to-Leads Automation</h3>
-        <p class="blurb">An automation pipeline that reads long public documents and turns them into a ranked list of sales leads.</p>
-        <p class="outcome">Processed plans from 20+ organizations, replacing hours of manual reading with an automatically scored, prioritized list.</p>
+        <p class="blurb">An analysis-to-CRM pipeline that extracts structured data from long public documents and ranks it into scored opportunity lists.</p>
+        <p class="outcome">Converted 50+ unstructured datasets from 20+ districts into scored, ranked opportunities, replacing hours of manual reading with a repeatable pipeline.</p>
         <div class="stack"><span>Python</span><span>JSON schema</span><span>Scoring rubric</span><span>CRM</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -743,20 +782,76 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
         <div class="links"><a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></div>
       </article>
 
+      <!-- 16 -->
+      <article class="card reveal" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026</span></div>
+        <h3>Layerloop</h3>
+        <p class="blurb">A browser tool for layered, stated pixel animation. Draw across layers and animation states with onion-skinning, frame operations, and export.</p>
+        <p class="outcome">Shipped as a no-install web app: pixel drawing, layers, frames, states, brush and selection tools, playback, and PNG export.</p>
+        <div class="stack"><span>JavaScript</span><span>Canvas 2D</span><span>Web</span></div>
+        <div class="links"><a href="/anim/" target="_blank" rel="noopener">Live</a></div>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Built a layer and frame model where each cel carries its own state, composited live on a Canvas pipeline with onion-skinning, undo, and shape tools, then exported to PNG sequences.</p>
+        </details>
+      </article>
+
+      <!-- 17 -->
+      <article class="card reveal d1" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">Engineering</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026</span></div>
+        <h3>Résumé Studio</h3>
+        <p class="blurb">A public résumé editor that renders clean, ATS-friendly documents from structured content, with personal data kept out of the deployed build.</p>
+        <p class="outcome">Live editor that exports print-ready output; deployed with placeholder-only data so private details never ship to the public site.</p>
+        <div class="stack"><span>JavaScript</span><span>Web</span><span>PDF export</span></div>
+        <div class="links"><a href="/resume/" target="_blank" rel="noopener">Live</a></div>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Separated content from rendering so the same structured data drives an on-screen editor and a print-ready export, with a public build that loads only placeholder content while real data stays in a local-only template.</p>
+        </details>
+      </article>
+
+      <!-- 18 -->
+      <article class="card reveal d2" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">AI &amp; Engineering</span><span class="chip">Woodbury University</span></div>
+        <h3>GAN Image Generator</h3>
+        <p class="blurb">A generative adversarial network I trained from scratch to synthesize images, owning the full pipeline rather than calling a model as a black box.</p>
+        <p class="outcome">Trained on 2,500+ images in 48 hours, handling data prep, GPU training, checkpointing, and evaluation end to end.</p>
+        <div class="stack"><span>Python</span><span>GANs</span><span>GPU training</span><span>Evaluation</span></div>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Assembled and cleaned the dataset, built and trained the adversarial network on GPU with checkpointing, and evaluated outputs across runs, so I reason about inference cost and model behavior firsthand.</p>
+        </details>
+      </article>
+
     </div>
     <p class="no-results" id="noResults" role="status">No projects in this discipline.</p>
+  </div>
+</section>
+
+<!-- ============================= EXPERIENCE ============================= -->
+<section id="experience" aria-labelledby="exp-title">
+  <div class="wrap">
+    <p class="section-label reveal-l">Experience</p>
+    <h2 class="section-title reveal" id="exp-title">Where I've worked</h2>
+    <p class="section-sub reveal">Roles across applied AI, full-stack engineering, hardware, and teaching.</p>
+    <ul class="press-list" style="margin-top:clamp(22px,3vw,30px)">
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Treobytes, Product Development Specialist <span class="exp-meta">San Diego · Aug 2025 to Present</span></summary><p class="dl">Designed and shipped a production Claude AI agent system with RAG and an automated LLM-as-judge review that cut document turnaround from four days to five hours. Built and maintain TreoTools, the internal React platform adopted org-wide, and shipped a 100+ unit Arduino MIDI hardware product end to end.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Woodbury University, Adjunct Professor, Game Art &amp; Design <span class="exp-meta">Burbank · Aug 2024 to Present</span></summary><p class="dl">Designed and teach GAME 203: Sound Design Fundamentals, taking undergraduates from DAW fundamentals to adaptive game audio in Unity and Unreal Engine 5 with Wwise and FMOD middleware.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Treobytes, Summer STEM Facilitator &amp; Program Manager <span class="exp-meta">San Diego · Jun 2020 to Aug 2025</span></summary><p class="dl">Built technical curricula from the ground up; taught programming (Python and C++), robotics, and circuitry to 200+ students; led summer STEM operations across five sites and trained and onboarded 30+ facilitators.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Freelance, Full-Stack &amp; Client Engineering <span class="exp-meta">Los Angeles / remote · 2022 to Present</span></summary><p class="dl">Front-end and technical audio work for clients including AltaMed, where I contributed to a shipped English/Spanish healthcare translator tool, and indie game studios, including UE5 adaptive-audio tooling later showcased at GDC San Francisco 2024.</p></details></li>
+    </ul>
   </div>
 </section>
 
 <!-- ============================= ABOUT ============================= -->
 <section id="about" aria-labelledby="about-title">
   <div class="wrap">
-    <p class="section-label reveal">About</p>
+    <p class="section-label reveal-l">About</p>
     <h2 class="section-title reveal" id="about-title">About Vi</h2>
     <div class="about-body">
       <p class="reveal">I'm a full-stack engineer, hardware product developer, and composer based in Little Italy, San Diego. What ties my work together is simple: I build the whole thing. Code, circuit, CAD, sound, and the curriculum to teach it.</p>
-      <p class="reveal">At Treobytes, I designed and shipped a production three-layer Claude AI agent system, solo, in five days, that non-engineers now use to do real expert work. I also built the team's internal React platform from the ground up, wrote automation pipelines that turn unstructured public documents into scored prospects, and took an Arduino MIDI instrument from breadboard to a 100+ unit manufacturing run.</p>
-      <p class="reveal">That range isn't an accident. I've showcased a generative game-audio tool at GDC San Francisco, scored 17 games and 14 films and TV projects, earning Silver for Best Composer at the 2022 Tokyo Film Awards, and seen my computational-design research featured in Dezeen. I hold a B.S. in Applied Computer Science, Media Arts from the University of Redlands (Magna Cum Laude, Best Thesis Award), and I teach Sound Design Fundamentals at Woodbury University.</p>
+      <p class="reveal">At Treobytes I designed and shipped a production Claude AI agent system, solo, that turns live data into compliant, submission-ready documents with RAG and an automated LLM-as-judge review, cutting turnaround from four days to five hours. I built the team's internal React platform from the ground up, wrote analysis pipelines that turn unstructured documents into scored prospects, and took an Arduino MIDI instrument from breadboard to a 100+ unit manufacturing run.</p>
+      <p class="reveal">That range isn't an accident. I've showcased a generative game-audio tool at GDC San Francisco, scored 17 games and 14 film and TV projects, earning Silver for Best Composer at the 2022 Tokyo Film Awards, and seen my computational-design research featured in Dezeen. I hold a B.S. in Applied Computer Science (Media Arts) from Woodbury University, Magna Cum Laude with a 3.8 GPA and the Best Thesis Award, and I teach GAME 203: Sound Design Fundamentals as an adjunct professor.</p>
       <p class="reveal">I'm happiest at the seam between disciplines, where applied AI meets real products, where software meets hardware, where precision meets craft. I'm currently building CADence, a browser 3D modeler.</p>
       <div class="recog reveal">
         <span>Best Composer (Silver), Tokyo Film Awards 2022</span>
@@ -772,14 +867,14 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 <!-- ============================= PRESS ============================= -->
 <section id="press" aria-labelledby="press-title">
   <div class="wrap">
-    <p class="section-label reveal">Press &amp; Awards</p>
+    <p class="section-label reveal-l">Press &amp; Awards</p>
     <h2 class="section-title reveal" id="press-title">Recognition</h2>
     <ul class="press-list">
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Silver, Best Composer, Tokyo Film Awards 2022</summary><p class="dl">Awarded for the original score of the short film <i>HAIKU</i>. The film also took a Best Original Music nomination at the 2022 New Creators Film Awards and was featured in IndieWrap's 2023 published short-film collection. <a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Showcased at GDC San Francisco 2024</summary><p class="dl">A generative game-audio tool, built in Unreal Engine 5 for an indie game studio, was showcased at the Game Developers Conference in San Francisco. It assembles a unique soundtrack per game session from interchangeable musical layers.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Featured in Dezeen, 2023</summary><p class="dl">Computational-design work was featured in Dezeen's School Shows. The generative piece computes natural numbers and runs an L-system through multiple iterations to grow fractal forms in the browser. <a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a> · <a href="https://editor.p5js.org/levi.e.82568/full/OpG8HU3Jt" target="_blank" rel="noopener">Live demo</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Exhibited at Julia Stoschek Collection, Berlin, 2022</summary><p class="dl">A 3D-modeled and Unity projection-mapping prototype, built for contemporary artist Wang Shui, became part of an installation exhibited at the Julia Stoschek Collection in Berlin.</p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Magna Cum Laude, University of Redlands</summary><p class="dl">B.S. in Applied Computer Science (Media Arts), 2023, with a 3.8 GPA. Recognized with the Best Thesis Award for the graduating class, Academic Excellence Awards in 2022 and 2023, and Dean's List every semester.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Magna Cum Laude, Woodbury University</summary><p class="dl">B.S. in Applied Computer Science (Media Arts), 2023, with a 3.8 GPA. Recognized with the Best Thesis Award for the graduating class, Academic Excellence Awards in 2022 and 2023, and Dean's List every semester.</p></details></li>
     </ul>
   </div>
 </section>
@@ -787,7 +882,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 <!-- ============================= CONTACT ============================= -->
 <section id="contact" aria-labelledby="contact-title">
   <div class="wrap">
-    <p class="section-label reveal">Contact</p>
+    <p class="section-label reveal-l">Contact</p>
     <h2 class="section-title reveal" id="contact-title">Let's build something</h2>
     <p class="section-sub reveal">Open to engineering and product roles across California or remote. If you're working at the intersection of software, hardware, and human craft, I'd love to talk.</p>
     <div class="contact-links reveal">
@@ -802,7 +897,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <a href="https://www.youtube.com/@vi-ellis">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/></svg>YouTube</a>
       <a href="resume.html">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Résumé</a>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Resume</a>
     </div>
   </div>
 </section>
@@ -875,8 +970,15 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     });
   });
 
-  /* ---------- scroll reveal ---------- */
-  var revealEls = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+  /* ---------- scroll reveal (incl. directional / scale variants) ---------- */
+  // Cascade: stagger items within the work grid and the press / experience lists
+  // so each group flows in rather than snapping in all at once.
+  ["#workGrid .card", ".press-list li"].forEach(function(sel){
+    Array.prototype.slice.call(document.querySelectorAll(sel)).forEach(function(el, i){
+      el.style.transitionDelay = ((i % 6) * 0.05).toFixed(2) + "s";
+    });
+  });
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll(".reveal, .reveal-l, .reveal-r, .reveal-scale"));
   if (reduceMotion || !("IntersectionObserver" in window)){
     revealEls.forEach(function(el){ el.classList.add("in"); });
   } else {
@@ -887,6 +989,49 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     }, {rootMargin:"0px 0px -8% 0px", threshold:0.08});
     revealEls.forEach(function(el){ io.observe(el); });
   }
+
+  /* ---------- smooth <details> expand/collapse ----------
+     Wrap each details body so we can animate its height. Horizontal grid
+     neighbors stay put (the grid sizes each cell independently); rows below
+     glide down as the body grows. Native instant toggle under reduced motion. */
+  Array.prototype.slice.call(document.querySelectorAll("details")).forEach(function(d){
+    var summary = d.querySelector("summary");
+    if (!summary) return;
+    var body = document.createElement("div");
+    body.className = "details-body";
+    var node = summary.nextSibling;
+    while (node){ var next = node.nextSibling; body.appendChild(node); node = next; }
+    d.appendChild(body);
+
+    if (reduceMotion) return; // keep native instant behavior
+
+    summary.addEventListener("click", function(e){
+      e.preventDefault();
+      if (d.classList.contains("animating")) return;
+      var opening = !d.open;
+      if (opening) d.open = true;            // reveal before measuring
+      var target = body.scrollHeight;
+      d.classList.add("animating");
+      body.style.transition = "height .3s ease";
+      body.style.height = (opening ? 0 : target) + "px";
+
+      function finish(){
+        d.classList.remove("animating");
+        body.style.height = ""; body.style.transition = "";
+        body.removeEventListener("transitionend", onEnd);
+        if (!opening) d.open = false;        // hide after collapse
+      }
+      var ended = false;
+      function onEnd(){ if (ended) return; ended = true; finish(); }
+      body.addEventListener("transitionend", onEnd);
+      // fallback in case transitionend doesn't fire (e.g. zero-delta)
+      setTimeout(onEnd, 360);
+
+      requestAnimationFrame(function(){
+        body.style.height = (opening ? target : 0) + "px";
+      });
+    });
+  });
 
   /* ---------- card hover glow tracking ---------- */
   if (!reduceMotion){
