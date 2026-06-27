@@ -146,6 +146,21 @@ nav{
 }
 .menu-btn svg{display:block}
 
+.nav-right{display:flex; align-items:center; gap:10px}
+.theme-toggle{
+  width:40px; height:40px; flex:none; border-radius:11px; cursor:pointer;
+  display:grid; place-items:center; color:var(--accent);
+  background:var(--panel); border:1px solid var(--border);
+  transition:transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease;
+}
+.theme-toggle:hover{transform:translateY(-2px); border-color:var(--accent)}
+.theme-toggle svg{display:block}
+.theme-toggle .sun{display:none}
+.theme-toggle .moon{display:block}
+html[data-theme="light"] .theme-toggle .moon{display:none}
+html[data-theme="light"] .theme-toggle .sun{display:block}
+@media (prefers-reduced-motion: reduce){ .theme-toggle:hover{transform:none} }
+
 @media (max-width:760px){
   .menu-btn{display:inline-flex}
   .nav-links{
@@ -583,7 +598,64 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 @media (prefers-reduced-motion: reduce){
   .reveal-l,.reveal-r,.reveal-scale{opacity:1; transform:none; transition:none}
 }
+
+/* ============================= LIGHT (LAVENDER) THEME =============================
+   Opt-in via the header toggle (LIGHT = the directory's lavender palette). The
+   dark cyan design stays the default. Remaps the variables, then patches the
+   surfaces that hardcode dark-only colors. */
+html[data-theme="light"]{
+  --bg:#f7f4fe; --bg-2:#efe9fb;
+  --panel:#ffffff; --panel-2:#f5f0ff;
+  --border:#d9cef3; --border-soft:#e9e1fb;
+  --text:#332d4f; --muted:#6b6390; --muted-2:#8a82ab;
+  --accent:#7c5fe0; --accent-2:#a78bfa; --accent-3:#3bb98f; --accent-4:#d98a2b;
+  --accent-dim:#e7defb; --accent-glow:rgba(124,95,224,.28);
+  --shadow:0 10px 30px -16px rgba(86,70,150,.35);
+  --shadow-lift:0 22px 48px -20px rgba(86,70,150,.45);
+}
+html[data-theme="light"] body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(167,139,250,.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(199,189,244,.22), transparent 55%),
+    var(--bg);
+}
+html[data-theme="light"] header{ background:rgba(247,244,254,.72) }
+html[data-theme="light"] header.scrolled{ background:rgba(247,244,254,.9) }
+html[data-theme="light"] .brand .mark{ background:linear-gradient(140deg,var(--accent-2),var(--accent)); color:#fff; box-shadow:inset 0 0 12px rgba(124,95,224,.2) }
+html[data-theme="light"] .nav-links a:hover{ background:rgba(60,53,86,.06) }
+html[data-theme="light"] .btn-primary,
+html[data-theme="light"] .nav-links a.cta,
+html[data-theme="light"] .filter[aria-pressed="true"],
+html[data-theme="light"] .contact-links a.primary,
+html[data-theme="light"] .links a,
+html[data-theme="light"] .skip{ color:#fff }
+html[data-theme="light"] .btn-primary:hover{ background:#8f78e8 }
+html[data-theme="light"] .nav-links a.cta:hover{ background:#8f78e8; color:#fff }
+html[data-theme="light"] .eyebrow{ background:rgba(124,95,224,.10) }
+html[data-theme="light"] .eyebrow .dot{ box-shadow:0 0 0 4px rgba(124,95,224,.18) }
+html[data-theme="light"] h1.hero-title .accent{ background:linear-gradient(100deg,#7c5fe0,#9d7bff 55%,#a78bfa); -webkit-background-clip:text; background-clip:text }
+html[data-theme="light"] .lede{ color:#5a5377 }
+html[data-theme="light"] .blurb{ color:#4a4368 }
+html[data-theme="light"] .dl{ color:#4a4368 }
+html[data-theme="light"] .pillar .pi{ background:rgba(124,95,224,.07) }
+html[data-theme="light"] .chip{ background:rgba(60,53,86,.05) }
+html[data-theme="light"] .stack span{ background:rgba(60,53,86,.04); color:var(--muted) }
+html[data-theme="light"] .recog span{ background:rgba(60,53,86,.04); color:#4a4368 }
+html[data-theme="light"] .card::after{ background:radial-gradient(440px 200px at var(--mx,50%) -10%, rgba(124,95,224,.10), transparent 70%) }
+html[data-theme="light"] .outcome{ background:rgba(59,185,143,.08); border-color:rgba(59,185,143,.28); color:#2f4a40 }
+html[data-theme="light"] .chip.lane[data-l="ai"]{ color:#5a3fc0; background:rgba(124,95,224,.10); border-color:rgba(124,95,224,.35) }
+html[data-theme="light"] .chip.lane[data-l="audio"]{ color:#6d4fd0; background:rgba(157,123,255,.12); border-color:rgba(157,123,255,.4) }
+html[data-theme="light"] .chip.lane[data-l="hardware"]{ color:#1f7d5f; background:rgba(59,185,143,.12); border-color:rgba(59,185,143,.4) }
+html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; background:rgba(217,138,43,.12); border-color:rgba(217,138,43,.4) }
+@media (max-width:760px){
+  html[data-theme="light"] .nav-links{ background:rgba(247,244,254,.97) }
+  html[data-theme="light"] .nav-links a.active{ background:rgba(124,95,224,.12) }
+}
 </style>
+<script>
+  // Apply the saved light choice before paint (no flash). Dark stays the default.
+  (function(){ try{ if (localStorage.getItem("vi-theme") === "light") document.documentElement.setAttribute("data-theme","light"); }catch(e){} })();
+</script>
 </head>
 <body>
 <a class="skip" href="#work">Skip to work</a>
@@ -594,16 +666,22 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
       <span class="mark" aria-hidden="true">V</span>
       <span>Vi Ellis</span>
     </a>
-    <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle menu">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-    </button>
-    <div class="nav-links" id="navLinks">
-      <a href="#work">Work</a>
-      <a href="#experience">Experience</a>
-      <a href="#about">About</a>
-      <a class="opt" href="#press">Press &amp; Awards</a>
-      <a href="ViEllis_Resume.pdf" target="_blank" rel="noopener">Resume</a>
-      <a class="cta" href="#contact">Contact</a>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light mode" title="Toggle theme">
+        <svg class="sun" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="nav-links" id="navLinks">
+        <a href="#work">Work</a>
+        <a href="#experience">Experience</a>
+        <a href="#about">About</a>
+        <a class="opt" href="#press">Press &amp; Awards</a>
+        <a href="ViEllis_Resume.pdf" target="_blank" rel="noopener">Resume</a>
+        <a class="cta" href="#contact">Contact</a>
+      </div>
     </div>
   </nav>
 </header>
@@ -1240,6 +1318,25 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
     }, {rootMargin:"-45% 0px -50% 0px", threshold:0});
     watched.forEach(function(s){ navIO.observe(s); });
   }
+
+  /* ---------- theme toggle (light = lavender, persisted) ---------- */
+  (function(){
+    var root = document.documentElement, btn = document.getElementById("themeToggle");
+    if (!btn) return;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    function sync(){
+      var light = root.getAttribute("data-theme") === "light";
+      if (meta) meta.setAttribute("content", light ? "#f7f4fe" : "#0a0f16");
+      btn.setAttribute("aria-pressed", String(light));
+    }
+    sync();
+    btn.addEventListener("click", function(){
+      var light = root.getAttribute("data-theme") === "light";
+      if (light) root.removeAttribute("data-theme"); else root.setAttribute("data-theme","light");
+      try{ localStorage.setItem("vi-theme", light ? "dark" : "light"); }catch(e){}
+      sync();
+    });
+  })();
 
   /* ---------- media modal (thumbnail gallery + zoom/pan) ---------- */
   (function(){
