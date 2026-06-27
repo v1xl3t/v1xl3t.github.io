@@ -331,7 +331,8 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'a') { e.preventDefault(); doc.selectAll(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'c') { const c = doc.copySelection(); if (c.length) { clipboard = c; flash(`Copied ${c.length}.`); } e.preventDefault(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'v') { if (clipboard.length) { doc.paste(clipboard); flash('Pasted.'); } e.preventDefault(); }
-  else if ((e.ctrlKey || e.metaKey) && k === 'z') { doc.undo(); e.preventDefault(); }
+  else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? doc.redo() : doc.undo(); }
+  else if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); doc.redo(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'd') { if (doc.selectedId) doc.duplicate(doc.selectedId); e.preventDefault(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'g') { e.preventDefault(); e.shiftKey ? ungroupSelected() : groupSelected(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
@@ -867,7 +868,7 @@ function fillSelect(id, items, current) {
 function applyUiStyle(id) {
   document.documentElement.dataset.ui = id;
   // Tie the viewport background to the palette so panel + scene feel cohesive.
-  const bg = { paper: 0xdfe3e8, blueprint: 0x0a1622, neon: 0x0d0a18, graphite: 0x0b0d10 }[id] ?? 0x0e1116;
+  const bg = { paper: 0xdfe3e8, plush: 0xece4fb, blueprint: 0x0a1622, neon: 0x0d0a18, graphite: 0x0b0d10 }[id] ?? 0x0e1116;
   scene.background = new THREE.Color(bg);
 }
 

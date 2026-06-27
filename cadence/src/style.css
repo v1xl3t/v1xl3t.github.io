@@ -253,6 +253,26 @@ html[data-ui="neon"] .setrow select { border-radius: 12px; }
 html[data-ui="neon"] button.mode.active,
 html[data-ui="neon"] button.tool.active { box-shadow: 0 0 10px -2px var(--accent); }
 
+/* "plush" — soft lavender light skin, matches the site directory palette. */
+html[data-ui="plush"] {
+  --bg: #efe9fb; --panel: #ffffffe6; --panel-solid: #ffffff;
+  --border: #d9cef3; --text: #332d4f; --muted: #6b6390;
+  --accent: #7c5fe0; --accent-dim: #e0d6f7;
+}
+html[data-ui="plush"] button { background: #f4eeff; }
+html[data-ui="plush"] button:hover { background: #ebe2fb; }
+html[data-ui="plush"] input[type="number"],
+html[data-ui="plush"] input[type="text"],
+html[data-ui="plush"] .setrow select,
+html[data-ui="plush"] .snaprow input { background: #fbf9ff; }
+html[data-ui="plush"] button.mode.active,
+html[data-ui="plush"] button.tool.active { color: #5a3fc0; box-shadow: 0 0 10px -3px var(--accent); }
+html[data-ui="plush"] button,
+html[data-ui="plush"] .panel,
+html[data-ui="plush"] .setrow select { border-radius: 14px; }
+html[data-ui="plush"] .group-label { color: #7c5fe0; }
+html[data-ui="plush"] kbd { background: #ece5fb; }
+
 /* ---------------------------------------------------------------- shortcuts overlay */
 #shortcuts-overlay {
   position: absolute; inset: 0; z-index: 100;

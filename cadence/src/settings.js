@@ -10,6 +10,7 @@ export const UI_STYLES = [
   { id: 'blueprint', label: 'Blueprint', note: 'technical blue' },
   { id: 'paper',     label: 'Paper',     note: 'light mode' },
   { id: 'neon',      label: 'Neon',      note: 'playful, rounded' },
+  { id: 'plush',     label: 'Plush',     note: 'soft lavender' },
 ];
 
 export const RENDER_MODES = [
