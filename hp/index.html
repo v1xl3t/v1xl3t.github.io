@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HACKING PARADISE</title>
+<meta name="description" content="HACKING PARADISE is a media-arts production studio and publishing collective for multi-faceted creatives." />
+<meta name="theme-color" content="#0b0913" />
+<style>
+/* ============================================================
+   HACKING PARADISE v1. A single descent and ascent: the page
+   starts at the edge, darkens into the abyss, turns at the
+   chasm floor, then brightens to paradise. Visuals carry the
+   poem; copy stays clear. Placeholder art for now; swap real
+   assets from hp_assets later. Dependency free (no CDNs).
+   ============================================================ */
+:root{
+  --ink:#ece7fb; --muted:#b3a8d6; --accent:#b9a6f5; --accent-2:#8b7bd8;
+  --line:rgba(185,166,245,.18);
+  --bg:#0b0913;                 /* JS overwrites this from scroll depth */
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+  line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  transition:color .6s ease;
+}
+body.light{ --ink:#2a2440; --muted:#5a5377; --line:rgba(124,95,224,.22); }
+a{color:inherit}
+.wrap{max-width:1080px; margin:0 auto; padding:0 clamp(20px,5vw,48px)}
+
+/* parallax void layers (placeholder gradients; swap for art) */
+.void{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.void span{position:absolute; left:50%; width:140vmax; height:140vmax; border-radius:50%;
+  transform:translate(-50%,0); filter:blur(40px); opacity:.5}
+.void .l1{top:-30vmax; background:radial-gradient(circle,rgba(139,123,216,.20),transparent 60%)}
+.void .l2{top:60vmax; background:radial-gradient(circle,rgba(80,60,140,.22),transparent 60%)}
+.void .l3{top:150vmax; background:radial-gradient(circle,rgba(199,189,244,.20),transparent 60%)}
+.grain{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+
+/* custom cursor */
+.cursor{position:fixed; top:0; left:0; width:26px; height:26px; border-radius:50%;
+  border:1px solid var(--accent); transform:translate(-50%,-50%); pointer-events:none;
+  z-index:50; transition:width .2s ease,height .2s ease,background .2s ease; mix-blend-mode:screen}
+.cursor.hot{width:46px; height:46px; background:rgba(185,166,245,.12)}
+@media (hover:none){ .cursor{display:none} }
+
+/* sections */
+section{position:relative; min-height:100vh; display:flex; align-items:center;
+  padding:14vh 0; z-index:1}
+.eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 18px}
+h1{font-size:clamp(2.6rem,7vw,6rem); line-height:.98; letter-spacing:-.03em; margin:0; font-weight:800}
+h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
+.lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
+.scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
+.scrollcue::after{content:""; display:block; width:1px; height:34px; margin:10px auto 0;
+  background:linear-gradient(var(--accent),transparent); animation:drop 1.8s ease-in-out infinite}
+@keyframes drop{0%,100%{opacity:.3; transform:scaleY(.6)} 50%{opacity:1; transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){ .scrollcue::after{animation:none} }
+
+/* reveal on scroll */
+.r{opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s ease}
+.r.in{opacity:1; transform:none}
+@media (prefers-reduced-motion: reduce){ .r{opacity:1; transform:none; transition:none} }
+
+/* goals + benefits lists */
+.grid{display:grid; gap:18px; grid-template-columns:repeat(3,1fr); margin-top:34px}
+@media (max-width:820px){ .grid{grid-template-columns:1fr} }
+.cell{border:1px solid var(--line); border-radius:16px; padding:22px;
+  background:rgba(255,255,255,.02)}
+body.light .cell{background:rgba(124,95,224,.04)}
+.cell .n{font-family:var(--mono); font-size:.8rem; color:var(--accent); margin:0 0 8px}
+.cell p{margin:0; color:var(--muted); font-size:.98rem}
+.bul{list-style:none; padding:0; margin:28px 0 0; display:grid; gap:12px; max-width:70ch}
+.bul li{padding-left:24px; position:relative; color:var(--muted)}
+.bul li::before{content:""; position:absolute; left:0; top:.6em; width:8px; height:8px;
+  border-radius:50%; background:var(--accent)}
+
+/* chasm floor: the turn */
+#chasm{text-align:center; justify-content:center}
+#chasm h2{max-width:18ch; margin-inline:auto}
+.rule{width:1px; height:90px; margin:0 auto 30px; background:linear-gradient(transparent,var(--accent))}
+
+/* member showcase */
+.members{display:grid; gap:16px; grid-template-columns:repeat(3,1fr); margin-top:34px}
+@media (max-width:820px){ .members{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:520px){ .members{grid-template-columns:1fr} }
+.member{position:relative; border:1px solid var(--line); border-radius:16px; overflow:hidden;
+  aspect-ratio:4/5; background:linear-gradient(160deg,#221b3a,#120e22);
+  display:flex; flex-direction:column; justify-content:flex-end; padding:16px;
+  text-decoration:none; transition:transform .3s ease, border-color .3s ease}
+.member:hover{transform:translateY(-4px); border-color:var(--accent)}
+.member .ph{position:absolute; inset:0; z-index:0;
+  background:radial-gradient(120% 80% at 50% 0%, rgba(185,166,245,.18), transparent 60%)}
+.member .nm{position:relative; z-index:1; font-weight:700; font-size:1.05rem}
+.member .disc{position:relative; z-index:1; font-family:var(--mono); font-size:.72rem;
+  color:var(--accent); letter-spacing:.06em; margin-top:4px}
+.note{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-top:18px; opacity:.8}
+
+/* recruiting (crystal clear, lighter panel) */
+#apply .panel{border:1px solid var(--line); border-radius:20px; padding:clamp(24px,4vw,44px);
+  background:rgba(255,255,255,.03)}
+body.light #apply .panel{background:rgba(255,255,255,.5)}
+.btn{display:inline-flex; align-items:center; gap:9px; margin-top:24px;
+  padding:15px 26px; border-radius:999px; font-weight:700; cursor:pointer; text-decoration:none;
+  background:var(--accent); color:#15102a; border:1px solid var(--accent);
+  transition:transform .15s ease, background .2s ease}
+.btn:hover{transform:translateY(-2px); background:#cdbcf9}
+.btn.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+
+footer{padding:60px 0 80px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:.8rem}
+footer a{color:var(--accent); text-decoration:none}
+
+/* loader */
+.loader{position:fixed; inset:0; z-index:100; background:#07060d; display:grid; place-items:center;
+  transition:opacity .6s ease}
+.loader.gone{opacity:0; pointer-events:none}
+.loader .mk{font-family:var(--mono); letter-spacing:.3em; color:var(--accent); font-size:.9rem;
+  text-transform:uppercase; animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4} 50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="loader" id="loader"><div class="mk">descending</div></div>
+<div class="void" aria-hidden="true"><span class="l1"></span><span class="l2"></span><span class="l3"></span></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+
+<!-- 1. The Edge -->
+<section id="edge">
+  <div class="wrap">
+    <p class="eyebrow r">A media-arts collective</p>
+    <h1 class="r">HACKING<br>PARADISE</h1>
+    <p class="lede r" style="margin-top:24px">A studio and publishing collective for makers who find the unexpected route. We build, we ship, and we climb together.</p>
+  </div>
+  <div class="scrollcue">scroll to descend</div>
+</section>
+
+<!-- 2. The Descent: what this is -->
+<section id="descent">
+  <div class="wrap">
+    <p class="eyebrow r">What this is</p>
+    <h2 class="r">A collective, not a company you disappear into.</h2>
+    <p class="lede r">HACKING PARADISE is a trial media-arts production and outsourcing studio and publishing collective. A group of multi-faceted creatives who send each other work, take on bigger clients together, and build a shared body of work and reputation, without giving up individual ownership or the freedom to work outside the studio.</p>
+  </div>
+</section>
+
+<!-- 3. The Six Goals -->
+<section id="goals">
+  <div class="wrap">
+    <p class="eyebrow r">What it is for</p>
+    <h2 class="r">Six things we are building toward.</h2>
+    <div class="grid">
+      <div class="cell r"><p class="n">01</p><p>More freelance work for members.</p></div>
+      <div class="cell r"><p class="n">02</p><p>A shared social presence across the industries we serve.</p></div>
+      <div class="cell r"><p class="n">03</p><p>Larger clients over time, with rising rates.</p></div>
+      <div class="cell r"><p class="n">04</p><p>Growing from a trial studio into a legally backed business.</p></div>
+      <div class="cell r"><p class="n">05</p><p>A steady, growing revenue stream for members and the studio.</p></div>
+      <div class="cell r"><p class="n">06</p><p>A body of work under one label that strengthens every member's portfolio.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. The Chasm Floor: the turn -->
+<section id="chasm">
+  <div class="wrap">
+    <div class="rule r"></div>
+    <p class="eyebrow r">The turn</p>
+    <h2 class="r">Most are told there is one way down, and one way up. We disagree.</h2>
+    <p class="lede r" style="margin-inline:auto">The slow, gatekept path is not the only way to arrive. We look for the route others overlook, and we take it together.</p>
+  </div>
+</section>
+
+<!-- 5. The Ascent: membership benefits -->
+<section id="ascent">
+  <div class="wrap">
+    <p class="eyebrow r">What you get</p>
+    <h2 class="r">The climb is easier with a crew.</h2>
+    <ul class="bul">
+      <li class="r">Your best work featured on the studio site, socials, and marketing.</li>
+      <li class="r">A built-in network of studio projects and clients, with members referring work that falls outside their own expertise.</li>
+      <li class="r">Access to the personal-project fund, studio discounts, in-house client booking, the studio Discord, and LinkedIn representation.</li>
+      <li class="r">Open freelance offers as new clients and studio-exclusive projects arrive.</li>
+      <li class="r">Real backing for your portfolio, resume, and CV through studio representation.</li>
+      <li class="r">Studio-funded opportunities for awards, press, and publication.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 6. Member Showcase -->
+<section id="members">
+  <div class="wrap">
+    <p class="eyebrow r">The crew</p>
+    <h2 class="r">The work speaks first.</h2>
+    <div class="members" id="memberGrid"></div>
+    <p class="note r">Placeholder roster. Real members and work samples drop in from hp_assets.</p>
+  </div>
+</section>
+
+<!-- 7. Services -->
+<section id="services">
+  <div class="wrap">
+    <p class="eyebrow r">For clients</p>
+    <h2 class="r">One label, many disciplines.</h2>
+    <p class="lede r">Need a team that can take a project from idea to delivery across film, games, music, design, and code? Bring it to the studio and we will assemble the right people for it.</p>
+  </div>
+</section>
+
+<!-- 8. Recruiting / Apply (crystal clear) -->
+<section id="apply">
+  <div class="wrap">
+    <div class="panel r">
+      <p class="eyebrow">Join us</p>
+      <h2>Interested in becoming a member?</h2>
+      <p class="lede">HACKING PARADISE is for people doing exceptional work across the arts and media. Membership is invitation and application based. When projects come in, members are offered paid roles at their own rates, and every offer is optional. A small 1.5 percent fee on each payout funds the studio (hosting, business costs, marketing, festival fees, a cushion, and a personal-project fund).</p>
+      <a class="btn" href="#" id="applyBtn">Apply to join</a>
+      <a class="btn ghost" href="mailto:contactviellis@gmail.com">Ask a question</a>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Contact / Paradise -->
+<section id="paradise">
+  <div class="wrap" style="text-align:center; margin:0 auto">
+    <p class="eyebrow r">Paradise</p>
+    <h2 class="r" style="margin-inline:auto; max-width:16ch">Built by the ones who found the shortcut.</h2>
+    <p class="lede r" style="margin:0 auto 8px">contactviellis@gmail.com</p>
+    <p class="r"><a href="#edge" style="font-family:var(--mono); font-size:.78rem; color:var(--accent); text-decoration:none">back to the edge</a></p>
+  </div>
+</section>
+
+<footer>HACKING PARADISE &middot; a trial collective &middot; <a href="mailto:contactviellis@gmail.com">contactviellis@gmail.com</a></footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // loader
+  window.addEventListener("load", function(){
+    setTimeout(function(){ document.getElementById("loader").classList.add("gone"); }, 350);
+  });
+
+  // placeholder member roster (swap with real data later)
+  var members = [
+    {nm:"Member One", disc:"Film and Motion"}, {nm:"Member Two", disc:"Music and Sound"},
+    {nm:"Member Three", disc:"Illustration"}, {nm:"Member Four", disc:"3D and Games"},
+    {nm:"Member Five", disc:"Code and Tools"}, {nm:"Member Six", disc:"Photography"}
+  ];
+  var grid = document.getElementById("memberGrid");
+  members.forEach(function(m){
+    var a = document.createElement("a"); a.className="member r"; a.href="#";
+    a.innerHTML = '<span class="ph"></span><span class="nm">'+m.nm+'</span><span class="disc">'+m.disc+'</span>';
+    grid.appendChild(a);
+  });
+
+  // reveal on scroll
+  var rs = Array.prototype.slice.call(document.querySelectorAll(".r"));
+  if (reduce || !("IntersectionObserver" in window)){ rs.forEach(function(e){e.classList.add("in")}); }
+  else {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    }); }, {rootMargin:"0px 0px -10% 0px", threshold:0.1});
+    rs.forEach(function(e){ io.observe(e); });
+  }
+
+  // scroll-driven depth palette: edge -> abyss -> chasm floor -> paradise
+  // stops are [scrollFraction, [r,g,b]]
+  var stops = [
+    [0.00, [26,23,38]],   // the edge, dusk violet
+    [0.34, [7,6,13]],     // deep abyss, near black
+    [0.50, [12,9,22]],    // chasm floor
+    [0.66, [16,12,28]],   // hold dark through the member showcase
+    [0.73, [243,238,251]],// fast ascent to paradise
+    [1.00, [243,238,251]] // hold bright through apply + contact
+  ];
+  function lerp(a,b,t){ return Math.round(a+(b-a)*t); }
+  function colorAt(f){
+    for (var i=1;i<stops.length;i++){
+      if (f<=stops[i][0]){
+        var a=stops[i-1], b=stops[i];
+        var t=(f-a[0])/(b[0]-a[0]);
+        return [lerp(a[1][0],b[1][0],t), lerp(a[1][1],b[1][1],t), lerp(a[1][2],b[1][2],t)];
+      }
+    }
+    return stops[stops.length-1][1];
+  }
+  var voidLayers = document.querySelectorAll(".void span");
+  var ticking=false;
+  function onScroll(){
+    if (ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var f = max>0 ? Math.min(1, Math.max(0, window.scrollY/max)) : 0;
+      var c = colorAt(f);
+      document.documentElement.style.setProperty("--bg","rgb("+c[0]+","+c[1]+","+c[2]+")");
+      // flip to dark ink once we are bright enough (approaching paradise)
+      document.body.classList.toggle("light", (c[0]+c[1]+c[2]) > 430);
+      if (!reduce){ // gentle parallax on the void layers
+        voidLayers[0].style.transform = "translate(-50%,"+(window.scrollY*-0.06)+"px)";
+        voidLayers[1].style.transform = "translate(-50%,"+(window.scrollY*-0.03)+"px)";
+        voidLayers[2].style.transform = "translate(-50%,"+(window.scrollY*-0.015)+"px)";
+      }
+      ticking=false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  window.addEventListener("resize", onScroll, {passive:true});
+  onScroll();
+
+  // custom cursor
+  if (!reduce && !window.matchMedia("(hover:none)").matches){
+    var cur = document.getElementById("cursor");
+    window.addEventListener("pointermove", function(e){
+      cur.style.left=e.clientX+"px"; cur.style.top=e.clientY+"px";
+    });
+    document.querySelectorAll("a,.btn,.member").forEach(function(el){
+      el.addEventListener("pointerenter", function(){ cur.classList.add("hot"); });
+      el.addEventListener("pointerleave", function(){ cur.classList.remove("hot"); });
+    });
+  }
+
+  // apply button placeholder (wire to a hosted form later)
+  document.getElementById("applyBtn").addEventListener("click", function(e){
+    e.preventDefault();
+    window.location.href = "mailto:contactviellis@gmail.com?subject=HACKING%20PARADISE%20application";
+  });
+})();
+</script>
+</body>
+</html>
