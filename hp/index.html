@@ -17,6 +17,9 @@
 :root{
   --ink:#ece7fb; --muted:#c6bfe2; --accent:#b9a6f5; --accent-2:#8b7bd8;
   --line:rgba(185,166,245,.18);
+  /* diver/scope/trail accent. Flip this ONE value to retune or revert the
+     diver's highlight color (was red #e23b32; now neon green). */
+  --diver-accent:#3DFF6E;
   --bg:#0b0913;                 /* JS overwrites this from scroll depth */
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -73,7 +76,8 @@ body.light .diver{--diver:#241f38}
 .diver .ln{fill:none; stroke:var(--diver); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
 .diver .fl{fill:var(--diver); stroke:none}
 .diver .soft{fill:var(--diver); fill-opacity:.34; stroke:var(--diver); stroke-width:1.7}
-.diver .face{stroke:#ff3344; stroke-width:2.7; fill:none; stroke-linecap:round; filter:drop-shadow(0 0 3px rgba(255,60,80,1)) drop-shadow(0 0 6px rgba(255,40,70,.7))}
+/* mouth: small, legible toothy grin in the body ink (NOT red) */
+.diver .face{stroke:var(--diver); stroke-width:1.9; fill:none; stroke-linecap:round; stroke-linejoin:round}
 .diver .gold{fill:none; stroke:#ffe6a3; stroke-width:2.4}
 /* parts hidden by default, shown per stage */
 .diver .p-chute,.diver .p-cords,.diver .p-wing,.diver .p-halo,.diver .p-spark{opacity:0; transition:opacity .6s ease}
@@ -92,35 +96,30 @@ body.light .diver{--diver:#241f38}
 .diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-spark{animation:twinkle 1.2s ease-in-out infinite}
 .diver[data-stage="halo"] .glowbody{filter:drop-shadow(0 0 6px rgba(255,230,163,.9))}
-/* comic falling action lines around the diver; intensity via --fall (set in JS) */
-.diver .fall-lines{opacity:var(--fall,0); transition:opacity .2s ease; transform-box:fill-box; transform-origin:center}
-.diver .fall-lines .vfl{stroke-width:1.2; fill:none}
-.diver[data-stage="flail"] .fall-lines, .diver[data-stage="dive"] .fall-lines{animation:flj .16s steps(3,end) infinite}
 @keyframes barrel{from{transform:rotate(168deg) rotateY(0deg)} to{transform:rotate(168deg) rotateY(360deg)}}
 @keyframes somersault{from{transform:rotate(168deg)} to{transform:rotate(528deg)}}  /* head-over-heels flip */
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
 @keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
-@keyframes flj{0%{transform:translateY(0) scale(.86)}50%{transform:translateY(-1.6px) scale(1.1)}100%{transform:translateY(1.2px) scale(.93)}}
 @media (hover:none){ .diver{display:none} }
-@media (prefers-reduced-motion: reduce){ .diver svg,.diver .rig,.diver .p-wing,.diver .p-spark,.diver .fall-lines{animation:none !important} }
+@media (prefers-reduced-motion: reduce){ .diver svg,.diver .rig,.diver .p-wing,.diver .p-spark{animation:none !important} }
 
 /* the diver IS the cursor (non-touch only) */
 @media (hover:hover){ html, html *{cursor:none} }
 /* red scope: a steady crosshair that tracks the pointer directly, marking where a click lands */
 .scope{position:fixed; top:0; left:0; width:30px; height:30px; z-index:52; pointer-events:none;
   transform:translate(-50%,-50%); will-change:left,top; opacity:.92}
-.scope svg{display:block; filter:drop-shadow(0 0 2px rgba(226,59,50,.9))}
-.scope .ring{fill:none; stroke:#e23b32; stroke-width:1.6}
-.scope .tick{stroke:#e23b32; stroke-width:1.6; stroke-linecap:round}
-.scope .dot{fill:#ff4d4d}
+.scope svg{display:block; filter:drop-shadow(0 0 2px var(--diver-accent))}
+.scope .ring{fill:none; stroke:var(--diver-accent); stroke-width:1.6}
+.scope .tick{stroke:var(--diver-accent); stroke-width:1.6; stroke-linecap:round}
+.scope .dot{fill:var(--diver-accent)}
 .scope.click{animation:scopeflash .3s ease-out}
 @keyframes scopeflash{0%{transform:translate(-50%,-50%) scale(1)}45%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
 @media (hover:none){ .scope{display:none} }
 @media (prefers-reduced-motion: reduce){ .scope.click{animation:none} }
-/* red scribble eyes + horns */
-.diver .eye{stroke:#e23b32; stroke-width:1.9; fill:none; stroke-linecap:round}
-body.light .diver .eye{stroke:#c81f17}
+/* neon-green scribble eyes + horns */
+.diver .eye{stroke:var(--diver-accent); stroke-width:1.9; fill:none; stroke-linecap:round}
+body.light .diver .eye{stroke:var(--diver-accent)}
 .diver .horns{fill:var(--diver); stroke:var(--diver); stroke-width:.5; stroke-linejoin:miter}
 /* click actions: left = small CCW tilt toward 11 o'clock (on .rig, relative to current facing);
    right = somersault (on svg, a head-over-heels flip) */
@@ -133,6 +132,15 @@ body.light .diver .eye{stroke:#c81f17}
   animation:streak .5s linear infinite; transition:opacity .25s ease; will-change:transform,opacity}
 @keyframes streak{from{transform:translateY(-16%)}to{transform:translateY(16%)}}
 @media (prefers-reduced-motion: reduce){ .speedlines{animation:none; display:none} }
+/* sketchy descent trail: thin, irregular neon-green strokes left in the diver's
+   wake (above it / where it descended from). Density rises toward the chute; JS
+   spawns + removes each <path>. Hidden on touch + reduced-motion. */
+.trail{position:fixed; inset:0; z-index:47; pointer-events:none; overflow:visible}
+.trail path{fill:none; stroke:var(--diver-accent); stroke-linecap:round; stroke-linejoin:round;
+  opacity:0; animation:trailfade var(--life,1s) ease-out forwards}
+@keyframes trailfade{0%{opacity:0}14%{opacity:.7}55%{opacity:.55}100%{opacity:0}}
+@media (hover:none){ .trail{display:none} }
+@media (prefers-reduced-motion: reduce){ .trail{display:none} }
 /* ephemeral fx: parachute poofs, trail stars, click bursts */
 .fx{position:fixed; z-index:49; pointer-events:none; transform:translate(-50%,-50%)}
 .fx.puff{width:15px; height:15px; border-radius:50%;
@@ -143,7 +151,7 @@ body.light .diver .eye{stroke:#c81f17}
 /* paradise is bright lavender: render stars dark so they stay visible */
 .fx.star.dark{color:#1c1533; text-shadow:0 0 5px rgba(60,30,110,.55), 0 0 12px rgba(80,55,140,.4)}
 @keyframes startw{0%{opacity:0; transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0; transform:translate(-50%,-50%) scale(1.1)}}
-.fx.pow{color:#e23b32; font-family:var(--mono); font-weight:800; font-size:14px; animation:powfx .5s ease-out forwards}
+.fx.pow{color:var(--diver-accent); font-family:var(--mono); font-weight:800; font-size:14px; animation:powfx .5s ease-out forwards}
 @keyframes powfx{0%{opacity:1; transform:translate(-50%,-50%) scale(.6)}100%{opacity:0; transform:translate(-50%,-95%) scale(1.25)}}
 /* readability boost over the descent imagery */
 .lede,.cell p,.bul li,.blurb,.member .nm{text-shadow:0 1px 8px rgba(6,5,11,.6)}
@@ -245,6 +253,7 @@ footer a{color:var(--accent); text-decoration:none}
 <div class="readscrim" aria-hidden="true"></div>
 <div class="whiteout" id="whiteout" aria-hidden="true"></div>
 <div class="speedlines" id="speedlines" aria-hidden="true"></div>
+<svg class="trail" id="trail" aria-hidden="true" preserveAspectRatio="none"></svg>
 
 <div class="diver" id="diver" data-stage="dive" aria-hidden="true">
   <svg viewBox="0 0 54 74" width="54" height="74">
@@ -265,20 +274,11 @@ footer a{color:var(--accent); text-decoration:none}
       <path class="p-spark fl" fill="#ffe6a3" d="M27,11 L28.7,16 L34,16.3 L29.6,19.3 L31.3,24.3 L27,21.2 L22.7,24.3 L24.4,19.3 L20,16.3 L25.3,16 Z"/>
       <path class="p-arm ln" d="M18,42 Q11,45 10,51 M36,42 Q43,45 44,51"/>
       <path class="p-leg ln" d="M24,50 L22,63 M30,50 L32,63"/>
-      <!-- hand-drawn manga speed lines: thin, irregular near-vertical streaks trailing the fall -->
-      <g class="fall-lines">
-        <path class="ln vfl" style="stroke-width:1.5" d="M16.4,31 L14.8,5.5"/>
-        <path class="ln vfl" style="stroke-width:0.8" d="M20.2,29 L19.4,11"/>
-        <path class="ln vfl" style="stroke-width:1.3" d="M23.7,33 L23.2,1.5"/>
-        <path class="ln vfl" style="stroke-width:0.9" d="M27.1,30 L27.4,14"/>
-        <path class="ln vfl" style="stroke-width:1.6" d="M30.4,34 L31,3"/>
-        <path class="ln vfl" style="stroke-width:0.8" d="M34,29 L34.7,12"/>
-        <path class="ln vfl" style="stroke-width:1.3" d="M37.6,32 L39,6.5"/>
-      </g>
       <path class="ln glowbody" d="M27,33 C34,34 36,40 34,44 C32,49 27,51 23,49 C19,47 17,41 21,37 C24,34 29,33 27,34 M25,35 C31,35 35,39 34,44 C33,48 28,51 24,49 C20,47 19,42 22,38"/>
       <path class="horns" d="M22.6,33 L24.7,33 L22.1,30.1 Z M31.4,33 L29.3,33 L31.9,30.1 Z"/>
       <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
-      <path class="face" d="M19,44 Q27,47 35,44 Q33,54 27,55 Q21,54 19,44 Z"/>
+      <!-- small, legible toothy grin: a smile arc with three little tooth ticks -->
+      <path class="face" d="M21,45 Q27,53 33,45 M24.5,46.4 v2.4 M27.5,47.2 v2.6 M30.5,46.4 v2.4"/>
     </g>
   </svg>
 </div>
@@ -457,6 +457,13 @@ footer a{color:var(--accent); text-decoration:none}
   var diver = document.getElementById("diver");
   var whiteout = document.getElementById("whiteout");
   var speedlines = document.getElementById("speedlines");
+  var trail = document.getElementById("trail");
+  var fallP = 0, fallActive = false;   // fall progress (0..1) + whether trail should emit
+  function sizeTrail(){ if (trail){ trail.setAttribute("width", window.innerWidth);
+    trail.setAttribute("height", window.innerHeight);
+    trail.setAttribute("viewBox", "0 0 " + window.innerWidth + " " + window.innerHeight); } }
+  sizeTrail();
+  window.addEventListener("resize", sizeTrail, {passive:true});
   var lastX = window.innerWidth/2, lastY = window.innerHeight/2, prevStage = "dive", lastTrail = 0;
   // diver hovers at an offset from the crosshair (up + to the left) and lags/bobs toward it
   var OFF_X = -32, OFF_Y = -44;
@@ -501,14 +508,15 @@ footer a{color:var(--accent); text-decoration:none}
       // the diver's state tracks the fall
       var stage = diverStage(f);
       if (diver) diver.setAttribute("data-stage", stage);
-      // falling action lines (background + on the diver), intensifying toward the chute
+      // background streaks + sketchy descent trail, intensifying toward the chute deploy.
+      // fallP drives the trail's sparse-to-dense density; the trail itself is spawned in the diver tick.
       if (!reduce && (stage === "flail" || stage === "dive")){
-        var fp = Math.max(0, Math.min(1, (f - 0.10) / 0.42));
-        if (speedlines){ speedlines.style.opacity = (fp*0.30).toFixed(3); speedlines.style.animationDuration = (0.55 - fp*0.45).toFixed(2) + "s"; }
-        if (diver) diver.style.setProperty("--fall", (0.15 + fp*0.85).toFixed(3));
+        fallP = Math.max(0, Math.min(1, (f - 0.10) / 0.42));
+        fallActive = true;
+        if (speedlines){ speedlines.style.opacity = (fallP*0.30).toFixed(3); speedlines.style.animationDuration = (0.55 - fallP*0.45).toFixed(2) + "s"; }
       } else {
+        fallActive = false;
         if (speedlines) speedlines.style.opacity = "0";
-        if (diver) diver.style.setProperty("--fall", "0");
       }
       // parachute poofs little clouds the moment it opens
       if (!reduce && stage === "chute" && prevStage !== "chute"){
@@ -537,9 +545,31 @@ footer a{color:var(--accent); text-decoration:none}
   if (diver){
     // the diver orbits/hovers AROUND the crosshair at an offset, with a gentle bob and lag,
     // so the red scope (at the exact pointer) and the diver are both clearly visible at once.
+    // resting direction from the diver to the crosshair (down + to the right, given the offset)
+    var REST_ANG = Math.atan2(-OFF_Y, -OFF_X);
+    var SVGNS = "http://www.w3.org/2000/svg";
+    // a single short, slightly-wavy neon stroke left above the diver (opposite the fall)
+    function spawnTrailSeg(cx, cy, dense){
+      if (!trail) return;
+      var len = 8 + Math.random()*6 + dense*5;     // a touch longer as the fall intensifies
+      var bx = cx + (Math.random()*8 - 4);
+      var by = cy - 4;                              // start just above the body
+      var tx = bx + (Math.random()*5 - 2.5);
+      var ty = by - len;
+      var mx = (bx + tx)/2 + (Math.random()*4 - 2); // wobble for a hand-drawn feel
+      var my = (by + ty)/2;
+      var p = document.createElementNS(SVGNS, "path");
+      p.setAttribute("d", "M"+bx.toFixed(1)+","+by.toFixed(1)+" Q"+mx.toFixed(1)+","+my.toFixed(1)+" "+tx.toFixed(1)+","+ty.toFixed(1));
+      p.setAttribute("stroke-width", (1.0 + Math.random()*0.7).toFixed(2));
+      var life = 800 + Math.random()*350;
+      p.style.setProperty("--life", life + "ms");
+      trail.appendChild(p);
+      setTimeout(function(){ p.remove(); }, life + 60);
+    }
     if (reduce){
       diver.style.left = diverX + "px"; diver.style.top = diverY + "px";
     } else {
+      var faceRot = 0, lastSeg = 0;
       (function tick(){
         var t = performance.now()/1000;
         var orbX = Math.cos(t*1.1)*6;        // slow horizontal sway
@@ -549,6 +579,20 @@ footer a{color:var(--accent); text-decoration:none}
         diverY += (ty - diverY) * 0.16;
         diver.style.left = diverX + "px";
         diver.style.top  = diverY + "px";
+        // face the cursor: lean toward the crosshair, measured off the resting direction so the
+        // hover-at-offset pose holds when still, and the diver turns to look as the pointer moves
+        var ang = Math.atan2(lastY - diverY, lastX - diverX) - REST_ANG;
+        while (ang >  Math.PI) ang -= 2*Math.PI;
+        while (ang < -Math.PI) ang += 2*Math.PI;
+        var targetRot = Math.max(-42, Math.min(42, ang * (180/Math.PI) * 1.25));
+        faceRot += (targetRot - faceRot) * 0.12;
+        diver.style.transform = "translate(-50%,-50%) rotate(" + faceRot.toFixed(2) + "deg)";
+        // sketchy descent trail: sparse near the top, denser toward the chute deploy point
+        if (fallActive){
+          var now = performance.now();
+          var interval = 360 - fallP*305;    // ~360ms (sparse) -> ~55ms (dense)
+          if (now - lastSeg >= interval){ lastSeg = now; spawnTrailSeg(diverX, diverY, fallP); }
+        }
         requestAnimationFrame(tick);
       })();
     }
