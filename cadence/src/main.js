@@ -75,9 +75,15 @@ orbit.target.set(0, 10, 0);
 orbit.minDistance = 0.5;
 orbit.maxDistance = 500_000;   // effectively unlimited dolly-out, no hard stop
 // Mouse-button scheme is set by the active control preset (see Settings, below).
+// Touch gestures: one finger orbits, two fingers pan + pinch-zoom together.
+orbit.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
+// Is this primarily a touch device? Used to fatten the gizmo and tweak UI.
+const COARSE_POINTER = window.matchMedia('(pointer: coarse)').matches;
 
 const gizmo = new TransformControls(camera, renderer.domElement);
-gizmo.setSize(0.9);
+// A bigger gizmo on touch gives fingertips a real hit area on the handles.
+gizmo.setSize(COARSE_POINTER ? 1.5 : 0.9);
 gizmo.addEventListener('dragging-changed', (e) => { orbit.enabled = !e.value; });
 gizmo.addEventListener('mouseDown', () =>                          // one history step per drag
   doc.commit({ translate: 'Move', rotate: 'Rotate', scale: 'Scale' }[gizmo.getMode()] || 'Transform'));
@@ -253,7 +259,7 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
   if (!btn) return;
 
-  if (btn.dataset.add) doc.add(btn.dataset.add);
+  if (btn.dataset.add) { doc.add(btn.dataset.add); if (COARSE_POINTER) closeDrawers(); }  // on touch, reveal the new shape
   if (btn.dataset.align) align(btn.dataset.align, btn.dataset.alignMode || 'center');
   if (btn.dataset.distribute) distribute(btn.dataset.distribute);
 
@@ -999,6 +1005,94 @@ function initSettings() {
   wireHints();
 }
 
+// ---------------------------------------------------------------- mobile UI
+// On phones the floating panels would bury the viewport, so they become
+// off-canvas drawers driven by a fixed bottom bar (created here, kept
+// display:none above 640px so desktop is untouched). One drawer open at a time.
+let openPanelId = null;
+const scrim = document.createElement('div');
+scrim.id = 'mobile-scrim';
+const mobileBar = document.createElement('div');
+mobileBar.id = 'mobile-bar';
+
+function closeDrawers() {
+  for (const id of ['toolbar', 'inspector', 'outliner'])
+    document.getElementById(id)?.classList.remove('drawer-open');
+  scrim.classList.remove('show');
+  openPanelId = null;
+  syncMobileBar();
+}
+function openDrawer(id) {
+  if (openPanelId === id) { closeDrawers(); return; }   // tapping the active tab closes it
+  closeDrawers();
+  document.getElementById(id)?.classList.add('drawer-open');
+  scrim.classList.add('show');
+  openPanelId = id;
+  syncMobileBar();
+}
+function syncMobileBar() {
+  mobileBar.querySelectorAll('button[data-drawer]').forEach((b) =>
+    b.classList.toggle('active', b.dataset.drawer === openPanelId));
+}
+
+function setupMobileUI() {
+  const app = document.getElementById('app');
+  const BTNS = [
+    { drawer: 'toolbar',   ico: '☰', label: 'Tools' },
+    { drawer: 'outliner',  ico: '▤', label: 'Objects' },
+    { drawer: 'inspector', ico: '⚙', label: 'Inspect' },
+    { act: 'frame',        ico: '⤢', label: 'Frame' },
+  ];
+  mobileBar.innerHTML = BTNS.map((b) =>
+    `<button ${b.drawer ? `data-drawer="${b.drawer}"` : `data-act="${b.act}"`} title="${b.label}">`
+    + `<span class="mb-ico">${b.ico}</span><span>${b.label}</span></button>`).join('');
+  mobileBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.drawer) openDrawer(btn.dataset.drawer);
+    else if (btn.dataset.act === 'frame') { closeDrawers(); frameSelection(); }
+  });
+  scrim.addEventListener('click', closeDrawers);
+  app.appendChild(scrim);
+  app.appendChild(mobileBar);
+}
+
+// ---------------------------------------------------------------- empty state
+// A gentle "Add a shape to begin" prompt, shown only when the scene is empty
+// (e.g. just after New). pointer-events stay off the wrapper so it never blocks
+// orbiting; only the button is live.
+const emptyState = document.createElement('div');
+emptyState.id = 'empty-state';
+emptyState.hidden = true;
+emptyState.innerHTML =
+  `<div class="es-title">Add a shape to begin</div>`
+  + `<div class="es-sub">Pick a primitive from the toolbar, then drag the gizmo or type exact sizes in the Inspector.</div>`
+  + `<button class="es-add">Add a box</button>`;
+function updateEmptyState() { emptyState.hidden = doc.list.length > 0; }
+function setupEmptyState() {
+  document.getElementById('app').appendChild(emptyState);
+  emptyState.querySelector('.es-add').addEventListener('click', () => doc.add('box'));
+  for (const ev of ['add', 'remove', 'undo', 'regroup']) doc.addEventListener(ev, updateEmptyState);
+  updateEmptyState();
+}
+
+// ---------------------------------------------------------------- onboarding
+// A one-time tip — touch-aware — shown on first visit and remembered.
+function setupOnboarding() {
+  const KEY = 'cadence.onboarded.v1';
+  try { if (localStorage.getItem(KEY)) return; } catch { /* private mode */ }
+  const hint = document.createElement('div');
+  hint.id = 'onboard-hint';
+  const tip = COARSE_POINTER
+    ? 'Welcome to CADence. One finger orbits, two fingers pan and pinch to zoom. Tap Tools to add a shape, Inspect to type exact sizes.'
+    : 'Welcome to CADence. Add a shape, drag the gizmo to move it, or type exact sizes in the Inspector. Press ? anytime for shortcuts.';
+  hint.innerHTML = `<span>${tip}</span><button class="oh-x" title="Dismiss">✕</button>`;
+  const dismiss = () => { hint.hidden = true; try { localStorage.setItem(KEY, '1'); } catch {} };
+  hint.querySelector('.oh-x').addEventListener('click', dismiss);
+  document.getElementById('app').appendChild(hint);
+  setTimeout(() => { if (!hint.hidden) dismiss(); }, 12000);
+}
+
 // ---------------------------------------------------------------- resize + loop
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -1023,6 +1117,12 @@ warmKernel();
 // Apply saved preferences (UI style, render mode, controls) and wire hover hints
 // before seeding, so the first object is drawn in the active render mode.
 initSettings();
+
+// Mobile drawers, the empty-state prompt, and the first-run tip. Safe on desktop
+// (the bar/scrim stay hidden via CSS above 640px).
+setupMobileUI();
+setupEmptyState();
+setupOnboarding();
 
 // Restore the last autosaved project before the first render, so a reload — or
 // reopening from the portfolio preview iframe in a fresh tab — picks up exactly

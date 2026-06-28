@@ -24,7 +24,9 @@ html, body {
 
 #app { position: relative; width: 100vw; height: 100vh; }
 
-#viewport { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+/* touch-action:none stops the browser from scrolling / page-zooming the canvas,
+   so one-finger orbit, two-finger pan and pinch-zoom all reach OrbitControls. */
+#viewport { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
 
 .panel {
   position: absolute;
@@ -380,3 +382,138 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
 /* Group "Parts" editor in the Inspector (parametric re-bake) */
 .part { border: 1px solid var(--border); border-radius: 6px; padding: 6px 7px; margin-bottom: 6px; }
 .part-nm { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+
+/* ============================================================
+   Empty-state prompt + one-time onboarding hint (all screens)
+   ============================================================ */
+/* Centered "Add a shape to begin" card, shown only when the scene is empty.
+   pointer-events stay off the wrapper so it never blocks orbiting; only the
+   button is interactive. */
+#empty-state {
+  position: absolute; inset: 0; z-index: 7;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; pointer-events: none; text-align: center; padding: 0 16px;
+}
+#empty-state[hidden] { display: none; }
+#empty-state .es-title { font-size: 17px; font-weight: 600; color: var(--text); }
+#empty-state .es-sub { font-size: 12.5px; color: var(--muted); max-width: 280px; }
+#empty-state .es-add {
+  pointer-events: auto; width: auto; margin-top: 4px;
+  padding: 11px 20px; font-size: 14px; text-align: center;
+  background: var(--accent-dim); border-color: var(--accent); color: #fff;
+}
+
+/* First-run tip toast (auto-dismisses; remembered in localStorage). */
+#onboard-hint {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+  z-index: 90; max-width: min(92vw, 460px);
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 13px; font-size: 12.5px; line-height: 1.5;
+  background: var(--panel-solid); color: var(--text);
+  border: 1px solid var(--accent-dim); border-radius: 10px;
+  box-shadow: 0 10px 30px -8px rgba(0,0,0,.6);
+}
+#onboard-hint[hidden] { display: none; }
+#onboard-hint .oh-x {
+  width: 24px; height: 24px; flex: none; margin: 0; padding: 0;
+  text-align: center; line-height: 1; font-size: 15px; color: var(--muted);
+}
+
+/* ============================================================
+   Mobile bottom bar + drawer scrim — created by JS, hidden on
+   desktop. The drawer layout itself is in the media query below.
+   ============================================================ */
+#mobile-bar { display: none; }
+#mobile-scrim { display: none; }
+
+/* ============================================================
+   Phone layout: panels become off-canvas drawers driven by a
+   fixed bottom bar. Triggers under 640px wide. Desktop & tablet
+   (>=640px, e.g. 768) keep the original floating-panel layout.
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Resize handles make no sense for full-width drawers. */
+  .resize-handle { display: none !important; }
+  /* The per-panel collapse chevron is replaced by the bar + scrim. */
+  .panel .collapse-btn { display: none; }
+
+  /* Common drawer chrome */
+  #toolbar, #inspector, #outliner {
+    position: fixed; z-index: 70;
+    width: auto; max-height: none;
+    backdrop-filter: blur(12px);
+    transition: transform .22s ease;
+  }
+
+  /* Toolbar slides in from the left, full height, scrollable. */
+  #toolbar {
+    top: 0; left: 0; bottom: 0; right: auto;
+    width: min(86vw, 330px);
+    border-radius: 0 14px 14px 0;
+    overflow-y: auto;
+    transform: translateX(-105%);
+  }
+  #toolbar.drawer-open { transform: none; }
+
+  /* Inspector & Objects rise as bottom sheets, above the bottom bar. */
+  #inspector, #outliner {
+    left: 0; right: 0; bottom: 52px; top: auto;
+    border-radius: 16px 16px 0 0;
+    max-height: 68vh; overflow-y: auto;
+    transform: translateY(115%);
+  }
+  #inspector.drawer-open, #outliner.drawer-open { transform: none; }
+
+  /* Timeline as a full-width bottom sheet (its desktop edges use panel-width
+     vars that collapse to negative width on a phone). */
+  #timeline {
+    left: 8px; right: 8px;
+    bottom: 56px; max-height: 50vh;
+  }
+
+  /* Dimension chips can overflow a narrow screen; keep them in bounds. */
+  #dimchips { max-width: 92vw; }
+
+  /* Roomier tap targets across the touch UI. */
+  .panel button { min-height: 44px; }
+  button.mode { min-height: 44px; }
+  button.mini { width: 38px; min-height: 40px; }
+  .setrow select, .btnmap select { min-height: 38px; }
+  .snaprow input, input[type="number"], input[type="text"] { min-height: 38px; }
+  .orow { padding: 9px 6px; }
+
+  /* Status bar sits just above the bottom bar. */
+  #statusbar { bottom: 52px; }
+
+  /* The bottom action bar: always-visible drawer toggles + Frame. */
+  #mobile-bar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; height: 52px;
+    z-index: 80; align-items: stretch;
+    background: var(--panel-solid); border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  #mobile-bar button {
+    flex: 1; width: auto; margin: 0; border: none; border-radius: 0;
+    background: transparent; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; font-size: 10px; min-height: 52px; text-align: center;
+  }
+  #mobile-bar button .mb-ico { font-size: 18px; line-height: 1; }
+  #mobile-bar button:active { background: #ffffff14; }
+  #mobile-bar button.active { color: var(--accent); }
+
+  /* Scrim behind an open drawer; tap it to dismiss. */
+  #mobile-scrim {
+    display: block; position: fixed; inset: 0; z-index: 65;
+    background: rgba(0,0,0,.45); opacity: 0; pointer-events: none;
+    transition: opacity .2s ease;
+  }
+  #mobile-scrim.show { opacity: 1; pointer-events: auto; }
+
+  /* On a phone the shape grid breathes a little wider. */
+  button[data-add] { padding: 9px 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #toolbar, #inspector, #outliner, #mobile-scrim { transition: none !important; }
+}

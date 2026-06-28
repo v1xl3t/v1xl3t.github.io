@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- App-style viewport: the canvas owns pinch-zoom (camera dolly), so block the
+       browser's own page zoom; viewport-fit=cover lets the bottom bar respect the
+       safe-area inset on notched phones. Panels still scroll normally. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>CADence — Stage 1</title>
   <!-- Inline favicon so the browser stops 404-ing on /favicon.ico -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='2' y='2' width='12' height='12' rx='2' fill='%234c8dff'/%3E%3C/svg%3E" />
@@ -34,14 +37,14 @@
 
       <div class="group">
         <div class="group-label">Add primitive</div>
-        <button data-add="box">Box</button>
-        <button data-add="cylinder">Cylinder</button>
-        <button data-add="sphere">Sphere</button>
-        <button data-add="cone">Cone</button>
-        <button data-add="torus">Torus</button>
-        <button data-add="tube">Tube</button>
-        <button data-add="wedge">Wedge</button>
-        <button data-add="prism">Prism</button>
+        <button data-add="box" title="Add a box (cuboid) to the scene">Box</button>
+        <button data-add="cylinder" title="Add a cylinder">Cylinder</button>
+        <button data-add="sphere" title="Add a sphere">Sphere</button>
+        <button data-add="cone" title="Add a cone">Cone</button>
+        <button data-add="torus" title="Add a torus (ring / donut)">Torus</button>
+        <button data-add="tube" title="Add a hollow tube (pipe)">Tube</button>
+        <button data-add="wedge" title="Add a wedge (right-angle ramp)">Wedge</button>
+        <button data-add="prism" title="Add an N-sided prism">Prism</button>
       </div>
 
       <div class="group">
@@ -52,9 +55,9 @@
 
       <div class="group">
         <div class="group-label">Transform <span class="hint">(or press W/E/R)</span></div>
-        <button data-mode="translate" class="mode active">Move</button>
-        <button data-mode="rotate" class="mode">Rotate</button>
-        <button data-mode="scale" class="mode">Scale</button>
+        <button data-mode="translate" class="mode active" title="Move tool (W): drag the arrows to reposition">Move</button>
+        <button data-mode="rotate" class="mode" title="Rotate tool (E): drag the rings to spin">Rotate</button>
+        <button data-mode="scale" class="mode" title="Scale tool (R): drag the handles to resize">Scale</button>
         <label class="check"><input type="checkbox" id="snap-toggle" checked /> Snapping</label>
         <div class="snaprow">
           <label>move mm <input type="number" id="snap-move" value="1" min="0.01" step="0.1" /></label>
@@ -64,9 +67,9 @@
 
       <div class="group">
         <div class="group-label">Combine <span class="hint">(Shift-click to multi-select)</span></div>
-        <button data-action="group">Group → Boolean</button>
-        <button data-action="intersect">Intersect</button>
-        <button data-action="ungroup">Ungroup</button>
+        <button data-action="group" title="Fuse the selected solids into one watertight body (holes carve)">Group → Boolean</button>
+        <button data-action="intersect" title="Keep only the volume the selected solids share">Intersect</button>
+        <button data-action="ungroup" title="Break a grouped body back into its parts">Ungroup</button>
       </div>
 
       <div class="group">
@@ -109,15 +112,15 @@
 
       <div class="group">
         <div class="group-label">Edit</div>
-        <button data-action="duplicate">Duplicate</button>
-        <button data-action="delete" class="danger">Delete</button>
-        <button data-action="undo">Undo</button>
+        <button data-action="duplicate" title="Duplicate the selection (Ctrl+D)">Duplicate</button>
+        <button data-action="delete" class="danger" title="Delete the selection (Del)">Delete</button>
+        <button data-action="undo" title="Undo the last change (Ctrl+Z)">Undo</button>
       </div>
 
       <div class="group">
         <div class="group-label">Export</div>
-        <button data-action="export-stl">Download STL</button>
-        <button data-action="export-3mf">Download 3MF</button>
+        <button data-action="export-stl" title="Download an STL mesh for 3D printing">Download STL</button>
+        <button data-action="export-3mf" title="Download a 3MF file (mesh plus color) for printing">Download 3MF</button>
         <button data-action="export-png" title="Save the current view as a PNG image">Screenshot (PNG)</button>
         <button data-action="export-shots" title="Render the scene from 6 preset angles and download them as a zip">Orbit shots (zip)</button>
       </div>
@@ -125,8 +128,8 @@
       <div class="group">
         <div class="group-label">Project</div>
         <button data-action="new-project" title="Clear the canvas and start a fresh empty scene (also forgets the autosaved session)">New</button>
-        <button data-action="save-project">Save Project</button>
-        <button data-action="load-project">Load Project</button>
+        <button data-action="save-project" title="Save this scene as a .cadence.json file">Save Project</button>
+        <button data-action="load-project" title="Open a previously saved .cadence.json scene">Load Project</button>
         <input type="file" id="file-input" accept=".json,.cadence.json,application/json" hidden />
       </div>
 
