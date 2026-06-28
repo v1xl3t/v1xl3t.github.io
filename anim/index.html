@@ -88,6 +88,55 @@
   .sbtn.live{background:var(--accent2);border-color:var(--accent2);color:#04231b}
   .sbtn.queued{outline:2px dashed var(--accent2);outline-offset:1px}
   .sbtn.running{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* reduced motion: neutralise any CSS transitions/animations */
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+  }
+
+  /* ---------------------------------------------------------------------------
+     Mobile / touch (<=820px): the desktop grid collapses to a single scrolling
+     column (canvas on top, panels beneath), tap targets grow to >=44px, and
+     nothing is allowed to push the page wider than the viewport. Desktop rules
+     above are untouched. The canvas keeps touch-action:none so a single finger
+     draws on it while the rest of the page still scrolls normally.
+  --------------------------------------------------------------------------- */
+  @media (max-width:820px){
+    body{overflow:auto;-webkit-text-size-adjust:100%}
+    #app{height:auto;min-height:100vh}
+
+    header{padding:8px 10px;gap:7px}
+    header button:not(.pcell):not(.swatch){min-height:44px;min-width:44px}
+    header input[type=number]{min-height:40px}
+    .swatch{width:40px;height:40px}
+    .pcell{width:30px;height:30px}
+    .palette{max-width:none}
+    .status{min-width:0}
+
+    main{grid-template-columns:1fr}
+    .stage{min-height:46vh;padding:10px}
+    aside{border-left:none;border-top:1px solid var(--border)}
+    .layers{max-height:34vh}
+
+    .statebar{gap:8px}
+    .statebar button,.statebar select{min-height:42px}
+    .statebar select{flex:1;min-width:0}
+    #transbar select{max-width:none}
+
+    .rail-h{padding:10px 12px}
+    .rail-h button{min-height:40px;min-width:40px}
+
+    footer button{min-height:42px}
+    .frame{width:60px}
+    .frame canvas{width:60px;height:60px}
+
+    /* stage / preview overlay: stack its sidebar under the preview canvas */
+    .stage-body{grid-template-columns:1fr}
+    .stage-view{min-height:46vh}
+    .stage-ctrls{border-left:none;border-top:1px solid var(--border)}
+    .stage-top{flex-wrap:wrap;gap:8px;padding:8px 12px}
+    .stage-top button{min-height:44px}
+  }
 </style>
 </head>
 <body>
@@ -459,9 +508,10 @@ function maskFromPoly(pts) {
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());  // right-click = erase, not menu
 canvas.addEventListener('pointerdown', (e) => {
   if (playing) return;
+  e.preventDefault();                                // touch: don't scroll/zoom while drawing
   const { x, y } = evXY(e);
   hoverX = x; hoverY = y;
-  canvas.setPointerCapture(e.pointerId);
+  try { canvas.setPointerCapture(e.pointerId); } catch {}   // some touch/pen pointers reject capture
   eraseNow = (e.button === 2) || tool === 'erase';   // right-click erases regardless of tool
 
   if (tool === 'lasso') return lassoDown(x, y);
