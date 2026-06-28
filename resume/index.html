@@ -109,12 +109,54 @@
   .ob button.primary { background:#2456c6; color:#fff; border-color:#2456c6; }
   .ob button:focus-visible { outline:2px solid #4c8dff; outline-offset:2px; }
 
-  /* mobile: reflow the fixed-width sheet to fit small screens */
-  @media (max-width: 720px) {
-    .bar { gap:6px; padding:8px 10px; } .bar .hint { display:none; }
+  /* mobile: reflow the toolbar + fixed-width sheet to fit small screens, with
+     touch-sized tap targets. The print path is a separate @media print block and
+     is untouched: this block is scoped to `screen`, so the @media print layout
+     and the printed page are never affected. 820px keeps phones and portrait
+     tablets (incl. 768) on the touch layout while genuine desktop widths keep the
+     original toolbar and fixed-width sheet. */
+  @media screen and (max-width: 820px) {
+    /* Toolbar wraps into comfortable rows; every control is a >=44px tap target.
+       16px control text stops iOS from auto-zooming the page when one is focused. */
+    .bar { gap:8px; padding:8px 10px; }
+    .bar .hint, .bar .spacer { display:none; }
+    .bar .brand { width:100%; margin:0; }
+    .bar button, .bar select, .bar label.swatch {
+      min-height:44px; display:inline-flex; align-items:center; gap:6px;
+      font-size:16px; padding:6px 12px;
+    }
+    .bar label.swatch select { min-height:34px; }
+    .bar input[type=color] { width:40px; height:34px; }
+    .bar input[type=checkbox] { width:22px; height:22px; }
+
+    /* Sheet fills the viewport width (no horizontal scroll). */
     .sheet-wrap { padding:12px 8px 48px; }
-    .sheet { width:100%; min-height:auto; padding:0.42in 0.44in; }
-    .ob { padding:18px 16px; }
+    .sheet { width:100%; min-height:auto; padding:0.4in 0.42in; }
+
+    /* Editable fields get real touch room; let cramped rows wrap instead of squeezing. */
+    [data-ed] { padding:2px 3px; }
+    [data-ed]:empty::before { display:inline-block; min-width:2.5em; }
+    .entry-top { flex-wrap:wrap; }
+    .entry-meta { white-space:normal; }
+
+    /* Inline add / remove / toggle controls become finger-friendly. Touch has no
+       hover, so the otherwise-faint delete buttons need to stay visible. */
+    .add, .del, .tog {
+      min-height:34px; min-width:34px; padding:4px 10px; font-size:13px;
+      display:inline-flex; align-items:center; justify-content:center;
+    }
+    .del { opacity:.7; }
+
+    /* Dialog fits the viewport and scrolls if its content runs tall. */
+    .ob { padding:18px 16px; max-height:88vh; overflow:auto; }
+  }
+
+  /* Respect users who ask for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration:.001ms !important; animation-iteration-count:1 !important;
+      transition-duration:.001ms !important; scroll-behavior:auto !important;
+    }
   }
 </style>
 </head>
