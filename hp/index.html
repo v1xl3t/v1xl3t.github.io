@@ -21,6 +21,9 @@
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
 }
+/* display faces, used sparingly for title variety */
+@font-face{font-family:"BlackMetal"; src:url("fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+@font-face{font-family:"ScumTrash"; src:url("fonts/scumtrash.otf") format("opentype"); font-display:swap}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
@@ -57,6 +60,8 @@ section{position:relative; min-height:100vh; display:flex; align-items:center;
   color:var(--accent); margin:0 0 18px}
 h1{font-size:clamp(2.6rem,7vw,6rem); line-height:.98; letter-spacing:-.03em; margin:0; font-weight:800}
 h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
+/* sparse display-font accents */
+#edge h1{font-family:"BlackMetal",var(--font); font-weight:400; letter-spacing:.02em; line-height:1.1; font-size:clamp(2.8rem,8vw,6.6rem)}
 .lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
 .scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
   font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
