@@ -255,16 +255,16 @@ html[data-ui="neon"] button.tool.active { box-shadow: 0 0 10px -2px var(--accent
 
 /* "plush" — soft lavender light skin, matches the site directory palette. */
 html[data-ui="plush"] {
-  --bg: #efe9fb; --panel: #ffffffe6; --panel-solid: #ffffff;
+  --bg: #efe9fb; --panel: #ece4fbe6; --panel-solid: #ece4fb;
   --border: #d9cef3; --text: #332d4f; --muted: #6b6390;
   --accent: #7c5fe0; --accent-dim: #e0d6f7;
 }
-html[data-ui="plush"] button { background: #f4eeff; }
-html[data-ui="plush"] button:hover { background: #ebe2fb; }
+html[data-ui="plush"] button { background: #e8defb; }
+html[data-ui="plush"] button:hover { background: #ddd0f7; }
 html[data-ui="plush"] input[type="number"],
 html[data-ui="plush"] input[type="text"],
 html[data-ui="plush"] .setrow select,
-html[data-ui="plush"] .snaprow input { background: #fbf9ff; }
+html[data-ui="plush"] .snaprow input { background: #f3edfc; }
 html[data-ui="plush"] button.mode.active,
 html[data-ui="plush"] button.tool.active { color: #5a3fc0; box-shadow: 0 0 10px -3px var(--accent); }
 html[data-ui="plush"] button,
