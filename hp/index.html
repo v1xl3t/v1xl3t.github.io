@@ -73,7 +73,7 @@ body.light .diver{--diver:#241f38}
 .diver .ln{fill:none; stroke:var(--diver); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
 .diver .fl{fill:var(--diver); stroke:none}
 .diver .soft{fill:var(--diver); fill-opacity:.34; stroke:var(--diver); stroke-width:1.7}
-.diver .face{stroke:var(--diver); stroke-width:1.9; fill:none; stroke-linecap:round}
+.diver .face{stroke:#ff3b6b; stroke-width:2.4; fill:none; stroke-linecap:round; filter:drop-shadow(0 0 2px rgba(255,59,107,.85))}
 .diver .gold{fill:none; stroke:#ffe6a3; stroke-width:2.4}
 /* parts hidden by default, shown per stage */
 .diver .p-chute,.diver .p-cords,.diver .p-wing,.diver .p-halo,.diver .p-spark{opacity:0; transition:opacity .6s ease}
@@ -108,7 +108,7 @@ body.light .diver{--diver:#241f38}
 /* red scribble eyes + horns */
 .diver .eye{stroke:#e23b32; stroke-width:1.9; fill:none; stroke-linecap:round}
 body.light .diver .eye{stroke:#c81f17}
-.diver .horns{fill:none; stroke:var(--diver); stroke-width:2.4; stroke-linecap:round}
+.diver .horns{fill:none; stroke:var(--diver); stroke-width:2; stroke-linecap:round}
 /* left / right click actions on .rig (compose over the SVG pose, facing preserved) */
 .diver.act-l .rig{animation:punch .32s ease}
 .diver.act-r .rig{animation:spin .5s ease}
@@ -143,8 +143,8 @@ h1{font-size:clamp(2.6rem,7vw,6rem); line-height:.98; letter-spacing:-.03em; mar
 h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
 /* black-metal display font used ONLY as a spaced-out decorative accent */
 .bm{font-family:"BlackMetal",var(--font); font-weight:700;
-  letter-spacing:.55em; padding-left:.55em; text-transform:uppercase;
-  opacity:.5; line-height:1; font-size:clamp(2rem,7vw,4.6rem); margin:0 0 26px}
+  letter-spacing:.5em; padding-left:.5em; text-transform:uppercase;
+  opacity:.55; line-height:1; font-size:clamp(3.4rem,13vw,8.5rem); margin:clamp(48px,9vh,110px) 0 clamp(40px,7vh,88px)}
 .lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
 .scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
   font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
@@ -220,7 +220,6 @@ footer a{color:var(--accent); text-decoration:none}
 <div class="void" aria-hidden="true"><span class="l1"></span><span class="l2"></span><span class="l3"></span></div>
 <div class="descent-layers" id="descentLayers" aria-hidden="true">
   <div class="dlayer" data-center="0.06" data-peak="0.30" style="background-image:url('media/descent/d01.jpg')"></div>
-  <div class="dlayer" data-center="0.12" data-peak="0.32" style="background-image:url('media/descent/d02.jpg')"></div>
   <div class="dlayer" data-center="0.18" data-peak="0.30" style="background-image:url('media/descent/d03.jpg')"></div>
   <div class="dlayer" data-center="0.24" data-peak="0.34" style="background-image:url('media/descent/d04.jpg')"></div>
   <div class="dlayer" data-center="0.30" data-peak="0.30" style="background-image:url('media/descent/d05.jpg')"></div>
@@ -228,7 +227,7 @@ footer a{color:var(--accent); text-decoration:none}
   <div class="dlayer" data-center="0.42" data-peak="0.36" style="background-image:url('media/descent/d07.jpg')"></div>
   <div class="dlayer" data-center="0.50" data-peak="0.24" style="background-image:url('media/descent/d10.jpg')"></div>
   <div class="dlayer" data-center="0.52" data-peak="0.30" style="background-image:url('media/descent/d08.jpg')"></div>
-  <div class="dlayer" data-center="0.58" data-peak="0.30" data-yoff="70" style="background-image:url('media/descent/d09.jpg')"></div>
+  <div class="dlayer" data-center="0.58" data-peak="0.30" style="background-image:url('media/descent/d09.jpg')"></div>
 </div>
 <div class="grain" aria-hidden="true"></div>
 <div class="readscrim" aria-hidden="true"></div>
@@ -258,7 +257,7 @@ footer a{color:var(--accent); text-decoration:none}
         <path class="ln" stroke-width="1.6" d="M40,42 L47,42 M14,42 L7,42 M27,29 L27,21 M27,55 L27,63 M36,33 L41,28 M18,33 L13,28 M36,51 L41,56 M18,51 L13,56"/>
       </g>
       <path class="ln glowbody" d="M27,33 C34,34 36,40 34,44 C32,49 27,51 23,49 C19,47 17,41 21,37 C24,34 29,33 27,34 M25,35 C31,35 35,39 34,44 C33,48 28,51 24,49 C20,47 19,42 22,38"/>
-      <path class="horns" d="M23,33 L20.5,27 M31,33 L33.5,27"/>
+      <path class="horns" d="M23.5,32.5 L22.3,28.7 M30.5,32.5 L31.7,28.7"/>
       <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
       <path class="face" d="M19,44 Q27,55.5 35,44 M22.5,45.2 v3.3 M26,46.5 v3.7 M29.5,46.5 v3.7 M33,45.2 v3.3"/>
     </g>
