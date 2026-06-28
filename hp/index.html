@@ -73,7 +73,7 @@ body.light .diver{--diver:#241f38}
 .diver .ln{fill:none; stroke:var(--diver); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
 .diver .fl{fill:var(--diver); stroke:none}
 .diver .soft{fill:var(--diver); fill-opacity:.34; stroke:var(--diver); stroke-width:1.7}
-.diver .face{stroke:#ff3b6b; stroke-width:2.4; fill:none; stroke-linecap:round; filter:drop-shadow(0 0 2px rgba(255,59,107,.85))}
+.diver .face{stroke:#ff3344; stroke-width:2.7; fill:none; stroke-linecap:round; filter:drop-shadow(0 0 3px rgba(255,60,80,1)) drop-shadow(0 0 6px rgba(255,40,70,.7))}
 .diver .gold{fill:none; stroke:#ffe6a3; stroke-width:2.4}
 /* parts hidden by default, shown per stage */
 .diver .p-chute,.diver .p-cords,.diver .p-wing,.diver .p-halo,.diver .p-spark{opacity:0; transition:opacity .6s ease}
@@ -86,7 +86,7 @@ body.light .diver{--diver:#241f38}
 .diver svg{transition:transform .7s cubic-bezier(.4,0,.2,1); transform-origin:center center}
 .diver .rig{transform-box:fill-box; transform-origin:center}
 .diver[data-stage="dive"] svg{transform:rotate(168deg)}
-.diver[data-stage="flail"] svg{animation:barrel 1.05s linear infinite}
+.diver[data-stage="flail"] svg{animation:flail .5s ease-in-out infinite}
 .diver[data-stage="chute"] svg{animation:sway 2.4s ease-in-out infinite}
 .diver[data-stage="wings"] .p-wing{animation:flap 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
@@ -94,26 +94,38 @@ body.light .diver{--diver:#241f38}
 .diver[data-stage="halo"] .glowbody{filter:drop-shadow(0 0 6px rgba(255,230,163,.9))}
 /* comic falling action lines around the diver; intensity via --fall (set in JS) */
 .diver .fall-lines{opacity:var(--fall,0); transition:opacity .2s ease; transform-box:fill-box; transform-origin:center}
-.diver[data-stage="flail"] .fall-lines, .diver[data-stage="dive"] .fall-lines{animation:flj .22s steps(2,end) infinite}
-@keyframes barrel{from{transform:rotateZ(180deg) rotateY(0deg)} to{transform:rotateZ(180deg) rotateY(360deg)}}
+.diver .fall-lines .vfl{stroke-width:1.2; fill:none}
+.diver[data-stage="flail"] .fall-lines, .diver[data-stage="dive"] .fall-lines{animation:flj .16s steps(3,end) infinite}
+@keyframes flail{0%{transform:rotate(158deg)}25%{transform:rotate(178deg)}50%{transform:rotate(164deg)}75%{transform:rotate(182deg)}100%{transform:rotate(158deg)}}
+@keyframes barrel{from{transform:rotate(168deg) rotateY(0deg)} to{transform:rotate(168deg) rotateY(360deg)}}
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
 @keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
-@keyframes flj{0%{transform:scale(.9)}100%{transform:scale(1.14)}}
+@keyframes flj{0%{transform:translateY(0) scale(.86)}50%{transform:translateY(-1.6px) scale(1.1)}100%{transform:translateY(1.2px) scale(.93)}}
 @media (hover:none){ .diver{display:none} }
 @media (prefers-reduced-motion: reduce){ .diver svg,.diver .rig,.diver .p-wing,.diver .p-spark,.diver .fall-lines{animation:none !important} }
 
 /* the diver IS the cursor (non-touch only) */
 @media (hover:hover){ html, html *{cursor:none} }
+/* red scope: a steady crosshair that tracks the pointer directly, marking where a click lands */
+.scope{position:fixed; top:0; left:0; width:30px; height:30px; z-index:52; pointer-events:none;
+  transform:translate(-50%,-50%); will-change:left,top; opacity:.92}
+.scope svg{display:block; filter:drop-shadow(0 0 2px rgba(226,59,50,.9))}
+.scope .ring{fill:none; stroke:#e23b32; stroke-width:1.6}
+.scope .tick{stroke:#e23b32; stroke-width:1.6; stroke-linecap:round}
+.scope .dot{fill:#ff4d4d}
+.scope.click{animation:scopeflash .3s ease-out}
+@keyframes scopeflash{0%{transform:translate(-50%,-50%) scale(1)}45%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
+@media (hover:none){ .scope{display:none} }
+@media (prefers-reduced-motion: reduce){ .scope.click{animation:none} }
 /* red scribble eyes + horns */
 .diver .eye{stroke:#e23b32; stroke-width:1.9; fill:none; stroke-linecap:round}
 body.light .diver .eye{stroke:#c81f17}
-.diver .horns{fill:none; stroke:var(--diver); stroke-width:2; stroke-linecap:round}
+.diver .horns{fill:var(--diver); stroke:var(--diver); stroke-width:.5; stroke-linejoin:miter}
 /* left / right click actions on .rig (compose over the SVG pose, facing preserved) */
 .diver.act-l .rig{animation:punch .32s ease}
-.diver.act-r .rig{animation:spin .5s ease}
-@keyframes punch{0%{transform:scale(1)}40%{transform:scale(1.35,.78)}100%{transform:scale(1)}}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.diver.act-r svg{animation:barrel .62s ease-in-out}
+@keyframes punch{0%{transform:scale(1)}40%{transform:scale(1.35,.7)}100%{transform:scale(1)}}
 /* falling action lines (Naruto style); opacity + speed set in JS */
 .speedlines{position:fixed; inset:-14%; z-index:5; pointer-events:none; opacity:0;
   background:repeating-linear-gradient(91deg, transparent 0 13px, rgba(220,210,250,.5) 13px 14px);
@@ -144,7 +156,7 @@ h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; ma
 /* black-metal display font used ONLY as a spaced-out decorative accent */
 .bm{font-family:"BlackMetal",var(--font); font-weight:700;
   letter-spacing:.5em; padding-left:.5em; text-transform:uppercase;
-  opacity:.55; line-height:1; font-size:clamp(3.4rem,13vw,8.5rem); margin:clamp(48px,9vh,110px) 0 clamp(40px,7vh,88px)}
+  opacity:.55; line-height:1; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px)}
 .lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
 .scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
   font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
@@ -219,15 +231,12 @@ footer a{color:var(--accent); text-decoration:none}
 <div class="loader" id="loader"><div class="mk">descending</div></div>
 <div class="void" aria-hidden="true"><span class="l1"></span><span class="l2"></span><span class="l3"></span></div>
 <div class="descent-layers" id="descentLayers" aria-hidden="true">
-  <div class="dlayer" data-center="0.06" data-peak="0.30" style="background-image:url('media/descent/d01.jpg')"></div>
-  <div class="dlayer" data-center="0.18" data-peak="0.30" style="background-image:url('media/descent/d03.jpg')"></div>
-  <div class="dlayer" data-center="0.24" data-peak="0.34" style="background-image:url('media/descent/d04.jpg')"></div>
-  <div class="dlayer" data-center="0.30" data-peak="0.30" style="background-image:url('media/descent/d05.jpg')"></div>
-  <div class="dlayer" data-center="0.36" data-peak="0.34" style="background-image:url('media/descent/d06.jpg')"></div>
-  <div class="dlayer" data-center="0.42" data-peak="0.36" style="background-image:url('media/descent/d07.jpg')"></div>
-  <div class="dlayer" data-center="0.50" data-peak="0.24" style="background-image:url('media/descent/d10.jpg')"></div>
-  <div class="dlayer" data-center="0.52" data-peak="0.30" style="background-image:url('media/descent/d08.jpg')"></div>
-  <div class="dlayer" data-center="0.58" data-peak="0.30" style="background-image:url('media/descent/d09.jpg')"></div>
+  <div class="dlayer" data-center="0.08" data-peak="0.32" style="background-image:url('media/descent/d01.jpg')"></div>
+  <div class="dlayer" data-center="0.21" data-peak="0.34" style="background-image:url('media/descent/d07.jpg')"></div>
+  <div class="dlayer" data-center="0.32" data-peak="0.36" style="background-image:url('media/descent/d05.jpg')"></div>
+  <div class="dlayer" data-center="0.42" data-peak="0.36" style="background-image:url('media/descent/d08.jpg')"></div>
+  <div class="dlayer" data-center="0.50" data-peak="0.30" style="background-image:url('media/descent/d10.jpg')"></div>
+  <div class="dlayer" data-center="0.57" data-peak="0.34" style="background-image:url('media/descent/d09.jpg'); background-position:center top"></div>
 </div>
 <div class="grain" aria-hidden="true"></div>
 <div class="readscrim" aria-hidden="true"></div>
@@ -254,13 +263,24 @@ footer a{color:var(--accent); text-decoration:none}
       <path class="p-arm ln" d="M18,42 Q11,45 10,51 M36,42 Q43,45 44,51"/>
       <path class="p-leg ln" d="M24,50 L22,63 M30,50 L32,63"/>
       <g class="fall-lines">
-        <path class="ln" stroke-width="1.6" d="M40,42 L47,42 M14,42 L7,42 M27,29 L27,21 M27,55 L27,63 M36,33 L41,28 M18,33 L13,28 M36,51 L41,56 M18,51 L13,56"/>
+        <path class="ln vfl" d="M19,24.5 L27,28.5 L35,24.5"/>
+        <path class="ln vfl" d="M20,18.5 L27,22.2 L34,18.5"/>
+        <path class="ln vfl" d="M21,12.5 L27,16 L33,12.5"/>
+        <path class="ln vfl" d="M22,6.5 L27,9.8 L32,6.5"/>
       </g>
       <path class="ln glowbody" d="M27,33 C34,34 36,40 34,44 C32,49 27,51 23,49 C19,47 17,41 21,37 C24,34 29,33 27,34 M25,35 C31,35 35,39 34,44 C33,48 28,51 24,49 C20,47 19,42 22,38"/>
-      <path class="horns" d="M23.5,32.5 L22.3,28.7 M30.5,32.5 L31.7,28.7"/>
+      <path class="horns" d="M22.6,33 L24.7,33 L22.1,30.1 Z M31.4,33 L29.3,33 L31.9,30.1 Z"/>
       <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
       <path class="face" d="M19,44 Q27,55.5 35,44 M22.5,45.2 v3.3 M26,46.5 v3.7 M29.5,46.5 v3.7 M33,45.2 v3.3"/>
     </g>
+  </svg>
+</div>
+
+<div class="scope" id="scope" aria-hidden="true">
+  <svg viewBox="0 0 30 30" width="30" height="30">
+    <circle class="ring" cx="15" cy="15" r="10"/>
+    <path class="tick" d="M15,0 L15,7 M15,23 L15,30 M0,15 L7,15 M23,15 L30,15"/>
+    <circle class="dot" cx="15" cy="15" r="1.6"/>
   </svg>
 </div>
 
@@ -436,6 +456,7 @@ footer a{color:var(--accent); text-decoration:none}
     var e = document.createElement("div"); e.className = "fx " + cls;
     e.style.left = x + "px"; e.style.top = y + "px";
     if (opts.text) e.textContent = opts.text;
+    if (opts.size) e.style.fontSize = opts.size + "px";
     if (opts.dx != null){ e.style.setProperty("--dx", opts.dx + "px"); e.style.setProperty("--dy", opts.dy + "px"); }
     document.body.appendChild(e);
     setTimeout(function(){ e.remove(); }, opts.life || 1100);
@@ -497,20 +518,27 @@ footer a{color:var(--accent); text-decoration:none}
   onScroll();
 
   // the diver follows the pointer (hidden on touch via CSS); stage is set in onScroll
+  var scope = document.getElementById("scope");
+  function moveScope(x, y){ if (scope){ scope.style.left = x + "px"; scope.style.top = y + "px"; } }
+  moveScope(lastX, lastY);
   if (diver){
     window.addEventListener("pointermove", function(e){
       lastX = e.clientX; lastY = e.clientY;
       diver.style.left = lastX + "px";
       diver.style.top  = lastY + "px";
+      // the red scope tracks the pointer directly, with no animation lag, so a click target stays crisp
+      moveScope(lastX, lastY);
       // sparse sparkling star trail near paradise
       if (!reduce && diver.getAttribute("data-stage") === "halo" && Date.now()-lastTrail > 230 && Math.random() < 0.5){
         lastTrail = Date.now();
         spawnFx("star", lastX + (Math.random()*16-8), lastY + (Math.random()*16-8), {text:"✦", life:1100});
       }
     }, {passive:true});
-    // left and right click actions
+    // left click = punch thrash; right click = barrel roll. The scope flashes to mark the hit.
     window.addEventListener("mousedown", function(e){
       if (reduce) return;
+      if (scope){ scope.classList.remove("click"); void scope.offsetWidth; scope.classList.add("click");
+        setTimeout(function(){ scope.classList.remove("click"); }, 320); }
       if (e.button === 0){
         diver.classList.remove("act-l"); void diver.offsetWidth; diver.classList.add("act-l");
         spawnFx("pow", lastX, lastY-18, {text:"!", life:500});
@@ -518,7 +546,7 @@ footer a{color:var(--accent); text-decoration:none}
       } else if (e.button === 2){
         diver.classList.remove("act-r"); void diver.offsetWidth; diver.classList.add("act-r");
         for (var i=0;i<5;i++) spawnFx("star", lastX+(Math.random()*36-18), lastY+(Math.random()*36-18), {text:"✦", life:900});
-        setTimeout(function(){ diver.classList.remove("act-r"); }, 520);
+        setTimeout(function(){ diver.classList.remove("act-r"); }, 640);
       }
     });
     window.addEventListener("contextmenu", function(e){ e.preventDefault(); });
@@ -529,26 +557,89 @@ footer a{color:var(--accent); text-decoration:none}
   try{
     console.log("%cHACKING PARADISE","font-size:20px;font-weight:bold;color:#b9a6f5");
     console.log("%c"+[
-      "        .   *   .        ",
-      "          \\  |  /         ",
-      "       . --  +  -- .      ",
-      "          /  |  \\         ",
-      "             |||          ",
-      "             \\|/          ",
-      "              v           ",
-      "     plummet to paradise  "
-    ].join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.1");
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "  ##########################  ",
+      "  ##########################  ",
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "        plummet to paradise   "
+    ].join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.05;font-size:12px");
     console.log("%cYou found the console. Of course you did. We look for the route others overlook.\nIf you build, reach out: v1xl3t@gmail.com","color:#9d8fc7");
+    console.log("%cA path is hidden here. Type  descend()  and press Enter to begin.","color:#ffe6a3;font-weight:bold");
   }catch(e){}
+
+  // easter egg: a tiny console text adventure built on the meta-vs-rogue / FTK thesis.
+  // The rogue route (the overlooked combo, the FTK) is the only one that reaches paradise.
+  (function(){
+    function say(){ var a=Array.prototype.slice.call(arguments);
+      try{ console.log("%c"+a.join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.4"); }catch(e){} }
+    function gold(t){ try{ console.log("%c"+t, "color:#ffe6a3;font-weight:bold;font-family:monospace"); }catch(e){} }
+    function opts(t){ try{ console.log("%c"+t, "color:#9d8fc7;font-style:italic;font-family:monospace"); }catch(e){} }
+    window.descend = function(){
+      say("THE ABYSS is an Infinite Void, and you are standing at the Chasm's edge.",
+          "Behind you, the apostles chant: await the promise, the curtain will rise for the worthy.",
+          "Below you, only silence, and the rumor that the Void has no floor.");
+      opts("Do you wait, or do you fall?   wait()   |   plummet()");
+      return "(type wait() or plummet())";
+    };
+    window.wait = function(){
+      say("You take your place among the unmoving, envisioning stars.",
+          "Day in and day out you await THE PROMISE. The Ambrosian Fields fade.",
+          "The curtain closes, unheralded. Nothing answers. The blessed path was a queue.");
+      opts("There was another way down. plummet()");
+      return "(type plummet())";
+    };
+    window.plummet = function(){
+      say("You step the furthest anyone has ever leapt. The Void cloaks your weightless descent.",
+          "Down here the rumor is true: there are two ways to play this.",
+          "The meta deck, proven, expensive, the beaten path. Or the rogue line nobody respects.");
+      opts("How do you win?   meta()   |   rogue()");
+      return "(type meta() or rogue())";
+    };
+    window.meta = function(){
+      say("You grind the gatekept deck the way you were told. Slow, heavy, costly.",
+          "You play fair. You reach your battle phase, your end phase, every phase they expect.",
+          "And there, exactly where they were waiting, the opponent answers first. You fall short.");
+      opts("The downside cards only look bad if you assume you reach those phases. rogue()");
+      return "(type rogue())";
+    };
+    window.rogue = function(){
+      say("You take the cards everyone wrote off as trash and push them to their limit.",
+          "You find the FTK: a reachable combo that wins before the first turn ever lands.",
+          "The downsides never trigger, because you are gone before the board can punish you.",
+          "You dive into the abyss and come up, somehow, at the summit.");
+      gold("PLUMMET TO PARADISE. You hacked the shortcut. You win your own way.");
+      gold("That is the whole point of HACKING PARADISE. If this is you: v1xl3t@gmail.com");
+      try{ for (var i=0;i<24;i++)(function(d){ setTimeout(function(){
+        spawnFx("star", Math.random()*window.innerWidth, Math.random()*window.innerHeight, {text:"✦", size:26, life:1700});
+      }, d*45); })(i); }catch(e){}
+      return "(paradise)";
+    };
+  })();
   // easter egg: Konami code rains stars
   var konami=[38,38,40,40,37,39,37,39,66,65], ki=0;
   window.addEventListener("keydown", function(e){
     ki = (e.keyCode===konami[ki]) ? ki+1 : (e.keyCode===konami[0]?1:0);
     if (ki===konami.length){ ki=0;
+      // a clear gold flash so the unlock is unmistakable
+      var flash = document.createElement("div");
+      flash.style.cssText = "position:fixed;inset:0;z-index:48;pointer-events:none;opacity:0;"
+        + "background:radial-gradient(60% 55% at 50% 38%, rgba(255,224,150,.55), rgba(255,205,90,0) 70%);"
+        + "transition:opacity .25s ease";
+      document.body.appendChild(flash);
+      requestAnimationFrame(function(){ flash.style.opacity = "1";
+        setTimeout(function(){ flash.style.opacity = "0"; setTimeout(function(){ flash.remove(); }, 600); }, 260); });
+      // ~40 big, bright gold stars raining down
       for (var i=0;i<40;i++)(function(d){ setTimeout(function(){
-        spawnFx("star", Math.random()*window.innerWidth, Math.random()*window.innerHeight, {text:"✦", life:1500});
-      }, d*40); })(i);
-      try{ console.log("%cPLUMMET TO PARADISE","font-size:16px;color:#ffe6a3"); }catch(e){}
+        spawnFx("star", Math.random()*window.innerWidth, Math.random()*window.innerHeight,
+          {text:"✦", size:(28 + Math.random()*18)|0, life:1800});
+      }, d*45); })(i);
+      try{ console.log("%cPLUMMET TO PARADISE","font-size:18px;font-weight:bold;color:#ffe6a3"); }catch(e){}
     }
   });
 

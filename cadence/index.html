@@ -72,10 +72,22 @@
       <div class="group">
         <div class="group-label">Arrange <span class="hint">(multi-select first)</span></div>
         <div class="arrange-row">
+          <span class="arrange-lbl" title="Align the low faces of the selected objects flush on an axis (their minimum edge)">Align min</span>
+          <button data-align="x" data-align-mode="min" class="mini" title="Align low faces on X">X</button>
+          <button data-align="y" data-align-mode="min" class="mini" title="Align low faces on Y (bottoms)">Y</button>
+          <button data-align="z" data-align-mode="min" class="mini" title="Align low faces on Z">Z</button>
+        </div>
+        <div class="arrange-row">
           <span class="arrange-lbl" title="Align the centers of the selected objects on an axis">Align ctr</span>
-          <button data-align="x" class="mini" title="Align centers on X">X</button>
-          <button data-align="y" class="mini" title="Align centers on Y (height)">Y</button>
-          <button data-align="z" class="mini" title="Align centers on Z">Z</button>
+          <button data-align="x" data-align-mode="center" class="mini" title="Align centers on X">X</button>
+          <button data-align="y" data-align-mode="center" class="mini" title="Align centers on Y (height)">Y</button>
+          <button data-align="z" data-align-mode="center" class="mini" title="Align centers on Z">Z</button>
+        </div>
+        <div class="arrange-row">
+          <span class="arrange-lbl" title="Align the high faces of the selected objects flush on an axis (their maximum edge)">Align max</span>
+          <button data-align="x" data-align-mode="max" class="mini" title="Align high faces on X">X</button>
+          <button data-align="y" data-align-mode="max" class="mini" title="Align high faces on Y (tops)">Y</button>
+          <button data-align="z" data-align-mode="max" class="mini" title="Align high faces on Z">Z</button>
         </div>
         <div class="arrange-row">
           <span class="arrange-lbl" title="Space 3+ objects evenly between the outermost two on an axis">Distribute</span>
@@ -126,6 +138,10 @@
         <div class="setrow">
           <label for="set-render" title="How solids are drawn in the viewport — shaded, flat clay, wireframe, or see-through.">Render</label>
           <select id="set-render"></select>
+        </div>
+        <div class="setrow">
+          <label for="set-units" title="Units for the Inspector size readout and exported files. Modeling itself stays in millimeters; exports keep the same real-world size, just expressed in this unit.">Units</label>
+          <select id="set-units"></select>
         </div>
         <div class="setrow">
           <label for="set-controls" title="Mouse navigation scheme — match the CAD/3D app you're used to, or build your own below.">Controls</label>
@@ -189,7 +205,7 @@
           </div>
           <div class="sc-col">
             <div class="sc-sec">Edit</div>
-            <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo</div>
+            <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> Redo</div>
             <div><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> Copy / Paste</div>
             <div><kbd>Ctrl</kbd>+<kbd>D</kbd> Duplicate</div>
             <div><kbd>Del</kbd> Delete selection</div>

@@ -31,6 +31,19 @@ export const CONTROL_PRESETS = [
   { id: 'onshape',    label: 'OnShape',    map: { LEFT: 'ROTATE', MIDDLE: 'PAN',    RIGHT: 'ROTATE' } },
 ];
 
+// Display / export units. Modeling itself stays in millimeters (the precise CAD
+// core); these only re-express the Inspector size readout and scale exported
+// files. `perMm` = how many of this unit one millimeter is (1 mm = 0.1 cm).
+export const UNITS = [
+  { id: 'mm',   label: 'mm',   note: 'millimeters (default)', perMm: 1 },
+  { id: 'cm',   label: 'cm',   note: 'centimeters',           perMm: 0.1 },
+  { id: 'inch', label: 'inch', note: 'inches',                perMm: 1 / 25.4 },
+];
+
+export function unitInfo(id) { return UNITS.find((u) => u.id === id) || UNITS[0]; }
+export function unitScale(id) { return unitInfo(id).perMm; }   // multiply mm by this to get the unit
+export function unitLabel(id) { return unitInfo(id).label; }
+
 // Per-button navigation verbs for the custom-controls mapper.
 export const NAV_VERBS = [
   { id: 'ROTATE', label: 'Rotate' },
@@ -41,7 +54,7 @@ export const NAV_VERBS = [
 
 const KEY = 'cadence.settings.v1';
 const DEFAULTS = {
-  ui: 'midnight', render: 'shaded', controls: 'cadence',
+  ui: 'midnight', render: 'shaded', controls: 'cadence', units: 'mm',
   map: null,          // active {LEFT,MIDDLE,RIGHT} verb map; null = derive from `controls`
   userPresets: [],    // [{ id, label, map }] saved by the user
 };

@@ -4,6 +4,7 @@
 // then dial in an exact value — the workflow swap Vi is after, in miniature.
 
 import { PARAM_SCHEMA, ROLE_LABELS } from './primitives.js';
+import { unitScale, unitLabel } from './settings.js';
 import * as THREE from 'three';
 
 const RAD2DEG = 180 / Math.PI;
@@ -13,9 +14,11 @@ const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export class Inspector {
-  constructor(doc, { onChange } = {}) {
+  constructor(doc, { onChange, units } = {}) {
     this.doc = doc;
     this.onChange = onChange || (() => {});
+    // Getter for the active display unit id (mm/cm/inch); modeling stays in mm.
+    this.units = units || (() => 'mm');
     this.empty = document.getElementById('inspector-empty');
     this.body = document.getElementById('inspector-body');
 
@@ -154,7 +157,9 @@ export class Inspector {
   _bboxText(obj) {
     obj.mesh.updateWorldMatrix(true, false);
     const s = new THREE.Box3().setFromObject(obj.mesh).getSize(new THREE.Vector3());
-    return `Size: <b>${round(s.x)} × ${round(s.y)} × ${round(s.z)}</b> mm`;
+    const u = this.units();
+    const k = unitScale(u);
+    return `Size: <b>${round(s.x * k)} × ${round(s.y * k)} × ${round(s.z * k)}</b> ${unitLabel(u)}`;
   }
 
   _wire(obj) {

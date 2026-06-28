@@ -11,6 +11,12 @@
 import * as THREE from 'three';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import { zipSync, strToU8 } from 'fflate';
+import { unitScale } from './settings.js';
+
+// 3MF declares its unit explicitly; STL is unitless (slicers assume the numbers
+// are millimeters). Either way we scale the baked geometry so the file expresses
+// the chosen unit at the same real-world size.
+const UNIT_3MF = { mm: 'millimeter', cm: 'centimeter', inch: 'inch' };
 
 // CADence works Y-up; slicers expect Z-up. Bake this rotation into exports so
 // parts drop onto the print bed upright instead of lying on their side.
@@ -32,13 +38,15 @@ function printable(objects) {
   return objects.filter((o) => o.role !== 'hole' && o.mesh.visible !== false);
 }
 
-export function exportSTL(objects, filename = 'cadence-part.stl') {
+export function exportSTL(objects, filename = 'cadence-part.stl', unit = 'mm') {
+  const scale = unitScale(unit);
   const group = new THREE.Group();
   for (const obj of printable(objects)) {
     obj.mesh.updateWorldMatrix(true, false);
     const baked = obj.mesh.geometry.clone();
     baked.applyMatrix4(obj.mesh.matrixWorld);
     baked.applyMatrix4(Z_UP);
+    if (scale !== 1) baked.scale(scale, scale, scale);
     group.add(new THREE.Mesh(baked, obj.mesh.material));
   }
   if (!group.children.length) return false;
@@ -64,7 +72,7 @@ const RELS = `<?xml version="1.0" encoding="UTF-8"?>
 
 // Merge every printable object into one world-space triangle soup. Everything is
 // de-indexed, so each consecutive trio of vertices is one triangle.
-function gatherWorldMesh(objects) {
+function gatherWorldMesh(objects, scale = 1) {
   const verts = [];
   const tris = [];
   let base = 0;
@@ -73,6 +81,7 @@ function gatherWorldMesh(objects) {
     const g = obj.mesh.geometry.index ? obj.mesh.geometry.toNonIndexed() : obj.mesh.geometry.clone();
     g.applyMatrix4(obj.mesh.matrixWorld);
     g.applyMatrix4(Z_UP);
+    if (scale !== 1) g.scale(scale, scale, scale);
     const pos = g.getAttribute('position');
     for (let i = 0; i < pos.count; i++) verts.push(pos.getX(i), pos.getY(i), pos.getZ(i));
     for (let i = 0; i < pos.count; i += 3) tris.push(base + i, base + i + 1, base + i + 2);
@@ -84,13 +93,13 @@ function gatherWorldMesh(objects) {
 
 const f = (n) => +n.toFixed(4); // trim float noise to keep the file lean
 
-function buildModelXML(verts, tris) {
+function buildModelXML(verts, tris, unit = 'mm') {
   const v = [];
   for (let i = 0; i < verts.length; i += 3) v.push(`<vertex x="${f(verts[i])}" y="${f(verts[i + 1])}" z="${f(verts[i + 2])}"/>`);
   const t = [];
   for (let i = 0; i < tris.length; i += 3) t.push(`<triangle v1="${tris[i]}" v2="${tris[i + 1]}" v3="${tris[i + 2]}"/>`);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+<model unit="${UNIT_3MF[unit] || 'millimeter'}" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
   <resources>
     <object id="1" type="model">
       <mesh>
@@ -103,14 +112,14 @@ function buildModelXML(verts, tris) {
 </model>`;
 }
 
-export function export3MF(objects, filename = 'cadence-part.3mf') {
-  const { verts, tris } = gatherWorldMesh(objects);
+export function export3MF(objects, filename = 'cadence-part.3mf', unit = 'mm') {
+  const { verts, tris } = gatherWorldMesh(objects, unitScale(unit));
   if (!tris.length) return false;
 
   const zipped = zipSync({
     '[Content_Types].xml': strToU8(CONTENT_TYPES),
     '_rels/.rels': strToU8(RELS),
-    '3D/3dmodel.model': strToU8(buildModelXML(verts, tris)),
+    '3D/3dmodel.model': strToU8(buildModelXML(verts, tris, unit)),
   });
   triggerDownload(new Blob([zipped], { type: 'model/3mf' }), filename);
   return true;

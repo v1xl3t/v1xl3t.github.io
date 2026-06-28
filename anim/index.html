@@ -70,6 +70,24 @@
   .frame.add canvas{display:grid;place-items:center;color:var(--muted);font-size:22px}
   .frame.dragging{opacity:.4}
   .frame.dropbefore{box-shadow:-3px 0 0 0 var(--accent2)}
+
+  /* stage / preview overlay */
+  #stage-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;grid-template-rows:auto 1fr}
+  #stage-overlay[hidden]{display:none}
+  .stage-top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel)}
+  .stage-body{display:grid;grid-template-columns:1fr 300px;min-height:0}
+  .stage-view{display:flex;align-items:center;justify-content:center;overflow:auto;background:
+    repeating-conic-gradient(#15181f 0% 25%, #1b1f28 0% 50%) 50%/24px 24px;padding:18px}
+  #stage-canvas{image-rendering:pixelated;background:transparent;box-shadow:0 0 0 1px var(--border),0 20px 60px -20px #000}
+  .stage-ctrls{border-left:1px solid var(--border);background:var(--panel);overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+  .scard{border:1px solid var(--border);border-radius:9px;background:var(--panel2);padding:9px 10px}
+  .scard h4{margin:0 0 7px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  .schip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .schip .lab{font-size:11px;color:var(--muted);width:100%;margin-bottom:1px}
+  .sbtn{padding:4px 9px;font-size:12px;border-radius:6px}
+  .sbtn.live{background:var(--accent2);border-color:var(--accent2);color:#04231b}
+  .sbtn.queued{outline:2px dashed var(--accent2);outline-offset:1px}
+  .sbtn.running{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -96,6 +114,7 @@
     <div class="sep"></div>
     <button id="onion" title="Onion skin (O)">👻 Onion</button>
     <div class="grow"></div>
+    <button id="stage-btn" title="Stage / Preview mode: trigger states & transitions live without changing the document">🎮 Stage</button>
     <button id="play" title="Play / stop (Space)">▶ Play</button>
     <label class="hint">FPS <input type="number" id="fps" value="12" min="1" max="60" /></label>
     <div class="sep"></div>
@@ -116,6 +135,16 @@
         <button class="mini" id="state-dup" title="Duplicate this state">⧉</button>
         <button class="mini" id="state-ren" title="Rename this state">✎</button>
         <button class="mini danger" id="state-del" title="Delete this state">🗑</button>
+      </div>
+      <div class="statebar" id="transbar">
+        <b class="hint" style="text-transform:uppercase;letter-spacing:.08em">Transition</b>
+        <select id="transSel" title="Transitions defined on this layer (from-state to to-state)" style="max-width:150px"></select>
+        <button class="mini" id="trans-add" title="Define a transition sheet from the active state to the next state">＋ Def</button>
+        <button class="mini" id="trans-edit" title="Edit the selected transition's frames in the canvas / frame strip">Edit sheet</button>
+        <button class="mini" id="trans-try" title="Preview the transition once on the canvas (does not change the document)">▶ Try</button>
+        <button class="mini danger" id="trans-del" title="Delete the selected transition">🗑</button>
+        <label class="hint" title="A transition must start on a valid loop frame">start f<input type="number" id="trans-start" value="1" min="1" style="width:46px"></label>
+        <span class="hint" id="editflag" style="flex-basis:100%;color:var(--accent2)"></span>
       </div>
       <div class="rail-h"><b>Layers</b>
         <span>
@@ -149,6 +178,23 @@
   </footer>
 </div>
 
+<!-- Stage / Preview overlay: a game-style sandbox to trigger states & transitions
+     live. It reads the document but never writes to it. -->
+<div id="stage-overlay" hidden>
+  <div class="stage-top">
+    <div class="brand"><b>Stage</b> <span class="hint">live preview: the document is not changed</span></div>
+    <div class="grow"></div>
+    <span class="status" id="stage-hud">frame 1 / 1</span>
+    <label class="hint">FPS <input type="number" id="stage-fps" value="12" min="1" max="60" /></label>
+    <button id="stage-pause" title="Pause / resume (Space)">⏸ Pause</button>
+    <button id="stage-exit" title="Exit stage (Esc)">✕ Exit</button>
+  </div>
+  <div class="stage-body">
+    <div class="stage-view"><canvas id="stage-canvas"></canvas></div>
+    <div class="stage-ctrls" id="stage-ctrls"></div>
+  </div>
+</div>
+
 <script>
 "use strict";
 // ----------------------------------------------------------------------------
@@ -166,13 +212,31 @@ const DEFAULT_PALETTE = ['#000000','#ffffff','#7c5cff','#33d6a6','#ff5d6c','#ffb
 const uid = () => Math.random().toString(36).slice(2, 9);
 const blankFrame = (n) => new Array(n).fill(null);
 const newState = (name, loop, n) => ({ name, frames: Array.from({length: loop}, () => blankFrame(n)) });
-const newLayer = (name, loop, n) => ({ id: uid(), name, visible: true, opacity: 1, states: [newState('default', loop, n)], active: 0 });
+// A transition is its OWN little sheet (independent length) that bridges two of
+// the layer's states. Rule: it must START on a valid loop frame (startFrame is a
+// loop-frame index, 0..loop-1). It is serialisable like everything else in P.
+const newTransition = (from, to, startFrame, len, n) => ({ id: uid(), from, to, startFrame, frames: Array.from({length: Math.max(2, len)}, () => blankFrame(n)) });
+const newLayer = (name, loop, n) => ({ id: uid(), name, visible: true, opacity: 1, states: [newState('default', loop, n)], active: 0, transitions: [] });
+
+// Older save files may predate `transitions`; make every layer well-formed.
+function normalize(pr) {
+  if (!pr || !pr.layers) return pr;
+  for (const L of pr.layers) {
+    if (!Array.isArray(L.transitions)) L.transitions = [];
+    for (const t of L.transitions) {
+      if (!t.id) t.id = uid();
+      if (typeof t.startFrame !== 'number') t.startFrame = 0;
+      if (!Array.isArray(t.frames)) t.frames = [];
+    }
+  }
+  return pr;
+}
 
 function freshProject(w = 32, h = 32, loop = 8) {
   return { w, h, loop, fps: 12, palette: [...DEFAULT_PALETTE], layers: [newLayer('Layer 1', loop, w*h)], sel: 0, frame: 0, onion: true };
 }
 
-let P = load() || freshProject();
+let P = normalize(load()) || freshProject();
 let tool = 'pen';
 let brush = 1;
 let color = document.getElementById('color').value;
@@ -190,12 +254,30 @@ let clipPix = null;                                    // copied pixel region {i
 let frameClip = null;                                  // copied loop-frame column
 let undoStack = [], redoStack = [];
 
+// What sheet the canvas + frame strip currently edit: a layer's active STATE, or
+// one of its TRANSITIONS. Interaction state only (not persisted).
+let editing = { kind: 'state' };                       // { kind:'state' } | { kind:'transition', id }
+let tryTimer = null;                                   // non-destructive "try" preview interval
+
 // --- shorthands -------------------------------------------------------------
 const $ = (id) => document.getElementById(id);
 const layer = () => P.layers[P.sel];
 const state = () => layer().states[layer().active];
-const cells = (f = P.frame) => state().frames[f];
+// The sheet currently being edited: the active state, or a transition if one is
+// selected for editing. Everything that draws/edits frames goes through this.
+function curSheet() {
+  if (editing.kind === 'transition') {
+    const t = (layer().transitions || []).find((x) => x.id === editing.id);
+    if (t) return t;
+    editing = { kind: 'state' };                        // transition vanished (deleted/undone)
+  }
+  return state();
+}
+const curLen = () => curSheet().frames.length;          // states share P.loop; transitions vary
+const cells = (f = P.frame) => curSheet().frames[f];
+const clampFrame = () => { const n = curLen(); P.frame = Math.max(0, Math.min(P.frame, n - 1)); };
 const inBounds = (x, y) => x >= 0 && y >= 0 && x < P.w && y < P.h;
+function clampTransitions() { for (const L of P.layers) for (const t of L.transitions) if (t.startFrame >= P.loop) t.startFrame = P.loop - 1; }
 
 // --- persistence ------------------------------------------------------------
 function save() { try { localStorage.setItem('layerloop', JSON.stringify(P)); } catch {} }
@@ -206,8 +288,9 @@ function load() { try { return JSON.parse(localStorage.getItem('layerloop')); } 
 // dead simple to reason about. Selection/float are interaction state, not undone.
 function snapshot() { undoStack.push(JSON.stringify(P)); if (undoStack.length > 80) undoStack.shift(); redoStack = []; updateUndoButtons(); }
 function restoreFrom(json) {
-  P = JSON.parse(json);
+  P = normalize(JSON.parse(json));
   sel = floatSel = null; lassoing = movingSel = false; lassoPts = [];
+  editing = { kind: 'state' };
   P.sel = Math.min(P.sel, P.layers.length - 1);
   P.frame = Math.min(P.frame, P.loop - 1);
   fitScale(); save(); refreshAll(); updateUndoButtons();
@@ -225,21 +308,23 @@ function fitScale() {
   SCALE = Math.max(2, Math.floor(Math.min((stage.width - 40) / P.w, (stage.height - 40) / P.h)));
   canvas.width = P.w * SCALE; canvas.height = P.h * SCALE;
 }
-function drawCells(c, arr, alpha) {
+// `s` is the cell size in px. Defaults to the live editor SCALE, but native-res
+// targets (frame thumbnails, PNG export) pass s=1 so one cell = one pixel.
+function drawCells(c, arr, alpha, s = SCALE) {
   c.globalAlpha = alpha;
   for (let i = 0; i < arr.length; i++) {
     if (!arr[i]) continue;
     c.fillStyle = arr[i];
-    c.fillRect((i % P.w) * SCALE, ((i / P.w) | 0) * SCALE, SCALE, SCALE);
+    c.fillRect((i % P.w) * s, ((i / P.w) | 0) * s, s, s);
   }
   c.globalAlpha = 1;
 }
-function compositeInto(c, frameIdx) {
+function compositeInto(c, frameIdx, s = SCALE) {
   for (const L of P.layers) {
     if (!L.visible) continue;
     const st = L.states[L.active];
     const fr = st.frames[frameIdx % P.loop];
-    if (fr) drawCells(c, fr, L.opacity);
+    if (fr) drawCells(c, fr, L.opacity, s);
   }
 }
 function render() {
@@ -248,10 +333,10 @@ function render() {
   // edit view: faint other layers, onion skin, then the active layer's frame on top
   for (const L of P.layers) {
     if (!L.visible || L === layer()) continue;
-    const fr = L.states[L.active].frames[P.frame];
+    const fr = L.states[L.active].frames[P.frame % P.loop];   // mod: when editing a longer transition sheet
     if (fr) drawCells(ctx, fr, L.opacity * 0.5);
   }
-  if (P.onion && P.frame > 0) drawCells(ctx, state().frames[P.frame - 1], 0.25);
+  if (P.onion && P.frame > 0) drawCells(ctx, curSheet().frames[P.frame - 1], 0.25);
   // grid
   ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
   for (let x = 0; x <= P.w; x++) { ctx.beginPath(); ctx.moveTo(x*SCALE+.5,0); ctx.lineTo(x*SCALE+.5,canvas.height); ctx.stroke(); }
@@ -498,7 +583,7 @@ function buildLayers() {
     row.className = 'layer' + (idx === P.sel ? ' sel' : '');
     row.innerHTML = `<span class="eye">${L.visible ? '👁' : '—'}</span><span class="nm">${L.name}</span><span class="st">${L.states.length}st</span>`;
     row.querySelector('.eye').onclick = (e) => { e.stopPropagation(); snapshot(); L.visible = !L.visible; commit(); };
-    row.onclick = () => { P.sel = idx; refreshAll(); };
+    row.onclick = () => { P.sel = idx; editing = { kind: 'state' }; refreshAll(); };
     row.ondblclick = () => renameLayer(L, row);
     el.appendChild(row);
   });
@@ -510,8 +595,8 @@ function renameLayer(L, row) {
   const done = () => { snapshot(); L.name = inp.value.trim() || L.name; commit(); };
   inp.onblur = done; inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
 }
-$('layer-add').onclick = () => { snapshot(); P.layers.push(newLayer('Layer ' + (P.layers.length + 1), P.loop, P.w*P.h)); P.sel = P.layers.length - 1; commit(); };
-$('layer-del').onclick = () => { if (P.layers.length <= 1) return; snapshot(); P.layers.splice(P.sel, 1); P.sel = Math.max(0, P.sel - 1); commit(); };
+$('layer-add').onclick = () => { snapshot(); P.layers.push(newLayer('Layer ' + (P.layers.length + 1), P.loop, P.w*P.h)); P.sel = P.layers.length - 1; editing = { kind: 'state' }; commit(); };
+$('layer-del').onclick = () => { if (P.layers.length <= 1) return; snapshot(); P.layers.splice(P.sel, 1); P.sel = Math.max(0, P.sel - 1); editing = { kind: 'state' }; commit(); };
 $('layer-up').onclick = () => { if (P.sel < P.layers.length - 1) { snapshot(); [P.layers[P.sel], P.layers[P.sel+1]] = [P.layers[P.sel+1], P.layers[P.sel]]; P.sel++; commit(); } };
 $('layer-dn').onclick = () => { if (P.sel > 0) { snapshot(); [P.layers[P.sel], P.layers[P.sel-1]] = [P.layers[P.sel-1], P.layers[P.sel]]; P.sel--; commit(); } };
 
@@ -525,17 +610,104 @@ $('stateSel').onchange = (e) => { layer().active = +e.target.value; commit(); };
 $('state-add').onclick = () => { const n = prompt('New state name:', 'state ' + (layer().states.length + 1)); if (n == null) return; snapshot(); layer().states.push(newState(n.trim() || 'state', P.loop, P.w*P.h)); layer().active = layer().states.length - 1; commit(); };
 $('state-dup').onclick = () => { snapshot(); const s = state(); const copy = { name: s.name + ' copy', frames: s.frames.map(f => f.slice()) }; layer().states.push(copy); layer().active = layer().states.length - 1; commit(); };
 $('state-ren').onclick = () => { const n = prompt('Rename state:', state().name); if (n) { snapshot(); state().name = n.trim(); commit(); } };
-$('state-del').onclick = () => { if (layer().states.length <= 1) return; snapshot(); layer().states.splice(layer().active, 1); layer().active = 0; commit(); };
+$('state-del').onclick = () => {
+  const L = layer(); if (L.states.length <= 1) return;
+  snapshot(); const d = L.active; L.states.splice(d, 1); L.active = 0;
+  // transitions referencing the removed state are dropped; higher indices shift down
+  L.transitions = L.transitions.filter(t => t.from !== d && t.to !== d)
+    .map(t => ({ ...t, from: t.from > d ? t.from - 1 : t.from, to: t.to > d ? t.to - 1 : t.to }));
+  editing = { kind: 'state' }; commit();
+};
+
+// ============================================================ UI: transitions
+function stName(L, i) { return (L.states[i] && L.states[i].name) || ('state ' + (i + 1)); }
+function buildTransitions() {
+  const sel = $('transSel'); sel.innerHTML = '';
+  const L = layer(), ts = L.transitions || [];
+  if (!ts.length) { const o = document.createElement('option'); o.value = ''; o.textContent = '(no transitions)'; sel.appendChild(o); }
+  ts.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${stName(L, t.from)} → ${stName(L, t.to)}  @f${t.startFrame + 1} · ${t.frames.length}f`; sel.appendChild(o); });
+  const isTrans = editing.kind === 'transition';
+  if (isTrans) sel.value = editing.id;
+  const has = ts.length > 0;
+  $('trans-edit').disabled = !has; $('trans-del').disabled = !has; $('trans-try').disabled = !has;
+  $('trans-edit').classList.toggle('on', isTrans);
+  $('trans-edit').textContent = isTrans ? '✓ Editing sheet' : 'Edit sheet';
+  // start-frame control reflects the selected transition (must be a valid loop frame)
+  const cur = isTrans ? ts.find(t => t.id === editing.id) : (sel.value ? ts.find(t => t.id === sel.value) : ts[0]);
+  const sf = $('trans-start');
+  sf.max = Math.max(0, P.loop - 1); sf.disabled = !has;
+  sf.value = cur ? cur.startFrame + 1 : 1;
+  $('editflag').textContent = isTrans ? 'drawing transition sheet: paint the in-between frames' : '';
+}
+$('transSel').onchange = () => { const id = $('transSel').value; if (editing.kind === 'transition' && id) { editing = { kind: 'transition', id }; P.frame = 0; } refreshAll(); };
+$('trans-add').onclick = () => {
+  const L = layer();
+  if (L.states.length < 2) { alert('Add a second state first. A transition bridges one state to another (e.g. arm down to arm up).'); return; }
+  snapshot();
+  const from = L.active, to = (L.active + 1) % L.states.length;
+  const t = newTransition(from, to, Math.min(P.frame, P.loop - 1), P.loop, P.w*P.h);
+  L.transitions.push(t); editing = { kind: 'transition', id: t.id }; P.frame = 0; commit();
+};
+$('trans-edit').onclick = () => {
+  if (editing.kind === 'transition') editing = { kind: 'state' };
+  else { const id = $('transSel').value; if (!id) return; editing = { kind: 'transition', id }; }
+  P.frame = 0; refreshAll();
+};
+$('trans-del').onclick = () => {
+  const L = layer(), id = $('transSel').value; if (!id) return;
+  snapshot(); const i = L.transitions.findIndex(t => t.id === id); if (i < 0) return;
+  L.transitions.splice(i, 1); if (editing.kind === 'transition' && editing.id === id) editing = { kind: 'state' };
+  clampFrame(); commit();
+};
+$('trans-start').onchange = (e) => {
+  const L = layer(), id = editing.kind === 'transition' ? editing.id : $('transSel').value;
+  const t = (L.transitions || []).find(x => x.id === id); if (!t) return;
+  snapshot(); t.startFrame = Math.max(0, Math.min(P.loop - 1, (+e.target.value || 1) - 1)); commit();
+};
+$('trans-try').onclick = () => {
+  const L = layer(), id = editing.kind === 'transition' ? editing.id : $('transSel').value;
+  const t = (L.transitions || []).find(x => x.id === id); if (t) tryTransition(L, t);
+};
+// Non-destructive preview on the main canvas: play the transition's frames once,
+// starting from its loop start-frame, then snap back to the normal edit view.
+function tryTransition(L, t) {
+  if (playing) togglePlay();
+  if (tryTimer) { clearInterval(tryTimer); tryTimer = null; }
+  let pos = 0; const ms = 1000 / Math.max(1, P.fps);
+  tryTimer = setInterval(() => {
+    if (pos >= t.frames.length) { clearInterval(tryTimer); tryTimer = null; render(); return; }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const LL of P.layers) {
+      if (!LL.visible) continue;
+      const fr = (LL === L) ? t.frames[pos] : LL.states[LL.active].frames[(t.startFrame + pos) % P.loop];
+      if (fr) drawCells(ctx, fr, LL.opacity, SCALE);
+    }
+    pos++;
+  }, ms);
+}
 
 // ============================================================ UI: frames strip
 let dragFrom = -1;
+// Composite a thumbnail for frame f. When editing a transition, the active layer
+// shows the transition's own frame f; other layers show their state at f % loop.
+function thumbInto(c, f) {
+  if (editing.kind === 'transition') {
+    const sheet = curSheet(), me = layer();
+    for (const L of P.layers) {
+      if (!L.visible) continue;
+      const fr = (L === me) ? sheet.frames[f] : L.states[L.active].frames[f % P.loop];
+      if (fr) drawCells(c, fr, L.opacity, 1);
+    }
+  } else compositeInto(c, f, 1);
+}
 function buildFrames() {
   const el = $('frames'); el.innerHTML = '';
-  for (let f = 0; f < P.loop; f++) {
+  const N = curLen(), isTrans = editing.kind === 'transition';
+  for (let f = 0; f < N; f++) {
     const wrap = document.createElement('div'); wrap.className = 'frame' + (f === P.frame ? ' sel' : '');
     wrap.draggable = true; wrap.dataset.f = f;
     const c = document.createElement('canvas'); c.width = P.w; c.height = P.h;
-    compositeInto(c.getContext('2d'), f);
+    thumbInto(c.getContext('2d'), f);
     c.onclick = () => { P.frame = f; refreshAll(); };
     wrap.appendChild(c);
     const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = f + 1; wrap.appendChild(lbl);
@@ -550,46 +722,60 @@ function buildFrames() {
   addBtn.innerHTML = `<div style="width:54px;height:54px;display:grid;place-items:center;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font-size:22px">＋</div><div class="lbl">add</div>`;
   addBtn.onclick = addFrame;
   el.appendChild(addBtn);
-  if (P.loop > 1) {
+  if (N > 1) {
     const del = document.createElement('div'); del.className='frame add';
     del.innerHTML = `<div style="width:54px;height:54px;display:grid;place-items:center;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font-size:18px">🗑</div><div class="lbl">del</div>`;
-    del.title = 'Delete the current loop frame from every layer/state';
+    del.title = isTrans ? 'Delete this frame from the transition sheet' : 'Delete the current loop frame from every layer/state';
     del.onclick = delFrame; el.appendChild(del);
   }
-  $('frameLabel').textContent = `${P.frame + 1} / ${P.loop}`;
+  $('frameLabel').textContent = `${P.frame + 1} / ${N}` + (isTrans ? ' · transition' : '');
 }
 function addFrame() {
-  snapshot(); P.loop++;
+  snapshot();
+  if (editing.kind === 'transition') { const t = curSheet(); t.frames.push(blankFrame(P.w*P.h)); P.frame = t.frames.length - 1; commit(); return; }
+  P.loop++;
   for (const L of P.layers) for (const s of L.states) s.frames.push(blankFrame(P.w*P.h));
   P.frame = P.loop - 1; commit();
 }
 function delFrame() {
+  if (editing.kind === 'transition') { const t = curSheet(); if (t.frames.length <= 1) return; snapshot(); t.frames.splice(P.frame, 1); P.frame = Math.min(P.frame, t.frames.length - 1); commit(); return; }
   if (P.loop <= 1) return;
   snapshot(); const f = P.frame;
   for (const L of P.layers) for (const s of L.states) s.frames.splice(f, 1);
-  P.loop--; P.frame = Math.min(P.frame, P.loop - 1); commit();
+  P.loop--; P.frame = Math.min(P.frame, P.loop - 1); clampTransitions(); commit();
 }
 function duplicateFrame() {
   snapshot(); const f = P.frame;
+  if (editing.kind === 'transition') { const t = curSheet(); t.frames.splice(f + 1, 0, t.frames[f].slice()); P.frame = f + 1; commit(); return; }
   for (const L of P.layers) for (const s of L.states) s.frames.splice(f + 1, 0, s.frames[f].slice());
   P.loop++; P.frame = f + 1; commit();
 }
-function copyFrame() { frameClip = P.layers.map(L => L.states.map(s => s.frames[P.frame].slice())); flash('frame-copy'); }
+function copyFrame() {
+  if (editing.kind === 'transition') frameClip = { trans: true, col: curSheet().frames[P.frame].slice() };
+  else frameClip = { trans: false, data: P.layers.map(L => L.states.map(s => s.frames[P.frame].slice())) };
+  flash('frame-copy');
+}
 function pasteFrame() {
   if (!frameClip) return;
-  snapshot(); const f = P.frame;
+  snapshot(); const f = P.frame; const n = P.w*P.h;
+  if (editing.kind === 'transition') {
+    const t = curSheet(); const col = frameClip.trans ? frameClip.col.slice() : blankFrame(n);
+    t.frames.splice(f + 1, 0, col.length === n ? col : blankFrame(n)); P.frame = f + 1; commit(); return;
+  }
+  const data = frameClip.trans ? null : frameClip.data;
   P.layers.forEach((L, li) => L.states.forEach((s, si) => {
-    const col = (frameClip[li] && frameClip[li][si]) ? frameClip[li][si].slice() : blankFrame(P.w*P.h);
-    s.frames.splice(f + 1, 0, col.length === P.w*P.h ? col : blankFrame(P.w*P.h));
+    const col = (data && data[li] && data[li][si]) ? data[li][si].slice() : blankFrame(n);
+    s.frames.splice(f + 1, 0, col.length === n ? col : blankFrame(n));
   }));
   P.loop++; P.frame = f + 1; commit();
 }
 function moveFrame(from, to) {
   snapshot();
+  if (editing.kind === 'transition') { const t = curSheet(); const [m] = t.frames.splice(from, 1); t.frames.splice(to, 0, m); P.frame = to; commit(); return; }
   for (const L of P.layers) for (const s of L.states) { const [m] = s.frames.splice(from, 1); s.frames.splice(to, 0, m); }
   P.frame = to; commit();
 }
-function gotoFrame(d) { P.frame = (P.frame + d + P.loop) % P.loop; refreshAll(); }
+function gotoFrame(d) { const n = curLen(); P.frame = (P.frame + d + n) % n; refreshAll(); }
 function flash(id) { const b = $(id); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 250); }
 $('frame-prev').onclick = () => gotoFrame(-1);
 $('frame-next').onclick = () => gotoFrame(1);
@@ -611,7 +797,7 @@ $('onion').onclick = () => { P.onion = !P.onion; $('onion').classList.toggle('on
 // ============================================================ export
 function compositeToCanvas(frameIdx) {
   const c = document.createElement('canvas'); c.width = P.w; c.height = P.h;
-  compositeInto(c.getContext('2d'), frameIdx); return c;
+  compositeInto(c.getContext('2d'), frameIdx, 1); return c;     // native res: 1 cell = 1 px
 }
 function downloadCanvas(c, name) { const a = document.createElement('a'); a.download = name; a.href = c.toDataURL('image/png'); a.click(); }
 $('export-frame').onclick = () => downloadCanvas(compositeToCanvas(P.frame), `layerloop-frame-${P.frame+1}.png`);
@@ -625,22 +811,124 @@ $('export-sheet').onclick = () => {
 // ============================================================ save / load / resize
 $('save').onclick = () => { const a = document.createElement('a'); a.download = 'animation.layerloop.json'; a.href = URL.createObjectURL(new Blob([JSON.stringify(P)], {type:'application/json'})); a.click(); };
 $('load').onclick = () => $('file').click();
-$('file').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { snapshot(); P = JSON.parse(await f.text()); sel = floatSel = null; commit(true); } catch { alert('Could not read that file.'); } e.target.value = ''; };
+$('file').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { snapshot(); P = normalize(JSON.parse(await f.text())); sel = floatSel = null; editing = { kind: 'state' }; commit(true); } catch { alert('Could not read that file.'); } e.target.value = ''; };
 $('resize').onclick = () => {
   const w = Math.max(1, Math.min(256, +$('cw').value || P.w)), h = Math.max(1, Math.min(256, +$('ch').value || P.h));
   if (w === P.w && h === P.h) return;
   snapshot();
   const remap = (arr) => { const out = blankFrame(w*h); for (let y = 0; y < Math.min(h, P.h); y++) for (let x = 0; x < Math.min(w, P.w); x++) out[y*w+x] = arr[y*P.w+x]; return out; };
-  for (const L of P.layers) for (const s of L.states) s.frames = s.frames.map(remap);
+  for (const L of P.layers) {
+    for (const s of L.states) s.frames = s.frames.map(remap);
+    for (const t of L.transitions) t.frames = t.frames.map(remap);
+  }
   P.w = w; P.h = h; sel = floatSel = null; commit(true);
 };
 
 // ============================================================ refresh + commit
-function refreshAll() { buildPalette(); buildLayers(); buildStates(); buildFrames(); updateStatus(); render(); }
+function refreshAll() { clampFrame(); buildPalette(); buildLayers(); buildStates(); buildTransitions(); buildFrames(); updateStatus(); render(); }
 function commit(relayout) { if (relayout) fitScale(); save(); refreshAll(); updateUndoButtons(); }
+
+// ============================================================ stage / preview mode
+// A game-style sandbox: each layer has a LIVE active state (independent of the
+// document's), you can switch it on the fly, and you can fire a transition which
+// waits for its valid loop start-frame, plays its sheet, then lands on the
+// to-state. None of this writes back to P, exit and the document is untouched.
+const stage = { on:false, raf:0, frame:0, last:0, fps:12, paused:false, live:{} };
+let STAGE_SCALE = 12;
+function fitStage() {
+  const v = $('stage-canvas').parentElement.getBoundingClientRect();
+  STAGE_SCALE = Math.max(2, Math.floor(Math.min((v.width - 40) / P.w, (v.height - 40) / P.h)));
+  const c = $('stage-canvas'); c.width = P.w * STAGE_SCALE; c.height = P.h * STAGE_SCALE;
+}
+function openStage() {
+  if (playing) togglePlay();
+  stage.on = true; stage.frame = 0; stage.paused = false; stage.fps = P.fps; stage.live = {};
+  for (const L of P.layers) stage.live[L.id] = { active: L.active, trans: null, pending: null };
+  $('stage-fps').value = stage.fps;
+  $('stage-pause').textContent = '⏸ Pause';
+  $('stage-overlay').hidden = false;
+  fitStage(); buildStageCtrls(); stageRender();
+  stage.last = performance.now();
+  stage.raf = requestAnimationFrame(stageTick);
+}
+function closeStage() { stage.on = false; cancelAnimationFrame(stage.raf); $('stage-overlay').hidden = true; render(); }
+function toggleStagePause() { stage.paused = !stage.paused; $('stage-pause').textContent = stage.paused ? '▶ Resume' : '⏸ Pause'; }
+function stageTick(now) {
+  if (!stage.on) return;
+  const ms = 1000 / Math.max(1, stage.fps);
+  if (!stage.paused && now - stage.last >= ms) {
+    stage.last = now;
+    stage.frame = (stage.frame + 1) % P.loop;
+    // a queued transition only starts when the loop reaches its valid start-frame
+    for (const L of P.layers) { const lv = stage.live[L.id]; if (lv.pending && lv.pending.startFrame === stage.frame) { lv.trans = { t: lv.pending, pos: 0 }; lv.pending = null; buildStageCtrls(); } }
+    stageRender();
+    // advance any running transition; when it ends, land on the to-state
+    let changed = false;
+    for (const L of P.layers) { const lv = stage.live[L.id]; if (lv.trans) { lv.trans.pos++; if (lv.trans.pos >= lv.trans.t.frames.length) { lv.active = lv.trans.t.to; lv.trans = null; changed = true; } } }
+    if (changed) buildStageCtrls();
+    $('stage-hud').textContent = `frame ${stage.frame + 1} / ${P.loop}`;
+  } else stageRender();
+  stage.raf = requestAnimationFrame(stageTick);
+}
+function stageRender() {
+  const c = $('stage-canvas'), cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height);
+  for (const L of P.layers) {
+    if (!L.visible) continue;
+    const lv = stage.live[L.id];
+    const fr = lv.trans ? lv.trans.t.frames[lv.trans.pos] : L.states[lv.active].frames[stage.frame % P.loop];
+    if (fr) drawCells(cx, fr, L.opacity, STAGE_SCALE);
+  }
+}
+function stageSetState(L, idx) { const lv = stage.live[L.id]; lv.active = idx; lv.trans = null; lv.pending = null; buildStageCtrls(); }
+function stageTrigger(L, t) { const lv = stage.live[L.id]; if (lv.active !== t.from || lv.trans) return; lv.pending = t; buildStageCtrls(); }
+function buildStageCtrls() {
+  const el = $('stage-ctrls'); el.innerHTML = '';
+  // layers top-to-bottom (visually like the layer rail)
+  P.layers.slice().reverse().forEach((L) => {
+    const lv = stage.live[L.id];
+    const card = document.createElement('div'); card.className = 'scard';
+    const h = document.createElement('h4'); h.textContent = (L.visible ? '' : '(hidden) ') + L.name; card.appendChild(h);
+    // states row
+    const srow = document.createElement('div'); srow.className = 'schip';
+    const slab = document.createElement('span'); slab.className = 'lab'; slab.textContent = 'states'; srow.appendChild(slab);
+    L.states.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'sbtn' + (i === lv.active && !lv.trans ? ' live' : '');
+      b.textContent = s.name; b.title = 'Switch this layer to "' + s.name + '" now';
+      b.onclick = () => stageSetState(L, i); srow.appendChild(b);
+    });
+    card.appendChild(srow);
+    // transitions row (only those that leave the current live state are armable)
+    if ((L.transitions || []).length) {
+      const trow = document.createElement('div'); trow.className = 'schip';
+      const tlab = document.createElement('span'); tlab.className = 'lab'; tlab.textContent = 'transitions'; trow.appendChild(tlab);
+      L.transitions.forEach((t) => {
+        const b = document.createElement('button');
+        const queued = lv.pending === t, running = lv.trans && lv.trans.t === t;
+        b.className = 'sbtn' + (running ? ' running' : queued ? ' queued' : '');
+        b.textContent = `${stName(L, t.from)}→${stName(L, t.to)}`;
+        b.disabled = lv.active !== t.from || !!lv.trans;
+        b.title = running ? 'playing…' : queued ? `queued, starts at loop frame ${t.startFrame + 1}` : `play at loop frame ${t.startFrame + 1}`;
+        b.onclick = () => stageTrigger(L, t); trow.appendChild(b);
+      });
+      card.appendChild(trow);
+    }
+    el.appendChild(card);
+  });
+}
+$('stage-btn').onclick = openStage;
+$('stage-exit').onclick = closeStage;
+$('stage-pause').onclick = toggleStagePause;
+$('stage-fps').onchange = (e) => { stage.fps = Math.max(1, Math.min(60, +e.target.value || 12)); };
 
 // keyboard
 window.addEventListener('keydown', (e) => {
+  if (stage.on) {                                    // stage mode swallows editor shortcuts
+    if (e.target.matches('input,select,textarea')) return;
+    if (e.key === 'Escape') closeStage();
+    else if (e.key === ' ') { e.preventDefault(); toggleStagePause(); }
+    return;
+  }
   if (e.target.matches('input,select,textarea')) return;
   const k = e.key.toLowerCase();
   const mod = e.ctrlKey || e.metaKey;
@@ -668,7 +956,7 @@ function setTool(t) { tool = t; if (t !== 'lasso') { /* keep selection but stop 
 // boot
 $('fps').value = P.fps; $('cw').value = P.w; $('ch').value = P.h; $('brush').value = brush;
 $('onion').classList.toggle('on', P.onion);
-window.addEventListener('resize', () => { fitScale(); render(); });
+window.addEventListener('resize', () => { fitScale(); render(); if (stage.on) { fitStage(); stageRender(); } });
 fitScale(); refreshAll(); updateUndoButtons();
 </script>
 </body>

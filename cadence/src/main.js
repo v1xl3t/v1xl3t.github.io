@@ -19,7 +19,7 @@ import { DimChips } from './dimchips.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
-import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, CONTROL_PRESETS, NAV_VERBS, controlMap } from './settings.js';
+import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, controlMap, unitLabel } from './settings.js';
 import { zipSync } from 'fflate';
 
 // ---------------------------------------------------------------- scene setup
@@ -174,7 +174,11 @@ function frameSelection() {
   orbit.update();
 }
 
-const inspector = new Inspector(doc, { onChange: () => setStatus() });
+// Active display/export unit (mm/cm/inch). Modeling stays in mm; this only
+// re-expresses the Inspector size readout and scales exported files. Seeded from
+// saved settings so a reload keeps the user's choice.
+let displayUnit = loadSettings().units || 'mm';
+const inspector = new Inspector(doc, { onChange: () => setStatus(), units: () => displayUnit });
 const outliner = new Outliner(doc);
 
 // Recipe Timeline — the multiverse history strip. Clicking a tile time-travels;
@@ -244,7 +248,7 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
   if (!btn) return;
 
   if (btn.dataset.add) doc.add(btn.dataset.add);
-  if (btn.dataset.align) alignCenter(btn.dataset.align);
+  if (btn.dataset.align) align(btn.dataset.align, btn.dataset.alignMode || 'center');
   if (btn.dataset.distribute) distribute(btn.dataset.distribute);
 
   if (btn.dataset.mode) {
@@ -266,11 +270,11 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'ungroup':   ungroupSelected(); break;
     case 'undo':      doc.undo(); break;
     case 'export-stl':
-      if (exportSTL(doc.list)) flash('Exported STL.');
+      if (exportSTL(doc.list, undefined, displayUnit)) flash(`Exported STL (${unitLabel(displayUnit)} units).`);
       else flash('Nothing printable to export — add a solid first.');
       break;
     case 'export-3mf':
-      if (export3MF(doc.list)) flash('Exported 3MF (mm units).');
+      if (export3MF(doc.list, undefined, displayUnit)) flash(`Exported 3MF (${unitLabel(displayUnit)} units).`);
       else flash('Nothing printable to export — add a solid first.');
       break;
     case 'drop-floor':   dropToFloor(); break;
@@ -422,6 +426,9 @@ function styleMaterial(o) {
 }
 
 function applyRenderMode(id) { renderMode = id; for (const o of doc.list) styleMaterial(o); }
+// Switch the display/export unit: re-render the Inspector so its size readout
+// re-expresses in the new unit. Modeling values (recipes, positions) are untouched.
+function applyUnits(id) { displayUnit = id; inspector.render(); }
 
 // Keep the active render mode applied as the scene changes identity (add, undo,
 // regroup all mint fresh meshes/materials).
@@ -760,17 +767,21 @@ function wireHints() {
 function worldBox(o) { o.mesh.updateWorldMatrix(true, false); return new THREE.Box3().setFromObject(o.mesh); }
 function boxCenter(b, a) { return (b.min[a] + b.max[a]) / 2; }
 
-function alignCenter(axis) {
+// Align selected objects on an axis by their world-space bounding boxes. mode =
+// 'min' (low faces flush), 'center' (centers level), or 'max' (high faces flush).
+function align(axis, mode = 'center') {
   const objs = doc.selectedObjects;
   if (objs.length < 2) { flash('Select 2+ objects to align (Shift-click them).'); return; }
-  doc.commit('Align ' + axis.toUpperCase());
+  const edge = (b) => (mode === 'min' ? b.min[axis] : mode === 'max' ? b.max[axis] : boxCenter(b, axis));
+  doc.commit(`Align ${mode} ${axis.toUpperCase()}`);
   const boxes = objs.map(worldBox);
-  const lo = Math.min(...boxes.map((b) => b.min[axis]));
-  const hi = Math.max(...boxes.map((b) => b.max[axis]));
-  const target = (lo + hi) / 2;
-  objs.forEach((o, i) => { o.mesh.position[axis] += target - boxCenter(boxes[i], axis); doc.touch(o); });
+  let target;
+  if (mode === 'min') target = Math.min(...boxes.map((b) => b.min[axis]));
+  else if (mode === 'max') target = Math.max(...boxes.map((b) => b.max[axis]));
+  else target = (Math.min(...boxes.map((b) => b.min[axis])) + Math.max(...boxes.map((b) => b.max[axis]))) / 2;
+  objs.forEach((o, i) => { o.mesh.position[axis] += target - edge(boxes[i]); doc.touch(o); });
   setStatus();
-  flash(`Aligned ${objs.length} on ${axis.toUpperCase()} center.`);
+  flash(`Aligned ${objs.length} on ${axis.toUpperCase()} ${mode}.`);
 }
 
 function distribute(axis) {
@@ -952,8 +963,10 @@ function initControls() {
 function initSettings() {
   fillSelect('set-ui', UI_STYLES, settings.ui);
   fillSelect('set-render', RENDER_MODES, settings.render);
+  fillSelect('set-units', UNITS, settings.units);
   applyUiStyle(settings.ui);
   applyRenderMode(settings.render);
+  applyUnits(settings.units);
   initControls();
 
   const bind = (id, key, apply) => document.getElementById(id).addEventListener('change', (e) => {
@@ -962,6 +975,7 @@ function initSettings() {
   });
   bind('set-ui', 'ui', applyUiStyle);
   bind('set-render', 'render', applyRenderMode);
+  bind('set-units', 'units', applyUnits);
 
   makeCollapsible('toolbar', '.brand');
   makeCollapsible('inspector', '.group-label');

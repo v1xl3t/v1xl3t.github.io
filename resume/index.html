@@ -60,6 +60,28 @@
     .sheet-wrap { padding:0; } .sheet { box-shadow:none; width:auto; min-height:auto; padding:0.5in 0.55in; }
     [data-ed]:hover, [data-ed]:focus { background:none; box-shadow:none; } }
   html[data-tpl="modern"] .r-name { color:var(--accent); }
+  /* Compact layout: tighter rhythm, smaller type, fits more on one page. */
+  html[data-tpl="compact"] .sheet { padding:0.42in 0.5in; }
+  html[data-tpl="compact"] .r-name { font-size:21px; letter-spacing:2px; }
+  html[data-tpl="compact"] .sec { margin-top:9px; }
+  html[data-tpl="compact"] .entry { margin-bottom:5px; }
+  html[data-tpl="compact"] ul.bullets li, html[data-tpl="compact"] .skill-row, html[data-tpl="compact"] .r-text { font-size:11.5px; margin:1px 0; }
+  html[data-tpl="compact"] .entry-top .left { font-size:12.5px; }
+  /* Serif layout: a quieter, editorial feel with name left-aligned and ruled. */
+  html[data-tpl="serif"] .sheet { font-family:Georgia,"Times New Roman",serif; }
+  html[data-tpl="serif"] .r-name { text-align:left; letter-spacing:1px; color:var(--accent); }
+  html[data-tpl="serif"] .r-contacts { text-align:left; }
+  html[data-tpl="serif"] .sec > h2 { border-bottom-width:2px; }
+
+  /* Tailoring: mark items off for a given application; hidden everywhere except
+     while editing in Tailor mode (where they dim so you can switch them back). */
+  .off { display:none; }
+  body[data-tailor] .off { display:block; opacity:.4; }
+  .tog { font-size:11px; color:var(--accent); background:none; border:1px solid var(--accent); border-radius:6px; padding:0 6px; cursor:pointer; opacity:.7; }
+  .tog:hover { opacity:1; }
+  body:not([data-tailor]) .tog { display:none; }
+  .tailor input { vertical-align:middle; margin-right:4px; }
+  @media print { .off, .tog { display:none !important; } }
 
   /* a11y: visible keyboard focus + higher-contrast placeholder text */
   .bar button:focus-visible, .bar select:focus-visible, .bar input:focus-visible,
@@ -96,10 +118,22 @@
     <button id="add-sec">+ Section</button>
     <button id="reset">Reset template</button>
     <label class="swatch">Accent <input type="color" id="accent" value="#111111" aria-label="Accent color" /></label>
-    <select id="style" aria-label="Style"><option value="classic">Classic</option><option value="modern">Modern</option></select>
+    <select id="style" aria-label="Layout style">
+      <option value="classic">Classic</option>
+      <option value="modern">Modern</option>
+      <option value="compact">Compact</option>
+      <option value="serif">Serif</option>
+    </select>
+    <label class="swatch tailor"><input type="checkbox" id="tailor" aria-label="Tailoring mode" /> Tailor</label>
     <div class="spacer"></div>
     <span class="hint">Underlined = editable · autosaves per template</span>
     <button id="print">Print / PDF</button>
+    <select id="export" aria-label="Export format">
+      <option value="">Export…</option>
+      <option value="md">Markdown (.md)</option>
+      <option value="txt">Plain text / ATS (.txt)</option>
+      <option value="doc">Word (.doc)</option>
+    </select>
     <button id="save">Save JSON</button>
     <button id="load">Load</button>
     <input type="file" id="file" accept="application/json,.json" hidden />
@@ -172,19 +206,19 @@ function render() {
      + ` <button class="add" data-add-contact title="Add contact">+ contact</button></div>`;
 
   R.sections.forEach((s, si) => {
-    h += `<section class="sec"><h2>${ed(`sections.${si}.title`,"SECTION")}<button class="del secdel" data-delsec="${si}" title="Delete section">✕ section</button></h2>`;
+    h += `<section class="sec${s.off?" off":""}"><h2>${ed(`sections.${si}.title`,"SECTION")}<button class="tog" data-tog="sec.${si}" title="Show or hide this section in Tailor mode">${s.off?"show":"hide"}</button><button class="del secdel" data-delsec="${si}" title="Delete section">✕ section</button></h2>`;
     if (s.type === "text") {
       h += `<div class="r-text">${ed(`sections.${si}.body`,"Text…")}</div>`;
     } else if (s.type === "skills") {
-      h += (s.rows||[]).map((r,ri)=>`<div class="skill-row"><span class="k">${ed(`sections.${si}.rows.${ri}.label`,"Category")}:</span> ${ed(`sections.${si}.rows.${ri}.value`,"items")} <button class="del" data-delrow="${si}.${ri}">✕</button></div>`).join("");
+      h += (s.rows||[]).map((r,ri)=>`<div class="skill-row${r.off?" off":""}"><span class="k">${ed(`sections.${si}.rows.${ri}.label`,"Category")}:</span> ${ed(`sections.${si}.rows.${ri}.value`,"items")} <button class="tog" data-tog="row.${si}.${ri}" title="Show or hide in Tailor mode">${r.off?"show":"hide"}</button> <button class="del" data-delrow="${si}.${ri}">✕</button></div>`).join("");
       h += `<button class="add" data-addrow="${si}">+ row</button>`;
     } else if (s.type === "list") {
       h += `<ul class="bullets">` + (s.items||[]).map((it,ii)=>`<li>${ed(`sections.${si}.items.${ii}`,"item")} <button class="del" data-dellistitem="${si}.${ii}">✕</button></li>`).join("") + `</ul><button class="add" data-addlistitem="${si}">+ item</button>`;
     } else { // entries
       h += (s.items||[]).map((it,ii)=>`
-        <div class="entry">
+        <div class="entry${it.off?" off":""}">
           <div class="entry-top"><div class="left"><span class="entry-org">${ed(`sections.${si}.items.${ii}.org`,"Company")}</span>${it.role!==undefined?` – <span class="entry-role">${ed(`sections.${si}.items.${ii}.role`,"Role")}</span>`:""}</div>
-            <div class="entry-meta">${ed(`sections.${si}.items.${ii}.meta`,"City | Dates")} <button class="del" data-delitem="${si}.${ii}">✕</button></div></div>
+            <div class="entry-meta">${ed(`sections.${si}.items.${ii}.meta`,"City | Dates")} <button class="tog" data-tog="item.${si}.${ii}" title="Show or hide in Tailor mode">${it.off?"show":"hide"}</button> <button class="del" data-delitem="${si}.${ii}">✕</button></div></div>
           <ul class="bullets">${(it.bullets||[]).map((b,bi)=>`<li>${ed(`sections.${si}.items.${ii}.bullets.${bi}`,"…")} <button class="del" data-delbul="${si}.${ii}.${bi}">✕</button></li>`).join("")}</ul>
           <button class="add" data-addbul="${si}.${ii}">+ bullet</button>
         </div>`).join("");
@@ -215,6 +249,87 @@ function wire() {
   on("[data-delrow]", b => { const [si,ri]=b.dataset.delrow.split("."); R.sections[+si].rows.splice(+ri,1); render(); });
   on("[data-addlistitem]", b => { R.sections[+b.dataset.addlistitem].items.push("item"); render(); });
   on("[data-dellistitem]", b => { const [si,ii]=b.dataset.dellistitem.split("."); R.sections[+si].items.splice(+ii,1); render(); });
+  on("[data-tog]", b => { const p=b.dataset.tog.split(".");
+    if (p[0]==="sec") { const s=R.sections[+p[1]]; s.off=!s.off; }
+    else if (p[0]==="item") { const it=R.sections[+p[1]].items[+p[2]]; it.off=!it.off; }
+    else if (p[0]==="row") { const r=R.sections[+p[1]].rows[+p[2]]; r.off=!r.off; }
+    render();
+  });
+}
+
+// ---- exporters (respect Tailor "off" flags; dependency-free) ----
+const slug = () => (String(R.name||"resume").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")) || "resume";
+function download(name, text, mime) { const a=document.createElement("a"); a.download=name; a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.click(); URL.revokeObjectURL(a.href); }
+function tidy(s){ return s.join("\n").replace(/\n{3,}/g,"\n\n").trim()+"\n"; }
+
+function toMarkdown(R) {
+  const o=[`# ${R.name}`,""];
+  const c=R.contacts.filter(x=>x&&String(x).trim());
+  if (c.length) o.push(c.join(" | "),"");
+  R.sections.filter(s=>!s.off).forEach(s=>{
+    o.push(`## ${s.title}`,"");
+    if (s.type==="text") o.push(s.body||"","");
+    else if (s.type==="skills") { (s.rows||[]).filter(r=>!r.off).forEach(r=>o.push(`- **${r.label}:** ${r.value}`)); o.push(""); }
+    else if (s.type==="list") { (s.items||[]).forEach(it=>o.push(`- ${it}`)); o.push(""); }
+    else (s.items||[]).filter(it=>!it.off).forEach(it=>{
+      let head=`**${it.org||""}**`;
+      if (it.role) head+=` - ${it.role}`;
+      if (it.meta) head+=`  |  ${it.meta}`;
+      o.push(head);
+      (it.bullets||[]).forEach(x=>o.push(`- ${x}`));
+      o.push("");
+    });
+  });
+  return tidy(o);
+}
+
+function toPlainText(R) {
+  const o=[String(R.name||"").toUpperCase()];
+  const c=R.contacts.filter(x=>x&&String(x).trim());
+  if (c.length) o.push(c.join(" | "));
+  o.push("");
+  R.sections.filter(s=>!s.off).forEach(s=>{
+    o.push(String(s.title||"").toUpperCase(), "=".repeat(Math.max(String(s.title||"").length,3)));
+    if (s.type==="text") o.push(s.body||"");
+    else if (s.type==="skills") (s.rows||[]).filter(r=>!r.off).forEach(r=>o.push(`${r.label}: ${r.value}`));
+    else if (s.type==="list") (s.items||[]).forEach(it=>o.push(`- ${it}`));
+    else (s.items||[]).filter(it=>!it.off).forEach(it=>{
+      o.push([it.org,it.role,it.meta].filter(x=>x&&String(x).trim()).join(" | "));
+      (it.bullets||[]).forEach(x=>o.push(`- ${x}`));
+    });
+    o.push("");
+  });
+  return tidy(o);
+}
+
+function toDocHtml(R) {
+  const e=esc;
+  const accent=(getComputedStyle(document.documentElement).getPropertyValue("--accent")||"#111").trim();
+  let b=`<h1>${e(R.name)}</h1>`;
+  const c=R.contacts.filter(x=>x&&String(x).trim());
+  if (c.length) b+=`<p class=contacts>${c.map(e).join(" &nbsp;|&nbsp; ")}</p>`;
+  R.sections.filter(s=>!s.off).forEach(s=>{
+    b+=`<h2>${e(s.title)}</h2>`;
+    if (s.type==="text") b+=`<p>${e(s.body||"")}</p>`;
+    else if (s.type==="skills") (s.rows||[]).filter(r=>!r.off).forEach(r=>{ b+=`<p class=skill><b>${e(r.label)}:</b> ${e(r.value)}</p>`; });
+    else if (s.type==="list") b+=`<ul>`+(s.items||[]).map(it=>`<li>${e(it)}</li>`).join("")+`</ul>`;
+    else (s.items||[]).filter(it=>!it.off).forEach(it=>{
+      b+=`<table><tr><td class=l><b>${e(it.org||"")}</b>${it.role?` - <i>${e(it.role)}</i>`:""}</td><td class=r>${e(it.meta||"")}</td></tr></table>`;
+      if (it.bullets&&it.bullets.length) b+=`<ul>`+it.bullets.map(x=>`<li>${e(x)}</li>`).join("")+`</ul>`;
+    });
+  });
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${e(R.name)}</title>
+<style>
+body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;color:#000;}
+h1{font-size:19pt;text-align:center;letter-spacing:2px;margin:0 0 2pt;}
+.contacts{text-align:center;font-size:9pt;margin:0 0 8pt;}
+h2{font-size:11pt;text-transform:uppercase;letter-spacing:1px;color:${accent};border-bottom:1px solid #999;padding-bottom:1pt;margin:10pt 0 4pt;}
+table{width:100%;border-collapse:collapse;margin:0;}
+td{border:none;padding:0;vertical-align:top;}
+td.r{text-align:right;font-size:9pt;white-space:nowrap;}
+ul{margin:2pt 0 4pt;padding-left:18pt;} li{font-size:10pt;margin:1pt 0;}
+.skill{margin:1pt 0;}
+</style></head><body>${b}</body></html>`;
 }
 
 // ---- toolbar ----
@@ -232,6 +347,14 @@ document.getElementById("add-sec").onclick = () => {
 };
 document.getElementById("reset").onclick = () => { if (confirm("Reset this template to its original content? Your edits to it will be lost.")) { localStorage.removeItem(LSP+curKey); R = clone(TEMPLATES[curKey].data); render(); } };
 document.getElementById("print").onclick = () => window.print();
+document.getElementById("export").onchange = e => {
+  const f = e.target.value; if (!f) return;
+  if (f==="md") download(slug()+".md", toMarkdown(R), "text/markdown;charset=utf-8");
+  else if (f==="txt") download(slug()+".txt", toPlainText(R), "text/plain;charset=utf-8");
+  else if (f==="doc") download(slug()+".doc", toDocHtml(R), "application/msword");
+  e.target.value = "";
+};
+document.getElementById("tailor").onchange = e => { document.body.toggleAttribute("data-tailor", e.target.checked); };
 document.getElementById("save").onclick = () => { const a=document.createElement("a"); a.download=(curKey)+".resume.json"; a.href=URL.createObjectURL(new Blob([JSON.stringify(R,null,2)],{type:"application/json"})); a.click(); URL.revokeObjectURL(a.href); };
 document.getElementById("load").onclick = () => document.getElementById("file").click();
 document.getElementById("file").onchange = async e => { const f=e.target.files[0]; if(!f) return; try{ R=JSON.parse(await f.text()); render(); }catch{ alert("Could not read that file."); } e.target.value=""; };
