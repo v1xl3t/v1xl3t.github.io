@@ -521,7 +521,9 @@ html[data-theme="light"] .run-inline:hover{ background:#8f78e8 }
 .no-results.show{display:block}
 
 /* ============================= ABOUT ============================= */
+#about{padding-bottom:clamp(82px,11vw,140px)}   /* breathing room above the Press chips */
 #about .wrap{max-width:880px}
+.about-body .recog{margin-top:18px}
 .about-body p{margin:0 0 1.1em; color:#cbd8e6; font-size:1.05rem; line-height:1.7}
 .about-body p:first-of-type{font-size:1.15rem; color:var(--text)}
 .recog{display:flex; flex-wrap:wrap; gap:9px; margin-top:8px}
@@ -691,6 +693,13 @@ html[data-theme="light"] .chip.lane[data-l="ai"]{ color:#5a3fc0; background:rgba
 html[data-theme="light"] .chip.lane[data-l="audio"]{ color:#6d4fd0; background:rgba(157,123,255,.12); border-color:rgba(157,123,255,.4) }
 html[data-theme="light"] .chip.lane[data-l="hardware"]{ color:#1f7d5f; background:rgba(59,185,143,.12); border-color:rgba(59,185,143,.4) }
 html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; background:rgba(217,138,43,.12); border-color:rgba(217,138,43,.4) }
+/* Light-mode body-text contrast: the About paragraphs (and a few other body
+   surfaces) had no light override and inherited near-white dark-theme colors.
+   Darken them to a readable contrast on the lavender background. */
+html[data-theme="light"] .about-body p{ color:#403a62 }
+html[data-theme="light"] .about-body p:first-of-type{ color:#2c2747 }
+html[data-theme="light"] .press-list li{ color:#403a62 }
+html[data-theme="light"] .section-sub{ color:#5a5377 }
 @media (max-width:760px){
   html[data-theme="light"] .nav-links{ background:rgba(247,244,254,.97) }
   html[data-theme="light"] .nav-links a.active{ background:rgba(124,95,224,.12) }
@@ -780,10 +789,10 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
     <p class="section-sub reveal">Filter by discipline. Each project follows the same shape: the problem, my role, the approach, and what came of it.</p>
 
     <div class="filters reveal" role="group" aria-label="Filter projects by discipline">
-      <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">18</span></button>
+      <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">15</span></button>
       <button class="filter" data-filter="ai" aria-pressed="false">AI &amp; Engineering <span class="count">9</span></button>
-      <button class="filter" data-filter="audio" aria-pressed="false">Audio &amp; Music <span class="count">5</span></button>
-      <button class="filter" data-filter="hardware" aria-pressed="false">Hardware &amp; CAD <span class="count">5</span></button>
+      <button class="filter" data-filter="audio" aria-pressed="false">Audio &amp; Music <span class="count">3</span></button>
+      <button class="filter" data-filter="hardware" aria-pressed="false">Hardware &amp; CAD <span class="count">4</span></button>
       <button class="filter" data-filter="teaching" aria-pressed="false">Teaching <span class="count">1</span></button>
     </div>
 
@@ -867,7 +876,13 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <p class="blurb">An internal React platform I built from the ground up, pairing a daily-use facilitator app with a management admin console.</p>
         <p class="outcome">Adopted org-wide as the central hub for daily operations and oversight, including a seating-chart generator that pairs exhaustive search with a greedy heuristic to solve constraints in seconds.</p>
         <div class="stack"><span>React</span><span>Node.js</span><span>Express</span><span>PostgreSQL</span></div>
-        <div class="links"><a href="https://treotools.github.io" target="_blank" rel="noopener">Live</a></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/treotools/treotools-01.jpg" data-cap="Seating-chart generator: pairing and separation constraints solved with exhaustive search plus a greedy heuristic"><img src="media/treotools/treotools-01.jpg" alt="TreoTools seating-chart constraint solver" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/treotools/treotools-02.jpg" data-cap="Prize Meter, a live classroom facilitator dashboard"><img src="media/treotools/treotools-02.jpg" alt="TreoTools Prize Meter facilitator dashboard" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/treotools/treotools-03.jpg" data-cap="Campus hub for facilitators, with per-site resources and the seating-chart tool"><img src="media/treotools/treotools-03.jpg" alt="TreoTools campus facilitator hub" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/treotools/treotools-04.jpg" data-cap="Inventory management console (trē·tory) for operations oversight"><img src="media/treotools/treotools-04.jpg" alt="TreoTools inventory management console" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/treotools/treotools-05.jpg" data-cap="Admin analytics and reporting view"><img src="media/treotools/treotools-05.jpg" alt="TreoTools admin analytics and reporting" loading="lazy"></button>
+        </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Built end to end in React. A standout feature pairs an exhaustive search with a fast heuristic to satisfy seating constraints quickly enough to use live.</p>
@@ -879,7 +894,7 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Research</span></div>
         <h3>Robotic 3D-Printing Research</h3>
         <p class="blurb">Sole programmer on my university's first large-scale robotic 3D-printing team, turning generative algorithms into sculptures printed by a robotic arm.</p>
-        <p class="outcome">Wrote Python generative pipelines in Rhino and Grasshopper that produced sculptural geometry and fabrication-ready exports for a custom print head. Featured in the LA Times and Dezeen.</p>
+        <p class="outcome">Wrote Python generative pipelines in Rhino and Grasshopper that produced sculptural geometry and fabrication-ready exports for a custom print head.</p>
         <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>Robotic fabrication</span></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -897,11 +912,14 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <div class="links"><a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a></div>
         <div class="thumbs">
           <button class="thumb" type="button" data-full="media/primes/primes-01-dezeen.png" data-cap="Prime / L-system visualization featured in Dezeen (iterations 1 to 8)"><img src="media/primes/primes-01-dezeen.png" alt="Prime visualization featured in Dezeen" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/primes/primes-02-sketch.png" data-cap="Live p5.js sketch capture"><img src="media/primes/primes-02-sketch.png" alt="p5.js sketch capture" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/primes/primes-03-sketch.png" data-cap="Live p5.js sketch capture"><img src="media/primes/primes-03-sketch.png" alt="p5.js sketch capture" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/primes/primes-04.png" data-cap="Generative output"><img src="media/primes/primes-04.png" alt="Generative output" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/primes/primes-05.png" data-cap="Generative output"><img src="media/primes/primes-05.png" alt="Generative output" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/primes/primes-06.png" data-cap="Generative output"><img src="media/primes/primes-06.png" alt="Generative output" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-02.jpg" data-cap="Generative Prime Patterns, the interactive p5.js visualization"><img src="media/primes/primes-02.jpg" alt="Generative Prime Patterns title screen" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-03.jpg" data-cap="Iteration 3 (16 px per unit): prime positions plotted on the grid"><img src="media/primes/primes-03.jpg" alt="Prime pattern, iteration 3" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-04.jpg" data-cap="Iteration 4 (64 px per unit)"><img src="media/primes/primes-04.jpg" alt="Prime pattern, iteration 4" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-05.jpg" data-cap="Iteration 5 (256 px per unit)"><img src="media/primes/primes-05.jpg" alt="Prime pattern, iteration 5" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-06.jpg" data-cap="Iteration 6 (1,024 px per unit)"><img src="media/primes/primes-06.jpg" alt="Prime pattern, iteration 6" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-07.jpg" data-cap="Iteration 8 (16,384 px per unit)"><img src="media/primes/primes-07.jpg" alt="Prime pattern, iteration 8" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-08.jpg" data-cap="Iteration 6 overlaid on iteration 8"><img src="media/primes/primes-08.jpg" alt="Prime pattern, iteration 6 over 8" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/primes/primes-09.jpg" data-cap="The generative algorithm: iterate the L-system, plot prime positions, loop"><img src="media/primes/primes-09.jpg" alt="Generative algorithm flowchart" loading="lazy"></button>
         </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -931,12 +949,9 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <p class="outcome">Final installation exhibited at the Julia Stoschek Collection, Berlin (2022).</p>
         <div class="stack"><span>Maya</span><span>Unity</span><span>projection mapping</span></div>
         <div class="thumbs">
-          <button class="thumb" type="button" data-full="media/wangshui/wangshui-01.jpg" data-cap="Installation form, 3D render"><img src="media/wangshui/wangshui-01.jpg" alt="Installation form, 3D render" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/wangshui/wangshui-02.jpg" data-cap="3D model with wireframe overlay"><img src="media/wangshui/wangshui-02.jpg" alt="3D model with wireframe overlay" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/wangshui/wangshui-03.png" data-cap="Wireframe of the sculptural geometry"><img src="media/wangshui/wangshui-03.png" alt="Wireframe of the sculptural geometry" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/wangshui/wangshui-04.png" data-cap="Model studies for the installation"><img src="media/wangshui/wangshui-04.png" alt="Model studies" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/wangshui/wangshui-05.jpg" data-cap="Concept development"><img src="media/wangshui/wangshui-05.jpg" alt="Concept development" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/wangshui/wangshui-06.jpg" data-cap="Installation detail"><img src="media/wangshui/wangshui-06.jpg" alt="Installation detail" loading="lazy"></button>
         </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -946,7 +961,7 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
 
       <!-- 10 -->
       <article class="card reveal" data-lanes="teaching">
-        <div class="tags"><span class="chip lane" data-l="teaching">Teaching</span><span class="chip">Woodbury (now U. of Redlands)</span></div>
+        <div class="tags"><span class="chip lane" data-l="teaching">Teaching</span><span class="chip">Woodbury University (now part of University of Redlands)</span></div>
         <h3>GAME 203: Sound Design Fundamentals</h3>
         <p class="blurb">A university course I created and teach on designing sound and music for games.</p>
         <p class="outcome">Students leave able to build working game audio in a real game engine, not just talk about it.</p>
@@ -965,40 +980,17 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <p class="blurb">An analysis-to-CRM pipeline that extracts structured data from long public documents and ranks it into scored opportunity lists.</p>
         <p class="outcome">Converted 50+ unstructured datasets from 20+ districts into scored, ranked opportunities, replacing hours of manual reading with a repeatable pipeline.</p>
         <div class="stack"><span>Python</span><span>JSON schema</span><span>Scoring rubric</span><span>CRM</span></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/leads/leads-01.jpg" data-cap="Analyzer output: a long public LCAP document distilled into a fit score, district profile, and priority ranking (San Diego Unified)"><img src="media/leads/leads-01.jpg" alt="LCAP analyzer fit score, San Diego Unified" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/leads/leads-02.jpg" data-cap="Per-district profile with scored keyword counts and a priority label (Coronado Unified)"><img src="media/leads/leads-02.jpg" alt="LCAP analyzer district profile, Coronado Unified" loading="lazy"></button>
+        </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>Pulls structured data from lengthy public documents against a defined schema, scores each against a rubric, and feeds the prioritized leads into the CRM.</p>
         </details>
       </article>
 
-      <!-- 12 -->
-      <article class="card reveal d2" data-lanes="audio">
-        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">Killer Sunshine Studios</span></div>
-        <h3>Game Score, Composer-in-Residence</h3>
-        <p class="blurb">Original score and Unity-implemented audio for an indie studio's debut game.</p>
-        <p class="outcome">Wrote, produced, and implemented the soundtrack as composer-in-residence.</p>
-        <div class="stack"><span>Composition</span><span>Unity audio</span><span>MIDI</span><span>Scoring</span></div>
-      </article>
-
-      <!-- 13 -->
-      <article class="card reveal" data-lanes="hardware">
-        <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">Treobytes</span></div>
-        <h3>Classroom Hardware Line</h3>
-        <p class="blurb">A fleet of educational electronics kits designed for STEM classrooms, from simple light and sound toys to remote-control builds.</p>
-        <p class="outcome">Designed and prototyped multiple hands-on hardware kits end to end, from circuit to enclosure.</p>
-        <div class="stack"><span>Arduino</span><span>Circuit design</span><span>OnShape</span><span>3D printing</span><span>Laser cutting</span></div>
-      </article>
-
-      <!-- 14 -->
-      <article class="card reveal d1" data-lanes="audio">
-        <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">Odd Orca Studios</span></div>
-        <h3>Composer-in-Residence</h3>
-        <p class="blurb">Ongoing original music and technical audio design for an indie game studio.</p>
-        <p class="outcome">Compose and engineer adaptive game audio and scores since 2021.</p>
-        <div class="stack"><span>Composition</span><span>Audio engineering</span><span>Wwise / FMOD</span><span>DAWs</span></div>
-      </article>
-
-      <!-- 15 -->
+      <!-- Game & Film Credits -->
       <article class="card reveal d2" data-lanes="audio">
         <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">Credits</span></div>
         <h3>Game &amp; Film Credits</h3>
@@ -1006,6 +998,45 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <p class="outcome">31 released credits spanning games, film, and television.</p>
         <div class="stack"><span>Composition</span><span>Sound design</span><span>Implementation</span></div>
         <div class="links"><a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></div>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Full credit list</summary>
+          <p class="dl"><b>Games</b>
+          (2 unannounced titles), Composer, 2026 · pending release<br>
+          Robococo, Composer and Technical Sound Designer, 2025 · Cesarajg · PC<br>
+          Bzar, Composer and Technical Sound Designer, 2025 · Brace Yourself · PC<br>
+          Night Shift, Composer, Audio Designer, Tools Developer, 2023 · Necro.World · PC (built with Vi's UE5 Blueprint tool, later shown at GDC SF 2024)<br>
+          Bermuda Triangle: Depths, Composer and Audio Designer, 2022 · Avalon Custer · 4D VR<br>
+          High Flyer, Composer, 2022 · Krypto Chronic · Mobile<br>
+          Neighborrhea, Composer, 2022 · Judah Ellis · PC<br>
+          Spacecrafter, Composer, 2022 · PC<br>
+          Unexpected Guests, Composer, 2022 · Judah Ellis · PC<br>
+          Atomic Fusion, Composer, 2021 · Cesarajg · PC<br>
+          Eyedol Contact, Composer and Audio Designer, 2021 · RedTeapot · PC/Web (Pinto's Choice Indie Game of the Week; GMTK Game Jam 2021 Top 50 HM)<br>
+          Seeing Ghosts, Composer, 2021 · Necro.World · AR Mobile<br>
+          Slime 'o Wisp, Composer, 2021 · SlimeStudio · PC<br>
+          Ain't Muffin to It, Composer, 2020 · Judah Ellis · PC<br>
+          Champion of the Swamp, Composer, 2020 · Creative Anomaly Games · PC<br>
+          Cyber Cross, Composer, 2020 · Dominick Tamras · PC<br>
+          Me, my Roommate, &amp; Bael of the Underworld, Composer, 2020 · Gavin Arechiga · PC<br>
+          Blinkbot, Composer, 2019 · Rafik Vardanyan · PC<br>
+          Clap, Composer, 2019 · Johnathon Harter · PC
+          <b>Film &amp; TV</b>
+          Blink, Composer, 2026 · Cassie Capello · multimedia short<br>
+          All Downhill, Composer, 2024 · Wayne Nisbet · animated short<br>
+          Squid FunK, Composer and Sound Designer, 2024 · Sweet Cream · animated short<br>
+          Barry, Composer, 2023 · Maxwell Alexander · short<br>
+          Come Lay Down with Me, Composer, 2023 · Cristobal Galvan · short<br>
+          Highway Star, Composer and Sound Designer, 2023 · Sweet Cream · short<br>
+          Spray Paint Perfume Can, Composer and Sound Designer, 2023 · Sweet Cream · advert<br>
+          Torri's Thesis, Composer, 2023 · Max Nieder · short<br>
+          Death of the Lotus, Composer, 2022 · Leo Trejo-Bien · short<br>
+          HAIKU: The Story of a Wilting Trillium, Composer, 2022 · Joseann Tejeda · short (Tokyo Film Awards Best Composer Silver; New Creators Best Original Music Nominee; IndieWrap 2023)<br>
+          Just Crime, Composer, 2022 · Kane Thompson · short<br>
+          Retrograde, Composer, 2022 · Griffin Lamp · short<br>
+          Unconscious Minds, Composer, 2022 · Larry Torralba · short<br>
+          Space Epic, Composer, 2019 · Prabhu Raja · animated short<br>
+          Filtered, Composer, 2018 · Kane Thompson · short</p>
+        </details>
       </article>
 
       <!-- 16 -->
@@ -1043,13 +1074,16 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
         <p class="blurb">A generative adversarial network I trained from scratch to synthesize images, owning the full pipeline rather than calling a model as a black box.</p>
         <p class="outcome">Trained on 2,500+ images in 48 hours, handling data prep, GPU training, checkpointing, and evaluation end to end.</p>
         <div class="stack"><span>Python</span><span>GANs</span><span>GPU training</span><span>Evaluation</span></div>
+        <div class="links"><a href="https://colab.research.google.com/drive/154x1izWkwq0JZoOQ-krN4sbtmEY4BX1r?usp=sharing" target="_blank" rel="noopener">View the training notebook</a></div>
         <div class="thumbs">
-          <button class="thumb" type="button" data-full="media/gan/gan-01.jpg" data-cap="Style-mixed output from the trained network"><img src="media/gan/gan-01.jpg" alt="GAN style-mixed output" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/gan/gan-02.jpg" data-cap="Style-mixed output from the trained network"><img src="media/gan/gan-02.jpg" alt="GAN style-mixed output" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/gan/gan-03.jpg" data-cap="Style-mixed output from the trained network"><img src="media/gan/gan-03.jpg" alt="GAN style-mixed output" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/gan/gan-04.jpg" data-cap="Generated sample"><img src="media/gan/gan-04.jpg" alt="GAN generated sample" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/gan/gan-05.jpg" data-cap="Generated sample"><img src="media/gan/gan-05.jpg" alt="GAN generated sample" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/gan/gan-06.jpg" data-cap="Generated sample"><img src="media/gan/gan-06.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-01.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-01.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-02.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-02.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-03.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-03.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-04.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-04.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-05.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-05.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-06.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-06.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-07.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-07.jpg" alt="GAN generated sample" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/gan/gan-08.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-08.jpg" alt="GAN generated sample" loading="lazy"></button>
         </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -1070,7 +1104,7 @@ html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; backgroun
     <p class="section-sub reveal">Roles across applied AI, full-stack engineering, hardware, and teaching.</p>
     <ul class="press-list" style="margin-top:clamp(22px,3vw,30px)">
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Treobytes, Product Development Specialist <span class="exp-meta">San Diego · Aug 2025 to Present</span></summary><p class="dl">Designed and shipped a production Claude AI agent system with RAG and an automated LLM-as-judge review that cut document turnaround from four days to five hours. Built and maintain TreoTools, the internal React platform adopted org-wide, and shipped a 100+ unit Arduino MIDI hardware product end to end.</p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Woodbury University (now U. of Redlands), Adjunct Professor, Game Art &amp; Design <span class="exp-meta">Burbank · Aug 2024 to Present</span></summary><p class="dl">Designed and teach GAME 203: Sound Design Fundamentals, taking undergraduates from DAW fundamentals to adaptive game audio in Unity and Unreal Engine 5 with Wwise and FMOD middleware.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Woodbury University (now part of University of Redlands), Adjunct Professor, Game Art &amp; Design <span class="exp-meta">Burbank · Aug 2024 to Present</span></summary><p class="dl">Designed and teach GAME 203: Sound Design Fundamentals, taking undergraduates from DAW fundamentals to adaptive game audio in Unity and Unreal Engine 5 with Wwise and FMOD middleware.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Treobytes, Summer STEM Facilitator &amp; Program Manager <span class="exp-meta">San Diego · Jun 2020 to Aug 2025</span></summary><p class="dl">Built technical curricula from the ground up; taught programming (Python and C++), robotics, and circuitry to 200+ students; led summer STEM operations across five sites and trained and onboarded 30+ facilitators.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Freelance, Full-Stack &amp; Client Engineering <span class="exp-meta">Los Angeles / remote · 2022 to Present</span></summary><p class="dl">Front-end and technical audio work for clients including AltaMed, where I contributed to a shipped English/Spanish healthcare translator tool, and indie game studios, including UE5 adaptive-audio tooling later showcased at GDC San Francisco 2024.</p></details></li>
     </ul>
