@@ -503,6 +503,17 @@ export class CadDocument extends EventTarget {
     this._emit('history');
   }
 
+  // Wipe to a blank document and reset the history tree to a fresh root. This is
+  // the deliberate "New / Clear" action: unlike undo it forgets everything, so the
+  // caller pairs it with clearing the autosave for a true clean slate.
+  newScene() {
+    this._flush();                       // close out any in-flight step first
+    this._restoreSnapshot({ objects: [] });   // dispose + clear the live scene
+    this.history = new History();
+    this.history.init(this.toJSON());    // fresh root = the empty scene
+    this._emit('history');
+  }
+
   _emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
 }
 

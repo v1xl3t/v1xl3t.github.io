@@ -17,6 +17,7 @@ import { Outliner } from './outliner.js';
 import { Timeline } from './timeline.js';
 import { DimChips } from './dimchips.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
+import { scheduleAutosave, restoreAutosave, clearAutosave } from './autosave.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
 import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, controlMap, unitLabel } from './settings.js';
@@ -104,6 +105,11 @@ doc.addEventListener('remove', (e) => scene.remove(e.detail.mesh));
 doc.addEventListener('select', () => refreshSelectionView());
 doc.addEventListener('undo', () => rebuildSceneFromDoc());
 doc.addEventListener('regroup', () => rebuildSceneFromDoc());
+// Every committing change (and time-travel / file load) emits 'history'; ride that
+// same path the undo tree uses to debounce-save the project to localStorage. Because
+// same-origin tabs share localStorage, a save made in the portfolio "Run it here"
+// preview iframe carries over when CADence is opened in its own tab.
+doc.addEventListener('history', () => scheduleAutosave(doc));
 
 function rebuildSceneFromDoc() {
   // Drop every cad mesh currently in the scene, re-add from the model.
@@ -281,6 +287,11 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'sketch':       toggleSketch(); break;
     case 'timeline':     timeline.toggle(); break;
     case 'shortcuts':    toggleShortcuts(); break;
+    case 'new-project':
+      doc.newScene();
+      clearAutosave();        // deliberate clean slate: forget the restored session
+      flash('New scene. Canvas cleared.');
+      break;
     case 'save-project':
       if (doc.list.length) { downloadJSON(doc.toJSON()); flash('Project saved.'); }
       else flash('Nothing to save yet.');
@@ -1013,8 +1024,11 @@ warmKernel();
 // before seeding, so the first object is drawn in the active render mode.
 initSettings();
 
-// Seed the scene so first load isn't empty.
-doc.add('box');
+// Restore the last autosaved project before the first render, so a reload — or
+// reopening from the portfolio preview iframe in a fresh tab — picks up exactly
+// where the session left off. If there's nothing valid to restore, seed a starter
+// box so first load isn't empty.
+if (!restoreAutosave(doc)) doc.add('box');
 setStatus();
 
 // Expose for console tinkering / debugging.
