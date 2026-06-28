@@ -56,9 +56,17 @@
   .del { font-size:11px; color:#c0392b; background:none; border:none; cursor:pointer; opacity:.45; } .del:hover { opacity:1; }
   .secdel { font-size:10px; }
 
-  @media print { .bar, .add, .del { display:none !important; } body { background:#fff; }
-    .sheet-wrap { padding:0; } .sheet { box-shadow:none; width:auto; min-height:auto; padding:0.5in 0.55in; }
-    [data-ed]:hover, [data-ed]:focus { background:none; box-shadow:none; } }
+  @page { size:Letter; margin:0; }
+  @media print {
+    /* Drop the viewport height clamp so content flows onto multiple pages instead
+       of being cropped to a single sheet, and collapse the centering flex wrapper
+       so the block sheet fills the full printable page width. */
+    html, body { height:auto; background:#fff; margin:0; }
+    .bar, .add, .del { display:none !important; }
+    .sheet-wrap { display:block; padding:0; }
+    .sheet { box-shadow:none; width:auto; min-height:0; margin:0; padding:0.5in 0.55in; }
+    [data-ed]:hover, [data-ed]:focus { background:none; box-shadow:none; }
+  }
   html[data-tpl="modern"] .r-name { color:var(--accent); }
   /* Compact layout: tighter rhythm, smaller type, fits more on one page. */
   html[data-tpl="compact"] .sheet { padding:0.42in 0.5in; }
