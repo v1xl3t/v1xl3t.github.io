@@ -86,7 +86,7 @@ body.light .diver{--diver:#241f38}
 .diver svg{transition:transform .7s cubic-bezier(.4,0,.2,1); transform-origin:center center}
 .diver .rig{transform-box:fill-box; transform-origin:center}
 .diver[data-stage="dive"] svg{transform:rotate(168deg)}
-.diver[data-stage="flail"] svg{animation:flail .5s ease-in-out infinite}
+.diver[data-stage="flail"] svg{animation:barrel 1.3s linear infinite}  /* pre-parachute fall = barrel roll */
 .diver[data-stage="chute"] svg{animation:sway 2.4s ease-in-out infinite}
 .diver[data-stage="wings"] .p-wing{animation:flap 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
@@ -96,8 +96,8 @@ body.light .diver{--diver:#241f38}
 .diver .fall-lines{opacity:var(--fall,0); transition:opacity .2s ease; transform-box:fill-box; transform-origin:center}
 .diver .fall-lines .vfl{stroke-width:1.2; fill:none}
 .diver[data-stage="flail"] .fall-lines, .diver[data-stage="dive"] .fall-lines{animation:flj .16s steps(3,end) infinite}
-@keyframes flail{0%{transform:rotate(158deg)}25%{transform:rotate(178deg)}50%{transform:rotate(164deg)}75%{transform:rotate(182deg)}100%{transform:rotate(158deg)}}
 @keyframes barrel{from{transform:rotate(168deg) rotateY(0deg)} to{transform:rotate(168deg) rotateY(360deg)}}
+@keyframes somersault{from{transform:rotate(168deg)} to{transform:rotate(528deg)}}  /* head-over-heels flip */
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
 @keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
@@ -122,10 +122,11 @@ body.light .diver{--diver:#241f38}
 .diver .eye{stroke:#e23b32; stroke-width:1.9; fill:none; stroke-linecap:round}
 body.light .diver .eye{stroke:#c81f17}
 .diver .horns{fill:var(--diver); stroke:var(--diver); stroke-width:.5; stroke-linejoin:miter}
-/* left / right click actions on .rig (compose over the SVG pose, facing preserved) */
-.diver.act-l .rig{animation:punch .32s ease}
-.diver.act-r svg{animation:barrel .62s ease-in-out}
-@keyframes punch{0%{transform:scale(1)}40%{transform:scale(1.35,.7)}100%{transform:scale(1)}}
+/* click actions: left = small CCW tilt toward 11 o'clock (on .rig, relative to current facing);
+   right = somersault (on svg, a head-over-heels flip) */
+.diver.act-l .rig{animation:tilt11 .38s ease-out}
+.diver.act-r svg{animation:somersault .66s ease-in-out}
+@keyframes tilt11{0%{transform:rotate(0deg)}38%{transform:rotate(-17deg)}100%{transform:rotate(0deg)}}
 /* falling action lines (Naruto style); opacity + speed set in JS */
 .speedlines{position:fixed; inset:-14%; z-index:5; pointer-events:none; opacity:0;
   background:repeating-linear-gradient(91deg, transparent 0 13px, rgba(220,210,250,.5) 13px 14px);
@@ -139,6 +140,8 @@ body.light .diver .eye{stroke:#c81f17}
 @keyframes puff{0%{opacity:.9; transform:translate(-50%,-50%) scale(.4)}
   100%{opacity:0; transform:translate(calc(-50% + var(--dx,0)), calc(-50% + var(--dy,0))) scale(1.7)}}
 .fx.star{color:#fff3bf; font-size:18px; line-height:1; text-shadow:0 0 6px rgba(255,228,140,.95), 0 0 14px rgba(255,205,90,.6); animation:startw 1.2s ease-out forwards}
+/* paradise is bright lavender: render stars dark so they stay visible */
+.fx.star.dark{color:#1c1533; text-shadow:0 0 5px rgba(60,30,110,.55), 0 0 12px rgba(80,55,140,.4)}
 @keyframes startw{0%{opacity:0; transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0; transform:translate(-50%,-50%) scale(1.1)}}
 .fx.pow{color:#e23b32; font-family:var(--mono); font-weight:800; font-size:14px; animation:powfx .5s ease-out forwards}
 @keyframes powfx{0%{opacity:1; transform:translate(-50%,-50%) scale(.6)}100%{opacity:0; transform:translate(-50%,-95%) scale(1.25)}}
@@ -262,16 +265,20 @@ footer a{color:var(--accent); text-decoration:none}
       <path class="p-spark fl" fill="#ffe6a3" d="M27,11 L28.7,16 L34,16.3 L29.6,19.3 L31.3,24.3 L27,21.2 L22.7,24.3 L24.4,19.3 L20,16.3 L25.3,16 Z"/>
       <path class="p-arm ln" d="M18,42 Q11,45 10,51 M36,42 Q43,45 44,51"/>
       <path class="p-leg ln" d="M24,50 L22,63 M30,50 L32,63"/>
+      <!-- hand-drawn manga speed lines: thin, irregular near-vertical streaks trailing the fall -->
       <g class="fall-lines">
-        <path class="ln vfl" d="M19,24.5 L27,28.5 L35,24.5"/>
-        <path class="ln vfl" d="M20,18.5 L27,22.2 L34,18.5"/>
-        <path class="ln vfl" d="M21,12.5 L27,16 L33,12.5"/>
-        <path class="ln vfl" d="M22,6.5 L27,9.8 L32,6.5"/>
+        <path class="ln vfl" style="stroke-width:1.5" d="M16.4,31 L14.8,5.5"/>
+        <path class="ln vfl" style="stroke-width:0.8" d="M20.2,29 L19.4,11"/>
+        <path class="ln vfl" style="stroke-width:1.3" d="M23.7,33 L23.2,1.5"/>
+        <path class="ln vfl" style="stroke-width:0.9" d="M27.1,30 L27.4,14"/>
+        <path class="ln vfl" style="stroke-width:1.6" d="M30.4,34 L31,3"/>
+        <path class="ln vfl" style="stroke-width:0.8" d="M34,29 L34.7,12"/>
+        <path class="ln vfl" style="stroke-width:1.3" d="M37.6,32 L39,6.5"/>
       </g>
       <path class="ln glowbody" d="M27,33 C34,34 36,40 34,44 C32,49 27,51 23,49 C19,47 17,41 21,37 C24,34 29,33 27,34 M25,35 C31,35 35,39 34,44 C33,48 28,51 24,49 C20,47 19,42 22,38"/>
       <path class="horns" d="M22.6,33 L24.7,33 L22.1,30.1 Z M31.4,33 L29.3,33 L31.9,30.1 Z"/>
       <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
-      <path class="face" d="M19,44 Q27,55.5 35,44 M22.5,45.2 v3.3 M26,46.5 v3.7 M29.5,46.5 v3.7 M33,45.2 v3.3"/>
+      <path class="face" d="M19,44 Q27,47 35,44 Q33,54 27,55 Q21,54 19,44 Z"/>
     </g>
   </svg>
 </div>
@@ -451,9 +458,14 @@ footer a{color:var(--accent); text-decoration:none}
   var whiteout = document.getElementById("whiteout");
   var speedlines = document.getElementById("speedlines");
   var lastX = window.innerWidth/2, lastY = window.innerHeight/2, prevStage = "dive", lastTrail = 0;
+  // diver hovers at an offset from the crosshair (up + to the left) and lags/bobs toward it
+  var OFF_X = -32, OFF_Y = -44;
+  var diverX = lastX + OFF_X, diverY = lastY + OFF_Y;
+  var paradiseMode = false;   // true once scrolled into the bright paradise section (>=73%)
   function spawnFx(cls, x, y, opts){
     opts = opts || {};
     var e = document.createElement("div"); e.className = "fx " + cls;
+    if (paradiseMode && /star/.test(cls)) e.classList.add("dark");  // dark stars over bright paradise
     e.style.left = x + "px"; e.style.top = y + "px";
     if (opts.text) e.textContent = opts.text;
     if (opts.size) e.style.fontSize = opts.size + "px";
@@ -474,6 +486,7 @@ footer a{color:var(--accent); text-decoration:none}
     requestAnimationFrame(function(){
       var max = document.documentElement.scrollHeight - window.innerHeight;
       var f = max>0 ? Math.min(1, Math.max(0, window.scrollY/max)) : 0;
+      paradiseMode = f >= 0.73;   // bright lavender paradise: stars switch to dark
       var c = colorAt(f);
       document.documentElement.style.setProperty("--bg","rgb("+c[0]+","+c[1]+","+c[2]+")");
       document.body.classList.toggle("light", (c[0]+c[1]+c[2]) > 430);
@@ -522,10 +535,25 @@ footer a{color:var(--accent); text-decoration:none}
   function moveScope(x, y){ if (scope){ scope.style.left = x + "px"; scope.style.top = y + "px"; } }
   moveScope(lastX, lastY);
   if (diver){
+    // the diver orbits/hovers AROUND the crosshair at an offset, with a gentle bob and lag,
+    // so the red scope (at the exact pointer) and the diver are both clearly visible at once.
+    if (reduce){
+      diver.style.left = diverX + "px"; diver.style.top = diverY + "px";
+    } else {
+      (function tick(){
+        var t = performance.now()/1000;
+        var orbX = Math.cos(t*1.1)*6;        // slow horizontal sway
+        var orbY = Math.sin(t*1.5)*7 - 2;    // gentle vertical bob
+        var tx = lastX + OFF_X + orbX, ty = lastY + OFF_Y + orbY;
+        diverX += (tx - diverX) * 0.16;      // lag: ease toward the target
+        diverY += (ty - diverY) * 0.16;
+        diver.style.left = diverX + "px";
+        diver.style.top  = diverY + "px";
+        requestAnimationFrame(tick);
+      })();
+    }
     window.addEventListener("pointermove", function(e){
       lastX = e.clientX; lastY = e.clientY;
-      diver.style.left = lastX + "px";
-      diver.style.top  = lastY + "px";
       // the red scope tracks the pointer directly, with no animation lag, so a click target stays crisp
       moveScope(lastX, lastY);
       // sparse sparkling star trail near paradise
@@ -534,19 +562,22 @@ footer a{color:var(--accent); text-decoration:none}
         spawnFx("star", lastX + (Math.random()*16-8), lastY + (Math.random()*16-8), {text:"✦", life:1100});
       }
     }, {passive:true});
-    // left click = punch thrash; right click = barrel roll. The scope flashes to mark the hit.
+    // left click = tilt toward 11 o'clock + exclamation; right click = somersault. Scope flashes to mark the hit.
     window.addEventListener("mousedown", function(e){
       if (reduce) return;
       if (scope){ scope.classList.remove("click"); void scope.offsetWidth; scope.classList.add("click");
         setTimeout(function(){ scope.classList.remove("click"); }, 320); }
       if (e.button === 0){
+        // left click: a small CCW tilt toward 11 o'clock + an exclamation straight up above the
+        // diver in GLOBAL space (not rotated with the diver's local frame)
         diver.classList.remove("act-l"); void diver.offsetWidth; diver.classList.add("act-l");
-        spawnFx("pow", lastX, lastY-18, {text:"!", life:500});
-        setTimeout(function(){ diver.classList.remove("act-l"); }, 340);
+        spawnFx("pow", diverX, diverY-42, {text:"!", life:520});
+        setTimeout(function(){ diver.classList.remove("act-l"); }, 420);
       } else if (e.button === 2){
+        // right click: somersault (the older behavior)
         diver.classList.remove("act-r"); void diver.offsetWidth; diver.classList.add("act-r");
         for (var i=0;i<5;i++) spawnFx("star", lastX+(Math.random()*36-18), lastY+(Math.random()*36-18), {text:"✦", life:900});
-        setTimeout(function(){ diver.classList.remove("act-r"); }, 640);
+        setTimeout(function(){ diver.classList.remove("act-r"); }, 660);
       }
     });
     window.addEventListener("contextmenu", function(e){ e.preventDefault(); });
