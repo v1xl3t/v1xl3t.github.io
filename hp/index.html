@@ -167,7 +167,9 @@ h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; ma
 /* black-metal display font used ONLY as a spaced-out decorative accent */
 .bm{font-family:"BlackMetal",var(--font); font-weight:700;
   letter-spacing:.5em; padding-left:.5em; text-transform:uppercase;
-  opacity:.55; line-height:1; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px)}
+  opacity:.55; line-height:1; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px);
+  max-width:100%; overflow:hidden}
+@media (max-width:520px){ .bm{font-size:clamp(3rem,16vw,5rem); letter-spacing:.26em; margin:clamp(56px,12vh,90px) 0} }
 .lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
 .scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
   font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
@@ -199,21 +201,55 @@ body.light .cell{background:rgba(124,95,224,.04)}
 #chasm h2{max-width:18ch; margin-inline:auto}
 .rule{width:1px; height:90px; margin:0 auto 30px; background:linear-gradient(transparent,var(--accent))}
 
-/* member showcase */
-.members{display:grid; gap:16px; grid-template-columns:repeat(3,1fr); margin-top:34px}
-@media (max-width:820px){ .members{grid-template-columns:repeat(2,1fr)} }
-@media (max-width:520px){ .members{grid-template-columns:1fr} }
-.member{position:relative; border:1px solid var(--line); border-radius:16px; overflow:hidden;
-  aspect-ratio:4/5; background:linear-gradient(160deg,#221b3a,#120e22);
-  display:flex; flex-direction:column; justify-content:flex-end; padding:16px;
-  text-decoration:none; transition:transform .3s ease, border-color .3s ease}
-.member:hover{transform:translateY(-4px); border-color:var(--accent)}
-.member .ph{position:absolute; inset:0; z-index:0;
-  background:radial-gradient(120% 80% at 50% 0%, rgba(185,166,245,.18), transparent 60%)}
-.member .nm{position:relative; z-index:1; font-weight:700; font-size:1.05rem}
-.member .disc{position:relative; z-index:1; font-family:var(--mono); font-size:.72rem;
-  color:var(--accent); letter-spacing:.06em; margin-top:4px}
-.note{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-top:18px; opacity:.8}
+/* ===== MEMBERS: the core team as people (rich cards, data driven) ===== */
+.members{display:grid; gap:18px; grid-template-columns:repeat(2,1fr); margin-top:34px}
+@media (max-width:760px){ .members{grid-template-columns:1fr} }
+.member{position:relative; border:1px solid var(--line); border-radius:18px; overflow:hidden;
+  background:rgba(255,255,255,.02); padding:22px; display:flex; gap:18px; align-items:flex-start;
+  transition:transform .3s ease, border-color .3s ease}
+body.light .member{background:rgba(124,95,224,.05)}
+.member:hover{transform:translateY(-4px); border-color:var(--diver-accent)}
+/* placeholder portrait: a monogram tile (swap for real photos from hp_assets) */
+.member .avatar{flex:0 0 auto; width:72px; height:72px; border-radius:14px; display:grid; place-items:center;
+  font-family:var(--mono); font-weight:800; font-size:1.5rem; color:#0c1108;
+  background:linear-gradient(150deg, var(--diver-accent), var(--accent)); box-shadow:0 0 0 1px var(--line)}
+.member .body{min-width:0}
+.member .nm{font-weight:800; font-size:1.15rem; line-height:1.2}
+.member .handle{font-family:var(--mono); font-size:.74rem; color:var(--diver-accent); letter-spacing:.04em; margin-top:3px}
+.member .role{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:10px}
+.member .blurb{color:var(--muted); font-size:.95rem; margin:10px 0 0}
+.member .links{display:flex; flex-wrap:wrap; gap:9px; margin-top:15px}
+.member .links a{font-family:var(--mono); font-size:.72rem; text-decoration:none; color:var(--ink);
+  border:1px solid var(--line); border-radius:999px; padding:10px 14px; line-height:1;
+  transition:border-color .2s ease, color .2s ease}
+.member .links a:hover{border-color:var(--diver-accent); color:var(--diver-accent)}
+
+/* ===== PROJECTS: collective output grouped by type (no per member attribution) ===== */
+.buckets{display:grid; gap:18px; margin-top:34px}
+.bucket{border:1px solid var(--line); border-radius:18px; padding:22px clamp(18px,3vw,26px);
+  background:rgba(255,255,255,.02)}
+body.light .bucket{background:rgba(124,95,224,.05)}
+.bucket .bk-h{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.bucket .bk-n{font-family:var(--mono); font-size:.8rem; color:var(--diver-accent)}
+.bucket h3{font-size:1.15rem; margin:0; font-weight:800; letter-spacing:-.01em}
+.bucket .bk-d{color:var(--muted); font-size:.92rem; margin:9px 0 0; max-width:64ch}
+.roster{display:flex; flex-wrap:wrap; gap:9px; margin-top:16px}
+.chip{font-family:var(--mono); font-size:.72rem; color:var(--ink); border:1px solid var(--line);
+  border-radius:999px; padding:9px 13px; line-height:1; background:rgba(255,255,255,.02);
+  transition:border-color .2s ease, color .2s ease}
+body.light .chip{background:rgba(124,95,224,.05)}
+.chip:hover{border-color:var(--diver-accent); color:var(--diver-accent)}
+.bucket .count{display:block; margin-top:14px; font-family:var(--mono); font-size:.7rem; color:var(--muted)}
+.bucket .src{display:inline-flex; align-items:center; gap:8px; margin-top:14px; min-height:40px;
+  font-family:var(--mono); font-size:.72rem; color:var(--diver-accent); text-decoration:none}
+.bucket .src:hover{text-decoration:underline}
+
+/* light paradise background: neon green text/border needs a darker green to stay legible.
+   same single accent, just an ink-safe shade where it sits on near white. clarity wins. */
+body.light .member .handle, body.light .bucket .bk-n, body.light .bucket .src{color:#1a8f45}
+body.light .member .links a:hover, body.light .chip:hover{color:#1a8f45; border-color:#1a8f45}
+
+.note{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-top:18px; opacity:.85}
 
 /* recruiting (crystal clear, lighter panel) */
 #apply .panel{border:1px solid var(--line); border-radius:20px; padding:clamp(24px,4vw,44px);
@@ -353,17 +389,29 @@ footer a{color:var(--accent); text-decoration:none}
   </div>
 </section>
 
-<!-- 6. Member Showcase -->
+<!-- 6. Members: the core team as people -->
 <section id="members">
   <div class="wrap">
-    <p class="eyebrow r">The crew</p>
-    <h2 class="r">The work speaks first.</h2>
+    <p class="eyebrow r">The members</p>
+    <h2 class="r">The core team.</h2>
+    <p class="lede r">HACKING PARADISE is built by a small core of multi-faceted creatives. These are the members. The work we have collectively had hands on lives in the next section.</p>
     <div class="members" id="memberGrid"></div>
-    <p class="note r">Placeholder roster. Real members and work samples drop in from hp_assets.</p>
+    <p class="note r">Member portraits are monogram placeholders for now. Real photos and reels drop in from hp_assets.</p>
   </div>
 </section>
 
-<!-- 7. Services -->
+<!-- 7. Projects: collective output grouped by type (no per member attribution) -->
+<section id="projects">
+  <div class="wrap">
+    <p class="eyebrow r">The work</p>
+    <h2 class="r">Work we have had hands on.</h2>
+    <p class="lede r">Shown as collective HACKING PARADISE output and grouped by type. We do not break down who did what. The point is the body of work, not the credit split.</p>
+    <div class="buckets" id="bucketList"></div>
+    <p class="note r">A living list. New collaborators and project sets are still being added from the studio SoundCloud and the members' catalogs.</p>
+  </div>
+</section>
+
+<!-- 8. Services -->
 <section id="services">
   <div class="wrap">
     <p class="eyebrow r">For clients</p>
@@ -372,7 +420,7 @@ footer a{color:var(--accent); text-decoration:none}
   </div>
 </section>
 
-<!-- 8. Recruiting / Apply (crystal clear) -->
+<!-- 9. Recruiting / Apply (crystal clear) -->
 <section id="apply">
   <div class="wrap">
     <div class="panel r">
@@ -385,7 +433,7 @@ footer a{color:var(--accent); text-decoration:none}
   </div>
 </section>
 
-<!-- 9. Contact / Paradise -->
+<!-- 10. Contact / Paradise -->
 <section id="paradise">
   <div class="wrap" style="text-align:center; margin:0 auto">
     <p class="eyebrow r">Paradise</p>
@@ -406,17 +454,92 @@ footer a{color:var(--accent); text-decoration:none}
     setTimeout(function(){ document.getElementById("loader").classList.add("gone"); }, 350);
   });
 
-  // placeholder member roster (swap with real data later)
+  // ===== MEMBERS: the core team as people. Add new members to this array. =====
   var members = [
-    {nm:"Member One", disc:"Film and Motion"}, {nm:"Member Two", disc:"Music and Sound"},
-    {nm:"Member Three", disc:"Illustration"}, {nm:"Member Four", disc:"3D and Games"},
-    {nm:"Member Five", disc:"Code and Tools"}, {nm:"Member Six", disc:"Photography"}
+    {
+      nm:"Vi Ellis", handle:"@viknowsdinos", initials:"VE",
+      role:"Founder, Composer, Sound Designer, Technologist",
+      blurb:"Award winning composer and sound designer with 31 shipped game and film credits, working across music, game audio, and film. Also an applied computer scientist who builds tools that make creative work faster.",
+      links:[
+        {t:"Portfolio", u:"https://vi-ellis.com"},
+        {t:"SoundCloud", u:"https://soundcloud.com/hackingparadise"}
+      ]
+    },
+    {
+      nm:"Judah Ellis", handle:"@crunchculture", initials:"JE",
+      role:"Producer, Audio, Visual Design",
+      blurb:"Producer and multi-disciplinary artist working across music, audio, and visual design.",
+      links:[
+        {t:"SoundCloud", u:"https://soundcloud.com/crunchculture"},
+        {t:"Portfolio", u:"https://judahellis.myportfolio.com/"},
+        {t:"itch.io", u:"https://judahellis.itch.io/"}
+      ]
+    }
   ];
   var grid = document.getElementById("memberGrid");
   members.forEach(function(m){
-    var a = document.createElement("a"); a.className="member r"; a.href="#";
-    a.innerHTML = '<span class="ph"></span><span class="nm">'+m.nm+'</span><span class="disc">'+m.disc+'</span>';
-    grid.appendChild(a);
+    var card = document.createElement("div"); card.className = "member r";
+    var links = m.links.map(function(l){
+      return '<a href="'+l.u+'" target="_blank" rel="noopener">'+l.t+'</a>';
+    }).join("");
+    card.innerHTML =
+      '<div class="avatar" aria-hidden="true">'+m.initials+'</div>'+
+      '<div class="body">'+
+        '<div class="nm">'+m.nm+'</div>'+
+        '<div class="handle">'+m.handle+'</div>'+
+        '<div class="role">'+m.role+'</div>'+
+        '<p class="blurb">'+m.blurb+'</p>'+
+        '<div class="links">'+links+'</div>'+
+      '</div>';
+    grid.appendChild(card);
+  });
+
+  // ===== PROJECTS: collective output grouped by type. No per member attribution.
+  // The collaborator roster (folder names from the studio Collab catalog, lightly
+  // curated) sits under Music Production, the source it came from. Move names between
+  // buckets here as the catalog gets sorted. =====
+  var collabs = [
+    "1illnote","369DAKUZA","777villain","Abyeux Tech","BLSXMONERO","COSMIC",
+    "Cameron Williams","Cesar AJG","DOOMGARDEN","Donna E","Dunkmoda","DyS","Dysphora",
+    "Elijah","Emanuel SWEET CREAM","F1LTHY","FALSECRIS","Fede","Jalen","Judah","KA$TRO",
+    "Killa K","Mat","PULSE","Redda Darko","Surf","Switchblvde","Wayne","Yung Grif",
+    "am3n++","arthrn","ava blank","axel","bbyazul","frdm","hylas","jack","jvcxb",
+    "k1dosiris","lunchbox","malcoozy","mayh3mp","pavelhancar","prxpvne","quisworldwide",
+    "qwentcrazy","raiden","safeguard","shadycholo","shinigami","snowee","starboyrob",
+    "t3rps","toshii","whatswrongchase","xoyard"
+  ];
+  var buckets = [
+    { n:"01", t:"Music Production and Collaboration",
+      d:"Original music, beats, features, and collaborative releases. The bulk of the collective catalog. These are the artists and aliases we have made music with.",
+      roster:collabs,
+      src:{t:"Browse the sets on SoundCloud", u:"https://soundcloud.com/hackingparadise/sets"} },
+    { n:"02", t:"Audio Design",
+      d:"Sound design, mixing, and audio post for media projects.", roster:null },
+    { n:"03", t:"Game Audio",
+      d:"Adaptive music and sound for games, including tools for interactive audio.", roster:null },
+    { n:"04", t:"Film and TV Scoring",
+      d:"Original scoring for film and television.", roster:null },
+    { n:"05", t:"Visual and Graphic Design",
+      d:"Cover art, graphics, and visual identity for releases and projects.", roster:null }
+  ];
+  var bl = document.getElementById("bucketList");
+  buckets.forEach(function(b){
+    var sec = document.createElement("div"); sec.className = "bucket r";
+    var html = '<div class="bk-h"><span class="bk-n">'+b.n+'</span><h3>'+b.t+'</h3></div>'+
+               '<p class="bk-d">'+b.d+'</p>';
+    if (b.roster && b.roster.length){
+      html += '<div class="roster">'+ b.roster.map(function(name){
+        return '<span class="chip">'+name+'</span>';
+      }).join("") +'</div>';
+      html += '<span class="count">'+b.roster.length+' collaborators and counting.</span>';
+    } else {
+      html += '<span class="count">Project credits drop in from hp_assets.</span>';
+    }
+    if (b.src){
+      html += '<a class="src" href="'+b.src.u+'" target="_blank" rel="noopener">'+b.src.t+'</a>';
+    }
+    sec.innerHTML = html;
+    bl.appendChild(sec);
   });
 
   // reveal on scroll
@@ -626,6 +749,15 @@ footer a{color:var(--accent); text-decoration:none}
     });
     window.addEventListener("contextmenu", function(e){ e.preventDefault(); });
     if (reduce){ var sk = document.querySelector("#sketch animate"); if (sk) sk.remove(); }
+  }
+
+  // touch: the diver/scope are hidden on touch, so keep the page feeling alive with a
+  // small spark where a finger lands. Passive + no preventDefault, so scrolling is untouched.
+  if (window.matchMedia && window.matchMedia("(hover:none)").matches){
+    window.addEventListener("pointerdown", function(e){
+      if (reduce || e.pointerType !== "touch") return;
+      spawnFx("star", e.clientX, e.clientY, {text:"✦", life:850});
+    }, {passive:true});
   }
 
   // easter egg: a message for the curious in the console
