@@ -80,31 +80,39 @@ body.light .diver{--diver:#241f38}
 .diver[data-stage="chute"] .p-chute,.diver[data-stage="chute"] .p-cords{opacity:1}
 .diver[data-stage="wings"] .p-wing,.diver[data-stage="halo"] .p-wing{opacity:1}
 .diver[data-stage="halo"] .p-halo,.diver[data-stage="halo"] .p-spark{opacity:1}
-/* rig pose + motion per stage */
-.diver .rig{transform-box:fill-box; transform-origin:center; transition:transform .7s cubic-bezier(.4,0,.2,1)}
-.diver[data-stage="dive"] .rig{transform:rotate(168deg)}
-.diver[data-stage="flail"] .rig{animation:tumble 1.1s ease-in-out infinite}
-.diver[data-stage="chute"] .rig{animation:sway 2.4s ease-in-out infinite}
+/* pose per stage lives on the SVG (so the 3D barrel roll works); actions live on
+   .rig so a click composes over the pose and keeps the diver's facing (up/down) */
+.diver{perspective:260px}
+.diver svg{transition:transform .7s cubic-bezier(.4,0,.2,1); transform-origin:center center}
+.diver .rig{transform-box:fill-box; transform-origin:center}
+.diver[data-stage="dive"] svg{transform:rotate(168deg)}
+.diver[data-stage="flail"] svg{animation:barrel 1.05s linear infinite}
+.diver[data-stage="chute"] svg{animation:sway 2.4s ease-in-out infinite}
 .diver[data-stage="wings"] .p-wing{animation:flap 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-spark{animation:twinkle 1.2s ease-in-out infinite}
 .diver[data-stage="halo"] .glowbody{filter:drop-shadow(0 0 6px rgba(255,230,163,.9))}
-@keyframes tumble{0%{transform:rotate(150deg)}50%{transform:rotate(205deg)}100%{transform:rotate(150deg)}}
+/* comic falling action lines around the diver; intensity via --fall (set in JS) */
+.diver .fall-lines{opacity:var(--fall,0); transition:opacity .2s ease; transform-box:fill-box; transform-origin:center}
+.diver[data-stage="flail"] .fall-lines, .diver[data-stage="dive"] .fall-lines{animation:flj .22s steps(2,end) infinite}
+@keyframes barrel{from{transform:rotateZ(180deg) rotateY(0deg)} to{transform:rotateZ(180deg) rotateY(360deg)}}
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
 @keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
+@keyframes flj{0%{transform:scale(.9)}100%{transform:scale(1.14)}}
 @media (hover:none){ .diver{display:none} }
-@media (prefers-reduced-motion: reduce){ .diver .rig,.diver .p-wing,.diver .p-spark{animation:none !important} }
+@media (prefers-reduced-motion: reduce){ .diver svg,.diver .rig,.diver .p-wing,.diver .p-spark,.diver .fall-lines{animation:none !important} }
 
 /* the diver IS the cursor (non-touch only) */
 @media (hover:hover){ html, html *{cursor:none} }
-/* red scribble eyes */
+/* red scribble eyes + horns */
 .diver .eye{stroke:#e23b32; stroke-width:1.9; fill:none; stroke-linecap:round}
 body.light .diver .eye{stroke:#c81f17}
-/* left / right click actions */
+.diver .horns{fill:none; stroke:var(--diver); stroke-width:2.4; stroke-linecap:round}
+/* left / right click actions on .rig (compose over the SVG pose, facing preserved) */
 .diver.act-l .rig{animation:punch .32s ease}
 .diver.act-r .rig{animation:spin .5s ease}
-@keyframes punch{0%{transform:scale(1)}40%{transform:scale(1.35,.7)}100%{transform:scale(1)}}
+@keyframes punch{0%{transform:scale(1)}40%{transform:scale(1.35,.78)}100%{transform:scale(1)}}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 /* falling action lines (Naruto style); opacity + speed set in JS */
 .speedlines{position:fixed; inset:-14%; z-index:5; pointer-events:none; opacity:0;
@@ -118,7 +126,7 @@ body.light .diver .eye{stroke:#c81f17}
   background:radial-gradient(circle, rgba(236,231,250,.92), rgba(236,231,250,0) 70%); animation:puff .9s ease-out forwards}
 @keyframes puff{0%{opacity:.9; transform:translate(-50%,-50%) scale(.4)}
   100%{opacity:0; transform:translate(calc(-50% + var(--dx,0)), calc(-50% + var(--dy,0))) scale(1.7)}}
-.fx.star{color:#ffe6a3; font-size:12px; line-height:1; animation:startw 1.1s ease-out forwards}
+.fx.star{color:#fff3bf; font-size:18px; line-height:1; text-shadow:0 0 6px rgba(255,228,140,.95), 0 0 14px rgba(255,205,90,.6); animation:startw 1.2s ease-out forwards}
 @keyframes startw{0%{opacity:0; transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0; transform:translate(-50%,-50%) scale(1.1)}}
 .fx.pow{color:#e23b32; font-family:var(--mono); font-weight:800; font-size:14px; animation:powfx .5s ease-out forwards}
 @keyframes powfx{0%{opacity:1; transform:translate(-50%,-50%) scale(.6)}100%{opacity:0; transform:translate(-50%,-95%) scale(1.25)}}
@@ -220,7 +228,7 @@ footer a{color:var(--accent); text-decoration:none}
   <div class="dlayer" data-center="0.42" data-peak="0.36" style="background-image:url('media/descent/d07.jpg')"></div>
   <div class="dlayer" data-center="0.50" data-peak="0.24" style="background-image:url('media/descent/d10.jpg')"></div>
   <div class="dlayer" data-center="0.52" data-peak="0.30" style="background-image:url('media/descent/d08.jpg')"></div>
-  <div class="dlayer" data-center="0.58" data-peak="0.30" style="background-image:url('media/descent/d09.jpg')"></div>
+  <div class="dlayer" data-center="0.58" data-peak="0.30" data-yoff="70" style="background-image:url('media/descent/d09.jpg')"></div>
 </div>
 <div class="grain" aria-hidden="true"></div>
 <div class="readscrim" aria-hidden="true"></div>
@@ -246,9 +254,13 @@ footer a{color:var(--accent); text-decoration:none}
       <path class="p-spark fl" fill="#ffe6a3" d="M27,11 L28.7,16 L34,16.3 L29.6,19.3 L31.3,24.3 L27,21.2 L22.7,24.3 L24.4,19.3 L20,16.3 L25.3,16 Z"/>
       <path class="p-arm ln" d="M18,42 Q11,45 10,51 M36,42 Q43,45 44,51"/>
       <path class="p-leg ln" d="M24,50 L22,63 M30,50 L32,63"/>
+      <g class="fall-lines">
+        <path class="ln" stroke-width="1.6" d="M40,42 L47,42 M14,42 L7,42 M27,29 L27,21 M27,55 L27,63 M36,33 L41,28 M18,33 L13,28 M36,51 L41,56 M18,51 L13,56"/>
+      </g>
       <path class="ln glowbody" d="M27,33 C34,34 36,40 34,44 C32,49 27,51 23,49 C19,47 17,41 21,37 C24,34 29,33 27,34 M25,35 C31,35 35,39 34,44 C33,48 28,51 24,49 C20,47 19,42 22,38"/>
-      <path class="eye" d="M22,39 l3.4,1.2 l-3.4,1 l3.4,1.1 M32,39 l-3.4,1.2 l3.4,1 l-3.4,1.1"/>
-      <path class="face" d="M21,45 Q27,53 33,45 M24.5,46.4 v2.4 M27.5,47.2 v2.6 M30.5,46.4 v2.4"/>
+      <path class="horns" d="M23,33 L20.5,27 M31,33 L33.5,27"/>
+      <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
+      <path class="face" d="M19,44 Q27,55.5 35,44 M22.5,45.2 v3.3 M26,46.5 v3.7 M29.5,46.5 v3.7 M33,45.2 v3.3"/>
     </g>
   </svg>
 </div>
@@ -342,7 +354,7 @@ footer a{color:var(--accent); text-decoration:none}
       <h2>Interested in becoming a member?</h2>
       <p class="lede">HACKING PARADISE is for people doing exceptional work across the arts and media. Membership is invitation and application based. When projects come in, members are offered paid roles at their own rates, and every offer is optional. A small 1.5 percent fee on each payout funds the studio (hosting, business costs, marketing, festival fees, a cushion, and a personal-project fund).</p>
       <a class="btn" href="#" id="applyBtn">Apply to join</a>
-      <a class="btn ghost" href="mailto:contactviellis@gmail.com">Ask a question</a>
+      <a class="btn ghost" href="mailto:v1xl3t@gmail.com">Ask a question</a>
     </div>
   </div>
 </section>
@@ -352,12 +364,12 @@ footer a{color:var(--accent); text-decoration:none}
   <div class="wrap" style="text-align:center; margin:0 auto">
     <p class="eyebrow r">Paradise</p>
     <h2 class="r" style="margin-inline:auto; max-width:16ch">Built by the ones who found the shortcut.</h2>
-    <p class="lede r" style="margin:0 auto 8px">contactviellis@gmail.com</p>
+    <p class="lede r" style="margin:0 auto 8px">v1xl3t@gmail.com</p>
     <p class="r"><a href="#edge" style="font-family:var(--mono); font-size:.78rem; color:var(--accent); text-decoration:none">back to the edge</a></p>
   </div>
 </section>
 
-<footer>HACKING PARADISE &middot; a trial collective &middot; <a href="mailto:contactviellis@gmail.com">contactviellis@gmail.com</a></footer>
+<footer>HACKING PARADISE &middot; a trial collective &middot; <a href="mailto:v1xl3t@gmail.com">v1xl3t@gmail.com</a></footer>
 
 <script>
 (function(){
@@ -414,7 +426,7 @@ footer a{color:var(--accent); text-decoration:none}
   }
   var voidLayers = document.querySelectorAll(".void span");
   var dlayers = Array.prototype.slice.call(document.querySelectorAll(".dlayer")).map(function(el){
-    return { el: el, c: parseFloat(el.dataset.center), peak: parseFloat(el.dataset.peak) };
+    return { el: el, c: parseFloat(el.dataset.center), peak: parseFloat(el.dataset.peak), yoff: parseFloat(el.dataset.yoff||0) };
   });
   var diver = document.getElementById("diver");
   var whiteout = document.getElementById("whiteout");
@@ -451,18 +463,19 @@ footer a{color:var(--accent); text-decoration:none}
         var d = f - L.c;
         var o = L.peak * Math.exp(-(d*d)/(2*0.07*0.07)) * (1 - bright);
         L.el.style.opacity = o.toFixed(3);
-        if (!reduce) L.el.style.transform = "translate(-50%, calc(-50% + " + (d*-150) + "px))";
+        if (!reduce) L.el.style.transform = "translate(-50%, calc(-50% + " + (d*-150 + L.yoff) + "px))";
       });
       // the diver's state tracks the fall
       var stage = diverStage(f);
       if (diver) diver.setAttribute("data-stage", stage);
-      // falling action lines, intensifying toward the parachute
-      if (speedlines){
-        if (!reduce && (stage === "flail" || stage === "dive")){
-          var fp = Math.max(0, Math.min(1, (f - 0.10) / 0.42));
-          speedlines.style.opacity = (fp * 0.30).toFixed(3);
-          speedlines.style.animationDuration = (0.55 - fp * 0.45).toFixed(2) + "s";
-        } else { speedlines.style.opacity = "0"; }
+      // falling action lines (background + on the diver), intensifying toward the chute
+      if (!reduce && (stage === "flail" || stage === "dive")){
+        var fp = Math.max(0, Math.min(1, (f - 0.10) / 0.42));
+        if (speedlines){ speedlines.style.opacity = (fp*0.30).toFixed(3); speedlines.style.animationDuration = (0.55 - fp*0.45).toFixed(2) + "s"; }
+        if (diver) diver.style.setProperty("--fall", (0.15 + fp*0.85).toFixed(3));
+      } else {
+        if (speedlines) speedlines.style.opacity = "0";
+        if (diver) diver.style.setProperty("--fall", "0");
       }
       // parachute poofs little clouds the moment it opens
       if (!reduce && stage === "chute" && prevStage !== "chute"){
@@ -491,7 +504,7 @@ footer a{color:var(--accent); text-decoration:none}
       diver.style.left = lastX + "px";
       diver.style.top  = lastY + "px";
       // sparse sparkling star trail near paradise
-      if (!reduce && diver.getAttribute("data-stage") === "halo" && Date.now()-lastTrail > 150 && Math.random() < 0.6){
+      if (!reduce && diver.getAttribute("data-stage") === "halo" && Date.now()-lastTrail > 230 && Math.random() < 0.5){
         lastTrail = Date.now();
         spawnFx("star", lastX + (Math.random()*16-8), lastY + (Math.random()*16-8), {text:"✦", life:1100});
       }
@@ -514,9 +527,20 @@ footer a{color:var(--accent); text-decoration:none}
   }
 
   // easter egg: a message for the curious in the console
-  try{ console.log("%cHACKING PARADISE",
-    "font-size:20px;font-weight:bold;color:#b9a6f5",
-    "\nYou found the console. Of course you did.\nWe look for the route others overlook.\nIf you build, reach out: contactviellis@gmail.com"); }catch(e){}
+  try{
+    console.log("%cHACKING PARADISE","font-size:20px;font-weight:bold;color:#b9a6f5");
+    console.log("%c"+[
+      "        .   *   .        ",
+      "          \\  |  /         ",
+      "       . --  +  -- .      ",
+      "          /  |  \\         ",
+      "             |||          ",
+      "             \\|/          ",
+      "              v           ",
+      "     plummet to paradise  "
+    ].join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.1");
+    console.log("%cYou found the console. Of course you did. We look for the route others overlook.\nIf you build, reach out: v1xl3t@gmail.com","color:#9d8fc7");
+  }catch(e){}
   // easter egg: Konami code rains stars
   var konami=[38,38,40,40,37,39,37,39,66,65], ki=0;
   window.addEventListener("keydown", function(e){
@@ -532,7 +556,7 @@ footer a{color:var(--accent); text-decoration:none}
   // apply button placeholder (wire to a hosted form later)
   document.getElementById("applyBtn").addEventListener("click", function(e){
     e.preventDefault();
-    window.location.href = "mailto:contactviellis@gmail.com?subject=HACKING%20PARADISE%20application";
+    window.location.href = "mailto:v1xl3t@gmail.com?subject=HACKING%20PARADISE%20application";
   });
 })();
 </script>
