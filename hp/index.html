@@ -20,6 +20,9 @@
   /* diver/scope/trail accent. Flip this ONE value to retune or revert the
      diver's highlight color (was red #e23b32; now neon green). */
   --diver-accent:#3DFF6E;
+  /* paradise accent: neon green is hard to read on the bright paradise background,
+     so the crosshair + diver eyes switch to this high-contrast purple down there. */
+  --paradise-accent:#7c3aed;
   --bg:#0b0913;                 /* JS overwrites this from scroll depth */
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -86,18 +89,19 @@ body.light .diver{--diver:#241f38}
 .diver[data-stage="halo"] .p-halo,.diver[data-stage="halo"] .p-spark{opacity:1}
 /* pose per stage lives on the SVG (so the 3D barrel roll works); actions live on
    .rig so a click composes over the pose and keeps the diver's facing (up/down) */
-.diver{perspective:260px}
 .diver svg{transition:transform .7s cubic-bezier(.4,0,.2,1); transform-origin:center center}
 .diver .rig{transform-box:fill-box; transform-origin:center}
-.diver[data-stage="dive"] svg{transform:rotate(168deg)}
-.diver[data-stage="flail"] svg{animation:barrel 1.3s linear infinite}  /* pre-parachute fall = barrel roll */
+/* orientation lives on its own group (.pose) so the upside-down free-fall pose is drawn
+   in ONE place and never compounds with the face-the-cursor turn (on .diver), the tilt
+   (on .rig), or the somersault (on svg). pre-parachute = a clean static invert, no barrel roll. */
+.diver .pose{transform-box:fill-box; transform-origin:center; transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.diver[data-stage="dive"] .pose,.diver[data-stage="flail"] .pose{transform:rotate(180deg)}  /* pre-parachute = explicitly upside-down */
 .diver[data-stage="chute"] svg{animation:sway 2.4s ease-in-out infinite}
 .diver[data-stage="wings"] .p-wing{animation:flap 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-spark{animation:twinkle 1.2s ease-in-out infinite}
 .diver[data-stage="halo"] .glowbody{filter:drop-shadow(0 0 6px rgba(255,230,163,.9))}
-@keyframes barrel{from{transform:rotate(168deg) rotateY(0deg)} to{transform:rotate(168deg) rotateY(360deg)}}
-@keyframes somersault{from{transform:rotate(168deg)} to{transform:rotate(528deg)}}  /* head-over-heels flip */
+@keyframes somersault{from{transform:rotate(0deg)} to{transform:rotate(360deg)}}  /* head-over-heels flip */
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
 @keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
@@ -121,6 +125,13 @@ body.light .diver{--diver:#241f38}
 .diver .eye{stroke:var(--diver-accent); stroke-width:1.9; fill:none; stroke-linecap:round}
 body.light .diver .eye{stroke:var(--diver-accent)}
 .diver .horns{fill:var(--diver); stroke:var(--diver); stroke-width:.5; stroke-linejoin:miter}
+/* PARADISE ACCENT: same paradise-detection that darkens the stars (body.paradise) swaps the
+   crosshair + diver eyes from hard-to-read neon green to a high-contrast purple over the bright
+   background. Placed after body.light so it wins where both classes are active. */
+body.paradise .scope svg{filter:drop-shadow(0 0 2px var(--paradise-accent))}
+body.paradise .scope .ring,body.paradise .scope .tick{stroke:var(--paradise-accent)}
+body.paradise .scope .dot{fill:var(--paradise-accent)}
+body.paradise .diver .eye{stroke:var(--paradise-accent)}
 /* click actions: left = small CCW tilt toward 11 o'clock (on .rig, relative to current facing);
    right = somersault (on svg, a head-over-heels flip) */
 .diver.act-l .rig{animation:tilt11 .38s ease-out}
@@ -233,7 +244,10 @@ body.light .bucket{background:rgba(124,95,224,.05)}
 .bucket .bk-n{font-family:var(--mono); font-size:.8rem; color:var(--diver-accent)}
 .bucket h3{font-size:1.15rem; margin:0; font-weight:800; letter-spacing:-.01em}
 .bucket .bk-d{color:var(--muted); font-size:.92rem; margin:9px 0 0; max-width:64ch}
-.roster{display:flex; flex-wrap:wrap; gap:9px; margin-top:16px}
+.roster-h{font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--diver-accent); margin-top:18px}
+body.light .roster-h{color:#1a8f45}
+.roster{display:flex; flex-wrap:wrap; gap:9px; margin-top:12px}
 .chip{font-family:var(--mono); font-size:.72rem; color:var(--ink); border:1px solid var(--line);
   border-radius:999px; padding:9px 13px; line-height:1; background:rgba(255,255,255,.02);
   transition:border-color .2s ease, color .2s ease}
@@ -302,6 +316,7 @@ footer a{color:var(--accent); text-decoration:none}
       </filter>
     </defs>
     <g class="rig" filter="url(#sketch)">
+     <g class="pose">
       <path class="p-chute soft" d="M5,20 Q27,-1 49,20 Q44,15 38,20 Q33,14 27,20 Q21,14 16,20 Q10,15 5,20 Z"/>
       <path class="p-cords ln" d="M7,20 L22,33 M47,20 L32,33"/>
       <path class="p-wing soft" d="M19,41 C5,30 3,43 8,51 C12,47 16,47 20,48 Z"/>
@@ -315,6 +330,7 @@ footer a{color:var(--accent); text-decoration:none}
       <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
       <!-- small, legible toothy grin: a smile arc with three little tooth ticks -->
       <path class="face" d="M21,45 Q27,53 33,45 M24.5,46.4 v2.4 M27.5,47.2 v2.6 M30.5,46.4 v2.4"/>
+     </g>
     </g>
   </svg>
 </div>
@@ -461,6 +477,7 @@ footer a{color:var(--accent); text-decoration:none}
       role:"Founder, Composer, Sound Designer, Technologist",
       blurb:"Award winning composer and sound designer with 31 shipped game and film credits, working across music, game audio, and film. Also an applied computer scientist who builds tools that make creative work faster.",
       links:[
+        {t:"HP Page", u:"violet.html", self:true},
         {t:"Portfolio", u:"https://vi-ellis.com"},
         {t:"SoundCloud", u:"https://soundcloud.com/hackingparadise"}
       ]
@@ -470,6 +487,7 @@ footer a{color:var(--accent); text-decoration:none}
       role:"Producer, Audio, Visual Design",
       blurb:"Producer and multi-disciplinary artist working across music, audio, and visual design.",
       links:[
+        {t:"HP Page", u:"judah.html", self:true},
         {t:"SoundCloud", u:"https://soundcloud.com/crunchculture"},
         {t:"Portfolio", u:"https://judahellis.myportfolio.com/"},
         {t:"itch.io", u:"https://judahellis.itch.io/"}
@@ -480,7 +498,8 @@ footer a{color:var(--accent); text-decoration:none}
   members.forEach(function(m){
     var card = document.createElement("div"); card.className = "member r";
     var links = m.links.map(function(l){
-      return '<a href="'+l.u+'" target="_blank" rel="noopener">'+l.t+'</a>';
+      var tgt = l.self ? '' : ' target="_blank" rel="noopener"';
+      return '<a href="'+l.u+'"'+tgt+'>'+l.t+'</a>';
     }).join("");
     card.innerHTML =
       '<div class="avatar" aria-hidden="true">'+m.initials+'</div>'+
@@ -498,20 +517,27 @@ footer a{color:var(--accent); text-decoration:none}
   // The collaborator roster (folder names from the studio Collab catalog, lightly
   // curated) sits under Music Production, the source it came from. Move names between
   // buckets here as the catalog gets sorted. =====
+  // Artists and Groups: stylized artist/band/alias names are kept (that is how the artists
+  // are known). Bare internal first names (Elijah, jack, Mat, Fede, Donna E, Jalen) were
+  // dropped as not artist names. More names are coming from the SoundCloud annual playlists.
   var collabs = [
     "1illnote","369DAKUZA","777villain","Abyeux Tech","BLSXMONERO","COSMIC",
-    "Cameron Williams","Cesar AJG","DOOMGARDEN","Donna E","Dunkmoda","DyS","Dysphora",
-    "Elijah","Emanuel SWEET CREAM","F1LTHY","FALSECRIS","Fede","Jalen","Judah","KA$TRO",
-    "Killa K","Mat","PULSE","Redda Darko","Surf","Switchblvde","Wayne","Yung Grif",
-    "am3n++","arthrn","ava blank","axel","bbyazul","frdm","hylas","jack","jvcxb",
+    "Cameron Williams","Cesar AJG","DOOMGARDEN","Dunkmoda","DyS","Dysphora",
+    "Emanuel SWEET CREAM","F1LTHY","FALSECRIS","Judah","KA$TRO",
+    "Killa K","PULSE","Redda Darko","Surf","Switchblvde","Wayne","Yung Grif",
+    "am3n++","arthrn","ava blank","axel","bbyazul","frdm","hylas","jvcxb",
     "k1dosiris","lunchbox","malcoozy","mayh3mp","pavelhancar","prxpvne","quisworldwide",
     "qwentcrazy","raiden","safeguard","shadycholo","shinigami","snowee","starboyrob",
     "t3rps","toshii","whatswrongchase","xoyard"
   ];
   var buckets = [
+    { n:"★", t:"Featured: Shinobi Necro",
+      d:"A flagship HACKING PARADISE project with a page of its own. Step inside.",
+      roster:null, src:{t:"Enter the Shinobi Necro page", u:"shinobi-necro.html", self:true} },
     { n:"01", t:"Music Production and Collaboration",
-      d:"Original music, beats, features, and collaborative releases. The bulk of the collective catalog. These are the artists and aliases we have made music with.",
-      roster:collabs,
+      d:"Original music, beats, features, and collaborative releases. The bulk of the collective catalog. A curated, growing list of the artists and groups we have made music with.",
+      roster:collabs, rosterLabel:"Artists and Groups",
+      rosterNote:"More artists are joining from our SoundCloud annual playlists (added by hand, since SoundCloud blocks automated fetch).",
       src:{t:"Browse the sets on SoundCloud", u:"https://soundcloud.com/hackingparadise/sets"} },
     { n:"02", t:"Audio Design",
       d:"Sound design, mixing, and audio post for media projects.", roster:null },
@@ -528,15 +554,18 @@ footer a{color:var(--accent); text-decoration:none}
     var html = '<div class="bk-h"><span class="bk-n">'+b.n+'</span><h3>'+b.t+'</h3></div>'+
                '<p class="bk-d">'+b.d+'</p>';
     if (b.roster && b.roster.length){
+      if (b.rosterLabel) html += '<div class="roster-h">'+b.rosterLabel+'</div>';
       html += '<div class="roster">'+ b.roster.map(function(name){
         return '<span class="chip">'+name+'</span>';
       }).join("") +'</div>';
-      html += '<span class="count">'+b.roster.length+' collaborators and counting.</span>';
+      html += '<span class="count">'+b.roster.length+' artists and groups, and counting.</span>';
+      if (b.rosterNote) html += '<span class="count">'+b.rosterNote+'</span>';
     } else {
       html += '<span class="count">Project credits drop in from hp_assets.</span>';
     }
     if (b.src){
-      html += '<a class="src" href="'+b.src.u+'" target="_blank" rel="noopener">'+b.src.t+'</a>';
+      var tgt = b.src.self ? '' : ' target="_blank" rel="noopener"';
+      html += '<a class="src" href="'+b.src.u+'"'+tgt+'>'+b.src.t+'</a>';
     }
     sec.innerHTML = html;
     bl.appendChild(sec);
@@ -617,6 +646,7 @@ footer a{color:var(--accent); text-decoration:none}
       var max = document.documentElement.scrollHeight - window.innerHeight;
       var f = max>0 ? Math.min(1, Math.max(0, window.scrollY/max)) : 0;
       paradiseMode = f >= 0.73;   // bright lavender paradise: stars switch to dark
+      document.body.classList.toggle("paradise", paradiseMode);  // crosshair + diver eyes -> purple
       var c = colorAt(f);
       document.documentElement.style.setProperty("--bg","rgb("+c[0]+","+c[1]+","+c[2]+")");
       document.body.classList.toggle("light", (c[0]+c[1]+c[2]) > 430);
