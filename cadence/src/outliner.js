@@ -12,10 +12,25 @@ export class Outliner {
   constructor(doc) {
     this.doc = doc;
     this.root = document.getElementById('outliner-list');
+    // Multi-select mode: when on, tapping a row toggles it in/out of the selection
+    // with no Shift key. This is the touch path (no keyboard), and a convenience on
+    // desktop too. Wired once here; the header button persists across list re-renders.
+    this.multi = false;
+    this.multiBtn = document.getElementById('multi-btn');
+    this.panel = document.getElementById('outliner');
+    if (this.multiBtn) {
+      this.multiBtn.addEventListener('click', () => this.setMulti(!this.multi));
+    }
     for (const ev of ['add', 'remove', 'select', 'regroup', 'undo', 'change']) {
       doc.addEventListener(ev, () => this.render());
     }
     this.render();
+  }
+
+  setMulti(on) {
+    this.multi = on;
+    this.multiBtn?.classList.toggle('active', on);
+    this.panel?.classList.toggle('multi', on);
   }
 
   render() {
@@ -39,7 +54,8 @@ export class Outliner {
     this.root.querySelectorAll('.orow').forEach((row) => {
       row.addEventListener('click', (e) => {
         if (e.target.closest('.eye')) return;
-        this.doc.select(row.dataset.id, e.shiftKey);
+        // additive (toggle) when Multi mode is on or Shift is held; otherwise single-select
+        this.doc.select(row.dataset.id, this.multi || e.shiftKey);
       });
     });
     this.root.querySelectorAll('.eye').forEach((btn) => {

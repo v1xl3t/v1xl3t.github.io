@@ -181,6 +181,16 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 
 /* Outliner (Objects panel) */
 #outliner { right: 12px; width: var(--side-w, 200px); bottom: 36px; top: auto; max-height: 38vh; overflow-y: auto; }
+.outliner-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.outliner-head .group-label { margin-bottom: 6px; }
+.multi-toggle { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; line-height: 1;
+  padding: 4px 8px; margin: 0 0 6px; border: 1px solid var(--line, #2a323d); border-radius: 999px;
+  background: none; color: var(--muted); cursor: pointer; }
+.multi-toggle:hover { color: var(--text); border-color: var(--accent); }
+.multi-toggle.active { background: var(--accent); color: #0c1108; border-color: var(--accent); }
+/* coarse pointers (touch): bigger tap target for the multi-select toggle */
+@media (pointer: coarse) { .multi-toggle { padding: 8px 12px; font-size: 11px; } }
+#outliner.multi .orow { cursor: copy; }
 .orow { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
 .orow:hover { background: #1f262f; }
 .orow.sel { background: var(--accent-dim); }
