@@ -154,6 +154,8 @@ body.paradise .diver .eye{stroke:var(--paradise-accent)}
   animation:streak .5s linear infinite; transition:opacity .25s ease; will-change:transform,opacity}
 @keyframes streak{from{transform:translateY(-16%)}to{transform:translateY(16%)}}
 @media (prefers-reduced-motion: reduce){ .speedlines{animation:none; display:none} }
+/* touch: cut the falling speedlines too, so mobile keeps only the stars + parachute clouds */
+@media (hover:none){ .speedlines{display:none} }
 /* sketchy descent trail: thin, irregular neon-green strokes left in the diver's
    wake (above it / where it descended from). Density rises toward the chute; JS
    spawns + removes each <path>. Hidden on touch + reduced-motion. */
@@ -486,7 +488,7 @@ footer a{color:var(--accent); text-decoration:none}
     {
       nm:"Vi Ellis", handle:"@viknowsdinos", initials:"VE",
       role:"Founder, Composer, Sound Designer, Technologist",
-      blurb:"Award winning composer and sound designer with 31 shipped game and film credits, working across music, game audio, and film. Also an applied computer scientist who builds tools that make creative work faster.",
+      blurb:"Composer and technical sound designer. 31 game and film credits and won Silver for Best Composer at the Tokyo Film Awards. When the tool I need doesn't exist, I write it myself.",
       links:[
         {t:"HP Page", u:"../violet.html", self:true},
         {t:"Portfolio", u:"https://vi-ellis.com"},
@@ -805,12 +807,13 @@ footer a{color:var(--accent); text-decoration:none}
     // for its stage (dive -> chute -> halo); tilt only sets its horizontal drift. Opt-in via a
     // cue, both to keep it a delight and because iOS requires a user gesture for motion access.
     if (!reduce && diver && window.DeviceOrientationEvent){
-      var tiltOn = false;
+      var tiltOn = false, tiltG = 0;
       function onTilt(e){
-        var g = e.gamma; if (g == null) return;       // left/right tilt, degrees
-        g = Math.max(-30, Math.min(30, g));
-        var t = (g + 30) / 60;                          // 0..1 across the tilt range
-        lastX = (0.12 + t * 0.76) * window.innerWidth;  // stay fully on-screen (12% to 88%)
+        var g = e.gamma; if (g == null) return;        // left/right tilt, degrees
+        g = Math.max(-45, Math.min(45, g));            // wider range = lower sensitivity
+        tiltG += (g - tiltG) * 0.12;                   // low-pass: smooth out sensor jitter
+        var t = (tiltG + 45) / 90;                      // 0..1 across the tilt range
+        lastX = (0.15 + t * 0.70) * window.innerWidth;  // stay on-screen, gentler reach
         lastY = window.innerHeight * 0.4;               // float in the upper-middle band
       }
       function startTilt(){
