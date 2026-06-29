@@ -1019,6 +1019,7 @@ function closeDrawers() {
   for (const id of ['toolbar', 'inspector', 'outliner'])
     document.getElementById(id)?.classList.remove('drawer-open');
   scrim.classList.remove('show');
+  document.body.classList.remove('drawer-active');   // restore the Tips button
   openPanelId = null;
   syncMobileBar();
 }
@@ -1027,6 +1028,7 @@ function openDrawer(id) {
   closeDrawers();
   document.getElementById(id)?.classList.add('drawer-open');
   scrim.classList.add('show');
+  document.body.classList.add('drawer-active');        // a drawer covers the Tips button, hide it
   openPanelId = id;
   syncMobileBar();
 }

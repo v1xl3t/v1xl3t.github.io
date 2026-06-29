@@ -214,7 +214,9 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 #statusbar .units { color: var(--text); }
 
 /* Lasso overlay — a freehand selection loop drawn over the viewport. */
-#lasso-svg { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+/* Fixed (not absolute) so the loop tracks the pointer in viewport space; on mobile the
+   page can scroll under a dynamic toolbar, and an absolute overlay drifted off the finger. */
+#lasso-svg { position: fixed; inset: 0; z-index: 9; pointer-events: none; }
 #lasso-svg path { fill: var(--accent); fill-opacity: 0.10; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
 
 /* ============================================================
@@ -457,14 +459,18 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
 #cm-card .cm-btns .cm-next { background: var(--accent); color: #0c1108; border-color: var(--accent); font-weight: 600; }
 #cm-card .cm-btns button:hover { color: var(--text); }
 #cm-card .cm-btns .cm-next:hover { color: #0c1108; filter: brightness(1.08); }
+/* Bottom-center, clear of the toolbar (left), inspector (top-right) and outliner
+   (bottom-right). Sits just above the status bar. */
 #tips-btn {
-  position: fixed; left: 12px; bottom: 12px; z-index: 80;
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 38px; z-index: 80;
   font-size: 11px; padding: 6px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer;
-  opacity: .6; transition: opacity .2s ease, color .2s ease;
+  opacity: .55; transition: opacity .2s ease, color .2s ease;
 }
 #tips-btn:hover { opacity: 1; color: var(--text); border-color: var(--accent); }
-@media (pointer: coarse) { #tips-btn { padding: 9px 14px; font-size: 12px; bottom: 64px; } }
+@media (pointer: coarse) { #tips-btn { padding: 9px 14px; font-size: 12px; bottom: 78px; } }
+/* a drawer slides up over the bottom on mobile, so hide the Tips button while one is open */
+body.drawer-active #tips-btn { opacity: 0; pointer-events: none; }
 
 /* ============================================================
    Mobile bottom bar + drawer scrim — created by JS, hidden on
