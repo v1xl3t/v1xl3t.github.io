@@ -444,6 +444,13 @@ table.credits{width:100%; min-width:440px; border-collapse:collapse;
 .thumb:hover, .thumb:focus-visible{transform:translateY(-2px); border-color:var(--accent); box-shadow:0 8px 20px -10px var(--accent-glow); outline:none}
 .thumb:hover::after, .thumb:focus-visible::after{opacity:1}
 .thumb:hover img{transform:scale(1.06)}
+/* video thumbnail: persistent play badge instead of the zoom glyph */
+.thumb-video{cursor:pointer}
+.thumb-video::after{
+  opacity:1;
+  background:rgba(4,18,29,.32) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e7eef6'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center/26px no-repeat;
+}
+.thumb-video:hover::after, .thumb-video:focus-visible::after{background-color:rgba(4,18,29,.18)}
 @media (prefers-reduced-motion: reduce){ .thumb:hover{transform:none} .thumb:hover img{transform:none} }
 
 /* ---------------- media modal / lightbox ---------------- */
@@ -457,7 +464,7 @@ table.credits{width:100%; min-width:440px; border-collapse:collapse;
 }
 .modal.open{display:flex}
 .modal.show{opacity:1}
-.modal-stage{position:relative; width:100%; max-width:min(1100px,100%); max-height:100%;
+.modal-stage{position:relative; width:100%; max-width:min(1100px,100%); height:100%;
   display:flex; flex-direction:column; gap:12px}
 .modal-frame{
   position:relative; flex:1 1 auto; min-height:0;
@@ -466,11 +473,17 @@ table.credits{width:100%; min-width:440px; border-collapse:collapse;
   background:linear-gradient(180deg, var(--panel), var(--bg-2)); box-shadow:var(--shadow-lift);
 }
 .modal-img{
-  max-width:100%; max-height:78vh; display:block; object-fit:contain;
+  width:100%; height:100%; max-width:100%; max-height:100%; display:block; object-fit:contain;
   cursor:zoom-in; user-select:none; -webkit-user-drag:none; touch-action:none;
   transform:translate(0,0) scale(1); transform-origin:center center;
   transition:transform .25s cubic-bezier(.22,.61,.36,1);
 }
+.modal-video{
+  width:100%; height:100%; max-width:100%; max-height:100%; display:block;
+  object-fit:contain; background:#000;
+}
+.modal-video[hidden]{display:none}
+.modal-img[hidden]{display:none}
 .modal.zoomed .modal-img{cursor:grab}
 .modal.zoomed .modal-img.dragging{cursor:grabbing; transition:none}
 @media (prefers-reduced-motion: reduce){ .modal, .modal-img{transition:opacity .01s} }
@@ -952,10 +965,12 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <p class="outcome">Wrote Python generative pipelines in Rhino and Grasshopper that produced sculptural geometry and fabrication-ready exports for a custom print head.</p>
         <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>KUKA arm</span><span>Robotic fabrication</span></div>
         <div class="thumbs">
-          <button class="thumb" type="button" data-full="media/kuka/kuka-setup.jpg" data-cap="The KUKA robotic arm 3D-printing a sculpture in the workshop"><img src="media/kuka/kuka-setup.jpg" alt="KUKA robotic arm 3D-printing a sculpture" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/kuka/kuka-drawing-final.jpg" data-cap="Generative geometry from the Python and Grasshopper pipeline"><img src="media/kuka/kuka-drawing-final.jpg" alt="Generative ring geometry from the Grasshopper pipeline" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/kuka/kuka-arm-1.jpg" data-cap="A finished sculpture printed from the generative toolpaths"><img src="media/kuka/kuka-arm-1.jpg" alt="Finished 3D-printed sculpture" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/kuka/kuka-render.jpg" data-cap="The final printed sculpture"><img src="media/kuka/kuka-render.jpg" alt="Final printed sculpture, studio shot" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/kuka/kuka-print-arm.jpg" data-cap="The KUKA robotic arm 3D-printing a sculpture in the workshop"><img src="media/kuka/kuka-print-arm.jpg" alt="KUKA robotic arm 3D-printing a sculpture" loading="lazy"></button>
+          <button class="thumb thumb-video" type="button" data-video="media/kuka/kuka-print.mp4" data-poster="media/kuka/kuka-print-poster.jpg" data-cap="The KUKA arm printing the sculpture layer by layer (animation)"><img src="media/kuka/kuka-print-poster.jpg" alt="Play: the KUKA arm 3D-printing the sculpture" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/kuka/kuka-generative.png" data-cap="Generative geometry from the Python and Grasshopper pipeline"><img src="media/kuka/kuka-generative.png" alt="Generative ring geometry from the Grasshopper pipeline" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/kuka/kuka-pipeline.png" data-cap="The Grasshopper definition: the visual pipeline that drives the geometry"><img src="media/kuka/kuka-pipeline.png" alt="Grasshopper node graph for the generative pipeline" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/kuka/kuka-opening.jpg" data-cap="Top-down view into the printed sculpture's opening"><img src="media/kuka/kuka-opening.jpg" alt="Top-down view into the printed sculpture" loading="lazy"></button>
+          <button class="thumb" type="button" data-full="media/kuka/kuka-vessel.jpg" data-cap="The finished sculpture, studio shot"><img src="media/kuka/kuka-vessel.jpg" alt="Finished 3D-printed sculpture, studio shot" loading="lazy"></button>
         </div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
@@ -1297,6 +1312,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
   <div class="modal-stage">
     <div class="modal-frame">
       <img class="modal-img" id="modalImg" alt="" draggable="false">
+      <video class="modal-video" id="modalVideo" controls playsinline preload="metadata" hidden></video>
     </div>
     <div class="modal-bar">
       <span class="modal-cap" id="modalCap"></span>
@@ -1597,6 +1613,8 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
     var modal = document.getElementById("mediaModal");
     if (!modal) return;
     var imgEl   = document.getElementById("modalImg");
+    var videoEl = document.getElementById("modalVideo");
+    var hintEl  = modal.querySelector(".modal-hint");
     var capEl   = document.getElementById("modalCap");
     var countEl = document.getElementById("modalCount");
     var btnClose= document.getElementById("modalClose");
@@ -1609,10 +1627,21 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
     function applyTransform(){ imgEl.style.transform = "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")"; }
     function resetZoom(){ zoom = 1; panX = 0; panY = 0; modal.classList.remove("zoomed"); applyTransform(); }
 
+    function stopVideo(){ try { videoEl.pause(); videoEl.removeAttribute("src"); videoEl.load(); } catch(e){} }
     function render(){
       var item = gallery[index]; if (!item) return;
       resetZoom();
-      imgEl.src = item.src; imgEl.alt = item.cap || "";
+      stopVideo();
+      if (item.type === "video"){
+        imgEl.hidden = true; videoEl.hidden = false;
+        if (item.poster) videoEl.poster = item.poster; else videoEl.removeAttribute("poster");
+        videoEl.src = item.src; videoEl.load();
+        if (hintEl) hintEl.style.display = "none";
+      } else {
+        videoEl.hidden = true; imgEl.hidden = false;
+        imgEl.src = item.src; imgEl.alt = item.cap || "";
+        if (hintEl) hintEl.style.display = "";
+      }
       capEl.textContent = item.cap || "";
       countEl.textContent = pad(index + 1) + " / " + pad(gallery.length);
       var multi = gallery.length > 1;
@@ -1626,6 +1655,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       render(); btnClose.focus();
     }
     function close(){
+      stopVideo();
       modal.classList.remove("show");
       var done = function(){
         modal.classList.remove("open"); modal.hidden = true;
@@ -1640,7 +1670,11 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
 
     Array.prototype.slice.call(document.querySelectorAll(".thumbs")).forEach(function(group){
       var thumbs = Array.prototype.slice.call(group.querySelectorAll(".thumb"));
-      var items = thumbs.map(function(t){ return { src: t.getAttribute("data-full"), cap: t.getAttribute("data-cap") || "" }; });
+      var items = thumbs.map(function(t){
+        var vid = t.getAttribute("data-video");
+        if (vid) return { type: "video", src: vid, poster: t.getAttribute("data-poster") || "", cap: t.getAttribute("data-cap") || "" };
+        return { type: "image", src: t.getAttribute("data-full"), cap: t.getAttribute("data-cap") || "" };
+      });
       thumbs.forEach(function(t, i){ t.addEventListener("click", function(){ open(items, i); }); });
     });
 
