@@ -464,6 +464,7 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
    (bottom-right). Sits just above the status bar. */
 #tips-btn {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 38px; z-index: 80;
+  width: max-content; max-width: calc(100% - 32px);
   font-size: 11px; padding: 6px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer;
   opacity: .55; transition: opacity .2s ease, color .2s ease;
