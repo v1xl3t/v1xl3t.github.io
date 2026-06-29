@@ -480,7 +480,7 @@ function setLasso(on) {
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('lasso-btn')?.classList.toggle('active', on);
   if (!on) { clearLasso(); refreshSelectionView(); }   // restore gizmo on the primary
-  flash(on ? 'Lasso on — drag a loop around objects. Esc or L to exit.' : 'Lasso off.');
+  flash(on ? 'Box select on. Drag a rectangle around objects. Esc or L to exit.' : 'Box select off.');
 }
 function toggleLasso() { setLasso(!lassoOn); }
 
@@ -502,30 +502,36 @@ function lassoStart(e) {
   window.addEventListener('pointermove', lassoMove, true);
   window.addEventListener('pointerup', lassoUp, true);
 }
-function lassoMove(e) { if (!lassoActive) return; lassoPts.push([e.clientX, e.clientY]); updateLassoPath(); }
+// Rectangular marquee: lassoPts holds [startCorner, currentCorner]; the box is their bounds.
+function lassoMove(e) { if (!lassoActive) return; lassoPts[1] = [e.clientX, e.clientY]; updateLassoPath(); }
 function lassoUp(e) { if (lassoActive) lassoEnd(e); }
+function lassoRect() {
+  const a = lassoPts[0], b = lassoPts[1] || a;
+  return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])];
+}
 function updateLassoPath() {
   if (!lassoPath || !lassoPts.length) return;
-  lassoPath.setAttribute('d', lassoPts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ') + ' Z');
+  const [x0, y0, x1, y1] = lassoRect();
+  lassoPath.setAttribute('d', `M${x0},${y0} L${x1},${y0} L${x1},${y1} L${x0},${y1} Z`);
 }
 
 function lassoEnd(e) {
-  const pts = lassoPts.slice();
+  const [x0, y0, x1, y1] = lassoRect();
   clearLasso();
-  // A tiny loop is really a click — fall back to single-pick so the tool still
+  // A tiny box is really a click — fall back to single-pick so the tool still
   // selects one object cleanly.
-  if (pts.length < 3 || polyArea(pts) < 25) { pickAt(e); return; }
+  if ((x1 - x0) < 5 && (y1 - y0) < 5) { pickAt(e); return; }
 
   const inside = [];
   for (const o of doc.list) {
     if (o.mesh.visible === false) continue;
     const sp = objScreenPoint(o);
-    if (sp && pointInPoly(sp, pts)) inside.push(o.id);
+    if (sp && sp[0] >= x0 && sp[0] <= x1 && sp[1] >= y0 && sp[1] <= y1) inside.push(o.id);
   }
   if (!lassoShift) doc.select(null);
-  if (!inside.length) { flash('Lasso caught nothing.'); return; }
+  if (!inside.length) { flash('Box select caught nothing.'); return; }
   for (const id of inside) doc.select(id, true);
-  flash(`Lassoed ${inside.length} object${inside.length === 1 ? '' : 's'}.`);
+  flash(`Selected ${inside.length} object${inside.length === 1 ? '' : 's'}.`);
 }
 
 function objScreenPoint(o) {

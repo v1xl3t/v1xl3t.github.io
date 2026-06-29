@@ -214,9 +214,10 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 #statusbar .units { color: var(--text); }
 
 /* Lasso overlay — a freehand selection loop drawn over the viewport. */
-/* Fixed (not absolute) so the loop tracks the pointer in viewport space; on mobile the
-   page can scroll under a dynamic toolbar, and an absolute overlay drifted off the finger. */
-#lasso-svg { position: fixed; inset: 0; z-index: 9; pointer-events: none; }
+/* Fixed + explicit 100vw/100vh so the overlay actually fills the viewport. Without a CSS
+   size an inline SVG falls back to its 300x150 intrinsic box and clips the selection box,
+   which is why it drew "in the distance". 1 user unit = 1px now maps to the pointer. */
+#lasso-svg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9; pointer-events: none; }
 #lasso-svg path { fill: var(--accent); fill-opacity: 0.10; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
 
 /* ============================================================
