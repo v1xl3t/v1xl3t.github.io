@@ -91,7 +91,7 @@ h2{font-size:clamp(1.7rem,4vw,2.8rem); line-height:1.06; letter-spacing:-.02em; 
 .facts{display:grid; gap:16px; grid-template-columns:repeat(2,1fr); margin-top:30px}
 @media (max-width:680px){ .facts{grid-template-columns:1fr} }
 .fact{border:1px solid var(--line); border-radius:16px; padding:20px; background:rgba(255,255,255,.02)}
-.fact .n{font-family:"BlackMetal",var(--font); font-size:2.2rem; line-height:1; color:var(--neon)}
+.fact .n{font-family:var(--font); font-weight:800; font-size:1.7rem; line-height:1; letter-spacing:.02em; color:var(--neon)}
 .fact p{margin:8px 0 0; color:var(--muted); font-size:.96rem}
 
 /* persona block */
@@ -188,9 +188,8 @@ footer a{color:var(--violet); text-decoration:none}
     <h2 class="r">She writes the music, then writes the tools to bend it.</h2>
     <p class="lede r">Violet is an award-winning composer and sound designer with 31 game and film credits and a Silver for Best Composer at the 2022 Tokyo Film Awards. She scores film, designs game audio, and builds the software and hardware she needs when it does not exist yet. Same instinct every time: take what everyone overlooked and push it past where it was supposed to stop.</p>
     <div class="facts">
-      <div class="fact r"><div class="n">31</div><p>Shipped game and film credits as composer and sound designer.</p></div>
-      <div class="fact r"><div class="n">5+</div><p>Disciplines in one practice: music, game audio, film, code, and hardware.</p></div>
-      <div class="fact r"><div class="n">AI</div><p>Builds tools and AI-assisted pipelines so the craft moves faster.</p></div>
+      <div class="fact r"><div class="n">OST</div><p>Award-winning film and game soundtracks. 31 credits as composer and sound designer.</p></div>
+      <div class="fact r"><div class="n">AI</div><p>Builds tools and AI-assisted pipelines that enable artists to move faster and freer.</p></div>
       <div class="fact r"><div class="n">HW</div><p>Designs and prototypes hardware for sound and interaction.</p></div>
     </div>
   </div>
@@ -205,15 +204,6 @@ footer a{color:var(--violet); text-decoration:none}
         <img class="pa on" id="pa1" src="media/violet/persona.jpg" alt="Violet's skull-skater persona, a purple-hooded figure on a deck with a blade." />
         <img class="pa" id="pa2" src="media/violet/persona2.jpg" alt="Alternate pose of the skull-skater persona." />
         <video class="vid pa" id="paVid" muted loop playsinline preload="none" poster="media/violet/persona.jpg" aria-hidden="true"></video>
-        <span class="kata">viknowsdinos</span>
-      </div>
-      <div>
-        <h2 class="r">She plays rogue.</h2>
-        <p class="lede r">Under the handle viknowsdinos, Violet trades in a card-game logic that doubles as a way of working: most people grind the proven, expensive line and call it the only path. She takes the decks everyone wrote off as trash, finds the combo that wins before the opponent gets a turn, and arrives first. Skate-art energy, a little glitch, a half-mask and a blade. The same instinct that finds a shortcut through a board finds one through a brief.</p>
-        <div class="tagrow r">
-          <span class="tag">skate art</span><span class="tag">persona design</span>
-          <span class="tag">glitch</span><span class="tag">rogue lines</span><span class="tag">FTK thinking</span>
-        </div>
       </div>
     </div>
   </div>
@@ -225,9 +215,7 @@ footer a{color:var(--violet); text-decoration:none}
     <p class="sec-k r">Skate art</p>
     <h2 class="r">Out on the deck.</h2>
     <div class="gal">
-      <figure class="r"><img src="media/violet/hero.jpg" alt="Skate art still with overlay typography." loading="lazy" /><figcaption>recorded</figcaption></figure>
-      <figure class="r"><img src="media/violet/skate2.jpg" alt="Skatepark action, mid trick on a ramp." loading="lazy" /><figcaption>park line</figcaption></figure>
-      <figure class="r"><img src="media/violet/skate3.jpg" alt="Skatepark action, second angle." loading="lazy" /><figcaption>second angle</figcaption></figure>
+      <figure class="r"><img src="media/violet/skate2.jpg" alt="Skatepark action, mid trick on a ramp." loading="lazy" /></figure>
     </div>
   </div>
 </section>
