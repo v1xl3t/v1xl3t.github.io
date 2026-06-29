@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Judah Ellis &middot; HACKING PARADISE</title>
+<meta name="description" content="Judah Ellis: producer and multi-disciplinary artist working across music, audio, and visual design. A member of the HACKING PARADISE collective." />
+<meta name="theme-color" content="#0b0913" />
+<style>
+/* ============================================================
+   JUDAH ELLIS, member page. Facet: producer / audio energy.
+   Motion here is an equalizer + waveform (sound, not descent).
+   Bio is intentionally general and safe; a FLAG marks where
+   richer bio and portrait content is still needed.
+   Self contained, no deps, no build.
+   ============================================================ */
+:root{
+  --ink:#ece7fb; --muted:#c6bfe2; --violet:#b9a6f5; --violet-2:#8b7bd8;
+  --lavender:#d9cdfb;
+  --neon:#3DFF6E;        /* accent on dark */
+  --purple:#7c3aed;      /* accent on light / bright */
+  --line:rgba(185,166,245,.18);
+  --bg:#0b0913;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@font-face{font-family:"BlackMetal"; src:url("fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+  line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+a{color:inherit}
+.wrap{max-width:1080px; margin:0 auto; padding:0 clamp(18px,5vw,48px)}
+
+.void{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.void span{position:absolute; left:50%; width:120vmax; height:120vmax; border-radius:50%;
+  transform:translate(-50%,0); filter:blur(48px); opacity:.42}
+.void .a{top:-42vmax; background:radial-gradient(circle,rgba(139,123,216,.30),transparent 60%)}
+.void .b{top:55vmax; background:radial-gradient(circle,rgba(61,255,110,.10),transparent 60%)}
+.grain{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+
+/* shared header */
+.topbar{position:sticky; top:0; z-index:30; backdrop-filter:blur(8px);
+  background:linear-gradient(180deg,rgba(8,6,15,.82),rgba(8,6,15,.30));
+  border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex; align-items:center; justify-content:space-between; min-height:58px; gap:14px}
+.brand{font-family:var(--mono); font-size:.74rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--violet); text-decoration:none; white-space:nowrap}
+.brand b{color:var(--ink)}
+.back{font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-decoration:none;
+  color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:9px 14px; line-height:1;
+  white-space:nowrap; transition:border-color .2s ease, color .2s ease}
+.back:hover{border-color:var(--neon); color:var(--neon)}
+
+/* hero with live equalizer */
+.hero{position:relative; min-height:88vh; display:flex; align-items:center; overflow:hidden}
+.eq{position:absolute; inset:0; z-index:0; display:flex; align-items:flex-end; gap:1.2vw;
+  padding:0 4vw 0; opacity:.30}
+.eq i{flex:1 1 auto; background:linear-gradient(180deg,var(--neon),var(--violet-2));
+  border-radius:6px 6px 0 0; height:20%; transform-origin:bottom;
+  animation:bounce 1.5s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:scaleY(.18)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){ .eq i{animation:none} }
+.hero::after{content:""; position:absolute; inset:0; z-index:1;
+  background:linear-gradient(180deg,rgba(11,9,19,.55),rgba(11,9,19,.86))}
+.hero .wrap{position:relative; z-index:2}
+.eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--neon); margin:0 0 16px}
+h1{font-size:clamp(2.7rem,10vw,6.4rem); line-height:.94; letter-spacing:-.03em; margin:0; font-weight:800}
+.hero .sub{font-family:var(--mono); font-size:.8rem; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--lavender); margin:18px 0 0}
+.lede{font-size:clamp(1.04rem,1.6vw,1.3rem); color:var(--muted); max-width:62ch}
+
+/* waveform divider */
+.wavewrap{border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  background:rgba(61,255,110,.04); padding:18px 0}
+.wave{display:flex; align-items:center; gap:3px; height:46px; max-width:1080px; margin:0 auto;
+  padding:0 clamp(18px,5vw,48px); overflow:hidden}
+.wave i{flex:1 1 auto; background:var(--violet); border-radius:2px; opacity:.65;
+  animation:wv 1.8s ease-in-out infinite}
+@keyframes wv{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){ .wave i{animation:none} }
+
+section{position:relative; padding:clamp(56px,10vh,120px) 0}
+h2{font-size:clamp(1.7rem,4vw,2.8rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .55em; font-weight:800}
+.sec-k{font-family:var(--mono); font-size:.72rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--violet); margin:0 0 16px}
+
+/* what he does cards */
+.grid{display:grid; gap:16px; grid-template-columns:repeat(3,1fr); margin-top:30px}
+@media (max-width:760px){ .grid{grid-template-columns:1fr} }
+.cell{border:1px solid var(--line); border-radius:16px; padding:22px; background:rgba(255,255,255,.02)}
+.cell .n{font-family:var(--mono); font-size:.8rem; color:var(--neon); margin:0 0 8px}
+.cell h3{margin:0 0 8px; font-size:1.1rem}
+.cell p{margin:0; color:var(--muted); font-size:.96rem}
+
+/* portrait placeholder (generative, no asset) */
+.intro{display:grid; grid-template-columns:200px 1fr; gap:clamp(22px,4vw,44px); align-items:center}
+@media (max-width:620px){ .intro{grid-template-columns:1fr} }
+.portrait{aspect-ratio:1/1; max-width:200px; border-radius:20px; border:1px solid var(--line);
+  display:grid; place-items:center; position:relative; overflow:hidden;
+  background:
+    radial-gradient(120% 120% at 20% 10%, rgba(61,255,110,.18), transparent 50%),
+    linear-gradient(150deg,#1a1430,#0c0a18)}
+.portrait .mono{font-family:"BlackMetal",var(--font); font-size:3.4rem; color:var(--lavender); opacity:.9}
+.portrait .ring{position:absolute; inset:14px; border:1px dashed rgba(185,166,245,.3); border-radius:14px}
+
+/* FLAG note */
+.flag{margin-top:28px; border:1px solid rgba(61,255,110,.4); border-left:4px solid var(--neon);
+  border-radius:12px; padding:16px 18px; background:rgba(61,255,110,.05)}
+.flag b{font-family:var(--mono); font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; color:var(--neon)}
+.flag p{margin:8px 0 0; color:var(--muted); font-size:.92rem}
+
+/* links: bright/light panel -> PURPLE accent */
+.links-panel{border:1px solid rgba(124,58,237,.28); border-radius:22px;
+  padding:clamp(26px,4vw,46px); background:#f4f0fe; color:#241c3c}
+.links-panel h2{color:#1f1538}
+.links-panel p{color:#4a4068; max-width:56ch}
+.links-row{display:flex; flex-wrap:wrap; gap:12px; margin-top:24px}
+.lk{display:inline-flex; align-items:center; gap:9px; text-decoration:none; font-weight:700;
+  padding:14px 22px; border-radius:999px; line-height:1;
+  background:var(--purple); color:#fff; border:1px solid var(--purple);
+  transition:transform .15s ease, background .2s ease}
+.lk:hover{transform:translateY(-2px); background:#6d28d9}
+.lk.ghost{background:transparent; color:#3a2d63; border-color:rgba(124,58,237,.4)}
+.lk.ghost:hover{background:rgba(124,58,237,.08)}
+
+.r{opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease}
+.r.in{opacity:1; transform:none}
+@media (prefers-reduced-motion: reduce){ .r{opacity:1; transform:none; transition:none} }
+
+footer{padding:54px 0 76px; text-align:center; color:var(--muted);
+  font-family:var(--mono); font-size:.78rem}
+footer a{color:var(--violet); text-decoration:none}
+</style>
+</head>
+<body>
+<div class="void" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/hp/">HACKING <b>PARADISE</b></a>
+    <a class="back" href="/hp/">back to the collective</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eq" id="eq" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="eyebrow">Member &middot; Producer</p>
+    <h1>JUDAH<br>ELLIS</h1>
+    <p class="sub">producer &middot; audio &middot; visual design</p>
+  </div>
+</section>
+
+<div class="wavewrap" aria-hidden="true"><div class="wave" id="wave"></div></div>
+
+<!-- INTRO -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">Who he is</p>
+    <div class="intro">
+      <div class="portrait r" aria-hidden="true"><span class="ring"></span><span class="mono">JE</span></div>
+      <div>
+        <h2 class="r">A producer and multi-disciplinary artist.</h2>
+        <p class="lede r">Judah works across music, audio, and visual design, producing and shaping sound for releases and projects under the handle crunchculture. He is one of the core members of HACKING PARADISE, contributing to the collective body of work the studio puts out.</p>
+      </div>
+    </div>
+    <div class="flag r">
+      <b>Needs input</b>
+      <p>This is a safe, general bio placeholder. A fuller story, selected credits, and a portrait or reel are still needed from Vi and Judah before this page is final.</p>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT HE DOES -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">What he works in</p>
+    <h2 class="r">Sound, shaped and seen.</h2>
+    <div class="grid">
+      <div class="cell r"><p class="n">01</p><h3>Production</h3><p>Music production and collaborative releases, building and arranging tracks from the ground up.</p></div>
+      <div class="cell r"><p class="n">02</p><h3>Audio</h3><p>Sound and audio work for media, from raw material to a finished mix.</p></div>
+      <div class="cell r"><p class="n">03</p><h3>Visual design</h3><p>Visual and graphic design that gives a release its look as well as its sound.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- LINKS (light panel, purple accent) -->
+<section>
+  <div class="wrap">
+    <div class="links-panel r">
+      <h2>Where to hear and see his work.</h2>
+      <p>The releases, the portfolio, and the projects live across these three.</p>
+      <div class="links-row">
+        <a class="lk" href="https://soundcloud.com/crunchculture" target="_blank" rel="noopener">SoundCloud</a>
+        <a class="lk ghost" href="https://judahellis.myportfolio.com/" target="_blank" rel="noopener">Portfolio</a>
+        <a class="lk ghost" href="https://judahellis.itch.io/" target="_blank" rel="noopener">itch.io</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Judah Ellis &middot; a member of <a href="/hp/">HACKING PARADISE</a>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // build the equalizer + waveform bars (varied heights and animation timing for life).
+  // If reduced motion is on, bars render at a fixed silhouette with no animation.
+  var eq = document.getElementById("eq");
+  var BARS = 26;
+  for (var i=0;i<BARS;i++){
+    var b = document.createElement("i");
+    var dur = (1.0 + Math.random()*1.4).toFixed(2);
+    var delay = (Math.random()*-2).toFixed(2);
+    b.style.animationDuration = dur + "s";
+    b.style.animationDelay = delay + "s";
+    if (reduce) b.style.height = (18 + Math.random()*70).toFixed(0) + "%";
+    eq.appendChild(b);
+  }
+  var wave = document.getElementById("wave");
+  var WB = 90;
+  for (var j=0;j<WB;j++){
+    var w = document.createElement("i");
+    var dur2 = (1.2 + Math.random()*1.6).toFixed(2);
+    w.style.animationDuration = dur2 + "s";
+    w.style.animationDelay = (Math.random()*-2.5).toFixed(2) + "s";
+    w.style.height = reduce ? (20 + Math.random()*80).toFixed(0) + "%" : "100%";
+    wave.appendChild(w);
+  }
+
+  // reveal on scroll
+  var rs = Array.prototype.slice.call(document.querySelectorAll(".r"));
+  if (reduce || !("IntersectionObserver" in window)){ rs.forEach(function(e){e.classList.add("in")}); }
+  else {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    }); }, {rootMargin:"0px 0px -10% 0px", threshold:0.12});
+    rs.forEach(function(e){ io.observe(e); });
+  }
+})();
+</script>
+</body>
+</html>

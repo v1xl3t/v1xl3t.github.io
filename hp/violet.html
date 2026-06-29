@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Violet Ellis &middot; HACKING PARADISE</title>
+<meta name="description" content="Violet Ellis: composer, sound designer, applied computer scientist, and skate-art persona artist. A member of the HACKING PARADISE collective." />
+<meta name="theme-color" content="#0b0913" />
+<style>
+/* ============================================================
+   VIOLET ELLIS, member page. Facet: skate-art plus a Yugioh
+   persona. Motion here is a sideways "deck" energy (a marquee
+   band and a crossfading persona portrait), deliberately NOT
+   the index descent. Self contained, no deps, no build.
+   ============================================================ */
+:root{
+  --ink:#ece7fb; --muted:#c6bfe2; --violet:#b9a6f5; --violet-2:#8b7bd8;
+  --lavender:#d9cdfb;
+  --neon:#3DFF6E;        /* accent on dark */
+  --purple:#7c3aed;      /* accent on light / bright */
+  --line:rgba(185,166,245,.18);
+  --bg:#0b0913;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@font-face{font-family:"BlackMetal"; src:url("fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+  line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%; display:block}
+.wrap{max-width:1080px; margin:0 auto; padding:0 clamp(18px,5vw,48px)}
+
+/* ambient void glows */
+.void{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.void span{position:absolute; left:50%; width:120vmax; height:120vmax; border-radius:50%;
+  transform:translate(-50%,0); filter:blur(48px); opacity:.45}
+.void .a{top:-40vmax; background:radial-gradient(circle,rgba(139,123,216,.30),transparent 60%)}
+.void .b{top:50vmax; background:radial-gradient(circle,rgba(124,58,237,.20),transparent 60%)}
+.grain{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+
+/* shared site header / wordmark */
+.topbar{position:sticky; top:0; z-index:30; backdrop-filter:blur(8px);
+  background:linear-gradient(180deg,rgba(8,6,15,.82),rgba(8,6,15,.30));
+  border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex; align-items:center; justify-content:space-between; min-height:58px; gap:14px}
+.brand{font-family:var(--mono); font-size:.74rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--violet); text-decoration:none; white-space:nowrap}
+.brand b{color:var(--ink)}
+.back{font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-decoration:none;
+  color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:9px 14px; line-height:1;
+  white-space:nowrap; transition:border-color .2s ease, color .2s ease}
+.back:hover{border-color:var(--neon); color:var(--neon)}
+
+/* hero */
+.hero{position:relative; min-height:92vh; display:flex; align-items:flex-end; overflow:hidden}
+.hero .bgimg{position:absolute; inset:0; background-image:url('media/violet/hero.jpg');
+  background-size:cover; background-position:center; opacity:.5;
+  -webkit-mask-image:linear-gradient(180deg,#000 0 55%,transparent);
+  mask-image:linear-gradient(180deg,#000 0 55%,transparent)}
+.hero::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(11,9,19,.35),rgba(11,9,19,.78))}
+.hero .wrap{position:relative; z-index:2; padding-bottom:8vh; padding-top:10vh; width:100%}
+.eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--neon); margin:0 0 16px}
+h1{font-size:clamp(2.7rem,10vw,6.4rem); line-height:.94; letter-spacing:-.03em; margin:0; font-weight:800}
+.hero .sub{font-family:var(--mono); font-size:.8rem; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--lavender); margin:18px 0 0}
+.lede{font-size:clamp(1.04rem,1.6vw,1.3rem); color:var(--muted); max-width:62ch}
+
+/* marquee discipline band */
+.marquee{border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  overflow:hidden; white-space:nowrap; background:rgba(124,58,237,.06)}
+.marquee .run{display:inline-block; padding:14px 0; will-change:transform; animation:scrollx 26s linear infinite}
+.marquee .run span{font-family:"BlackMetal",var(--font); font-size:1.5rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--lavender); opacity:.8; padding:0 26px}
+.marquee .run span b{color:var(--neon)}
+@keyframes scrollx{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){ .marquee .run{animation:none} .marquee{overflow-x:auto} }
+
+/* sections */
+section{position:relative; padding:clamp(56px,10vh,120px) 0}
+h2{font-size:clamp(1.7rem,4vw,2.8rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .55em; font-weight:800}
+.sec-k{font-family:var(--mono); font-size:.72rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--violet); margin:0 0 16px}
+
+/* bio facts */
+.facts{display:grid; gap:16px; grid-template-columns:repeat(2,1fr); margin-top:30px}
+@media (max-width:680px){ .facts{grid-template-columns:1fr} }
+.fact{border:1px solid var(--line); border-radius:16px; padding:20px; background:rgba(255,255,255,.02)}
+.fact .n{font-family:"BlackMetal",var(--font); font-size:2.2rem; line-height:1; color:var(--neon)}
+.fact p{margin:8px 0 0; color:var(--muted); font-size:.96rem}
+
+/* persona block */
+.persona{display:grid; grid-template-columns:1fr 1fr; gap:clamp(24px,5vw,56px); align-items:center}
+@media (max-width:760px){ .persona{grid-template-columns:1fr} }
+.persona-art{position:relative; border:1px solid var(--line); border-radius:20px; overflow:hidden;
+  background:#06040c; aspect-ratio:1/1}
+.persona-art img,.persona-art video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.persona-art .pa{opacity:0; transition:opacity 1.1s ease}
+.persona-art .pa.on{opacity:1}
+.persona-art .kata{position:absolute; left:14px; bottom:12px; z-index:3;
+  font-family:var(--mono); letter-spacing:.18em; color:var(--neon); font-size:1.1rem;
+  text-shadow:0 0 8px rgba(61,255,110,.6)}
+.persona-art .vid{z-index:2}
+.tagrow{display:flex; flex-wrap:wrap; gap:9px; margin-top:20px}
+.tag{font-family:var(--mono); font-size:.72rem; color:var(--ink); border:1px solid var(--line);
+  border-radius:999px; padding:9px 13px; line-height:1; background:rgba(255,255,255,.02);
+  transition:border-color .2s ease, color .2s ease}
+.tag:hover{border-color:var(--neon); color:var(--neon)}
+
+/* skate gallery */
+.gal{display:grid; gap:14px; grid-template-columns:repeat(3,1fr); margin-top:30px}
+@media (max-width:760px){ .gal{grid-template-columns:1fr 1fr} }
+@media (max-width:430px){ .gal{grid-template-columns:1fr} }
+.gal figure{margin:0; border:1px solid var(--line); border-radius:16px; overflow:hidden;
+  background:#06040c; position:relative}
+.gal img{width:100%; height:100%; object-fit:cover; aspect-ratio:4/3; transition:transform .5s ease; opacity:.92}
+.gal figure:hover img{transform:scale(1.05); opacity:1}
+.gal figcaption{position:absolute; left:0; right:0; bottom:0; padding:10px 12px;
+  font-family:var(--mono); font-size:.68rem; letter-spacing:.06em; color:var(--lavender);
+  background:linear-gradient(transparent,rgba(6,4,12,.85))}
+
+/* links: a bright/light panel -> PURPLE accent (neon green is hard to read on light) */
+.links-panel{border:1px solid rgba(124,58,237,.28); border-radius:22px;
+  padding:clamp(26px,4vw,46px); background:#f4f0fe; color:#241c3c}
+.links-panel h2{color:#1f1538}
+.links-panel p{color:#4a4068; max-width:56ch}
+.links-row{display:flex; flex-wrap:wrap; gap:12px; margin-top:24px}
+.lk{display:inline-flex; align-items:center; gap:9px; text-decoration:none; font-weight:700;
+  padding:14px 22px; border-radius:999px; line-height:1;
+  background:var(--purple); color:#fff; border:1px solid var(--purple);
+  transition:transform .15s ease, background .2s ease}
+.lk:hover{transform:translateY(-2px); background:#6d28d9}
+.lk.ghost{background:transparent; color:#3a2d63; border-color:rgba(124,58,237,.4)}
+.lk.ghost:hover{background:rgba(124,58,237,.08)}
+
+/* reveal */
+.r{opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease}
+.r.in{opacity:1; transform:none}
+@media (prefers-reduced-motion: reduce){ .r{opacity:1; transform:none; transition:none} }
+
+footer{padding:54px 0 76px; text-align:center; color:var(--muted);
+  font-family:var(--mono); font-size:.78rem}
+footer a{color:var(--violet); text-decoration:none}
+</style>
+</head>
+<body>
+<div class="void" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/hp/">HACKING <b>PARADISE</b></a>
+    <a class="back" href="/hp/">back to the collective</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="bgimg" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="eyebrow">Member &middot; Artist</p>
+    <h1>VIOLET<br>ELLIS</h1>
+    <p class="sub">composer &middot; sound designer &middot; applied computer scientist</p>
+  </div>
+</section>
+
+<!-- discipline marquee -->
+<div class="marquee" aria-hidden="true">
+  <div class="run">
+    <span>MUSIC <b>/</b></span><span>GAME AUDIO <b>/</b></span><span>FILM SCORING <b>/</b></span>
+    <span>SOUND DESIGN <b>/</b></span><span>HARDWARE <b>/</b></span><span>AI TOOLS <b>/</b></span>
+    <span>SKATE ART <b>/</b></span>
+    <span>MUSIC <b>/</b></span><span>GAME AUDIO <b>/</b></span><span>FILM SCORING <b>/</b></span>
+    <span>SOUND DESIGN <b>/</b></span><span>HARDWARE <b>/</b></span><span>AI TOOLS <b>/</b></span>
+    <span>SKATE ART <b>/</b></span>
+  </div>
+</div>
+
+<!-- BIO -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">Who she is</p>
+    <h2 class="r">A multi-faceted maker who works across sound, screen, and silicon.</h2>
+    <p class="lede r">Violet is an award-winning composer and sound designer with 31 shipped game and film credits, moving fluidly between music, game audio, and film scoring. She is also an applied computer scientist who builds the tools and hardware that make creative work faster, and a builder who folds AI into her pipeline rather than around it. The thread through all of it is the same: take what is overlooked and push it past its supposed limit.</p>
+    <div class="facts">
+      <div class="fact r"><div class="n">31</div><p>Shipped game and film credits as composer and sound designer.</p></div>
+      <div class="fact r"><div class="n">5+</div><p>Disciplines in one practice: music, game audio, film, code, and hardware.</p></div>
+      <div class="fact r"><div class="n">AI</div><p>Builds tools and AI-assisted pipelines so the craft moves faster.</p></div>
+      <div class="fact r"><div class="n">HW</div><p>Designs and prototypes hardware for sound and interaction.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PERSONA -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">The persona</p>
+    <div class="persona">
+      <div class="persona-art r" id="personaArt">
+        <img class="pa on" id="pa1" src="media/violet/persona.jpg" alt="Violet's skull-skater persona, a purple-hooded figure on a deck with a blade." />
+        <img class="pa" id="pa2" src="media/violet/persona2.jpg" alt="Alternate pose of the skull-skater persona." />
+        <video class="vid pa" id="paVid" muted loop playsinline preload="none" poster="media/violet/persona.jpg" aria-hidden="true"></video>
+        <span class="kata">viknowsdinos</span>
+      </div>
+      <div>
+        <h2 class="r">She plays rogue.</h2>
+        <p class="lede r">Under the handle viknowsdinos, Violet trades in a card-game logic that doubles as a way of working: most people grind the proven, expensive line and call it the only path. She takes the decks everyone wrote off as trash, finds the combo that wins before the opponent gets a turn, and arrives first. Skate-art energy, a little glitch, a half-mask and a blade. The same instinct that finds a shortcut through a board finds one through a brief.</p>
+        <div class="tagrow r">
+          <span class="tag">skate art</span><span class="tag">persona design</span>
+          <span class="tag">glitch</span><span class="tag">rogue lines</span><span class="tag">FTK thinking</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKATE GALLERY -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">Skate art</p>
+    <h2 class="r">Out on the deck.</h2>
+    <div class="gal">
+      <figure class="r"><img src="media/violet/hero.jpg" alt="Skate art still with overlay typography." loading="lazy" /><figcaption>recorded</figcaption></figure>
+      <figure class="r"><img src="media/violet/skate2.jpg" alt="Skatepark action, mid trick on a ramp." loading="lazy" /><figcaption>park line</figcaption></figure>
+      <figure class="r"><img src="media/violet/skate3.jpg" alt="Skatepark action, second angle." loading="lazy" /><figcaption>second angle</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- LINKS (light panel, purple accent) -->
+<section>
+  <div class="wrap">
+    <div class="links-panel r">
+      <h2>Find the rest of the work.</h2>
+      <p>The full portfolio, the credits, and the latest releases live off-site. The collective's sets are on SoundCloud.</p>
+      <div class="links-row">
+        <a class="lk" href="https://vi-ellis.com" target="_blank" rel="noopener">vi-ellis.com</a>
+        <a class="lk ghost" href="https://soundcloud.com/hackingparadise" target="_blank" rel="noopener">HACKING PARADISE on SoundCloud</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Violet Ellis &middot; a member of <a href="/hp/">HACKING PARADISE</a> &middot; <a href="mailto:v1xl3t@gmail.com">v1xl3t@gmail.com</a>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // reveal on scroll
+  var rs = Array.prototype.slice.call(document.querySelectorAll(".r"));
+  if (reduce || !("IntersectionObserver" in window)){ rs.forEach(function(e){e.classList.add("in")}); }
+  else {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    }); }, {rootMargin:"0px 0px -10% 0px", threshold:0.12});
+    rs.forEach(function(e){ io.observe(e); });
+  }
+
+  // persona: crossfade between the two stills, then bring in the looping sprite clip.
+  // All motion is gated on reduced-motion (a static portrait stays).
+  if (!reduce){
+    var pa1 = document.getElementById("pa1");
+    var pa2 = document.getElementById("pa2");
+    var vid = document.getElementById("paVid");
+    var which = 0;
+    var stillTimer = setInterval(function(){
+      which ^= 1;
+      pa1.classList.toggle("on", which === 0);
+      pa2.classList.toggle("on", which === 1);
+    }, 3200);
+    // load the small persona sprite clip only when the block is in view, then loop it on top.
+    var art = document.getElementById("personaArt");
+    if ("IntersectionObserver" in window){
+      var vio = new IntersectionObserver(function(es){ es.forEach(function(e){
+        if (e.isIntersecting){
+          clearInterval(stillTimer);
+          vid.src = "media/violet/persona.mp4";
+          var p = vid.play();
+          if (p && p.then){ p.then(function(){ vid.classList.add("on"); }).catch(function(){
+            // autoplay blocked: keep the still crossfade running
+            stillTimer = setInterval(function(){ which ^= 1;
+              pa1.classList.toggle("on", which === 0); pa2.classList.toggle("on", which === 1); }, 3200);
+          }); }
+          vio.unobserve(e.target);
+        }
+      }); }, {threshold:0.4});
+      vio.observe(art);
+    }
+  }
+})();
+</script>
+</body>
+</html>

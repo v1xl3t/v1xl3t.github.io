@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shinobi Necro &middot; HACKING PARADISE</title>
+<meta name="description" content="Shinobi Necro: an audiovisual project from the HACKING PARADISE collective. A shinobi-to-necro transformation in green-and-purple glitch and chrome." />
+<meta name="theme-color" content="#07060d" />
+<style>
+/* ============================================================
+   SHINOBI NECRO, a collective project page. Facet: a
+   shinobi-to-necro transformation. Motion is a scroll-driven
+   crossfade with a light glitch, NOT the index descent.
+   Green-and-purple glitch, chrome, katakana. No deps, no build.
+   ============================================================ */
+:root{
+  --ink:#ece7fb; --muted:#c6bfe2; --violet:#b9a6f5; --violet-2:#8b7bd8;
+  --lavender:#d9cdfb;
+  --neon:#3DFF6E;        /* accent on dark */
+  --purple:#7c3aed;      /* accent on light / bright */
+  --line:rgba(185,166,245,.18);
+  --bg:#07060d;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@font-face{font-family:"BlackMetal"; src:url("fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+  line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%; display:block}
+.wrap{max-width:1080px; margin:0 auto; padding:0 clamp(18px,5vw,48px)}
+
+.grain{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.06;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+
+/* shared header */
+.topbar{position:sticky; top:0; z-index:30; backdrop-filter:blur(8px);
+  background:linear-gradient(180deg,rgba(7,6,13,.86),rgba(7,6,13,.30));
+  border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex; align-items:center; justify-content:space-between; min-height:58px; gap:14px}
+.brand{font-family:var(--mono); font-size:.74rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--violet); text-decoration:none; white-space:nowrap}
+.brand b{color:var(--ink)}
+.back{font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-decoration:none;
+  color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:9px 14px; line-height:1;
+  white-space:nowrap; transition:border-color .2s ease, color .2s ease}
+.back:hover{border-color:var(--neon); color:var(--neon)}
+
+/* hero with green/purple vortex */
+.hero{position:relative; min-height:94vh; display:flex; align-items:center; justify-content:center;
+  text-align:center; overflow:hidden}
+.hero .bgimg{position:absolute; inset:0; background-image:url('media/shinobi/bg.jpg');
+  background-size:cover; background-position:center; opacity:.7}
+.hero::after{content:""; position:absolute; inset:0;
+  background:radial-gradient(60% 60% at 50% 50%, transparent, rgba(7,6,13,.78))}
+.hero .wrap{position:relative; z-index:2}
+.eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.3em; text-transform:uppercase;
+  color:var(--neon); margin:0 0 18px}
+.kata-top{font-family:var(--mono); font-size:clamp(1rem,3vw,1.5rem); letter-spacing:.4em;
+  color:var(--lavender); margin:0 0 10px; text-shadow:0 0 12px rgba(124,58,237,.6)}
+.glitch{position:relative; font-family:"BlackMetal",var(--font); font-weight:700;
+  font-size:clamp(2.6rem,11vw,6.2rem); line-height:.95; letter-spacing:.06em; margin:0;
+  text-transform:uppercase; color:#fff}
+.glitch::before,.glitch::after{content:attr(data-t); position:absolute; left:0; top:0; width:100%;
+  overflow:hidden; opacity:.85}
+.glitch::before{color:var(--neon); transform:translate(-2px,0); clip-path:inset(0 0 55% 0);
+  animation:gl1 2.6s steps(2,end) infinite}
+.glitch::after{color:var(--purple); transform:translate(2px,0); clip-path:inset(55% 0 0 0);
+  animation:gl2 2.9s steps(2,end) infinite}
+@keyframes gl1{0%,92%,100%{transform:translate(-2px,0)}94%{transform:translate(-5px,-2px)}96%{transform:translate(3px,1px)}}
+@keyframes gl2{0%,90%,100%{transform:translate(2px,0)}93%{transform:translate(5px,2px)}97%{transform:translate(-3px,-1px)}}
+@media (prefers-reduced-motion: reduce){ .glitch::before,.glitch::after{animation:none} }
+.hero .sub{font-family:var(--mono); font-size:.8rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--lavender); margin:22px 0 0}
+.scrollcue{position:absolute; bottom:5vh; left:50%; transform:translateX(-50%); z-index:2;
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
+
+section{position:relative; padding:clamp(56px,10vh,120px) 0}
+h2{font-size:clamp(1.7rem,4vw,2.8rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .55em; font-weight:800}
+.sec-k{font-family:var(--mono); font-size:.72rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--violet); margin:0 0 16px}
+.lede{font-size:clamp(1.04rem,1.6vw,1.3rem); color:var(--muted); max-width:62ch}
+
+/* the transformation centerpiece: shinobi crossfades to necro on scroll */
+.morph{position:relative; border:1px solid var(--line); border-radius:22px; overflow:hidden;
+  background:#04030a; max-width:680px; margin:34px auto 0; aspect-ratio:1/1}
+.morph .ml{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.morph .shinobi{opacity:1}
+.morph .necro{opacity:0}
+.morph .scan{position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.5;
+  background:repeating-linear-gradient(0deg, rgba(61,255,110,.10) 0 2px, transparent 2px 5px)}
+.morph .edge{position:absolute; left:0; right:0; height:3px; z-index:3; pointer-events:none;
+  background:linear-gradient(90deg, transparent, var(--neon), transparent);
+  box-shadow:0 0 14px var(--neon); opacity:0}
+.morph .lab{position:absolute; left:16px; bottom:14px; z-index:4; font-family:var(--mono);
+  letter-spacing:.2em; color:var(--neon); font-size:1.05rem; text-shadow:0 0 8px rgba(61,255,110,.6)}
+.morph .pct{position:absolute; right:16px; top:14px; z-index:4; font-family:var(--mono);
+  font-size:.72rem; letter-spacing:.12em; color:var(--lavender)}
+.morph-cap{text-align:center; font-family:var(--mono); font-size:.74rem; letter-spacing:.06em;
+  color:var(--muted); margin:16px auto 0; max-width:48ch}
+
+/* about cards */
+.grid{display:grid; gap:16px; grid-template-columns:repeat(3,1fr); margin-top:30px}
+@media (max-width:760px){ .grid{grid-template-columns:1fr} }
+.cell{border:1px solid var(--line); border-radius:16px; padding:22px; background:rgba(255,255,255,.02)}
+.cell .n{font-family:var(--mono); font-size:.8rem; color:var(--neon); margin:0 0 8px}
+.cell h3{margin:0 0 8px; font-size:1.1rem}
+.cell p{margin:0; color:var(--muted); font-size:.96rem}
+
+/* chrome feature */
+.chrome{display:grid; grid-template-columns:1fr 1fr; gap:clamp(20px,4vw,46px); align-items:center; margin-top:30px}
+@media (max-width:680px){ .chrome{grid-template-columns:1fr} }
+.chrome figure{margin:0; border:1px solid var(--line); border-radius:18px; overflow:hidden; background:#000}
+.chrome figure.green{background:#1ea33a}
+.chrome img{width:100%; aspect-ratio:1/1; object-fit:cover}
+
+/* poster gallery */
+.posters{display:grid; gap:14px; grid-template-columns:repeat(3,1fr); margin-top:30px}
+@media (max-width:680px){ .posters{grid-template-columns:1fr 1fr} }
+@media (max-width:430px){ .posters{grid-template-columns:1fr} }
+.posters figure{margin:0; border:1px solid var(--line); border-radius:16px; overflow:hidden;
+  background:#04030a; position:relative}
+.posters img{width:100%; height:100%; object-fit:cover; aspect-ratio:9/16; opacity:.92; transition:transform .5s ease}
+.posters figure:hover img{transform:scale(1.05); opacity:1}
+.posters figcaption{position:absolute; left:0; right:0; bottom:0; padding:10px 12px;
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; color:var(--lavender);
+  background:linear-gradient(transparent,rgba(4,3,10,.85))}
+
+/* credit panel: bright/light -> PURPLE accent */
+.cred{border:1px solid rgba(124,58,237,.28); border-radius:22px;
+  padding:clamp(26px,4vw,46px); background:#f4f0fe; color:#241c3c; text-align:center}
+.cred h2{color:#1f1538}
+.cred p{color:#4a4068; max-width:54ch; margin-inline:auto}
+.cred .lk{display:inline-flex; align-items:center; gap:9px; text-decoration:none; font-weight:700;
+  margin-top:24px; padding:14px 24px; border-radius:999px; line-height:1;
+  background:var(--purple); color:#fff; border:1px solid var(--purple);
+  transition:transform .15s ease, background .2s ease}
+.cred .lk:hover{transform:translateY(-2px); background:#6d28d9}
+
+.r{opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease}
+.r.in{opacity:1; transform:none}
+@media (prefers-reduced-motion: reduce){ .r{opacity:1; transform:none; transition:none} }
+
+footer{padding:54px 0 76px; text-align:center; color:var(--muted);
+  font-family:var(--mono); font-size:.78rem}
+footer a{color:var(--violet); text-decoration:none}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/hp/">HACKING <b>PARADISE</b></a>
+    <a class="back" href="/hp/">back to the collective</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="bgimg" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="eyebrow">A HACKING PARADISE project</p>
+    <p class="kata-top" aria-hidden="true">&#12471;&#12494;&#12499;&#12493;&#12463;&#12525;</p>
+    <h1 class="glitch" data-t="SHINOBI NECRO">SHINOBI NECRO</h1>
+    <p class="sub">audiovisual &middot; green-and-purple glitch &middot; chrome</p>
+  </div>
+  <div class="scrollcue" aria-hidden="true">scroll to transform</div>
+</section>
+
+<!-- TRANSFORMATION -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">The motif</p>
+    <h2 class="r">Shinobi to necro.</h2>
+    <p class="lede r">The project lives in a single move: a figure crossing from shinobi to necro, the living blade to the dead one. Scroll the frame and the two states trade places.</p>
+    <div class="morph r" id="morph">
+      <img class="ml shinobi" id="mShinobi" src="media/shinobi/poster-shinobi.jpg" alt="The shinobi state: SHINOBI in a purple glitch field." />
+      <img class="ml necro" id="mNecro" src="media/shinobi/necro.jpg" alt="The necro state: the hooded skull figure on a deck with a blade." />
+      <span class="scan" aria-hidden="true"></span>
+      <span class="edge" id="mEdge" aria-hidden="true"></span>
+      <span class="lab" id="mLab" aria-hidden="true">&#12471;&#12494;&#12499;</span>
+      <span class="pct" id="mPct" aria-hidden="true">SHINOBI</span>
+    </div>
+    <p class="morph-cap r">A static crossfade if motion is reduced. Otherwise the transformation tracks your scroll.</p>
+  </div>
+</section>
+
+<!-- ABOUT (collective framing, no per-member attribution) -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">What it is</p>
+    <h2 class="r">Collective project work.</h2>
+    <p class="lede r">Shinobi Necro is part of the body of work HACKING PARADISE has had hands on. An audiovisual identity built on tour-poster energy: glitched green-and-purple fields, chrome lettering, a black rose, and katakana. Shown as collective output, not split by credit.</p>
+    <div class="grid">
+      <div class="cell r"><p class="n">01</p><h3>Sound</h3><p>The audio side of the project, built to sit inside the same dark, glitched world the visuals live in.</p></div>
+      <div class="cell r"><p class="n">02</p><h3>Visual identity</h3><p>Cover art, poster layouts, and the green-and-purple chrome look that ties the release together.</p></div>
+      <div class="cell r"><p class="n">03</p><h3>Motion</h3><p>The shinobi-to-necro transformation as the central motif, carried from poster to screen.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHROME FEATURE -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">The lettering</p>
+    <h2 class="r">Chrome on green, chrome on black.</h2>
+    <div class="chrome">
+      <figure class="r"><img src="media/shinobi/sin.jpg" alt="Chrome tour lettering with a green and purple glow on black." loading="lazy" /></figure>
+      <figure class="green r"><img src="media/shinobi/sin-green.jpg" alt="The same chrome lettering on a neon green field." loading="lazy" /></figure>
+    </div>
+  </div>
+</section>
+
+<!-- POSTER GALLERY -->
+<section>
+  <div class="wrap">
+    <p class="sec-k r">The fields</p>
+    <h2 class="r">Poster energy.</h2>
+    <div class="posters">
+      <figure class="r"><img src="media/shinobi/poster-shinobi.jpg" alt="Shinobi word art in a purple glitch field." loading="lazy" /><figcaption>shinobi</figcaption></figure>
+      <figure class="r"><img src="media/shinobi/smoke.jpg" alt="Purple smoke and glitch field." loading="lazy" /><figcaption>smoke</figcaption></figure>
+      <figure class="r"><img src="media/shinobi/figure.jpg" alt="A masked figure silhouette on a cold blue field." loading="lazy" /><figcaption>figure</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- CREDIT (light panel, purple accent) -->
+<section>
+  <div class="wrap">
+    <div class="cred r">
+      <h2>Built by the collective.</h2>
+      <p>Shinobi Necro is one of the projects HACKING PARADISE had hands on. See the rest of the work and the members behind it.</p>
+      <a class="lk" href="/hp/">Back to HACKING PARADISE</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Shinobi Necro &middot; a project of <a href="/hp/">HACKING PARADISE</a>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // reveal on scroll
+  var rs = Array.prototype.slice.call(document.querySelectorAll(".r"));
+  if (reduce || !("IntersectionObserver" in window)){ rs.forEach(function(e){e.classList.add("in")}); }
+  else {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    }); }, {rootMargin:"0px 0px -10% 0px", threshold:0.12});
+    rs.forEach(function(e){ io.observe(e); });
+  }
+
+  // the transformation: as the morph frame scrolls through the viewport, the necro
+  // layer fades up over the shinobi layer. Katakana label and a glowing edge track it.
+  // Reduced motion: hold a fixed 50 percent crossfade so both states stay readable.
+  var morph = document.getElementById("morph");
+  var necro = document.getElementById("mNecro");
+  var edge  = document.getElementById("mEdge");
+  var lab   = document.getElementById("mLab");
+  var pct   = document.getElementById("mPct");
+  var SHINOBI = "シノビ";   // shinobi
+  var NECRO   = "ネクロ";   // necro
+  if (reduce){
+    necro.style.opacity = "0.5";
+    lab.textContent = SHINOBI + " / " + NECRO;
+    pct.textContent = "50%";
+  } else {
+    var ticking = false;
+    function update(){
+      ticking = false;
+      var r = morph.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      // progress 0..1 as the frame travels from entering the bottom to leaving the top
+      var p = (vh - r.top) / (vh + r.height);
+      p = Math.max(0, Math.min(1, p));
+      necro.style.opacity = p.toFixed(3);
+      edge.style.opacity = (p > 0.02 && p < 0.98 ? 0.9 : 0).toFixed(2);
+      edge.style.top = (p * 100).toFixed(1) + "%";
+      lab.textContent = p < 0.5 ? SHINOBI : NECRO;
+      pct.textContent = (p < 0.5 ? "SHINOBI " : "NECRO ") + Math.round(p * 100) + "%";
+    }
+    function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(update); } }
+    window.addEventListener("scroll", onScroll, {passive:true});
+    window.addEventListener("resize", onScroll, {passive:true});
+    update();
+  }
+})();
+</script>
+</body>
+</html>
