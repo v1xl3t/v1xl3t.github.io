@@ -804,9 +804,10 @@ footer a{color:var(--accent); text-decoration:none}
       spawnFx("star", e.clientX, e.clientY, {text:"✦", life:850});
     }, {passive:true});
 
-    // mobile gyro-diver: steer the diver by tilting the phone. The diver stays scroll-driven
-    // for its stage (dive -> chute -> halo); tilt only sets its horizontal drift. Opt-in via a
-    // cue, both to keep it a delight and because iOS requires a user gesture for motion access.
+    // mobile gyro-diver: steer the diver by tilting the phone, on by default with NO button.
+    // The diver stays scroll-driven for its stage (dive -> chute -> halo); tilt only sets its
+    // horizontal drift. Where motion needs no permission (Android etc.) it just turns on; iOS
+    // requires a user gesture, so it quietly enables on the first touch.
     if (!reduce && diver && window.DeviceOrientationEvent){
       var tiltOn = false, tiltG = 0;
       function onTilt(e){
@@ -822,21 +823,17 @@ footer a{color:var(--accent); text-decoration:none}
         document.body.classList.add("tilt");
         lastX = window.innerWidth / 2; lastY = window.innerHeight * 0.4;
         window.addEventListener("deviceorientation", onTilt);
-        if (cue) cue.remove();
       }
-      var cue = document.createElement("button");
-      cue.id = "tiltcue"; cue.type = "button"; cue.textContent = "Tilt to dive";
-      cue.addEventListener("click", function(){
-        var DOE = window.DeviceOrientationEvent;
-        if (DOE && typeof DOE.requestPermission === "function"){   // iOS 13+ gate
-          DOE.requestPermission().then(function(s){ if (s === "granted") startTilt();
-            else { cue.textContent = "Motion access off"; setTimeout(function(){ if (cue) cue.remove(); }, 2200); }
-          }).catch(function(){ if (cue) cue.remove(); });
-        } else { startTilt(); }
-      });
-      document.body.appendChild(cue);
-      // if the visitor never opts in, fade the cue away so it is never nagging
-      setTimeout(function(){ if (cue && !tiltOn) cue.remove(); }, 15000);
+      var DOE = window.DeviceOrientationEvent;
+      if (typeof DOE.requestPermission === "function"){
+        // iOS: enable on the first touch (the required gesture), no visible button
+        var grant = function(){
+          DOE.requestPermission().then(function(s){ if (s === "granted") startTilt(); }).catch(function(){});
+        };
+        document.addEventListener("pointerdown", grant, {once:true, passive:true});
+      } else {
+        startTilt();   // no permission needed: on by default
+      }
     }
   }
 
