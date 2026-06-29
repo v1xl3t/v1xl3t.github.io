@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HACKING PARADISE</title>
+<meta name="description" content="HACKING PARADISE is a media-arts production studio and publishing collective for multi-faceted creatives." />
+<meta name="theme-color" content="#0b0913" />
+<style>
+/* ============================================================
+   HACKING PARADISE v1. A single descent and ascent: the page
+   starts at the edge, darkens into the abyss, turns at the
+   chasm floor, then brightens to paradise. Visuals carry the
+   poem; copy stays clear. Placeholder art for now; swap real
+   assets from hp_assets later. Dependency free (no CDNs).
+   ============================================================ */
+:root{
+  --ink:#ece7fb; --muted:#c6bfe2; --accent:#b9a6f5; --accent-2:#8b7bd8;
+  --line:rgba(185,166,245,.18);
+  /* diver/scope/trail accent. Flip this ONE value to retune or revert the
+     diver's highlight color (was red #e23b32; now neon green). */
+  --diver-accent:#3DFF6E;
+  /* paradise accent: neon green is hard to read on the bright paradise background,
+     so the crosshair + diver eyes switch to this high-contrast purple down there. */
+  --paradise-accent:#7c3aed;
+  --bg:#0b0913;                 /* JS overwrites this from scroll depth */
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+/* display faces, used sparingly for title variety */
+@font-face{font-family:"BlackMetal"; src:url("../fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+@font-face{font-family:"ScumTrash"; src:url("../fonts/scumtrash.otf") format("opentype"); font-display:swap}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+  line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  transition:color .6s ease;
+}
+body.light{ --ink:#2a2440; --muted:#5a5377; --line:rgba(124,95,224,.22); }
+a{color:inherit}
+.wrap{max-width:1080px; margin:0 auto; padding:0 clamp(20px,5vw,48px)}
+
+/* parallax void layers (placeholder gradients; swap for art) */
+.void{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.void span{position:absolute; left:50%; width:140vmax; height:140vmax; border-radius:50%;
+  transform:translate(-50%,0); filter:blur(40px); opacity:.5}
+.void .l1{top:-30vmax; background:radial-gradient(circle,rgba(139,123,216,.20),transparent 60%)}
+.void .l2{top:60vmax; background:radial-gradient(circle,rgba(80,60,140,.22),transparent 60%)}
+.void .l3{top:150vmax; background:radial-gradient(circle,rgba(199,189,244,.20),transparent 60%)}
+.grain{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+/* readability scrim: keeps text at WCAG AA contrast over the blended imagery */
+.readscrim{position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:rgba(6,5,11,.62); transition:background .5s ease}
+body.light .readscrim{background:rgba(247,244,254,0)}
+
+/* descent image layers: Vi's art, masked + blended, parallaxing through the abyss */
+.descent-layers{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.dlayer{position:absolute; left:50%; top:50%; width:min(122vw,1500px); height:128vh;
+  transform:translate(-50%,-50%); background-size:cover; background-position:center;
+  opacity:0; will-change:opacity,transform; mix-blend-mode:screen;
+  -webkit-mask-image:radial-gradient(78% 66% at 50% 50%, #000 30%, transparent 82%);
+  mask-image:radial-gradient(78% 66% at 50% 50%, #000 30%, transparent 82%)}
+.dlayer::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(7,6,13,.55), transparent 28% 72%, rgba(7,6,13,.65))}
+
+/* radiant white bloom at paradise (does not erase content) */
+.whiteout{position:fixed; inset:0; z-index:40; pointer-events:none; opacity:0;
+  background:radial-gradient(60% 55% at 50% 44%, #fff, rgba(255,255,255,0) 72%)}
+
+/* diver cursor: a little guy whose state tracks the fall */
+.diver{position:fixed; top:0; left:0; width:54px; height:74px; z-index:50;
+  pointer-events:none; transform:translate(-50%,-50%); will-change:left,top}
+.diver svg{display:block; overflow:visible}
+.diver{--diver:#ece2fb}
+body.light .diver{--diver:#241f38}
+.diver .ln{fill:none; stroke:var(--diver); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
+.diver .fl{fill:var(--diver); stroke:none}
+.diver .soft{fill:var(--diver); fill-opacity:.34; stroke:var(--diver); stroke-width:1.7}
+/* mouth: small, legible toothy grin in the body ink (NOT red) */
+.diver .face{stroke:var(--diver); stroke-width:1.9; fill:none; stroke-linecap:round; stroke-linejoin:round}
+.diver .gold{fill:none; stroke:#ffe6a3; stroke-width:2.4}
+/* parts hidden by default, shown per stage */
+.diver .p-chute,.diver .p-cords,.diver .p-wing,.diver .p-halo,.diver .p-spark{opacity:0; transition:opacity .6s ease}
+.diver[data-stage="chute"] .p-chute,.diver[data-stage="chute"] .p-cords{opacity:1}
+.diver[data-stage="wings"] .p-wing,.diver[data-stage="halo"] .p-wing{opacity:1}
+.diver[data-stage="halo"] .p-halo,.diver[data-stage="halo"] .p-spark{opacity:1}
+/* pose per stage lives on the SVG (so the 3D barrel roll works); actions live on
+   .rig so a click composes over the pose and keeps the diver's facing (up/down) */
+.diver svg{transition:transform .7s cubic-bezier(.4,0,.2,1); transform-origin:center center}
+.diver .rig{transform-box:fill-box; transform-origin:center}
+/* orientation lives on its own group (.pose) so the upside-down free-fall pose is drawn
+   in ONE place and never compounds with the face-the-cursor turn (on .diver), the tilt
+   (on .rig), or the somersault (on svg). pre-parachute = a clean static invert, no barrel roll. */
+.diver .pose{transform-box:fill-box; transform-origin:center; transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.diver[data-stage="dive"] .pose,.diver[data-stage="flail"] .pose{transform:rotate(180deg)}  /* pre-parachute = explicitly upside-down */
+.diver[data-stage="chute"] svg{animation:sway 2.4s ease-in-out infinite}
+.diver[data-stage="wings"] .p-wing{animation:flap 1s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
+.diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
+.diver[data-stage="halo"] .p-spark{animation:twinkle 1.2s ease-in-out infinite}
+.diver[data-stage="halo"] .glowbody{filter:drop-shadow(0 0 6px rgba(255,230,163,.9))}
+@keyframes somersault{from{transform:rotate(0deg)} to{transform:rotate(360deg)}}  /* head-over-heels flip */
+@keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+@keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
+@keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
+@media (hover:none){ .diver{display:none} }
+@media (prefers-reduced-motion: reduce){ .diver svg,.diver .rig,.diver .p-wing,.diver .p-spark{animation:none !important} }
+
+/* the diver IS the cursor (non-touch only) */
+@media (hover:hover){ html, html *{cursor:none} }
+/* red scope: a steady crosshair that tracks the pointer directly, marking where a click lands */
+.scope{position:fixed; top:0; left:0; width:30px; height:30px; z-index:52; pointer-events:none;
+  transform:translate(-50%,-50%); will-change:left,top; opacity:.92}
+.scope svg{display:block; filter:drop-shadow(0 0 2px var(--diver-accent))}
+.scope .ring{fill:none; stroke:var(--diver-accent); stroke-width:1.6}
+.scope .tick{stroke:var(--diver-accent); stroke-width:1.6; stroke-linecap:round}
+.scope .dot{fill:var(--diver-accent)}
+.scope.click{animation:scopeflash .3s ease-out}
+@keyframes scopeflash{0%{transform:translate(-50%,-50%) scale(1)}45%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
+@media (hover:none){ .scope{display:none} }
+@media (prefers-reduced-motion: reduce){ .scope.click{animation:none} }
+/* neon-green scribble eyes + horns */
+.diver .eye{stroke:var(--diver-accent); stroke-width:1.9; fill:none; stroke-linecap:round}
+body.light .diver .eye{stroke:var(--diver-accent)}
+.diver .horns{fill:var(--diver); stroke:var(--diver); stroke-width:.5; stroke-linejoin:miter}
+/* PARADISE ACCENT: same paradise-detection that darkens the stars (body.paradise) swaps the
+   crosshair + diver eyes from hard-to-read neon green to a high-contrast purple over the bright
+   background. Placed after body.light so it wins where both classes are active. */
+body.paradise .scope svg{filter:drop-shadow(0 0 2px var(--paradise-accent))}
+body.paradise .scope .ring,body.paradise .scope .tick{stroke:var(--paradise-accent)}
+body.paradise .scope .dot{fill:var(--paradise-accent)}
+body.paradise .diver .eye{stroke:var(--paradise-accent)}
+/* click actions: left = small CCW tilt toward 11 o'clock (on .rig, relative to current facing);
+   right = somersault (on svg, a head-over-heels flip) */
+.diver.act-l .rig{animation:tilt11 .38s ease-out}
+.diver.act-r svg{animation:somersault .66s ease-in-out}
+@keyframes tilt11{0%{transform:rotate(0deg)}38%{transform:rotate(-17deg)}100%{transform:rotate(0deg)}}
+/* falling action lines (Naruto style); opacity + speed set in JS */
+.speedlines{position:fixed; inset:-14%; z-index:5; pointer-events:none; opacity:0;
+  background:repeating-linear-gradient(91deg, transparent 0 13px, rgba(220,210,250,.5) 13px 14px);
+  animation:streak .5s linear infinite; transition:opacity .25s ease; will-change:transform,opacity}
+@keyframes streak{from{transform:translateY(-16%)}to{transform:translateY(16%)}}
+@media (prefers-reduced-motion: reduce){ .speedlines{animation:none; display:none} }
+/* sketchy descent trail: thin, irregular neon-green strokes left in the diver's
+   wake (above it / where it descended from). Density rises toward the chute; JS
+   spawns + removes each <path>. Hidden on touch + reduced-motion. */
+.trail{position:fixed; inset:0; z-index:47; pointer-events:none; overflow:visible}
+.trail path{fill:none; stroke:var(--diver-accent); stroke-linecap:round; stroke-linejoin:round;
+  opacity:0; animation:trailfade var(--life,1s) ease-out forwards}
+@keyframes trailfade{0%{opacity:0}14%{opacity:.7}55%{opacity:.55}100%{opacity:0}}
+@media (hover:none){ .trail{display:none} }
+@media (prefers-reduced-motion: reduce){ .trail{display:none} }
+/* ephemeral fx: parachute poofs, trail stars, click bursts */
+.fx{position:fixed; z-index:49; pointer-events:none; transform:translate(-50%,-50%)}
+.fx.puff{width:15px; height:15px; border-radius:50%;
+  background:radial-gradient(circle, rgba(236,231,250,.92), rgba(236,231,250,0) 70%); animation:puff .9s ease-out forwards}
+@keyframes puff{0%{opacity:.9; transform:translate(-50%,-50%) scale(.4)}
+  100%{opacity:0; transform:translate(calc(-50% + var(--dx,0)), calc(-50% + var(--dy,0))) scale(1.7)}}
+.fx.star{color:#fff3bf; font-size:18px; line-height:1; text-shadow:0 0 6px rgba(255,228,140,.95), 0 0 14px rgba(255,205,90,.6); animation:startw 1.2s ease-out forwards}
+/* paradise is bright lavender: render stars dark so they stay visible */
+.fx.star.dark{color:#1c1533; text-shadow:0 0 5px rgba(60,30,110,.55), 0 0 12px rgba(80,55,140,.4)}
+@keyframes startw{0%{opacity:0; transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0; transform:translate(-50%,-50%) scale(1.1)}}
+.fx.pow{color:var(--diver-accent); font-family:var(--mono); font-weight:800; font-size:14px; animation:powfx .5s ease-out forwards}
+@keyframes powfx{0%{opacity:1; transform:translate(-50%,-50%) scale(.6)}100%{opacity:0; transform:translate(-50%,-95%) scale(1.25)}}
+/* readability boost over the descent imagery */
+.lede,.cell p,.bul li,.blurb,.member .nm{text-shadow:0 1px 8px rgba(6,5,11,.6)}
+body.light .lede,body.light .cell p,body.light .bul li,body.light .blurb{text-shadow:none}
+
+/* sections */
+section{position:relative; min-height:100vh; display:flex; align-items:center;
+  padding:14vh 0; z-index:1}
+.eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 18px}
+h1{font-size:clamp(2.6rem,7vw,6rem); line-height:.98; letter-spacing:-.03em; margin:0; font-weight:800}
+h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
+/* black-metal display font used ONLY as a spaced-out decorative accent */
+.bm{font-family:"BlackMetal",var(--font); font-weight:700;
+  letter-spacing:.5em; padding:.18em .5em .08em; text-transform:uppercase;
+  opacity:.55; line-height:1.18; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px);
+  max-width:100%; overflow-x:clip; overflow-y:visible}
+@media (max-width:520px){ .bm{font-size:clamp(3rem,16vw,5rem); letter-spacing:.26em; margin:clamp(56px,12vh,90px) 0} }
+.lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
+.scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
+.scrollcue::after{content:""; display:block; width:1px; height:34px; margin:10px auto 0;
+  background:linear-gradient(var(--accent),transparent); animation:drop 1.8s ease-in-out infinite}
+@keyframes drop{0%,100%{opacity:.3; transform:scaleY(.6)} 50%{opacity:1; transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){ .scrollcue::after{animation:none} }
+
+/* reveal on scroll */
+.r{opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s ease}
+.r.in{opacity:1; transform:none}
+@media (prefers-reduced-motion: reduce){ .r{opacity:1; transform:none; transition:none} }
+
+/* goals + benefits lists */
+.grid{display:grid; gap:18px; grid-template-columns:repeat(3,1fr); margin-top:34px}
+@media (max-width:820px){ .grid{grid-template-columns:1fr} }
+.cell{border:1px solid var(--line); border-radius:16px; padding:22px;
+  background:rgba(255,255,255,.02)}
+body.light .cell{background:rgba(124,95,224,.04)}
+.cell .n{font-family:var(--mono); font-size:.8rem; color:var(--accent); margin:0 0 8px}
+.cell p{margin:0; color:var(--muted); font-size:.98rem}
+.bul{list-style:none; padding:0; margin:28px 0 0; display:grid; gap:12px; max-width:70ch}
+.bul li{padding-left:24px; position:relative; color:var(--muted)}
+.bul li::before{content:""; position:absolute; left:0; top:.6em; width:8px; height:8px;
+  border-radius:50%; background:var(--accent)}
+
+/* chasm floor: the turn */
+#chasm{text-align:center; justify-content:center}
+#chasm h2{max-width:18ch; margin-inline:auto}
+.rule{width:1px; height:90px; margin:0 auto 30px; background:linear-gradient(transparent,var(--accent))}
+
+/* ===== MEMBERS: the core team as people (rich cards, data driven) ===== */
+.members{display:grid; gap:18px; grid-template-columns:repeat(2,1fr); margin-top:34px}
+@media (max-width:760px){ .members{grid-template-columns:1fr} }
+.member{position:relative; border:1px solid var(--line); border-radius:18px; overflow:hidden;
+  background:rgba(255,255,255,.02); padding:22px; display:flex; gap:18px; align-items:flex-start;
+  transition:transform .3s ease, border-color .3s ease}
+body.light .member{background:rgba(124,95,224,.05)}
+.member:hover{transform:translateY(-4px); border-color:var(--diver-accent)}
+/* placeholder portrait: a monogram tile (swap for real photos from hp_assets) */
+.member .avatar{flex:0 0 auto; width:72px; height:72px; border-radius:14px; display:grid; place-items:center;
+  font-family:var(--mono); font-weight:800; font-size:1.5rem; color:#0c1108;
+  background:linear-gradient(150deg, var(--diver-accent), var(--accent)); box-shadow:0 0 0 1px var(--line)}
+.member .body{min-width:0}
+.member .nm{font-weight:800; font-size:1.15rem; line-height:1.2}
+.member .handle{font-family:var(--mono); font-size:.74rem; color:var(--diver-accent); letter-spacing:.04em; margin-top:3px}
+.member .role{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:10px}
+.member .blurb{color:var(--muted); font-size:.95rem; margin:10px 0 0}
+.member .links{display:flex; flex-wrap:wrap; gap:9px; margin-top:15px}
+.member .links a{font-family:var(--mono); font-size:.72rem; text-decoration:none; color:var(--ink);
+  border:1px solid var(--line); border-radius:999px; padding:10px 14px; line-height:1;
+  transition:border-color .2s ease, color .2s ease}
+.member .links a:hover{border-color:var(--diver-accent); color:var(--diver-accent)}
+
+/* ===== PROJECTS: collective output grouped by type (no per member attribution) ===== */
+.buckets{display:grid; gap:18px; margin-top:34px}
+.bucket{border:1px solid var(--line); border-radius:18px; padding:22px clamp(18px,3vw,26px);
+  background:rgba(255,255,255,.02)}
+body.light .bucket{background:rgba(124,95,224,.05)}
+.bucket .bk-h{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.bucket .bk-n{font-family:var(--mono); font-size:.8rem; color:var(--diver-accent)}
+.bucket h3{font-size:1.15rem; margin:0; font-weight:800; letter-spacing:-.01em}
+.bucket .bk-d{color:var(--muted); font-size:.92rem; margin:9px 0 0; max-width:64ch}
+.roster-h{font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--diver-accent); margin-top:18px}
+body.light .roster-h{color:#1a8f45}
+.roster{display:flex; flex-wrap:wrap; gap:9px; margin-top:12px}
+.chip{font-family:var(--mono); font-size:.72rem; color:var(--ink); border:1px solid var(--line);
+  border-radius:999px; padding:9px 13px; line-height:1; background:rgba(255,255,255,.02);
+  transition:border-color .2s ease, color .2s ease}
+body.light .chip{background:rgba(124,95,224,.05)}
+.chip:hover{border-color:var(--diver-accent); color:var(--diver-accent)}
+.bucket .count{display:block; margin-top:14px; font-family:var(--mono); font-size:.7rem; color:var(--muted)}
+.bucket .src{display:inline-flex; align-items:center; gap:8px; margin-top:14px; min-height:40px;
+  font-family:var(--mono); font-size:.72rem; color:var(--diver-accent); text-decoration:none}
+.bucket .src:hover{text-decoration:underline}
+
+/* light paradise background: neon green text/border needs a darker green to stay legible.
+   same single accent, just an ink-safe shade where it sits on near white. clarity wins. */
+body.light .member .handle, body.light .bucket .bk-n, body.light .bucket .src{color:#1a8f45}
+body.light .member .links a:hover, body.light .chip:hover{color:#1a8f45; border-color:#1a8f45}
+
+.note{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-top:18px; opacity:.85}
+
+/* recruiting (crystal clear, lighter panel) */
+#apply .panel{border:1px solid var(--line); border-radius:20px; padding:clamp(24px,4vw,44px);
+  background:rgba(255,255,255,.03)}
+body.light #apply .panel{background:rgba(255,255,255,.5)}
+.btn{display:inline-flex; align-items:center; gap:9px; margin-top:24px;
+  padding:15px 26px; border-radius:999px; font-weight:700; cursor:pointer; text-decoration:none;
+  background:var(--accent); color:#15102a; border:1px solid var(--accent);
+  transition:transform .15s ease, background .2s ease}
+.btn:hover{transform:translateY(-2px); background:#cdbcf9}
+.btn.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+
+footer{padding:60px 0 80px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:.8rem}
+footer a{color:var(--accent); text-decoration:none}
+
+/* loader */
+.loader{position:fixed; inset:0; z-index:100; background:#07060d; display:grid; place-items:center;
+  transition:opacity .6s ease}
+.loader.gone{opacity:0; pointer-events:none}
+.loader .mk{font-family:var(--mono); letter-spacing:.3em; color:var(--accent); font-size:.9rem;
+  text-transform:uppercase; animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4} 50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="loader" id="loader"><div class="mk">descending</div></div>
+<div class="void" aria-hidden="true"><span class="l1"></span><span class="l2"></span><span class="l3"></span></div>
+<div class="descent-layers" id="descentLayers" aria-hidden="true">
+  <div class="dlayer" data-center="0.08" data-peak="0.32" style="background-image:url('../media/descent/d01.jpg')"></div>
+  <div class="dlayer" data-center="0.21" data-peak="0.34" style="background-image:url('../media/descent/d07.jpg')"></div>
+  <div class="dlayer" data-center="0.32" data-peak="0.36" style="background-image:url('../media/descent/d05.jpg')"></div>
+  <div class="dlayer" data-center="0.42" data-peak="0.36" style="background-image:url('../media/descent/d08.jpg')"></div>
+  <div class="dlayer" data-center="0.50" data-peak="0.30" style="background-image:url('../media/descent/d10.jpg')"></div>
+  <div class="dlayer" data-center="0.57" data-peak="0.34" style="background-image:url('../media/descent/d09.jpg'); background-position:center top"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+<div class="readscrim" aria-hidden="true"></div>
+<div class="whiteout" id="whiteout" aria-hidden="true"></div>
+<div class="speedlines" id="speedlines" aria-hidden="true"></div>
+<svg class="trail" id="trail" aria-hidden="true" preserveAspectRatio="none"></svg>
+
+<div class="diver" id="diver" data-stage="dive" aria-hidden="true">
+  <svg viewBox="0 0 54 74" width="54" height="74">
+    <defs>
+      <filter id="sketch" x="-35%" y="-35%" width="170%" height="170%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="2" result="n">
+          <animate attributeName="seed" values="2;5;9;3;2" dur="0.5s" repeatCount="indefinite"/>
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+    <g class="rig" filter="url(#sketch)">
+     <g class="pose">
+      <path class="p-chute soft" d="M5,20 Q27,-1 49,20 Q44,15 38,20 Q33,14 27,20 Q21,14 16,20 Q10,15 5,20 Z"/>
+      <path class="p-cords ln" d="M7,20 L22,33 M47,20 L32,33"/>
+      <path class="p-wing soft" d="M19,41 C5,30 3,43 8,51 C12,47 16,47 20,48 Z"/>
+      <path class="p-wing soft" d="M35,41 C49,30 51,43 46,51 C42,47 38,47 34,48 Z"/>
+      <ellipse class="p-halo gold" cx="27" cy="21" rx="10" ry="3"/>
+      <path class="p-spark fl" fill="#ffe6a3" d="M27,11 L28.7,16 L34,16.3 L29.6,19.3 L31.3,24.3 L27,21.2 L22.7,24.3 L24.4,19.3 L20,16.3 L25.3,16 Z"/>
+      <path class="p-arm ln" d="M18,42 Q11,45 10,51 M36,42 Q43,45 44,51"/>
+      <path class="p-leg ln" d="M24,50 L22,63 M30,50 L32,63"/>
+      <path class="ln glowbody" d="M27,33 C34,34 36,40 34,44 C32,49 27,51 23,49 C19,47 17,41 21,37 C24,34 29,33 27,34 M25,35 C31,35 35,39 34,44 C33,48 28,51 24,49 C20,47 19,42 22,38"/>
+      <path class="horns" d="M22.6,33 L24.7,33 L22.1,30.1 Z M31.4,33 L29.3,33 L31.9,30.1 Z"/>
+      <path class="eye" d="M22.5,39 l3.2,1.1 l-3.2,1 l3.2,1.1 M31.5,39 l-3.2,1.1 l3.2,1 l-3.2,1.1"/>
+      <!-- small, legible toothy grin: a smile arc with three little tooth ticks -->
+      <path class="face" d="M21,45 Q27,53 33,45 M24.5,46.4 v2.4 M27.5,47.2 v2.6 M30.5,46.4 v2.4"/>
+     </g>
+    </g>
+  </svg>
+</div>
+
+<div class="scope" id="scope" aria-hidden="true">
+  <svg viewBox="0 0 30 30" width="30" height="30">
+    <circle class="ring" cx="15" cy="15" r="10"/>
+    <path class="tick" d="M15,0 L15,7 M15,23 L15,30 M0,15 L7,15 M23,15 L30,15"/>
+    <circle class="dot" cx="15" cy="15" r="1.6"/>
+  </svg>
+</div>
+
+<!-- 1. The Edge -->
+<section id="edge">
+  <div class="wrap">
+    <p class="eyebrow r">A media-arts collective</p>
+    <h1 class="r">HACKING<br>PARADISE</h1>
+    <p class="lede r" style="margin-top:24px">A studio and publishing collective for makers who find the unexpected route. We build, we ship, and we climb together.</p>
+  </div>
+  <div class="scrollcue">scroll to descend</div>
+</section>
+
+<!-- 2. The Descent: what this is -->
+<section id="descent">
+  <div class="wrap">
+    <p class="eyebrow r">What this is</p>
+    <h2 class="r">A collective, not a company you disappear into.</h2>
+    <p class="lede r">HACKING PARADISE is a trial media-arts production and outsourcing studio and publishing collective. A group of multi-faceted creatives who send each other work, take on bigger clients together, and build a shared body of work and reputation, without giving up individual ownership or the freedom to work outside the studio.</p>
+  </div>
+</section>
+
+<!-- 3. The Six Goals -->
+<section id="goals">
+  <div class="wrap">
+    <p class="eyebrow r">What it is for</p>
+    <h2 class="r">Six things we are building toward.</h2>
+    <div class="grid">
+      <div class="cell r"><p class="n">01</p><p>More freelance work for members.</p></div>
+      <div class="cell r"><p class="n">02</p><p>A shared social presence across the industries we serve.</p></div>
+      <div class="cell r"><p class="n">03</p><p>Larger clients over time, with rising rates.</p></div>
+      <div class="cell r"><p class="n">04</p><p>Growing from a trial studio into a legally backed business.</p></div>
+      <div class="cell r"><p class="n">05</p><p>A steady, growing revenue stream for members and the studio.</p></div>
+      <div class="cell r"><p class="n">06</p><p>A body of work under one label that strengthens every member's portfolio.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. The Chasm Floor: the turn -->
+<section id="chasm">
+  <div class="wrap">
+    <div class="rule r"></div>
+    <div class="bm r" aria-hidden="true">Abyss</div>
+    <p class="eyebrow r">The turn</p>
+    <h2 class="r">Most are told there is one way down, and one way up. We disagree.</h2>
+    <p class="lede r" style="margin-inline:auto">The slow, gatekept path is not the only way to arrive. We look for the route others overlook, and we take it together.</p>
+  </div>
+</section>
+
+<!-- 5. The Ascent: membership benefits -->
+<section id="ascent">
+  <div class="wrap">
+    <p class="eyebrow r">What you get</p>
+    <h2 class="r">The climb is easier with a crew.</h2>
+    <ul class="bul">
+      <li class="r">Your best work featured on the studio site, socials, and marketing.</li>
+      <li class="r">A built-in network of studio projects and clients, with members referring work that falls outside their own expertise.</li>
+      <li class="r">Access to the personal-project fund, studio discounts, in-house client booking, the studio Discord, and LinkedIn representation.</li>
+      <li class="r">Open freelance offers as new clients and studio-exclusive projects arrive.</li>
+      <li class="r">Real backing for your portfolio, resume, and CV through studio representation.</li>
+      <li class="r">Studio-funded opportunities for awards, press, and publication.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 6. Members: the core team as people -->
+<section id="members">
+  <div class="wrap">
+    <p class="eyebrow r">The members</p>
+    <h2 class="r">The core team.</h2>
+    <p class="lede r">HACKING PARADISE is built by a small core of multi-faceted creatives. These are the members. The work we have collectively had hands on lives in the next section.</p>
+    <div class="members" id="memberGrid"></div>
+    <p class="note r">Member portraits are monogram placeholders for now. Real photos and reels drop in from hp_assets.</p>
+  </div>
+</section>
+
+<!-- 7. Projects: collective output grouped by type (no per member attribution) -->
+<section id="projects">
+  <div class="wrap">
+    <p class="eyebrow r">The work</p>
+    <h2 class="r">Work we have had hands on.</h2>
+    <p class="lede r">Shown as collective HACKING PARADISE output and grouped by type. We do not break down who did what. The point is the body of work, not the credit split.</p>
+    <div class="buckets" id="bucketList"></div>
+    <p class="note r">A living list. New collaborators and project sets are still being added from the studio SoundCloud and the members' catalogs.</p>
+  </div>
+</section>
+
+<!-- 8. Services -->
+<section id="services">
+  <div class="wrap">
+    <p class="eyebrow r">For clients</p>
+    <h2 class="r">One label, many disciplines.</h2>
+    <p class="lede r">Need a team that can take a project from idea to delivery across film, games, music, design, and code? Bring it to the studio and we will assemble the right people for it.</p>
+  </div>
+</section>
+
+<!-- 9. Recruiting / Apply (crystal clear) -->
+<section id="apply">
+  <div class="wrap">
+    <div class="panel r">
+      <p class="eyebrow">Join us</p>
+      <h2>Interested in becoming a member?</h2>
+      <p class="lede">HACKING PARADISE is for people doing exceptional work across the arts and media. Membership is invitation and application based. When projects come in, members are offered paid roles at their own rates, and every offer is optional. A small 1.5 percent fee on each payout funds the studio (hosting, business costs, marketing, festival fees, a cushion, and a personal-project fund).</p>
+      <a class="btn" href="#" id="applyBtn">Apply to join</a>
+      <a class="btn ghost" href="mailto:v1xl3t@gmail.com">Ask a question</a>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Contact / Paradise -->
+<section id="paradise">
+  <div class="wrap" style="text-align:center; margin:0 auto">
+    <p class="eyebrow r">Paradise</p>
+    <h2 class="r" style="margin-inline:auto; max-width:16ch">Built by the ones who found the shortcut.</h2>
+    <p class="lede r" style="margin:0 auto 8px">v1xl3t@gmail.com</p>
+    <p class="r"><a href="#edge" style="font-family:var(--mono); font-size:.78rem; color:var(--accent); text-decoration:none">back to the edge</a></p>
+  </div>
+</section>
+
+<footer>HACKING PARADISE &middot; a trial collective &middot; <a href="mailto:v1xl3t@gmail.com">v1xl3t@gmail.com</a></footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // loader
+  window.addEventListener("load", function(){
+    setTimeout(function(){ document.getElementById("loader").classList.add("gone"); }, 350);
+  });
+
+  // ===== MEMBERS: the core team as people. Add new members to this array. =====
+  var members = [
+    {
+      nm:"Vi Ellis", handle:"@viknowsdinos", initials:"VE",
+      role:"Founder, Composer, Sound Designer, Technologist",
+      blurb:"Award winning composer and sound designer with 31 shipped game and film credits, working across music, game audio, and film. Also an applied computer scientist who builds tools that make creative work faster.",
+      links:[
+        {t:"HP Page", u:"../violet.html", self:true},
+        {t:"Portfolio", u:"https://vi-ellis.com"},
+        {t:"SoundCloud", u:"https://soundcloud.com/hackingparadise"}
+      ]
+    },
+    {
+      nm:"Judah Ellis", handle:"@crunchculture", initials:"JE",
+      role:"Producer, Audio, Visual Design",
+      blurb:"Producer and multi-disciplinary artist working across music, audio, and visual design.",
+      links:[
+        {t:"HP Page", u:"../judah.html", self:true},
+        {t:"SoundCloud", u:"https://soundcloud.com/crunchculture"},
+        {t:"Portfolio", u:"https://judahellis.myportfolio.com/"},
+        {t:"itch.io", u:"https://judahellis.itch.io/"}
+      ]
+    }
+  ];
+  var grid = document.getElementById("memberGrid");
+  members.forEach(function(m){
+    var card = document.createElement("div"); card.className = "member r";
+    var links = m.links.map(function(l){
+      var tgt = l.self ? '' : ' target="_blank" rel="noopener"';
+      return '<a href="'+l.u+'"'+tgt+'>'+l.t+'</a>';
+    }).join("");
+    card.innerHTML =
+      '<div class="avatar" aria-hidden="true">'+m.initials+'</div>'+
+      '<div class="body">'+
+        '<div class="nm">'+m.nm+'</div>'+
+        '<div class="handle">'+m.handle+'</div>'+
+        '<div class="role">'+m.role+'</div>'+
+        '<p class="blurb">'+m.blurb+'</p>'+
+        '<div class="links">'+links+'</div>'+
+      '</div>';
+    grid.appendChild(card);
+  });
+
+  // ===== PROJECTS: collective output grouped by type. No per member attribution.
+  // The collaborator roster (folder names from the studio Collab catalog, lightly
+  // curated) sits under Music Production, the source it came from. Move names between
+  // buckets here as the catalog gets sorted. =====
+  // Artists and Groups: stylized artist/band/alias names are kept (that is how the artists
+  // are known). Bare internal first names (Elijah, jack, Mat, Fede, Donna E, Jalen) were
+  // dropped as not artist names. More names are coming from the SoundCloud annual playlists.
+  var collabs = [
+    "1illnote","369DAKUZA","777villain","Abyeux Tech","BLSXMONERO","COSMIC",
+    "Cameron Williams","Cesar AJG","DOOMGARDEN","Dunkmoda","DyS","Dysphora",
+    "Emanuel SWEET CREAM","F1LTHY","FALSECRIS","Judah","KA$TRO",
+    "Killa K","PULSE","Redda Darko","Surf","Switchblvde","Wayne","Yung Grif",
+    "am3n++","arthrn","ava blank","axel","bbyazul","frdm","hylas","jvcxb",
+    "k1dosiris","lunchbox","malcoozy","mayh3mp","pavelhancar","prxpvne","quisworldwide",
+    "qwentcrazy","raiden","safeguard","shadycholo","shinigami","snowee","starboyrob",
+    "t3rps","toshii","whatswrongchase","xoyard"
+  ];
+  var buckets = [
+    { n:"★", t:"Featured: Shinobi Necro",
+      d:"A flagship HACKING PARADISE project with a page of its own. Step inside.",
+      roster:null, src:{t:"Enter the Shinobi Necro page", u:"../shinobi-necro.html", self:true} },
+    { n:"01", t:"Music Production and Collaboration",
+      d:"Original music, beats, features, and collaborative releases. The bulk of the collective catalog. A curated, growing list of the artists and groups we have made music with.",
+      roster:collabs, rosterLabel:"Artists and Groups",
+      rosterNote:"More artists are joining from our SoundCloud annual playlists (added by hand, since SoundCloud blocks automated fetch).",
+      src:{t:"Browse the sets on SoundCloud", u:"https://soundcloud.com/hackingparadise/sets"} },
+    { n:"02", t:"Audio Design",
+      d:"Sound design, mixing, and audio post for media projects.", roster:null },
+    { n:"03", t:"Game Audio",
+      d:"Adaptive music and sound for games, including tools for interactive audio.", roster:null },
+    { n:"04", t:"Film and TV Scoring",
+      d:"Original scoring for film and television.", roster:null },
+    { n:"05", t:"Visual and Graphic Design",
+      d:"Cover art, graphics, and visual identity for releases and projects.", roster:null }
+  ];
+  var bl = document.getElementById("bucketList");
+  buckets.forEach(function(b){
+    var sec = document.createElement("div"); sec.className = "bucket r";
+    var html = '<div class="bk-h"><span class="bk-n">'+b.n+'</span><h3>'+b.t+'</h3></div>'+
+               '<p class="bk-d">'+b.d+'</p>';
+    if (b.roster && b.roster.length){
+      if (b.rosterLabel) html += '<div class="roster-h">'+b.rosterLabel+'</div>';
+      html += '<div class="roster">'+ b.roster.map(function(name){
+        return '<span class="chip">'+name+'</span>';
+      }).join("") +'</div>';
+      html += '<span class="count">'+b.roster.length+' artists and groups, and counting.</span>';
+      if (b.rosterNote) html += '<span class="count">'+b.rosterNote+'</span>';
+    } else {
+      html += '<span class="count">Project credits drop in from hp_assets.</span>';
+    }
+    if (b.src){
+      var tgt = b.src.self ? '' : ' target="_blank" rel="noopener"';
+      html += '<a class="src" href="'+b.src.u+'"'+tgt+'>'+b.src.t+'</a>';
+    }
+    sec.innerHTML = html;
+    bl.appendChild(sec);
+  });
+
+  // reveal on scroll
+  var rs = Array.prototype.slice.call(document.querySelectorAll(".r"));
+  if (reduce || !("IntersectionObserver" in window)){ rs.forEach(function(e){e.classList.add("in")}); }
+  else {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    }); }, {rootMargin:"0px 0px -10% 0px", threshold:0.1});
+    rs.forEach(function(e){ io.observe(e); });
+  }
+
+  // scroll-driven depth palette: edge -> abyss -> chasm floor -> paradise
+  // stops are [scrollFraction, [r,g,b]]
+  var stops = [
+    [0.00, [26,23,38]],   // the edge, dusk violet
+    [0.34, [7,6,13]],     // deep abyss, near black
+    [0.50, [12,9,22]],    // chasm floor
+    [0.66, [16,12,28]],   // hold dark through the member showcase
+    [0.73, [243,238,251]],// fast ascent to paradise
+    [1.00, [243,238,251]] // hold bright through apply + contact
+  ];
+  function lerp(a,b,t){ return Math.round(a+(b-a)*t); }
+  function colorAt(f){
+    for (var i=1;i<stops.length;i++){
+      if (f<=stops[i][0]){
+        var a=stops[i-1], b=stops[i];
+        var t=(f-a[0])/(b[0]-a[0]);
+        return [lerp(a[1][0],b[1][0],t), lerp(a[1][1],b[1][1],t), lerp(a[1][2],b[1][2],t)];
+      }
+    }
+    return stops[stops.length-1][1];
+  }
+  var voidLayers = document.querySelectorAll(".void span");
+  var dlayers = Array.prototype.slice.call(document.querySelectorAll(".dlayer")).map(function(el){
+    return { el: el, c: parseFloat(el.dataset.center), peak: parseFloat(el.dataset.peak), yoff: parseFloat(el.dataset.yoff||0) };
+  });
+  var diver = document.getElementById("diver");
+  var whiteout = document.getElementById("whiteout");
+  var speedlines = document.getElementById("speedlines");
+  var trail = document.getElementById("trail");
+  var fallP = 0, fallActive = false;   // fall progress (0..1) drives the speedlines
+  var trailActive = false;             // sketchy wake trail emits ONLY at the start of the dive (Vi: cut the falling trail, keep the start one)
+  function sizeTrail(){ if (trail){ trail.setAttribute("width", window.innerWidth);
+    trail.setAttribute("height", window.innerHeight);
+    trail.setAttribute("viewBox", "0 0 " + window.innerWidth + " " + window.innerHeight); } }
+  sizeTrail();
+  window.addEventListener("resize", sizeTrail, {passive:true});
+  var lastX = window.innerWidth/2, lastY = window.innerHeight/2, prevStage = "dive", lastTrail = 0;
+  // diver hovers at an offset from the crosshair (up + to the left) and lags/bobs toward it
+  var OFF_X = -32, OFF_Y = -44;
+  var diverX = lastX + OFF_X, diverY = lastY + OFF_Y;
+  var paradiseMode = false;   // true once scrolled into the bright paradise section (>=73%)
+  function spawnFx(cls, x, y, opts){
+    opts = opts || {};
+    var e = document.createElement("div"); e.className = "fx " + cls;
+    if (paradiseMode && /star/.test(cls)) e.classList.add("dark");  // dark stars over bright paradise
+    e.style.left = x + "px"; e.style.top = y + "px";
+    if (opts.text) e.textContent = opts.text;
+    if (opts.size) e.style.fontSize = opts.size + "px";
+    if (opts.dx != null){ e.style.setProperty("--dx", opts.dx + "px"); e.style.setProperty("--dy", opts.dy + "px"); }
+    document.body.appendChild(e);
+    setTimeout(function(){ e.remove(); }, opts.life || 1100);
+  }
+  function diverStage(f){
+    if (f < 0.10) return "dive";
+    if (f < 0.52) return "flail";   // longer fall before the chute
+    if (f < 0.74) return "chute";   // longer under canopy before wings
+    if (f < 0.83) return "wings";   // shorter before the halo
+    return "halo";
+  }
+  var ticking=false;
+  function onScroll(){
+    if (ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var f = max>0 ? Math.min(1, Math.max(0, window.scrollY/max)) : 0;
+      paradiseMode = f >= 0.73;   // bright lavender paradise: stars switch to dark
+      document.body.classList.toggle("paradise", paradiseMode);  // crosshair + diver eyes -> purple
+      var c = colorAt(f);
+      document.documentElement.style.setProperty("--bg","rgb("+c[0]+","+c[1]+","+c[2]+")");
+      document.body.classList.toggle("light", (c[0]+c[1]+c[2]) > 430);
+      // descent image layers: gaussian crossfade by depth, fade out toward paradise
+      var bright = Math.max(0, Math.min(1, (f - 0.58) / 0.18));
+      dlayers.forEach(function(L){
+        var d = f - L.c;
+        var o = L.peak * Math.exp(-(d*d)/(2*0.07*0.07)) * (1 - bright);
+        L.el.style.opacity = o.toFixed(3);
+        if (!reduce) L.el.style.transform = "translate(-50%, calc(-50% + " + (d*-150 + L.yoff) + "px))";
+      });
+      // the diver's state tracks the fall
+      var stage = diverStage(f);
+      if (diver) diver.setAttribute("data-stage", stage);
+      // background speedlines intensify toward the chute deploy; the sketchy wake trail is
+      // restricted to the START of the dive only (Vi cut the long falling trail).
+      trailActive = !reduce && (stage === "dive");
+      if (!reduce && (stage === "flail" || stage === "dive")){
+        fallP = Math.max(0, Math.min(1, (f - 0.10) / 0.42));
+        fallActive = true;
+        if (speedlines){ speedlines.style.opacity = (fallP*0.30).toFixed(3); speedlines.style.animationDuration = (0.55 - fallP*0.45).toFixed(2) + "s"; }
+      } else {
+        fallActive = false;
+        if (speedlines) speedlines.style.opacity = "0";
+      }
+      // parachute poofs little clouds the moment it opens
+      if (!reduce && stage === "chute" && prevStage !== "chute"){
+        for (var pi=0; pi<6; pi++){ var pa=Math.random()*6.28;
+          spawnFx("puff", lastX, lastY-14, {dx:Math.cos(pa)*32, dy:Math.sin(pa)*26-10, life:950}); }
+      }
+      prevStage = stage;
+      // radiant bloom at paradise (capped so content stays readable)
+      if (whiteout) whiteout.style.opacity = (Math.max(0, Math.min(1,(f-0.88)/0.12))*0.55).toFixed(3);
+      if (!reduce){
+        voidLayers[0].style.transform = "translate(-50%,"+(window.scrollY*-0.06)+"px)";
+        voidLayers[1].style.transform = "translate(-50%,"+(window.scrollY*-0.03)+"px)";
+        voidLayers[2].style.transform = "translate(-50%,"+(window.scrollY*-0.015)+"px)";
+      }
+      ticking=false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  window.addEventListener("resize", onScroll, {passive:true});
+  onScroll();
+
+  // the diver follows the pointer (hidden on touch via CSS); stage is set in onScroll
+  var scope = document.getElementById("scope");
+  function moveScope(x, y){ if (scope){ scope.style.left = x + "px"; scope.style.top = y + "px"; } }
+  moveScope(lastX, lastY);
+  if (diver){
+    // the diver orbits/hovers AROUND the crosshair at an offset, with a gentle bob and lag,
+    // so the red scope (at the exact pointer) and the diver are both clearly visible at once.
+    // resting direction from the diver to the crosshair (down + to the right, given the offset)
+    var REST_ANG = Math.atan2(-OFF_Y, -OFF_X);
+    var SVGNS = "http://www.w3.org/2000/svg";
+    // a single short, slightly-wavy neon stroke left above the diver (opposite the fall)
+    function spawnTrailSeg(cx, cy, dense){
+      if (!trail) return;
+      var len = 8 + Math.random()*6 + dense*5;     // a touch longer as the fall intensifies
+      var bx = cx + (Math.random()*8 - 4);
+      var by = cy - 4;                              // start just above the body
+      var tx = bx + (Math.random()*5 - 2.5);
+      var ty = by - len;
+      var mx = (bx + tx)/2 + (Math.random()*4 - 2); // wobble for a hand-drawn feel
+      var my = (by + ty)/2;
+      var p = document.createElementNS(SVGNS, "path");
+      p.setAttribute("d", "M"+bx.toFixed(1)+","+by.toFixed(1)+" Q"+mx.toFixed(1)+","+my.toFixed(1)+" "+tx.toFixed(1)+","+ty.toFixed(1));
+      p.setAttribute("stroke-width", (1.0 + Math.random()*0.7).toFixed(2));
+      var life = 800 + Math.random()*350;
+      p.style.setProperty("--life", life + "ms");
+      trail.appendChild(p);
+      setTimeout(function(){ p.remove(); }, life + 60);
+    }
+    if (reduce){
+      diver.style.left = diverX + "px"; diver.style.top = diverY + "px";
+    } else {
+      var faceRot = 0, lastSeg = 0;
+      (function tick(){
+        var t = performance.now()/1000;
+        var orbX = Math.cos(t*1.1)*6;        // slow horizontal sway
+        var orbY = Math.sin(t*1.5)*7 - 2;    // gentle vertical bob
+        var tx = lastX + OFF_X + orbX, ty = lastY + OFF_Y + orbY;
+        diverX += (tx - diverX) * 0.16;      // lag: ease toward the target
+        diverY += (ty - diverY) * 0.16;
+        diver.style.left = diverX + "px";
+        diver.style.top  = diverY + "px";
+        // face the cursor: lean toward the crosshair, measured off the resting direction so the
+        // hover-at-offset pose holds when still, and the diver turns to look as the pointer moves
+        var ang = Math.atan2(lastY - diverY, lastX - diverX) - REST_ANG;
+        while (ang >  Math.PI) ang -= 2*Math.PI;
+        while (ang < -Math.PI) ang += 2*Math.PI;
+        var targetRot = Math.max(-42, Math.min(42, ang * (180/Math.PI) * 1.25));
+        faceRot += (targetRot - faceRot) * 0.12;
+        diver.style.transform = "translate(-50%,-50%) rotate(" + faceRot.toFixed(2) + "deg)";
+        // sketchy wake trail: ONLY at the start of the dive, then it stops (Vi cut the falling trail)
+        if (trailActive){
+          var now = performance.now();
+          if (now - lastSeg >= 200){ lastSeg = now; spawnTrailSeg(diverX, diverY, 0); }
+        }
+        requestAnimationFrame(tick);
+      })();
+    }
+    window.addEventListener("pointermove", function(e){
+      lastX = e.clientX; lastY = e.clientY;
+      // the red scope tracks the pointer directly, with no animation lag, so a click target stays crisp
+      moveScope(lastX, lastY);
+      // sparse sparkling star trail near paradise
+      if (!reduce && diver.getAttribute("data-stage") === "halo" && Date.now()-lastTrail > 230 && Math.random() < 0.5){
+        lastTrail = Date.now();
+        spawnFx("star", lastX + (Math.random()*16-8), lastY + (Math.random()*16-8), {text:"✦", life:1100});
+      }
+    }, {passive:true});
+    // left click = tilt toward 11 o'clock + exclamation; right click = somersault. Scope flashes to mark the hit.
+    window.addEventListener("mousedown", function(e){
+      if (reduce) return;
+      if (scope){ scope.classList.remove("click"); void scope.offsetWidth; scope.classList.add("click");
+        setTimeout(function(){ scope.classList.remove("click"); }, 320); }
+      if (e.button === 0){
+        // left click: a small CCW tilt toward 11 o'clock + an exclamation straight up above the
+        // diver in GLOBAL space (not rotated with the diver's local frame)
+        diver.classList.remove("act-l"); void diver.offsetWidth; diver.classList.add("act-l");
+        spawnFx("pow", diverX, diverY-42, {text:"!", life:520});
+        setTimeout(function(){ diver.classList.remove("act-l"); }, 420);
+      } else if (e.button === 2){
+        // right click: somersault (the older behavior)
+        diver.classList.remove("act-r"); void diver.offsetWidth; diver.classList.add("act-r");
+        for (var i=0;i<5;i++) spawnFx("star", lastX+(Math.random()*36-18), lastY+(Math.random()*36-18), {text:"✦", life:900});
+        setTimeout(function(){ diver.classList.remove("act-r"); }, 660);
+      }
+    });
+    window.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+    if (reduce){ var sk = document.querySelector("#sketch animate"); if (sk) sk.remove(); }
+  }
+
+  // touch: the diver/scope are hidden on touch, so keep the page feeling alive with a
+  // small spark where a finger lands. Passive + no preventDefault, so scrolling is untouched.
+  if (window.matchMedia && window.matchMedia("(hover:none)").matches){
+    window.addEventListener("pointerdown", function(e){
+      if (reduce || e.pointerType !== "touch") return;
+      spawnFx("star", e.clientX, e.clientY, {text:"✦", life:850});
+    }, {passive:true});
+  }
+
+  // easter egg: a message for the curious in the console
+  try{
+    console.log("%cHACKING PARADISE","font-size:20px;font-weight:bold;color:#b9a6f5");
+    console.log("%c"+[
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "  ##########################  ",
+      "  ##########################  ",
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "            ######            ",
+      "        plummet to paradise   "
+    ].join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.05;font-size:12px");
+    console.log("%cYou found the console. Of course you did. We look for the route others overlook.\nIf you build, reach out: v1xl3t@gmail.com","color:#9d8fc7");
+    console.log("%cA path is hidden here. Type  descend()  and press Enter to begin.","color:#ffe6a3;font-weight:bold");
+  }catch(e){}
+
+  // easter egg: a tiny console text adventure built on the meta-vs-rogue / FTK thesis.
+  // The rogue route (the overlooked combo, the FTK) is the only one that reaches paradise.
+  (function(){
+    function say(){ var a=Array.prototype.slice.call(arguments);
+      try{ console.log("%c"+a.join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.4"); }catch(e){} }
+    function gold(t){ try{ console.log("%c"+t, "color:#ffe6a3;font-weight:bold;font-family:monospace"); }catch(e){} }
+    function opts(t){ try{ console.log("%c"+t, "color:#9d8fc7;font-style:italic;font-family:monospace"); }catch(e){} }
+    window.descend = function(){
+      say("THE ABYSS is an Infinite Void, and you are standing at the Chasm's edge.",
+          "Behind you, the apostles chant: await the promise, the curtain will rise for the worthy.",
+          "Below you, only silence, and the rumor that the Void has no floor.");
+      opts("Do you wait, or do you fall?   wait()   |   plummet()");
+      return "(type wait() or plummet())";
+    };
+    window.wait = function(){
+      say("You take your place among the unmoving, envisioning stars.",
+          "Day in and day out you await THE PROMISE. The Ambrosian Fields fade.",
+          "The curtain closes, unheralded. Nothing answers. The blessed path was a queue.");
+      opts("There was another way down. plummet()");
+      return "(type plummet())";
+    };
+    window.plummet = function(){
+      say("You step the furthest anyone has ever leapt. The Void cloaks your weightless descent.",
+          "Down here the rumor is true: there are two ways to play this.",
+          "The meta deck, proven, expensive, the beaten path. Or the rogue line nobody respects.");
+      opts("How do you win?   meta()   |   rogue()");
+      return "(type meta() or rogue())";
+    };
+    window.meta = function(){
+      say("You grind the gatekept deck the way you were told. Slow, heavy, costly.",
+          "You play fair. You reach your battle phase, your end phase, every phase they expect.",
+          "And there, exactly where they were waiting, the opponent answers first. You fall short.");
+      opts("The downside cards only look bad if you assume you reach those phases. rogue()");
+      return "(type rogue())";
+    };
+    window.rogue = function(){
+      say("You take the cards everyone wrote off as trash and push them to their limit.",
+          "You find the FTK: a reachable combo that wins before the first turn ever lands.",
+          "The downsides never trigger, because you are gone before the board can punish you.",
+          "You dive into the abyss and come up, somehow, at the summit.");
+      gold("PLUMMET TO PARADISE. You hacked the shortcut. You win your own way.");
+      gold("That is the whole point of HACKING PARADISE. If this is you: v1xl3t@gmail.com");
+      try{ for (var i=0;i<24;i++)(function(d){ setTimeout(function(){
+        spawnFx("star", Math.random()*window.innerWidth, Math.random()*window.innerHeight, {text:"✦", size:26, life:1700});
+      }, d*45); })(i); }catch(e){}
+      return "(paradise)";
+    };
+  })();
+  // easter egg: Konami code rains stars
+  var konami=[38,38,40,40,37,39,37,39,66,65], ki=0;
+  window.addEventListener("keydown", function(e){
+    ki = (e.keyCode===konami[ki]) ? ki+1 : (e.keyCode===konami[0]?1:0);
+    if (ki===konami.length){ ki=0;
+      // a clear gold flash so the unlock is unmistakable
+      var flash = document.createElement("div");
+      flash.style.cssText = "position:fixed;inset:0;z-index:48;pointer-events:none;opacity:0;"
+        + "background:radial-gradient(60% 55% at 50% 38%, rgba(255,224,150,.55), rgba(255,205,90,0) 70%);"
+        + "transition:opacity .25s ease";
+      document.body.appendChild(flash);
+      requestAnimationFrame(function(){ flash.style.opacity = "1";
+        setTimeout(function(){ flash.style.opacity = "0"; setTimeout(function(){ flash.remove(); }, 600); }, 260); });
+      // ~40 big, bright gold stars raining down
+      for (var i=0;i<40;i++)(function(d){ setTimeout(function(){
+        spawnFx("star", Math.random()*window.innerWidth, Math.random()*window.innerHeight,
+          {text:"✦", size:(28 + Math.random()*18)|0, life:1800});
+      }, d*45); })(i);
+      try{ console.log("%cPLUMMET TO PARADISE","font-size:18px;font-weight:bold;color:#ffe6a3"); }catch(e){}
+    }
+  });
+
+  // apply button placeholder (wire to a hosted form later)
+  document.getElementById("applyBtn").addEventListener("click", function(e){
+    e.preventDefault();
+    window.location.href = "mailto:v1xl3t@gmail.com?subject=HACKING%20PARADISE%20application";
+  });
+})();
+</script>
+</body>
+</html>
