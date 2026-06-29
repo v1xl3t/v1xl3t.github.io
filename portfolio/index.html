@@ -387,6 +387,28 @@ details[open] summary .chev{transform:rotate(90deg)}
 .dl b{color:var(--text); font-weight:700; display:block; font-size:.82rem;
   font-family:var(--mono); letter-spacing:.04em; text-transform:uppercase; margin-top:10px; color:var(--muted)}
 .dl b:first-child{margin-top:4px}
+/* Credits tables */
+.credits-tables{margin:6px 0 0}
+.ct-group{margin-top:16px}
+.ct-group:first-child{margin-top:6px}
+.ct-cap{display:block; font-size:.82rem; font-family:var(--mono); letter-spacing:.04em;
+  text-transform:uppercase; color:var(--muted); font-weight:700; margin:0 0 8px}
+.ct-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+  border:1px solid var(--border-soft); border-radius:var(--radius-sm); background:var(--bg-2)}
+table.credits{width:100%; min-width:440px; border-collapse:collapse;
+  font-size:.86rem; color:#c0cfdf}
+.credits th, .credits td{text-align:left; padding:8px 12px; vertical-align:top;
+  border-bottom:1px solid var(--border-soft)}
+.credits thead th{font-family:var(--mono); font-size:.72rem; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted-2); font-weight:700;
+  background:var(--panel-2); border-bottom:1px solid var(--border); white-space:nowrap}
+.credits tbody tr:last-child td{border-bottom:none}
+.credits tbody tr:hover{background:rgba(157,123,255,.07)}
+@media (prefers-reduced-motion: reduce){ .credits tbody tr{transition:none} }
+.credits .c-title{color:var(--text); font-weight:600}
+.credits .c-year{font-family:var(--mono); color:var(--muted); white-space:nowrap}
+.ct-meta{display:inline-block; margin-left:7px; font-size:.74rem; color:var(--muted-2)}
+.ct-note{display:block; margin-top:3px; font-size:.74rem; font-style:italic; color:var(--muted-2)}
 .media-note{
   margin-top:14px; padding:11px 13px;
   border:1px dashed var(--border);
@@ -1030,42 +1052,69 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <div class="links"><a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></div>
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Full credit list</summary>
-          <p class="dl"><b>Games</b>
-          (2 unannounced titles), Composer, 2026 · pending release<br>
-          Robococo, Composer and Technical Sound Designer, 2025 · Cesarajg · PC<br>
-          Bzar, Composer and Technical Sound Designer, 2025 · Brace Yourself · PC<br>
-          Night Shift, Composer, Audio Designer, Tools Developer, 2023 · Necro.World · PC (built with Vi's UE5 Blueprint tool, later shown at GDC SF 2024)<br>
-          Bermuda Triangle: Depths, Composer and Audio Designer, 2022 · Avalon Custer · 4D VR<br>
-          High Flyer, Composer, 2022 · Krypto Chronic · Mobile<br>
-          Neighborrhea, Composer, 2022 · Judah Ellis · PC<br>
-          Spacecrafter, Composer, 2022 · PC<br>
-          Unexpected Guests, Composer, 2022 · Judah Ellis · PC<br>
-          Atomic Fusion, Composer, 2021 · Cesarajg · PC<br>
-          Eyedol Contact, Composer and Audio Designer, 2021 · RedTeapot · PC/Web (Pinto's Choice Indie Game of the Week; GMTK Game Jam 2021 Top 50 HM)<br>
-          Seeing Ghosts, Composer, 2021 · Necro.World · AR Mobile<br>
-          Slime 'o Wisp, Composer, 2021 · SlimeStudio · PC<br>
-          Ain't Muffin to It, Composer, 2020 · Judah Ellis · PC<br>
-          Champion of the Swamp, Composer, 2020 · Creative Anomaly Games · PC<br>
-          Cyber Cross, Composer, 2020 · Dominick Tamras · PC<br>
-          Me, my Roommate, &amp; Bael of the Underworld, Composer, 2020 · Gavin Arechiga · PC<br>
-          Blinkbot, Composer, 2019 · Rafik Vardanyan · PC<br>
-          Clap, Composer, 2019 · Johnathon Harter · PC
-          <b>Film &amp; TV</b>
-          Blink, Composer, 2026 · Cassie Capello · multimedia short<br>
-          All Downhill, Composer, 2024 · Wayne Nisbet · animated short<br>
-          Squid FunK, Composer and Sound Designer, 2024 · Sweet Cream · animated short<br>
-          Barry, Composer, 2023 · Maxwell Alexander · short<br>
-          Come Lay Down with Me, Composer, 2023 · Cristobal Galvan · short<br>
-          Highway Star, Composer and Sound Designer, 2023 · Sweet Cream · short<br>
-          Spray Paint Perfume Can, Composer and Sound Designer, 2023 · Sweet Cream · advert<br>
-          Torri's Thesis, Composer, 2023 · Max Nieder · short<br>
-          Death of the Lotus, Composer, 2022 · Leo Trejo-Bien · short<br>
-          HAIKU: The Story of a Wilting Trillium, Composer, 2022 · Joseann Tejeda · short (Tokyo Film Awards Best Composer Silver; New Creators Best Original Music Nominee; IndieWrap 2023)<br>
-          Just Crime, Composer, 2022 · Kane Thompson · short<br>
-          Retrograde, Composer, 2022 · Griffin Lamp · short<br>
-          Unconscious Minds, Composer, 2022 · Larry Torralba · short<br>
-          Space Epic, Composer, 2019 · Prabhu Raja · animated short<br>
-          Filtered, Composer, 2018 · Kane Thompson · short</p>
+          <div class="credits-tables">
+
+            <div class="ct-group">
+              <span class="ct-cap">Games</span>
+              <div class="ct-scroll">
+                <table class="credits">
+                  <thead>
+                    <tr><th scope="col">Title</th><th scope="col">Role</th><th scope="col">Year</th><th scope="col">Studio / Director</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="c-title">(2 unannounced titles)</td><td>Composer</td><td class="c-year">2026</td><td>Pending release</td></tr>
+                    <tr><td class="c-title">Robococo</td><td>Composer, Technical Sound Designer</td><td class="c-year">2025</td><td>Cesarajg<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Bzar</td><td>Composer, Technical Sound Designer</td><td class="c-year">2025</td><td>Brace Yourself<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Night Shift</td><td>Composer, Audio Designer, Tools Developer</td><td class="c-year">2023</td><td>Necro.World<span class="ct-meta">PC</span><span class="ct-note">Built with Vi's UE5 Blueprint tool; shown at GDC SF 2024</span></td></tr>
+                    <tr><td class="c-title">Bermuda Triangle: Depths</td><td>Composer, Audio Designer</td><td class="c-year">2022</td><td>Avalon Custer<span class="ct-meta">4D VR</span></td></tr>
+                    <tr><td class="c-title">High Flyer</td><td>Composer</td><td class="c-year">2022</td><td>Krypto Chronic<span class="ct-meta">Mobile</span></td></tr>
+                    <tr><td class="c-title">Neighborrhea</td><td>Composer</td><td class="c-year">2022</td><td>Judah Ellis<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Spacecrafter</td><td>Composer</td><td class="c-year">2022</td><td>PC</td></tr>
+                    <tr><td class="c-title">Unexpected Guests</td><td>Composer</td><td class="c-year">2022</td><td>Judah Ellis<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Atomic Fusion</td><td>Composer</td><td class="c-year">2021</td><td>Cesarajg<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Eyedol Contact</td><td>Composer, Audio Designer</td><td class="c-year">2021</td><td>RedTeapot<span class="ct-meta">PC / Web</span><span class="ct-note">Pinto's Choice Indie Game of the Week; GMTK Game Jam 2021 Top 50 HM</span></td></tr>
+                    <tr><td class="c-title">Seeing Ghosts</td><td>Composer</td><td class="c-year">2021</td><td>Necro.World<span class="ct-meta">AR Mobile</span></td></tr>
+                    <tr><td class="c-title">Slime 'o Wisp</td><td>Composer</td><td class="c-year">2021</td><td>SlimeStudio<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Ain't Muffin to It</td><td>Composer</td><td class="c-year">2020</td><td>Judah Ellis<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Champion of the Swamp</td><td>Composer</td><td class="c-year">2020</td><td>Creative Anomaly Games<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Cyber Cross</td><td>Composer</td><td class="c-year">2020</td><td>Dominick Tamras<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Me, my Roommate, &amp; Bael of the Underworld</td><td>Composer</td><td class="c-year">2020</td><td>Gavin Arechiga<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Blinkbot</td><td>Composer</td><td class="c-year">2019</td><td>Rafik Vardanyan<span class="ct-meta">PC</span></td></tr>
+                    <tr><td class="c-title">Clap</td><td>Composer</td><td class="c-year">2019</td><td>Johnathon Harter<span class="ct-meta">PC</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="ct-group">
+              <span class="ct-cap">Film &amp; TV</span>
+              <div class="ct-scroll">
+                <table class="credits">
+                  <thead>
+                    <tr><th scope="col">Title</th><th scope="col">Role</th><th scope="col">Year</th><th scope="col">Director</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="c-title">Blink</td><td>Composer</td><td class="c-year">2026</td><td>Cassie Capello<span class="ct-meta">Multimedia short</span></td></tr>
+                    <tr><td class="c-title">All Downhill</td><td>Composer</td><td class="c-year">2024</td><td>Wayne Nisbet<span class="ct-meta">Animated short</span></td></tr>
+                    <tr><td class="c-title">Squid FunK</td><td>Composer, Sound Designer</td><td class="c-year">2024</td><td>Sweet Cream<span class="ct-meta">Animated short</span></td></tr>
+                    <tr><td class="c-title">Barry</td><td>Composer</td><td class="c-year">2023</td><td>Maxwell Alexander<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Come Lay Down with Me</td><td>Composer</td><td class="c-year">2023</td><td>Cristobal Galvan<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Highway Star</td><td>Composer, Sound Designer</td><td class="c-year">2023</td><td>Sweet Cream<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Spray Paint Perfume Can</td><td>Composer, Sound Designer</td><td class="c-year">2023</td><td>Sweet Cream<span class="ct-meta">Advert</span></td></tr>
+                    <tr><td class="c-title">Torri's Thesis</td><td>Composer</td><td class="c-year">2023</td><td>Max Nieder<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Death of the Lotus</td><td>Composer</td><td class="c-year">2022</td><td>Leo Trejo-Bien<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">HAIKU: The Story of a Wilting Trillium</td><td>Composer</td><td class="c-year">2022</td><td>Joseann Tejeda<span class="ct-meta">Short</span><span class="ct-note">Tokyo Film Awards Best Composer Silver; New Creators Best Original Music Nominee; IndieWrap 2023</span></td></tr>
+                    <tr><td class="c-title">Just Crime</td><td>Composer</td><td class="c-year">2022</td><td>Kane Thompson<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Retrograde</td><td>Composer</td><td class="c-year">2022</td><td>Griffin Lamp<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Unconscious Minds</td><td>Composer</td><td class="c-year">2022</td><td>Larry Torralba<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title">Space Epic</td><td>Composer</td><td class="c-year">2019</td><td>Prabhu Raja<span class="ct-meta">Animated short</span></td></tr>
+                    <tr><td class="c-title">Filtered</td><td>Composer</td><td class="c-year">2018</td><td>Kane Thompson<span class="ct-meta">Short</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
         </details>
       </article>
 
