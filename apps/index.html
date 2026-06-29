@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vi Ellis · Directory</title>
+<meta name="description" content="Vi Ellis, portfolio and live tools: CADence, Layerloop, Résumé Studio." />
+<meta name="theme-color" content="#efe9fb" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23a78bfa'/%3E%3Cpath d='M16 18 L32 46 L48 18' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+:root{
+  --bg:#f7f4fe;
+  --bg-2:#efe9fb;
+  --card:#ffffff;
+  --ink:#3b3556;
+  --ink-soft:#6f6790;
+  --violet:#8b7bd8;
+  --violet-2:#a78bfa;
+  --lav:#c9bdf4;
+  --lav-soft:#e7defb;
+  --ring:rgba(139,123,216,.35);
+  --shadow:0 10px 30px -16px rgba(86,70,150,.45);
+  --shadow-lift:0 22px 48px -20px rgba(86,70,150,.55);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; min-height:100vh; color:var(--ink); font-family:var(--font);
+  background:
+    radial-gradient(60vw 60vw at 12% -8%, #e9e0fb 0%, transparent 55%),
+    radial-gradient(55vw 55vw at 100% 10%, #f3e6fb 0%, transparent 50%),
+    radial-gradient(50vw 50vw at 80% 110%, #e4ecff 0%, transparent 55%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column;
+}
+/* slow, soft drifting tint (cute, subtle) */
+body::before{
+  content:""; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
+  background:radial-gradient(40vw 40vw at 30% 40%, rgba(199,189,244,.30), transparent 60%);
+  animation:drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift{ from{transform:translate3d(-3%,-2%,0) scale(1)} to{transform:translate3d(4%,3%,0) scale(1.08)} }
+
+main{ width:100%; max-width:880px; margin:0 auto; padding:clamp(48px,9vw,104px) clamp(20px,5vw,40px) 40px; flex:1 }
+
+.head{ animation:rise .7s cubic-bezier(.22,.61,.36,1) both }
+.mark{
+  width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
+  background:linear-gradient(140deg,var(--violet-2),var(--violet)); color:#fff;
+  font-weight:900; font-size:1.2rem; box-shadow:var(--shadow); margin-bottom:18px;
+}
+h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; line-height:1.05 }
+.tag{ margin:.6em 0 0; color:var(--ink-soft); font-size:clamp(1rem,.95rem+.3vw,1.15rem); max-width:46ch }
+
+.grid{ margin-top:clamp(32px,5vw,52px); display:grid; gap:16px; grid-template-columns:repeat(2,1fr) }
+@media (max-width:620px){ .grid{grid-template-columns:1fr} }
+
+.tile{
+  position:relative; display:block; text-decoration:none; color:inherit;
+  background:var(--card); border:1px solid var(--lav-soft); border-radius:20px;
+  padding:22px 22px 20px; box-shadow:var(--shadow); overflow:hidden;
+  transition:transform .28s cubic-bezier(.22,.61,.36,1), box-shadow .28s ease, border-color .28s ease;
+  animation:rise .7s cubic-bezier(.22,.61,.36,1) both;
+}
+.tile:nth-child(1){animation-delay:.05s} .tile:nth-child(2){animation-delay:.12s}
+.tile:nth-child(3){animation-delay:.19s} .tile:nth-child(4){animation-delay:.26s}
+.tile::after{ /* soft corner bloom */
+  content:""; position:absolute; right:-30px; top:-30px; width:120px; height:120px; border-radius:50%;
+  background:radial-gradient(circle at center, var(--lav-soft), transparent 70%);
+  opacity:.8; transition:transform .4s ease, opacity .3s ease;
+}
+.tile:hover{ transform:translateY(-6px); box-shadow:var(--shadow-lift); border-color:var(--lav) }
+.tile:hover::after{ transform:scale(1.4); opacity:1 }
+.tile:focus-visible{ outline:3px solid var(--ring); outline-offset:3px }
+
+.tile .ico{
+  width:38px; height:38px; border-radius:11px; display:grid; place-items:center; margin-bottom:14px;
+  background:linear-gradient(140deg,var(--lav-soft),#fff); border:1px solid var(--lav-soft); color:var(--violet);
+  position:relative; z-index:1;
+}
+.tile h2{ margin:0; font-size:1.18rem; letter-spacing:-.01em; position:relative; z-index:1; display:flex; align-items:center; gap:8px }
+.tile p{ margin:.45em 0 0; color:var(--ink-soft); font-size:.95rem; line-height:1.5; position:relative; z-index:1 }
+.tile .go{ margin-top:14px; font-family:var(--mono); font-size:.78rem; color:var(--violet); font-weight:700; position:relative; z-index:1 }
+.tile .go::after{ content:" \2192"; transition:margin-left .2s ease }
+.tile:hover .go::after{ margin-left:5px }
+.pri{ background:linear-gradient(150deg,#fff,#f4efff); border-color:var(--lav) }
+.badge{ font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; text-transform:uppercase; color:#fff;
+  background:var(--violet-2); padding:3px 8px; border-radius:999px; font-weight:700 }
+
+footer{ text-align:center; padding:26px 20px 36px; color:var(--ink-soft); font-size:.86rem }
+footer a{ color:var(--violet); text-decoration:none; font-weight:600 }
+footer a:hover{ text-decoration:underline }
+
+@keyframes rise{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none} }
+@media (prefers-reduced-motion: reduce){
+  body::before{ animation:none }
+  .head,.tile{ animation:none }
+  .tile:hover{ transform:none }
+  html{ scroll-behavior:auto }
+}
+
+/* ---------------- dark lavender theme ---------------- */
+html[data-theme="dark"]{
+  --bg:#14101f; --bg-2:#1b1530; --card:#1f1836;
+  --ink:#ece7fb; --ink-soft:#b3a8d6;
+  --violet:#bba8f6; --violet-2:#a78bfa;
+  --lav:#6b5ca0; --lav-soft:#2a2348;
+  --ring:rgba(167,139,250,.45);
+  --shadow:0 10px 30px -16px rgba(0,0,0,.6);
+  --shadow-lift:0 22px 48px -20px rgba(0,0,0,.7);
+}
+html[data-theme="dark"] body{
+  background:
+    radial-gradient(60vw 60vw at 12% -8%, #241a3e 0%, transparent 55%),
+    radial-gradient(55vw 55vw at 100% 10%, #2a1c40 0%, transparent 50%),
+    radial-gradient(50vw 50vw at 80% 110%, #1a2142 0%, transparent 55%),
+    var(--bg);
+}
+html[data-theme="dark"] body::before{ background:radial-gradient(40vw 40vw at 30% 40%, rgba(124,99,196,.22), transparent 60%) }
+html[data-theme="dark"] .pri{ background:linear-gradient(150deg,#241c40,#1d1633) }
+html[data-theme="dark"] .tile .ico{ background:linear-gradient(140deg,var(--lav-soft),#241c40) }
+
+/* ---------------- theme toggle ---------------- */
+.theme-toggle{
+  position:fixed; top:18px; right:18px; z-index:10;
+  width:44px; height:44px; border-radius:13px; cursor:pointer;
+  display:grid; place-items:center; color:var(--violet);
+  background:var(--card); border:1px solid var(--lav-soft); box-shadow:var(--shadow);
+  transition:transform .2s ease, border-color .2s ease, color .2s ease;
+}
+.theme-toggle:hover{ transform:translateY(-2px); border-color:var(--lav) }
+.theme-toggle:focus-visible{ outline:3px solid var(--ring); outline-offset:3px }
+.theme-toggle svg{ display:block }
+.theme-toggle .moon{ display:none }
+html[data-theme="dark"] .theme-toggle .sun{ display:none }
+html[data-theme="dark"] .theme-toggle .moon{ display:block }
+@media (prefers-reduced-motion: reduce){ .theme-toggle:hover{ transform:none } }
+</style>
+<script>
+  // Set theme before paint to avoid a flash. Saved choice wins; else system pref.
+  (function(){
+    try{
+      var saved = localStorage.getItem("vi-theme");
+      var dark = saved ? saved === "dark"
+        : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (dark) document.documentElement.setAttribute("data-theme","dark");
+    }catch(e){}
+  })();
+</script>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+  <svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  <svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+</button>
+<main>
+  <div class="head">
+    <div class="mark" aria-hidden="true">V</div>
+    <h1>Vi Ellis</h1>
+    <p class="tag">Engineer, product developer, and composer. Here's the work, and a few things you can actually play with.</p>
+  </div>
+
+  <div class="grid">
+    <a class="tile pri" href="/">
+      <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M8 21h8"/></svg></span>
+      <h2>Portfolio <span class="badge">Start here</span></h2>
+      <p>The full body of work, from production AI to hardware, audio, and teaching.</p>
+      <span class="go">Enter the portfolio</span>
+    </a>
+
+    <a class="tile" href="/cadence/">
+      <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
+      <h2>CADence</h2>
+      <p>A browser 3D modeler that makes precise CAD as approachable as a toy.</p>
+      <span class="go">Launch it</span>
+    </a>
+
+    <a class="tile" href="/anim/">
+      <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      <h2>Layerloop</h2>
+      <p>Layered, stated pixel animation in the browser. Draw, loop, export.</p>
+      <span class="go">Launch it</span>
+    </a>
+
+    <a class="tile" href="/resume/">
+      <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></span>
+      <h2>Résumé Studio</h2>
+      <p>A clean, ATS-friendly résumé editor that renders from structured content.</p>
+      <span class="go">Launch it</span>
+    </a>
+  </div>
+</main>
+
+<footer>
+  &copy; <span id="y"></span> Vi Ellis &middot; <a href="mailto:contactviellis@gmail.com">contactviellis@gmail.com</a>
+</footer>
+<script>
+  document.getElementById("y").textContent = new Date().getFullYear();
+  (function(){
+    var root = document.documentElement, btn = document.getElementById("themeToggle");
+    var meta = document.querySelector('meta[name="theme-color"]');
+    function sync(){
+      var dark = root.getAttribute("data-theme") === "dark";
+      if (meta) meta.setAttribute("content", dark ? "#14101f" : "#efe9fb");
+      btn.setAttribute("aria-pressed", String(dark));
+    }
+    sync();
+    btn.addEventListener("click", function(){
+      var dark = root.getAttribute("data-theme") === "dark";
+      if (dark) root.removeAttribute("data-theme"); else root.setAttribute("data-theme","dark");
+      try{ localStorage.setItem("vi-theme", dark ? "light" : "dark"); }catch(e){}
+      sync();
+    });
+  })();
+</script>
+</body>
+</html>
