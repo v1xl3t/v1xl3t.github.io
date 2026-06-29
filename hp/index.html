@@ -177,9 +177,9 @@ h1{font-size:clamp(2.6rem,7vw,6rem); line-height:.98; letter-spacing:-.03em; mar
 h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
 /* black-metal display font used ONLY as a spaced-out decorative accent */
 .bm{font-family:"BlackMetal",var(--font); font-weight:700;
-  letter-spacing:.5em; padding-left:.5em; text-transform:uppercase;
-  opacity:.55; line-height:1; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px);
-  max-width:100%; overflow:hidden}
+  letter-spacing:.5em; padding:.18em .5em .08em; text-transform:uppercase;
+  opacity:.55; line-height:1.18; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px);
+  max-width:100%; overflow-x:clip; overflow-y:visible}
 @media (max-width:520px){ .bm{font-size:clamp(3rem,16vw,5rem); letter-spacing:.26em; margin:clamp(56px,12vh,90px) 0} }
 .lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
 .scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
@@ -610,7 +610,8 @@ footer a{color:var(--accent); text-decoration:none}
   var whiteout = document.getElementById("whiteout");
   var speedlines = document.getElementById("speedlines");
   var trail = document.getElementById("trail");
-  var fallP = 0, fallActive = false;   // fall progress (0..1) + whether trail should emit
+  var fallP = 0, fallActive = false;   // fall progress (0..1) drives the speedlines
+  var trailActive = false;             // sketchy wake trail emits ONLY at the start of the dive (Vi: cut the falling trail, keep the start one)
   function sizeTrail(){ if (trail){ trail.setAttribute("width", window.innerWidth);
     trail.setAttribute("height", window.innerHeight);
     trail.setAttribute("viewBox", "0 0 " + window.innerWidth + " " + window.innerHeight); } }
@@ -661,8 +662,9 @@ footer a{color:var(--accent); text-decoration:none}
       // the diver's state tracks the fall
       var stage = diverStage(f);
       if (diver) diver.setAttribute("data-stage", stage);
-      // background streaks + sketchy descent trail, intensifying toward the chute deploy.
-      // fallP drives the trail's sparse-to-dense density; the trail itself is spawned in the diver tick.
+      // background speedlines intensify toward the chute deploy; the sketchy wake trail is
+      // restricted to the START of the dive only (Vi cut the long falling trail).
+      trailActive = !reduce && (stage === "dive");
       if (!reduce && (stage === "flail" || stage === "dive")){
         fallP = Math.max(0, Math.min(1, (f - 0.10) / 0.42));
         fallActive = true;
@@ -740,11 +742,10 @@ footer a{color:var(--accent); text-decoration:none}
         var targetRot = Math.max(-42, Math.min(42, ang * (180/Math.PI) * 1.25));
         faceRot += (targetRot - faceRot) * 0.12;
         diver.style.transform = "translate(-50%,-50%) rotate(" + faceRot.toFixed(2) + "deg)";
-        // sketchy descent trail: sparse near the top, denser toward the chute deploy point
-        if (fallActive){
+        // sketchy wake trail: ONLY at the start of the dive, then it stops (Vi cut the falling trail)
+        if (trailActive){
           var now = performance.now();
-          var interval = 360 - fallP*305;    // ~360ms (sparse) -> ~55ms (dense)
-          if (now - lastSeg >= interval){ lastSeg = now; spawnTrailSeg(diverX, diverY, fallP); }
+          if (now - lastSeg >= 200){ lastSeg = now; spawnTrailSeg(diverX, diverY, 0); }
         }
         requestAnimationFrame(tick);
       })();
