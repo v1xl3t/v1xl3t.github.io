@@ -1077,20 +1077,94 @@ function setupEmptyState() {
 }
 
 // ---------------------------------------------------------------- onboarding
-// A one-time tip — touch-aware — shown on first visit and remembered.
+// A short, non-obtrusive coachmark tour: small callouts that point at the real
+// controls (create primitives, edit, the Objects panel, autosave). The page stays
+// fully interactive behind them. Shown once on first visit, replayable via Tips.
+const ONBOARD_KEY = 'cadence.onboarded.v2';
+function tourSteps() {
+  return COARSE_POINTER ? [
+    { sel: '[data-drawer="toolbar"]',   text: 'Tap Tools to create primitives — box, cylinder, sphere, and more.' },
+    { sel: '[data-drawer="inspector"]', text: 'Tap Inspect to type exact sizes and positions for the selected shape.' },
+    { sel: '[data-drawer="outliner"]',  text: 'Tap Objects for everything in your scene. Hit Multi to select several at once.' },
+    { sel: null, text: 'Your work auto-saves as you go. Reopen CADence, even in a new browser tab, and it picks up right where you left off.' },
+  ] : [
+    { sel: '#toolbar [data-add]',         text: 'Create primitives here. Click a shape to drop it into the scene.' },
+    { sel: '#toolbar .mode',              text: 'Drag the gizmo to move a shape; switch to Rotate or Scale here, or type exact sizes in the Inspector.' },
+    { sel: '#outliner',                   text: 'Every object lives here. Shift-click, or hit Multi, to select several at once.' },
+    { sel: '[data-action="new-project"]', text: 'Your work auto-saves as you go. Reload or open CADence in a new tab and it picks up right where you left off. New starts a fresh scene.' },
+  ];
+}
+let _tour = null;
+function endTour() {
+  try { localStorage.setItem(ONBOARD_KEY, '1'); } catch {}
+  if (!_tour) return;
+  window.removeEventListener('resize', _tour.onResize);
+  _tour.card.remove(); _tour.ring.remove();
+  _tour = null;
+}
+function startTour() {
+  endTour();
+  const app = document.getElementById('app');
+  const list = tourSteps();
+  const ring = document.createElement('div'); ring.id = 'cm-ring'; ring.hidden = true;
+  const card = document.createElement('div'); card.id = 'cm-card';
+  app.appendChild(ring); app.appendChild(card);
+  _tour = { list, card, ring, i: 0, onResize: () => showStep(_tour.i) };
+  window.addEventListener('resize', _tour.onResize);
+  showStep(0);
+}
+function showStep(i) {
+  if (!_tour) return;
+  const step = _tour.list[i];
+  if (!step) { endTour(); return; }
+  _tour.i = i;
+  const target = step.sel ? document.querySelector(step.sel) : null;
+  let rect = target ? target.getBoundingClientRect() : null;
+  if (rect && (rect.width === 0 || rect.height === 0)) rect = null;   // hidden / collapsed anchor
+  const ring = _tour.ring;
+  if (rect) {
+    ring.hidden = false;
+    ring.style.left = (rect.left - 6) + 'px'; ring.style.top = (rect.top - 6) + 'px';
+    ring.style.width = (rect.width + 12) + 'px'; ring.style.height = (rect.height + 12) + 'px';
+  } else ring.hidden = true;
+  const last = i === _tour.list.length - 1;
+  _tour.card.innerHTML =
+    `<div class="cm-text">${step.text}</div>`
+    + `<div class="cm-foot"><span class="cm-count">${i + 1} / ${_tour.list.length}</span>`
+    + `<span class="cm-btns">`
+    + (i > 0 ? `<button class="cm-back">Back</button>` : ``)
+    + `<button class="cm-skip">Skip</button>`
+    + `<button class="cm-next">${last ? 'Done' : 'Next'}</button>`
+    + `</span></div>`;
+  _tour.card.querySelector('.cm-next').onclick = () => (last ? endTour() : showStep(i + 1));
+  _tour.card.querySelector('.cm-skip').onclick = endTour;
+  const back = _tour.card.querySelector('.cm-back');
+  if (back) back.onclick = () => showStep(i - 1);
+  positionTourCard(rect);
+}
+function positionTourCard(rect) {
+  const card = _tour.card;
+  card.style.visibility = 'hidden'; card.style.left = '0px'; card.style.top = '0px';
+  const cw = card.offsetWidth, ch = card.offsetHeight, vw = innerWidth, vh = innerHeight, gap = 12, pad = 10;
+  let left, top;
+  if (rect) {
+    if (rect.bottom + gap + ch <= vh) top = rect.bottom + gap;
+    else if (rect.top - gap - ch >= 0) top = rect.top - gap - ch;
+    else top = rect.bottom + gap;
+    left = rect.left + rect.width / 2 - cw / 2;
+  } else { left = vw / 2 - cw / 2; top = vh - ch - 80; }
+  left = Math.min(vw - cw - pad, Math.max(pad, left));
+  top  = Math.min(vh - ch - pad, Math.max(pad, top));
+  card.style.left = left + 'px'; card.style.top = top + 'px'; card.style.visibility = 'visible';
+}
 function setupOnboarding() {
-  const KEY = 'cadence.onboarded.v1';
-  try { if (localStorage.getItem(KEY)) return; } catch { /* private mode */ }
-  const hint = document.createElement('div');
-  hint.id = 'onboard-hint';
-  const tip = COARSE_POINTER
-    ? 'Welcome to CADence. One finger orbits, two fingers pan and pinch to zoom. Tap Tools to add a shape, Inspect to type exact sizes.'
-    : 'Welcome to CADence. Add a shape, drag the gizmo to move it, or type exact sizes in the Inspector. Press ? anytime for shortcuts.';
-  hint.innerHTML = `<span>${tip}</span><button class="oh-x" title="Dismiss">✕</button>`;
-  const dismiss = () => { hint.hidden = true; try { localStorage.setItem(KEY, '1'); } catch {} };
-  hint.querySelector('.oh-x').addEventListener('click', dismiss);
-  document.getElementById('app').appendChild(hint);
-  setTimeout(() => { if (!hint.hidden) dismiss(); }, 12000);
+  const tips = document.createElement('button');
+  tips.id = 'tips-btn'; tips.textContent = 'Tips'; tips.title = 'Replay the quick tour';
+  tips.addEventListener('click', startTour);
+  document.getElementById('app').appendChild(tips);
+  let seen = false;
+  try { seen = !!localStorage.getItem(ONBOARD_KEY); } catch {}
+  if (!seen) setTimeout(startTour, 700);
 }
 
 // ---------------------------------------------------------------- resize + loop

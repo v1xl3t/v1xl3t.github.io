@@ -184,7 +184,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .outliner-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .outliner-head .group-label { margin-bottom: 6px; }
 .multi-toggle { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; line-height: 1;
-  padding: 4px 8px; margin: 0 0 6px; border: 1px solid var(--line, #2a323d); border-radius: 999px;
+  padding: 4px 8px; margin: 0 0 6px; border: 1px solid var(--border); border-radius: 999px;
   background: none; color: var(--muted); cursor: pointer; }
 .multi-toggle:hover { color: var(--text); border-color: var(--accent); }
 .multi-toggle.active { background: var(--accent); color: #0c1108; border-color: var(--accent); }
@@ -428,6 +428,43 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
   width: 24px; height: 24px; flex: none; margin: 0; padding: 0;
   text-align: center; line-height: 1; font-size: 15px; color: var(--muted);
 }
+
+/* ============================================================
+   Coachmark tour: non-blocking, anchored callouts that point at
+   real controls (first run + the Tips button). The page stays
+   fully interactive behind them — no modal scrim.
+   ============================================================ */
+#cm-ring {
+  position: fixed; z-index: 95; pointer-events: none; border-radius: 10px;
+  border: 2px solid var(--accent); box-shadow: 0 0 0 9999px rgba(8,11,16,.34), 0 0 16px -2px var(--accent);
+  transition: left .22s ease, top .22s ease, width .22s ease, height .22s ease;
+}
+#cm-ring[hidden] { display: none; }
+#cm-card {
+  position: fixed; z-index: 96; max-width: min(88vw, 320px);
+  padding: 13px 14px; background: var(--panel-solid); color: var(--text);
+  border: 1px solid var(--accent-dim); border-radius: 12px;
+  box-shadow: 0 14px 38px -10px rgba(0,0,0,.7); font-size: 13px; line-height: 1.5;
+}
+#cm-card .cm-text { margin-bottom: 11px; }
+#cm-card .cm-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#cm-card .cm-count { font-size: 11px; color: var(--muted); }
+#cm-card .cm-btns { display: flex; gap: 6px; }
+#cm-card .cm-btns button {
+  font-size: 12px; padding: 6px 11px; margin: 0; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border); background: none; color: var(--muted);
+}
+#cm-card .cm-btns .cm-next { background: var(--accent); color: #0c1108; border-color: var(--accent); font-weight: 600; }
+#cm-card .cm-btns button:hover { color: var(--text); }
+#cm-card .cm-btns .cm-next:hover { color: #0c1108; filter: brightness(1.08); }
+#tips-btn {
+  position: fixed; left: 12px; bottom: 12px; z-index: 80;
+  font-size: 11px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer;
+  opacity: .6; transition: opacity .2s ease, color .2s ease;
+}
+#tips-btn:hover { opacity: 1; color: var(--text); border-color: var(--accent); }
+@media (pointer: coarse) { #tips-btn { padding: 9px 14px; font-size: 12px; bottom: 64px; } }
 
 /* ============================================================
    Mobile bottom bar + drawer scrim — created by JS, hidden on
