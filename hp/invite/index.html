@@ -120,6 +120,17 @@ body.light .diver{--diver:#241f38}
 .scope.click{animation:scopeflash .3s ease-out}
 @keyframes scopeflash{0%{transform:translate(-50%,-50%) scale(1)}45%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
 @media (hover:none){ .scope{display:none} }
+/* mobile gyro-diver: on touch there is no pointer, so the diver is steered by tilting the
+   phone (the device IS the dive). It stays hidden until the visitor opts in via the cue
+   (a tap is also the gesture iOS needs to grant motion access). */
+body.tilt .diver{display:block}
+#tiltcue{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:60;
+  font-family:var(--mono); font-size:.78rem; letter-spacing:.08em; padding:12px 20px; border-radius:999px;
+  background:rgba(11,9,19,.82); color:var(--ink); border:1px solid var(--diver-accent);
+  box-shadow:0 0 14px -2px var(--diver-accent); cursor:pointer; animation:tiltpulse 2.4s ease-in-out infinite}
+@keyframes tiltpulse{0%,100%{opacity:.78}50%{opacity:1}}
+@media (hover:hover){ #tiltcue{display:none} }
+@media (prefers-reduced-motion: reduce){ #tiltcue{display:none; animation:none} }
 @media (prefers-reduced-motion: reduce){ .scope.click{animation:none} }
 /* neon-green scribble eyes + horns */
 .diver .eye{stroke:var(--diver-accent); stroke-width:1.9; fill:none; stroke-linecap:round}
@@ -782,13 +793,47 @@ footer a{color:var(--accent); text-decoration:none}
     if (reduce){ var sk = document.querySelector("#sketch animate"); if (sk) sk.remove(); }
   }
 
-  // touch: the diver/scope are hidden on touch, so keep the page feeling alive with a
-  // small spark where a finger lands. Passive + no preventDefault, so scrolling is untouched.
+  // touch: a small spark where a finger lands keeps the page feeling alive.
+  // Passive + no preventDefault, so scrolling is untouched.
   if (window.matchMedia && window.matchMedia("(hover:none)").matches){
     window.addEventListener("pointerdown", function(e){
       if (reduce || e.pointerType !== "touch") return;
       spawnFx("star", e.clientX, e.clientY, {text:"✦", life:850});
     }, {passive:true});
+
+    // mobile gyro-diver: steer the diver by tilting the phone. The diver stays scroll-driven
+    // for its stage (dive -> chute -> halo); tilt only sets its horizontal drift. Opt-in via a
+    // cue, both to keep it a delight and because iOS requires a user gesture for motion access.
+    if (!reduce && diver && window.DeviceOrientationEvent){
+      var tiltOn = false;
+      function onTilt(e){
+        var g = e.gamma; if (g == null) return;       // left/right tilt, degrees
+        g = Math.max(-30, Math.min(30, g));
+        var t = (g + 30) / 60;                          // 0..1 across the tilt range
+        lastX = (0.12 + t * 0.76) * window.innerWidth;  // stay fully on-screen (12% to 88%)
+        lastY = window.innerHeight * 0.4;               // float in the upper-middle band
+      }
+      function startTilt(){
+        if (tiltOn) return; tiltOn = true;
+        document.body.classList.add("tilt");
+        lastX = window.innerWidth / 2; lastY = window.innerHeight * 0.4;
+        window.addEventListener("deviceorientation", onTilt);
+        if (cue) cue.remove();
+      }
+      var cue = document.createElement("button");
+      cue.id = "tiltcue"; cue.type = "button"; cue.textContent = "Tilt to dive";
+      cue.addEventListener("click", function(){
+        var DOE = window.DeviceOrientationEvent;
+        if (DOE && typeof DOE.requestPermission === "function"){   // iOS 13+ gate
+          DOE.requestPermission().then(function(s){ if (s === "granted") startTilt();
+            else { cue.textContent = "Motion access off"; setTimeout(function(){ if (cue) cue.remove(); }, 2200); }
+          }).catch(function(){ if (cue) cue.remove(); });
+        } else { startTilt(); }
+      });
+      document.body.appendChild(cue);
+      // if the visitor never opts in, fade the cue away so it is never nagging
+      setTimeout(function(){ if (cue && !tiltOn) cue.remove(); }, 15000);
+    }
   }
 
   // easter egg: a message for the curious in the console
