@@ -293,6 +293,65 @@ body.light .chip{background:rgba(124,95,224,.05)}
   font-family:var(--mono); font-size:.72rem; color:var(--diver-accent); text-decoration:none}
 .bucket .src:hover{text-decoration:underline}
 
+/* member cards are clickable -> open the collectible-card modal */
+.member{cursor:pointer}
+.member .viewcard{display:inline-block; margin-top:14px; font-family:var(--mono); font-size:.7rem;
+  letter-spacing:.06em; color:var(--diver-accent); opacity:.8; transition:opacity .2s ease}
+.member:hover .viewcard{opacity:1}
+
+/* cool linked roster chips (SoundCloud) */
+.chip{transition:border-color .2s ease, color .2s ease, box-shadow .25s ease, transform .2s ease}
+.chip.lnk{display:inline-flex; align-items:center; gap:7px; text-decoration:none; position:relative; overflow:hidden}
+.chip.lnk .ci{font-size:.82em; opacity:.55; transition:transform .2s ease, opacity .2s ease}
+.chip.lnk::before{content:""; position:absolute; inset:0; opacity:0; transition:opacity .25s ease;
+  background:radial-gradient(120% 140% at 0% 0%, rgba(61,255,110,.20), transparent 60%)}
+.chip.lnk:hover{border-color:var(--diver-accent); color:var(--diver-accent); transform:translateY(-2px);
+  box-shadow:0 0 0 1px var(--diver-accent), 0 10px 26px -12px rgba(61,255,110,.55)}
+.chip.lnk:hover::before{opacity:1}
+.chip.lnk:hover .ci{transform:translate(2px,-2px); opacity:1}
+
+/* ===== member card MODAL ===== */
+.mm-ov{position:fixed; inset:0; z-index:120; display:grid; place-items:center; padding:20px;
+  background:rgba(5,4,11,.74); backdrop-filter:blur(6px); opacity:0; transition:opacity .22s ease}
+.mm-ov[hidden]{display:none}   /* attribute must win over display:grid */
+.mm-ov.show{opacity:1}
+.mm-card{width:min(440px,94vw); max-height:90vh; overflow:auto; position:relative; border-radius:18px; padding:14px;
+  color:var(--ink); background:linear-gradient(180deg,rgba(185,166,245,.10),rgba(124,58,237,.05)), #0d0a18;
+  border:1px solid rgba(185,166,245,.4); box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 40px 90px -30px #000;
+  display:flex; flex-direction:column; gap:10px; transform:translateY(14px) scale(.98); transition:transform .24s ease}
+.mm-ov.show .mm-card{transform:none}
+.mm-x{position:absolute; top:10px; right:10px; z-index:2; width:32px; height:32px; border-radius:9px;
+  border:1px solid var(--line); background:rgba(0,0,0,.3); color:var(--ink); cursor:pointer; font-size:13px}
+.mm-x:hover{border-color:var(--diver-accent); color:var(--diver-accent)}
+.mm-card .plate{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid rgba(185,166,245,.35); border-radius:11px; padding:9px 44px 9px 12px;
+  background:linear-gradient(180deg,rgba(185,166,245,.14),rgba(185,166,245,.04))}
+.mm-card .plate h3{margin:0; font-size:clamp(1.2rem,5vw,1.5rem); line-height:1; font-weight:800}
+.mm-card .rank{font-size:.82rem; letter-spacing:.08em; color:#ffe6a3; white-space:nowrap; text-shadow:0 0 8px rgba(255,230,163,.35)}
+.mm-card .meta{display:flex; align-items:center; justify-content:space-between; gap:8px;
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.mm-card .attr{color:#07060d; background:var(--diver-accent); border-radius:999px; padding:3px 9px; font-weight:700}
+.mm-card .art{position:relative; height:158px; border-radius:11px; overflow:hidden; border:1px solid rgba(185,166,245,.3);
+  background:radial-gradient(80% 120% at 50% 0%, rgba(124,58,237,.45), transparent 60%),
+    repeating-linear-gradient(45deg,#120c22 0 10px,#0e0a1b 10px 20px)}
+.mm-card .art .mono{position:absolute; inset:0; display:grid; place-items:center; font-family:"BlackMetal",var(--font);
+  font-size:3.2rem; color:rgba(236,231,251,.55); text-shadow:0 0 24px rgba(124,58,237,.6); letter-spacing:.05em}
+.mm-card .art .starc{position:absolute; right:9px; top:8px; font-size:1rem; color:#ffe6a3; text-shadow:0 0 10px rgba(255,230,163,.5)}
+.mm-card .type{font-family:var(--mono); font-size:.68rem; letter-spacing:.06em; color:#d9cdfb;
+  border-top:1px solid rgba(185,166,245,.25); border-bottom:1px solid rgba(185,166,245,.25); padding:7px 2px}
+.mm-text{border:1px solid rgba(185,166,245,.22); border-radius:10px; padding:11px 13px; background:rgba(0,0,0,.28); font-size:.9rem}
+.mm-text p{margin:0; color:var(--muted)}
+.mm-text .q{display:block; font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--diver-accent); margin:11px 0 2px} .mm-text .q:first-child{margin-top:0}
+.mm-text .ph{opacity:.5; font-style:italic}
+.mm-card .foot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+  font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; color:var(--muted)}
+.mm-card .foot .set{color:var(--diver-accent)}
+.mm-card .mlinks{display:flex; gap:9px; flex-wrap:wrap}
+.mm-card .mlinks a{color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:6px 10px}
+.mm-card .mlinks a:hover{border-color:var(--diver-accent); color:var(--diver-accent)}
+@media (prefers-reduced-motion: reduce){ .mm-ov,.mm-card{transition:none} }
+
 /* light paradise background: neon green text/border needs a darker green to stay legible.
    same single accent, just an ink-safe shade where it sits on near white. clarity wins. */
 body.light .member .handle, body.light .bucket .bk-n, body.light .bucket .src{color:#1a8f45}
@@ -505,12 +564,22 @@ footer a{color:var(--accent); text-decoration:none}
     setTimeout(function(){ document.getElementById("loader").classList.add("gone"); }, 350);
   });
 
-  // ===== MEMBERS: the core team as people. Add new members to this array. =====
+  // ===== MEMBERS: the core team, each a collectible card. Click a card -> modal.
+  // bio = written prose (prompts answered, shown as-is). No bio => the shared PROMPTS
+  // show as placeholders until that member sends their answers. Everyone is rank 7. =====
+  var PROMPTS = [
+    "What do you make?",
+    "The route nobody pointed you to?",
+    "What are you chasing down here?",
+    "Where do people fall into your work?"
+  ];
   var members = [
     {
-      nm:"Vi Ellis", handle:"", initials:"VE",
-      role:"Founder, Composer, Sound Designer, Technologist",
-      blurb:"Composer and technical sound designer. 31 game and film credits and won Silver for Best Composer at the Tokyo Film Awards. When the tool I need doesn't exist, I write it myself.",
+      nm:"Vi Ellis", handle:"@hackingparadise", initials:"VE", attr:"Composer",
+      role:"Founder · Composer · Sound Designer · Technologist",
+      type:"[ Composer / Sound Designer / Technologist ]",
+      blurb:"Composer and technical sound designer. When the tool I need doesn't exist, I build it.",
+      bio:"Award-winning composer and technical sound designer — 31 game and film credits and a Silver for Best Composer at the Tokyo Film Awards. I score film, shape game audio, and when the tool I need doesn't exist yet, I build it: the software, the hardware, the whole pipeline. HACKING☆PARADISE is the route I took when the front door was too slow — so I went down instead, and brought everyone with me.",
       links:[
         {t:"HP Page", u:"violet.html", self:true},
         {t:"Portfolio", u:"https://vi-ellis.com"},
@@ -518,34 +587,115 @@ footer a{color:var(--accent); text-decoration:none}
       ]
     },
     {
-      nm:"Judah Ellis", handle:"", initials:"JE",
-      role:"Producer, Audio, Visual Design",
-      blurb:"Producer and multi-disciplinary artist working across music, audio, and visual design.",
+      nm:"Judah Ellis", handle:"@crunchculture", initials:"JE", attr:"Producer",
+      role:"Programmer · Game Designer · Musician",
+      type:"[ Programmer / Game Designer / Musician ]",
+      blurb:"Programmer, game designer, and musician. Builds games and the systems under them.",
+      bio:"Programmer, game designer, and musician. I build games and the systems running under them, and I write and record my own music as Crunch Culture — a one-man band on guitar, bass, keys, and drumpad. I like making the whole thing myself, then handing someone something they can actually play.",
       links:[
         {t:"HP Page", u:"judah.html", self:true},
         {t:"SoundCloud", u:"https://soundcloud.com/crunchculture"},
-        {t:"Portfolio", u:"https://judahellis.myportfolio.com/"},
         {t:"itch.io", u:"https://judahellis.itch.io/"}
+      ]
+    },
+    {
+      nm:"Shinobi Necro", handle:"@shinobi-necro", initials:"SN", attr:"Artist",
+      role:"Artist · Flagship Project",
+      type:"[ Artist / Flagship Project ]",
+      blurb:"A flagship HACKING☆PARADISE project — a shinobi-to-necro transformation with a page of its own.",
+      links:[
+        {t:"HP Page", u:"shinobi-necro.html", self:true},
+        {t:"SoundCloud", u:"https://soundcloud.com/shinobi-necro"}
+      ]
+    },
+    {
+      nm:"Robby Winters", handle:"@pastel_porchlight", initials:"RW", attr:"Narrative",
+      role:"Narrative Lead · Writer · Worldbuilder",
+      type:"[ Narrative Lead / Writer / Worldbuilder ]",
+      blurb:"Narrative lead — the writer and worldbuilder threading the story through it all.",
+      links:[
+        {t:"SoundCloud", u:"https://soundcloud.com/pastel_porchlight"}
+      ]
+    },
+    {
+      nm:"Switchblvde", handle:"@switchblvde", initials:"SW", attr:"Artist",
+      role:"Artist · Producer",
+      type:"[ Artist / Producer ]",
+      blurb:"Artist and producer in the set.",
+      links:[
+        {t:"SoundCloud", u:"https://soundcloud.com/switchblvde"}
       ]
     }
   ];
+
   var grid = document.getElementById("memberGrid");
-  members.forEach(function(m){
-    var card = document.createElement("div"); card.className = "member r";
-    var links = m.links.map(function(l){
-      var tgt = l.self ? '' : ' target="_blank" rel="noopener"';
-      return '<a href="'+l.u+'"'+tgt+'>'+l.t+'</a>';
-    }).join("");
+  members.forEach(function(m, i){
+    var card = document.createElement("div");
+    card.className = "member r"; card.setAttribute("role","button");
+    card.tabIndex = 0; card.dataset.mi = i;
     card.innerHTML =
       '<div class="avatar" aria-hidden="true">'+m.initials+'</div>'+
       '<div class="body">'+
         '<div class="nm">'+m.nm+'</div>'+
         '<div class="role">'+m.role+'</div>'+
         '<p class="blurb">'+m.blurb+'</p>'+
-        '<div class="links">'+links+'</div>'+
+        '<span class="viewcard">View card →</span>'+
       '</div>';
+    card.addEventListener("click", function(){ openMember(i); });
+    card.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openMember(i); }
+    });
     grid.appendChild(card);
   });
+
+  // ----- member card modal -----
+  var mmOv = document.createElement("div");
+  mmOv.className = "mm-ov"; mmOv.id = "mmOv"; mmOv.hidden = true;
+  mmOv.innerHTML =
+    '<div class="mm-card" role="dialog" aria-modal="true" aria-label="Member card">'+
+      '<button class="mm-x" aria-label="Close">✕</button>'+
+      '<div class="plate"><h3 id="mmNm"></h3><span class="rank" title="rank 7">☆☆☆☆☆☆☆</span></div>'+
+      '<div class="meta"><span class="attr" id="mmAttr"></span><span id="mmHandle"></span></div>'+
+      '<div class="art"><span class="starc">☆</span><div class="mono" id="mmMono"></div></div>'+
+      '<div class="type" id="mmType"></div>'+
+      '<div class="mm-text" id="mmText"></div>'+
+      '<div class="foot"><span id="mmNo"></span><span class="set">HACKING☆PARADISE</span><span class="mlinks" id="mmLinks"></span></div>'+
+    '</div>';
+  document.body.appendChild(mmOv);
+  var mmCard = mmOv.querySelector(".mm-card");
+
+  function openMember(i){
+    var m = members[i];
+    document.getElementById("mmNm").textContent = m.nm;
+    document.getElementById("mmAttr").textContent = m.attr;
+    document.getElementById("mmHandle").textContent = m.handle || "";
+    document.getElementById("mmMono").textContent = m.initials;
+    document.getElementById("mmType").innerHTML = (m.type || "").replace(/\[ ?| ?\]/g,"").trim()
+      ? '[ '+m.type.replace(/^\[ ?| ?\]$/g,"")+' ]' : "";
+    document.getElementById("mmNo").textContent = "Nº HP-00"+(i+1);
+    var txt;
+    if (m.bio){ txt = '<p>'+m.bio+'</p>'; }
+    else {
+      txt = PROMPTS.map(function(q){
+        return '<span class="q">'+q+'</span><p class="ph">— answer coming soon</p>';
+      }).join("");
+    }
+    document.getElementById("mmText").innerHTML = txt;
+    document.getElementById("mmLinks").innerHTML = m.links.map(function(l){
+      var tgt = l.self ? '' : ' target="_blank" rel="noopener"';
+      return '<a href="'+l.u+'"'+tgt+'>'+l.t+' ↗</a>';
+    }).join("");
+    mmOv.hidden = false; document.body.style.overflow = "hidden";
+    requestAnimationFrame(function(){ mmOv.classList.add("show"); });
+    mmCard.querySelector(".mm-x").focus();
+  }
+  function closeMember(){
+    mmOv.classList.remove("show"); document.body.style.overflow = "";
+    setTimeout(function(){ mmOv.hidden = true; }, 220);
+  }
+  mmOv.addEventListener("click", function(e){ if (e.target === mmOv) closeMember(); });
+  mmCard.querySelector(".mm-x").addEventListener("click", closeMember);
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && !mmOv.hidden) closeMember(); });
 
   // ===== PROJECTS: collective output grouped by type. No per member attribution.
   // The collaborator roster (folder names from the studio Collab catalog, lightly
@@ -554,20 +704,43 @@ footer a{color:var(--accent); text-decoration:none}
   // Artists and Groups: stylized artist/band/alias names are kept (that is how the artists
   // are known). Bare internal first names (Elijah, jack, Mat, Fede, Donna E, Jalen) were
   // dropped as not artist names. More names are coming from the SoundCloud annual playlists.
+  // Artists & groups: {n:name, u:SoundCloud (optional)}. Linked entries come from the
+  // annual-playlist roster Vi sent; the rest are catalog names awaiting links. Members
+  // (Judah, Switchblvde, Shinobi Necro) live in the member set above, not here.
   var collabs = [
-    "1illnote","369DAKUZA","777villain","Abyeux Tech","BLSXMONERO","COSMIC",
-    "Cameron Williams","Cesar AJG","DOOMGARDEN","Dunkmoda","DyS","Dysphora",
-    "Emanuel SWEET CREAM","F1LTHY","FALSECRIS","Judah","KA$TRO",
-    "Killa K","PULSE","Redda Darko","Surf","Switchblvde","Wayne","Yung Grif",
-    "am3n++","arthrn","ava blank","axel","bbyazul","frdm","hylas","jvcxb",
-    "k1dosiris","lunchbox","malcoozy","mayh3mp","pavelhancar","prxpvne","quisworldwide",
-    "qwentcrazy","raiden","safeguard","shadycholo","shinigami","snowee","starboyrob",
-    "t3rps","toshii","whatswrongchase","xoyard"
+    {n:"all hope is lost… / The Anti-Florist", u:"https://soundcloud.com/allhopeislostdotdotdot"},
+    {n:"Char Bars", u:"https://soundcloud.com/char-bars"},
+    {n:"DELCADA", u:"https://soundcloud.com/delcada"},
+    {n:"Diqless", u:"https://soundcloud.com/diqless"},
+    {n:"DyS", u:"https://soundcloud.com/dysbeats"},
+    {n:"evan jolley", u:"https://soundcloud.com/evanjol"},
+    {n:"geckoboju", u:"https://soundcloud.com/geckoboju"},
+    {n:"glass.grl", u:"https://soundcloud.com/glassdotgrl"},
+    {n:"HauntMe (THEX)", u:"https://soundcloud.com/th3xhyp3r"},
+    {n:"hylas", u:"https://soundcloud.com/hylasgeist"},
+    {n:"KA$TRO", u:"https://soundcloud.com/kastrosplace"},
+    {n:"Kratos the TrackSlayer", u:"https://soundcloud.com/kratos_the_trackslayer"},
+    {n:"Lucanus Beats", u:"https://soundcloud.com/lucanus-gaming"},
+    {n:"MARTY POPSTAR", u:"https://soundcloud.com/martypopstar"},
+    {n:"M6RGUE", u:"https://soundcloud.com/mxrgue"},
+    {n:"NIGHTGRIND", u:"https://soundcloud.com/nightgrind"},
+    {n:"norii (agomi)", u:"https://soundcloud.com/1vr2e"},
+    {n:"sae", u:"https://soundcloud.com/sae_online"},
+    {n:"$LITTER", u:"https://soundcloud.com/slitter"},
+    {n:"arthrn", u:"https://soundcloud.com/arthrn"},
+    {n:"Kaptain Krakin"},{n:"Shoque"},{n:"MILES"},{n:"depleted"},{n:"$TEV TAB"},
+    {n:"Yung Youngin'"},
+    {n:"1illnote"},{n:"369DAKUZA"},{n:"777villain"},{n:"Abyeux Tech"},{n:"BLSXMONERO"},
+    {n:"COSMIC"},{n:"Cameron Williams"},{n:"Cesar AJG"},{n:"DOOMGARDEN"},{n:"Dunkmoda"},
+    {n:"Dysphora"},{n:"Emanuel SWEET CREAM"},{n:"F1LTHY"},{n:"FALSECRIS"},{n:"Killa K"},
+    {n:"PULSE"},{n:"Redda Darko"},{n:"Surf"},{n:"Wayne"},{n:"Yung Grif"},{n:"am3n++"},
+    {n:"ava blank"},{n:"axel"},{n:"bbyazul"},{n:"frdm"},{n:"jvcxb"},{n:"k1dosiris"},
+    {n:"lunchbox"},{n:"malcoozy"},{n:"mayh3mp"},{n:"pavelhancar"},{n:"prxpvne"},
+    {n:"quisworldwide"},{n:"qwentcrazy"},{n:"raiden"},{n:"safeguard"},{n:"shadycholo"},
+    {n:"shinigami"},{n:"snowee"},{n:"starboyrob"},{n:"t3rps"},{n:"toshii"},
+    {n:"whatswrongchase"},{n:"xoyard"}
   ];
   var buckets = [
-    { n:"★", t:"Featured: Shinobi Necro",
-      d:"A flagship HACKING☆PARADISE project with a page of its own. Step inside.",
-      roster:null, src:{t:"Enter the Shinobi Necro page", u:"shinobi-necro.html", self:true} },
     { n:"01", t:"Music Production and Collaboration",
       d:"Original music, beats, features, and collaborative releases. The bulk of the collective catalog. A curated, growing list of the artists and groups we have made music with.",
       roster:collabs, rosterLabel:"Artists and Groups",
@@ -589,7 +762,12 @@ footer a{color:var(--accent); text-decoration:none}
                '<p class="bk-d">'+b.d+'</p>';
     if (b.roster && b.roster.length){
       if (b.rosterLabel) html += '<div class="roster-h">'+b.rosterLabel+'</div>';
-      html += '<div class="roster">'+ b.roster.map(function(name){
+      html += '<div class="roster">'+ b.roster.map(function(it){
+        var name = (typeof it === "string") ? it : it.n;
+        if (it && it.u){
+          return '<a class="chip lnk" href="'+it.u+'" target="_blank" rel="noopener">'+
+                 '<span class="cn">'+name+'</span><span class="ci">↗</span></a>';
+        }
         return '<span class="chip">'+name+'</span>';
       }).join("") +'</div>';
       html += '<span class="count">'+b.roster.length+' artists and groups, and counting.</span>';
