@@ -181,6 +181,41 @@ h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; ma
   opacity:.55; line-height:1; font-size:clamp(4.8rem,21vw,13.5rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px);
   max-width:100%; overflow-x:clip; overflow-y:visible}
 @media (max-width:520px){ .bm{font-size:clamp(3rem,16vw,5rem); letter-spacing:.26em; margin:clamp(56px,12vh,90px) 0} }
+/* ABYSS "Custom B" glitch-in: flashes into place ONCE on scroll-reveal, then rests as the
+   BlackMetal accent. Seizure-safe: ~0.9s, a few discrete jumps + colored ghosts, no sustained
+   strobe; fully disabled under prefers-reduced-motion. .glitch ghosts ride ::before/::after. */
+.bm.glitch{position:relative}
+.bm.glitch::before,.bm.glitch::after{
+  content:attr(data-text); position:absolute; left:0; top:0; padding:inherit;
+  letter-spacing:inherit; opacity:0; pointer-events:none; mix-blend-mode:screen; will-change:transform,opacity}
+.bm.glitch.in{animation:abyssSlice .9s steps(1,end) 1 both}
+.bm.glitch.in::before{color:#ff2e6e; animation:abyssGhostA .82s steps(1,end) 1 both}
+.bm.glitch.in::after{color:#19e0ff; animation:abyssGhostB .82s steps(1,end) 1 both}
+@keyframes abyssSlice{
+  0%{clip-path:inset(46% 0 46% 0); transform:translateX(-7px) skewX(7deg)}
+  14%{clip-path:inset(0 0 68% 0); transform:translateX(9px) skewX(-6deg)}
+  28%{clip-path:inset(58% 0 6% 0); transform:translateX(-6px) skewX(4deg)}
+  42%{clip-path:inset(22% 0 48% 0); transform:translateX(5px)}
+  58%{clip-path:inset(8% 0 14% 0); transform:translateX(-3px)}
+  74%{clip-path:inset(0 0 0 0); transform:none}
+  100%{clip-path:inset(0 0 0 0); transform:none}}
+@keyframes abyssGhostA{
+  0%{opacity:.9; transform:translate(-6px,3px)}
+  18%{opacity:.85; transform:translate(7px,-4px)}
+  34%{opacity:.7; transform:translate(-8px,2px)}
+  50%{opacity:.55; transform:translate(4px,-2px)}
+  70%{opacity:.25; transform:translate(-2px,1px)}
+  100%{opacity:0; transform:none}}
+@keyframes abyssGhostB{
+  0%{opacity:.9; transform:translate(6px,-3px)}
+  18%{opacity:.85; transform:translate(-7px,4px)}
+  34%{opacity:.7; transform:translate(8px,-2px)}
+  50%{opacity:.55; transform:translate(-4px,2px)}
+  70%{opacity:.25; transform:translate(2px,-1px)}
+  100%{opacity:0; transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .bm.glitch.in,.bm.glitch.in::before,.bm.glitch.in::after{animation:none}
+  .bm.glitch::before,.bm.glitch::after{display:none} }
 .lede{font-size:clamp(1.05rem,1.6vw,1.35rem); color:var(--muted); max-width:60ch; margin:0}
 .scrollcue{position:absolute; bottom:6vh; left:50%; transform:translateX(-50%);
   font-family:var(--mono); font-size:.72rem; letter-spacing:.2em; color:var(--muted); text-transform:uppercase}
@@ -382,7 +417,7 @@ footer a{color:var(--accent); text-decoration:none}
 <section id="chasm">
   <div class="wrap">
     <div class="rule r"></div>
-    <div class="bm r" aria-hidden="true">Abyss</div>
+    <div class="bm r glitch" aria-hidden="true" data-text="Abyss">Abyss</div>
     <p class="eyebrow r">The turn</p>
     <h2 class="r">Most are told there is one way down, and one way up. We disagree.</h2>
     <p class="lede r" style="margin-inline:auto">The slow, gatekept path is not the only way to arrive. We look for the route others overlook, and we take it together.</p>
