@@ -243,7 +243,7 @@ h1.hero-title .accent{
   display:grid; gap:14px;
   grid-template-columns:repeat(4,1fr);
 }
-@media (max-width:880px){ .pillars{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:880px){ .pillars{grid-template-columns:repeat(2,1fr); margin-top:88px} }
 @media (max-width:460px){ .pillars{grid-template-columns:1fr} }
 .pillar{
   background:linear-gradient(180deg, var(--panel), var(--bg-2));
@@ -1760,6 +1760,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
   if (canvas && canvas.getContext){
     var ctx = canvas.getContext("2d");
     var W = 0, H = 0, DPR = 1;
+    var bandMid = null, bandAmp = 0; // mobile: wave sits in the buttons↔pillars gap
     var N = 90;                     // sample points along the line
     var nodes = [];                 // background constellation
     var t0 = performance.now();
@@ -1786,6 +1787,27 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       canvas.height = Math.max(1, Math.floor(H*DPR));
       ctx.setTransform(DPR,0,0,DPR,0,0);
       buildNodes();
+
+      // On stacked (mobile) layouts the pillar cards fill the lower hero, so the
+      // default wave band (62% of a now-very-tall hero) lands hidden BEHIND them.
+      // Place the wave in the gap between the CTA buttons and the pillars and reveal
+      // only that band. Desktop (>880px) keeps the original look + the CSS mask.
+      if (window.matchMedia("(max-width:880px)").matches){
+        var top0 = canvas.getBoundingClientRect().top;
+        var cta = document.querySelector(".hero .cta-row");
+        var pil = document.querySelector(".hero .pillars");
+        var gTop = cta ? (cta.getBoundingClientRect().bottom - top0) : H*0.42;
+        var gBot = pil ? (pil.getBoundingClientRect().top - top0) : H;
+        bandMid = (gTop + gBot) / 2;
+        bandAmp = Math.max(12, Math.min(40, (gBot - gTop)/2 - 8));
+        var pc = function(px){ return Math.max(0, Math.min(100, px/H*100)).toFixed(2) + "%"; };
+        var msk = "linear-gradient(to bottom, transparent " + pc(gTop-12) + ", #000 " + pc(gTop+6) +
+                  ", #000 " + pc(gBot-6) + ", transparent " + pc(gBot+12) + ")";
+        canvas.style.webkitMaskImage = msk; canvas.style.maskImage = msk;
+      } else {
+        bandMid = null;
+        canvas.style.webkitMaskImage = ""; canvas.style.maskImage = "";
+      }
     }
 
     // A traveling, audio-like waveform for x in [0,1] → y offset in [-1,1].
@@ -1839,8 +1861,8 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
 
       // ----- the moving sound wave -----
       var anim = running ? time : 0;   // frozen frame under reduced motion
-      var midY = H * 0.62;             // sit in the lower band, clear of the text
-      var amp = Math.min(H*0.16, 92);
+      var midY = (bandMid !== null) ? bandMid : H * 0.62;   // mobile gap band, else lower band
+      var amp  = (bandMid !== null) ? bandAmp : Math.min(H*0.16, 92);
       var pad = Math.min(W*0.08, 80);
       var usableW = W - pad*2;
 
