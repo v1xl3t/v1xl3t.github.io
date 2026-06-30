@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Robby Winters · HACKING☆PARADISE</title>
+<meta name="description" content="Robby Winters — narrative lead at HACKING☆PARADISE. Part of the set." />
+<meta property="og:title" content="Robby Winters · HACKING☆PARADISE" />
+<style>
+/* ============================================================
+   HACKING☆PARADISE — MEMBER CARD template (the "one set, like
+   Yu-Gi-Oh cards" treatment). Clone this file per member; swap
+   the data in the .card block + the SET strip. Bios are the
+   shared PROMPTS with lorem placeholders — each artist fills in.
+   Non-diver page: crosshair cursor.
+   ============================================================ */
+:root{
+  --ink:#ece7fb; --muted:#c6bfe2; --violet:#b9a6f5; --violet-2:#8b7bd8;
+  --neon:#3DFF6E; --purple:#7c3aed; --gold:#ffe6a3;
+  --line:rgba(185,166,245,.18); --bg:#07060d; --card:#0d0a18;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@font-face{font-family:"BlackMetal"; src:url("fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:
+  radial-gradient(120% 80% at 50% -10%, #140e26 0%, var(--bg) 60%) fixed;
+  color:var(--ink); font-family:var(--font); line-height:1.6; -webkit-font-smoothing:antialiased;
+  overflow-x:hidden; cursor:crosshair}
+a,button,summary,[role=button]{cursor:pointer}
+a{color:inherit}
+img{max-width:100%; display:block}
+.grain{position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+
+/* header */
+.topbar{position:sticky; top:0; z-index:30; backdrop-filter:blur(8px);
+  background:linear-gradient(180deg,rgba(7,6,13,.86),rgba(7,6,13,.30)); border-bottom:1px solid var(--line)}
+.topbar .wrap{max-width:1080px; margin:0 auto; padding:0 clamp(16px,5vw,40px);
+  display:flex; align-items:center; justify-content:space-between; min-height:56px; gap:14px}
+.brand{font-family:var(--mono); font-size:.74rem; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--violet); text-decoration:none; white-space:nowrap}
+.brand b{color:var(--ink)}
+.back{font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-decoration:none; color:var(--ink);
+  border:1px solid var(--line); border-radius:999px; padding:9px 14px; line-height:1; white-space:nowrap;
+  transition:border-color .2s, color .2s}
+.back:hover{border-color:var(--neon); color:var(--neon)}
+
+/* stage */
+main{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center;
+  padding:clamp(28px,6vh,64px) 16px 72px; gap:30px}
+
+/* ===== THE CARD ===== */
+.card{
+  width:min(440px,92vw); aspect-ratio:5/7; position:relative; border-radius:18px;
+  padding:14px; color:var(--ink);
+  background:
+    linear-gradient(180deg, rgba(185,166,245,.10), rgba(124,58,237,.05)),
+    var(--card);
+  border:1px solid rgba(185,166,245,.35);
+  box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 30px 80px -30px #000, inset 0 0 40px rgba(124,58,237,.10);
+  display:flex; flex-direction:column; gap:10px; overflow:hidden;
+}
+/* holo sheen sweeping the whole card */
+.card::after{content:""; position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.5;
+  background:linear-gradient(115deg, transparent 30%, rgba(61,255,110,.10) 45%, rgba(185,166,245,.18) 50%,
+    rgba(255,230,163,.10) 55%, transparent 70%);
+  background-size:280% 280%; animation:holo 7s ease-in-out infinite}
+@keyframes holo{0%,100%{background-position:0% 50%} 50%{background-position:100% 50%}}
+@media (prefers-reduced-motion: reduce){ .card::after{animation:none} }
+
+/* name plate */
+.plate{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid rgba(185,166,245,.35); border-radius:11px; padding:9px 12px;
+  background:linear-gradient(180deg, rgba(185,166,245,.14), rgba(185,166,245,.04))}
+.plate h1{margin:0; font-size:clamp(1.25rem,5vw,1.6rem); letter-spacing:-.01em; line-height:1}
+.rank{font-size:.95rem; letter-spacing:.12em; color:var(--gold); white-space:nowrap; text-shadow:0 0 8px rgba(255,230,163,.35)}
+
+/* attribute + handle line */
+.meta{display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:var(--mono);
+  font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.attr{color:#07060d; background:var(--neon); border-radius:999px; padding:3px 9px; font-weight:700}
+
+/* art window */
+.art{position:relative; flex:0 0 auto; height:39%; border-radius:11px; overflow:hidden;
+  border:1px solid rgba(185,166,245,.3);
+  background:
+    radial-gradient(80% 120% at 50% 0%, rgba(124,58,237,.45), transparent 60%),
+    repeating-linear-gradient(45deg, #120c22 0 10px, #0e0a1b 10px 20px)}
+.art .mono{position:absolute; inset:0; display:grid; place-items:center;
+  font-family:"BlackMetal",var(--font); font-size:clamp(3rem,16vw,5rem); color:rgba(236,231,251,.5);
+  text-shadow:0 0 24px rgba(124,58,237,.6); letter-spacing:.05em}
+.art .ph{position:absolute; left:10px; bottom:8px; font-family:var(--mono); font-size:.6rem;
+  letter-spacing:.1em; color:var(--muted); opacity:.8}
+.star{position:absolute; right:9px; top:8px; font-size:1rem; color:var(--gold); text-shadow:0 0 10px rgba(255,230,163,.5)}
+
+/* type line */
+.type{font-family:var(--mono); font-size:.68rem; letter-spacing:.08em; color:var(--lavender,#d9cdfb);
+  border-top:1px solid rgba(185,166,245,.25); border-bottom:1px solid rgba(185,166,245,.25); padding:6px 2px}
+.type b{color:var(--neon)}
+
+/* text box: the shared prompts (lorem answers — artist replaces) */
+.text{flex:1 1 auto; overflow:auto; border:1px solid rgba(185,166,245,.22); border-radius:10px; padding:10px 12px;
+  background:rgba(0,0,0,.28); font-size:.86rem}
+.text .q{display:block; font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--neon); margin:9px 0 2px} .text .q:first-child{margin-top:0}
+.text p{margin:0; color:var(--muted)}
+.text .lorem{opacity:.6; font-style:italic}
+
+/* footer: number + set + link */
+.foot{display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:var(--mono);
+  font-size:.6rem; letter-spacing:.1em; color:var(--muted)}
+.foot .set{color:var(--violet)} .foot a{color:var(--neon); text-decoration:none}
+.foot a:hover{text-decoration:underline}
+
+/* ===== "collect the set" strip ===== */
+.set-strip{width:min(720px,92vw); text-align:center}
+.set-strip h2{font-family:var(--mono); font-size:.72rem; letter-spacing:.24em; text-transform:uppercase;
+  color:var(--violet); margin:0 0 14px}
+.set-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.mini{width:96px; aspect-ratio:5/7; border-radius:10px; border:1px solid rgba(185,166,245,.3);
+  background:linear-gradient(180deg, rgba(185,166,245,.10), var(--card)); text-decoration:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px;
+  transition:transform .2s, border-color .2s; color:var(--ink)}
+.mini:hover{transform:translateY(-4px); border-color:var(--neon)}
+.mini .mm{font-family:"BlackMetal",var(--font); font-size:1.5rem; color:rgba(236,231,251,.7)}
+.mini .nm{font-family:var(--mono); font-size:.56rem; letter-spacing:.06em; color:var(--muted); text-align:center}
+.mini.cur{border-color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/hp/"><b>HACKING☆PARADISE</b></a>
+  <a class="back" href="/hp/">← The collective</a>
+</div></header>
+
+<main>
+  <!-- ===== MEMBER CARD (clone per member; swap data) ===== -->
+  <article class="card" aria-label="Member card: Robby Winters">
+    <div class="plate">
+      <h1>Robby Winters</h1>
+      <span class="rank" title="rank">☆☆☆☆</span>
+    </div>
+    <div class="meta"><span class="attr">Narrative</span><span>@pastel_porchlight</span></div>
+
+    <div class="art">
+      <span class="star">☆</span>
+      <div class="mono">RW</div>
+      <span class="ph">portrait — to come</span>
+    </div>
+
+    <div class="type">[ <b>Narrative Lead</b> / Writer / Worldbuilder ]</div>
+
+    <div class="text">
+      <span class="q">What do you make?</span>
+      <p class="lorem">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor.</p>
+      <span class="q">The route nobody pointed you to?</span>
+      <p class="lorem">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+      <span class="q">What are you chasing down here?</span>
+      <p class="lorem">Duis aute irure dolor in reprehenderit in voluptate velit esse.</p>
+      <span class="q">Where do people fall into your work?</span>
+      <p class="lorem">Excepteur sint occaecat — soundcloud, links, releases.</p>
+    </div>
+
+    <div class="foot">
+      <span>Nº HP-004</span>
+      <span class="set">HACKING☆PARADISE</span>
+      <a href="https://soundcloud.com/pastel_porchlight" target="_blank" rel="noopener">soundcloud ↗</a>
+    </div>
+  </article>
+
+  <!-- ===== the rest of the set ===== -->
+  <section class="set-strip">
+    <h2>Collect the set</h2>
+    <div class="set-row">
+      <a class="mini" href="/hp/violet.html"><span class="mm">VI</span><span class="nm">Violet</span></a>
+      <a class="mini" href="/hp/judah.html"><span class="mm">JU</span><span class="nm">Judah</span></a>
+      <a class="mini" href="/hp/shinobi-necro.html"><span class="mm">SN</span><span class="nm">Shinobi&nbsp;Necro</span></a>
+      <a class="mini cur" href="/hp/robby.html" aria-current="page"><span class="mm">RW</span><span class="nm">Robby&nbsp;Winters</span></a>
+      <a class="mini" href="/hp/switchblvde.html"><span class="mm">SW</span><span class="nm">Switchblvde</span></a>
+    </div>
+  </section>
+</main>
+</body>
+</html>
