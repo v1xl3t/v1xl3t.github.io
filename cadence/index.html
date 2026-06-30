@@ -28,6 +28,30 @@
   <div id="app">
     <canvas id="viewport"></canvas>
 
+    <!-- Mini, transparent quick-access top bar: proxies clicks to the real toolbar
+         buttons (data-proxy = the selector of the source button). Icons only; the
+         name shows on hover (desktop) or press (touch) via the data-label tooltip. -->
+    <div id="topbar" role="toolbar" aria-label="Quick tools">
+      <button data-proxy='#toolbar [data-action="group"]' data-label="Group → Boolean" aria-label="Group → Boolean">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="11" height="11" rx="2"/><rect x="9.5" y="9.5" width="11" height="11" rx="2"/></svg>
+      </button>
+      <button data-proxy='#toolbar [data-action="intersect"]' data-label="Intersect" aria-label="Intersect">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.2" cy="12" r="6"/><circle cx="14.8" cy="12" r="6"/></svg>
+      </button>
+      <button data-proxy='#toolbar [data-action="ungroup"]' data-label="Ungroup" aria-label="Ungroup">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6.5" width="9" height="9" rx="2"/><rect x="12.5" y="8.5" width="9" height="9" rx="2"/><path d="M12.4 4.6 13.9 3.1M15.4 5 16.9 3.5M18 5.6 19 4"/></svg>
+      </button>
+      <button data-proxy='#toolbar [data-action="drop-floor"]' data-label="Drop to floor" aria-label="Drop to floor">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2.5" width="8" height="8" rx="1.5"/><path d="M12 11v5.5M9 13.8l3 3 3-3"/><path d="M3.5 21h17"/></svg>
+      </button>
+      <button data-proxy='#toolbar [data-action="frame"]' data-label="Frame" aria-label="Frame selection">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8V4.5a1 1 0 0 1 1-1H8M16 3.5h3.5a1 1 0 0 1 1 1V8M20.5 16v3.5a1 1 0 0 1-1 1H16M8 20.5H4.5a1 1 0 0 1-1-1V16"/><circle cx="12" cy="12" r="2.3"/></svg>
+      </button>
+      <button data-proxy='#toolbar [data-action="lasso"]' data-label="Box select" aria-label="Box select" id="topbar-lasso">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5" stroke-dasharray="3 2.4"/></svg>
+      </button>
+    </div>
+
     <!-- Floating, editable dimension chips that ride on the selected part -->
     <div id="dimchips"></div>
 

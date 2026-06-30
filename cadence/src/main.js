@@ -254,6 +254,28 @@ function pickAt(e) {
   doc.select(hit ? hit.object.userData.cadId : null, e.shiftKey); // Shift = add to selection
 }
 
+// -------------------------------------------------- mini top quick-tools bar
+// Each top-bar button just proxies its click to the matching real toolbar button
+// (data-proxy = selector), so all existing logic is reused with no duplication.
+(function initTopbar() {
+  const top = document.getElementById('topbar');
+  if (!top) return;
+  top.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-proxy]');
+    if (!b) return;
+    const real = document.querySelector(b.dataset.proxy);
+    if (real) real.click();
+  });
+  // mirror the Box-select toggle state onto its top-bar icon
+  const realLasso = document.getElementById('lasso-btn');
+  const topLasso = document.getElementById('topbar-lasso');
+  if (realLasso && topLasso) {
+    const sync = () => topLasso.classList.toggle('active', realLasso.classList.contains('active'));
+    new MutationObserver(sync).observe(realLasso, { attributes: true, attributeFilter: ['class'] });
+    sync();
+  }
+})();
+
 // ---------------------------------------------------------------- toolbar
 document.getElementById('toolbar').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
