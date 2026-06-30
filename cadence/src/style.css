@@ -475,6 +475,42 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
 body.drawer-active #tips-btn { opacity: 0; pointer-events: none; }
 
 /* ============================================================
+   Mini transparent quick-tools bar, top-center. Icon-only; the
+   label shows on hover (desktop) or press (touch). Buttons proxy
+   their clicks to the real toolbar buttons (see main.js).
+   ============================================================ */
+#topbar {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 80;
+  display: flex; gap: 2px; padding: 3px;
+  border-radius: 12px; background: transparent;
+}
+#topbar button {
+  position: relative; width: 36px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  border-radius: 9px; transition: color .15s ease, background .15s ease;
+}
+#topbar svg {
+  width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.55)); /* legible over a bright scene */
+}
+#topbar button:hover, #topbar button:focus-visible { color: var(--text); background: rgba(127,127,127,.16); }
+#topbar button:active { background: rgba(127,127,127,.26); }
+#topbar button.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+/* label tooltip: appears below the icon on hover (desktop) / press (touch) */
+#topbar button::after {
+  content: attr(data-label); position: absolute; top: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); white-space: nowrap;
+  font-size: 11px; padding: 4px 8px; border-radius: 7px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  opacity: 0; pointer-events: none; transition: opacity .12s ease; z-index: 1;
+}
+#topbar button:hover::after, #topbar button:focus-visible::after, #topbar button:active::after { opacity: 1; }
+body.drawer-active #topbar { opacity: 0; pointer-events: none; }
+@media (pointer: coarse) { #topbar { top: 8px; gap: 1px; } #topbar button { width: 40px; height: 38px; } }
+
+/* ============================================================
    Mobile bottom bar + drawer scrim — created by JS, hidden on
    desktop. The drawer layout itself is in the media query below.
    ============================================================ */
