@@ -201,7 +201,7 @@ h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; ma
 .bm.glitch::before,.bm.glitch::after{
   content:attr(data-text); position:absolute; left:0; top:0; padding:inherit;
   letter-spacing:inherit; opacity:0; pointer-events:none; mix-blend-mode:screen; will-change:transform,opacity}
-.bm.glitch.in{animation:abyssSlice .9s steps(1,end) 1 both}
+.bm.glitch.in{animation:abyssSlice .9s steps(1,end) 1}  /* no fill: reverts to base overflow-y:visible so glyph tops are NOT cropped */
 .bm.glitch.in::before{color:#ff2e6e; animation:abyssGhostA .82s steps(1,end) 1 both}
 .bm.glitch.in::after{color:#19e0ff; animation:abyssGhostB .82s steps(1,end) 1 both}
 @keyframes abyssSlice{
