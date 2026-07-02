@@ -1,0 +1,21 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #fff;
+  overflow: hidden;
+}
+/* Center the view on the drawing. The sketch renders at a native 3000x3000
+   with the turtle starting at the centre; this space-filling piece grows out
+   from there, so we scale the (square) canvas down and centre it so the
+   developing pattern sits in view when embedded. */
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+canvas {
+  display: block;
+  transform: scale(0.6);
+  transform-origin: center center;
+}
