@@ -649,8 +649,8 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 /* ============================= ADDITIONS ============================= */
 /* AI-assisted-build badge (built WITH AI help; distinct from lane chips) */
 .chip.ai-built{
-  border-color:rgba(157,123,255,.35); color:#d6c9ff;
-  background:rgba(157,123,255,.08);
+  border-color:rgba(244,114,182,.42); color:#ffd3ea;
+  background:rgba(244,114,182,.10);
   display:inline-flex; align-items:center; gap:5px;
 }
 .chip.ai-built::before{ content:"\2726"; font-size:.85em; line-height:1; opacity:.9 }
@@ -761,6 +761,7 @@ html[data-theme="light"] .chip.lane[data-l="ai"]{ color:#5a3fc0; background:rgba
 html[data-theme="light"] .chip.lane[data-l="audio"]{ color:#6d4fd0; background:rgba(157,123,255,.12); border-color:rgba(157,123,255,.4) }
 html[data-theme="light"] .chip.lane[data-l="hardware"]{ color:#1f7d5f; background:rgba(59,185,143,.12); border-color:rgba(59,185,143,.4) }
 html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#a35e10; background:rgba(217,138,43,.12); border-color:rgba(217,138,43,.4) }
+html[data-theme="light"] .chip.ai-built{ color:#b8367f; background:rgba(224,80,150,.10); border-color:rgba(224,80,150,.4) }
 /* Light-mode body-text contrast: the About paragraphs (and a few other body
    surfaces) had no light override and inherited near-white dark-theme colors.
    Darken them to a readable contrast on the lavender background. */
@@ -960,7 +961,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       <!-- 6 -->
       <article class="card reveal d2" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2021 · Research</span></div>
-        <h3>Robotic 3D-Printing Research</h3>
+        <h3>KUKA Robotic 3D-Printing Research</h3>
         <p class="blurb">Sole programmer on my university's first large-scale robotic 3D-printing team, turning generative algorithms into sculptures printed by a KUKA robotic arm.</p>
         <p class="outcome">Wrote Python generative pipelines in Rhino and Grasshopper that produced sculptural geometry and fabrication-ready exports for a custom print head.</p>
         <div class="stack"><span>Python</span><span>Grasshopper</span><span>Rhino3D</span><span>KUKA arm</span><span>Robotic fabrication</span></div>
