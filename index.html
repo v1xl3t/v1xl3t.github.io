@@ -984,7 +984,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <p class="blurb">An interactive generative artwork that turns mathematical patterns into living visuals. Featured in Dezeen.</p>
         <p class="outcome">Featured in Dezeen's design coverage (2023).</p>
         <div class="stack"><span>p5.js</span><span>JavaScript</span><span>Generative art</span></div>
-        <div class="links"><a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a></div>
+        <div class="links"><button class="run-inline" type="button" data-app="/primes/" data-title="Primes / L-System"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/primes/" target="_blank" rel="noopener">Live demo</a><a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a></div>
         <div class="thumbs">
           <button class="thumb" type="button" data-full="media/primes/primes-01-dezeen.png" data-cap="Prime / L-system visualization featured in Dezeen (iterations 1 to 8)"><img src="media/primes/primes-01-dezeen.png" alt="Prime visualization featured in Dezeen" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/primes/primes-02.jpg" data-cap="Generative Prime Patterns, the interactive p5.js visualization"><img src="media/primes/primes-02.jpg" alt="Generative Prime Patterns title screen" loading="lazy"></button>
@@ -999,6 +999,40 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <details>
           <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
           <p class="dl"><b>Approach</b>An interactive p5.js sketch rendering prime / L-system patterns as generative fractal forms in the browser.</p>
+        </details>
+      </article>
+
+      <!-- Chatbot -->
+      <article class="card reveal d1" data-lanes="ai">
+        <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip">Woodbury University</span></div>
+        <h3>Chatbot</h3>
+        <p class="blurb">A browser chatbot that quietly rewrites its own conversation history, so the log stops matching what was actually said. An interaction piece about trust, memory, and how easily a record can be edited underneath you.</p>
+        <p class="outcome">Led a small team to design and ship it under a two-week constraint.</p>
+        <div class="stack"><span>JavaScript</span><span>HTML / CSS</span><span>Interaction design</span></div>
+        <div class="links"><button class="run-inline" type="button" data-app="/chatbot/" data-title="Chatbot"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/chatbot/" target="_blank" rel="noopener">Live demo</a></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/chatbot/chatbot-01.png" data-cap="The chatbot interface: type a message and the log quietly revises itself behind you"><img src="media/chatbot/chatbot-01.png" alt="Chatbot interface with pink artwork and chat panel" loading="lazy"></button>
+        </div>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Concept</summary>
+          <p class="dl"><b>Concept</b>A rule-based chat interface that, as the conversation continues, retroactively edits earlier messages so the visible history drifts away from what the user actually typed. Built with a small team under a two-week deadline.</p>
+        </details>
+      </article>
+
+      <!-- Musically-Represented Data -->
+      <article class="card reveal d2" data-lanes="ai audio">
+        <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip">2020 · Woodbury</span></div>
+        <h3>Musically-Represented Data</h3>
+        <p class="blurb">A data sonification that turns the rise and fall of Google search interest into music. Three search terms scroll down a piano roll, each voiced by its own instrument, so a dataset becomes something you hear as much as read.</p>
+        <p class="outcome">Built in p5.js: search-interest values are mapped to notes in C major and played live on string, piano, and violin as the timeline scrolls.</p>
+        <div class="stack"><span>p5.js</span><span>p5.sound</span><span>JavaScript</span><span>Data sonification</span></div>
+        <div class="links"><button class="run-inline" type="button" data-app="/datavis/" data-title="Musically-Represented Data"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/datavis/" target="_blank" rel="noopener">Live demo</a></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="media/datavis/datavis-01.png" data-cap="Search-interest data scrolling down a piano roll, each term voiced by an instrument"><img src="media/datavis/datavis-01.png" alt="Data sonification piano roll visualization" loading="lazy"></button>
+        </div>
+        <details>
+          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
+          <p class="dl"><b>Approach</b>Google Trends data for three search terms is loaded from a CSV, and each term's popularity is mapped onto notes in C major. As the piano roll scrolls, notes that reach the keyboard trigger their instrument in real time. The piece sonifies the surge of public attention in the United States during the summer and autumn of 2020.</p>
         </details>
       </article>
 

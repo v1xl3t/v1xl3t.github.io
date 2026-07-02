@@ -1,0 +1,151 @@
+body {
+    color: #421;
+    font-weight: bold;
+    font-size: 18px;
+    font-family: "Courier New";
+    background: #212121;
+    margin: 0;
+    background-color: #ffb0e6;
+}
+
+/*The Right Side*/
+
+#main {
+  text-align: center;
+  right: 0;
+  position: fixed;
+  margin: 0;
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  width: 30%;
+  background-color: #0391e8;
+  border-left: 3px solid #000;
+  overflow-y: scroll;
+}
+
+#input {
+  border: none;
+  border-radius: 5px;
+  width: 26.7%;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  margin-left: 1%;
+  position: fixed;
+  z-index: 1;
+}
+
+#user {
+  text-align: left;
+  margin-left: 10px;
+  margin-bottom: 3px;
+  padding-bottom: 7px;
+  background-color: white;
+  opacity: 0.6;
+  width: 60%;
+}
+
+#bot {
+  text-align: right;
+  margin-right: 10px;
+  margin-bottom: 3px;
+  padding-bottom: 7px;
+  text-decoration-color: red;
+  width: -60%;
+}
+
+#face {
+  width: 100%;
+  bottom: 0;
+  text-align: center;
+  z-index: -2;
+  padding-top: 12%;
+  top: 0;
+  position: sticky;
+}
+
+/*The left Side*/
+
+.artboard {
+  display: block;
+  bottom: 0;
+  background-color: #ffb0e6;
+}
+
+.artboard img {
+  bottom: 0;
+  margin: 0;
+  margin-bottom: -5px;
+  width: 70%;
+  z-index: 1;
+}
+
+#bees {
+  width: 350px;
+  margin-left: 5%;
+  margin-top: 5%;
+}
+
+#mountain {
+  bottom: 0;
+  position: fixed;
+  z-index: -2;
+}
+
+@media screen and (max-width: 1270px) {
+  .artboard img {
+    width: 60%;
+  }
+
+  #main {
+    width: 40%;
+  }
+
+  #input {
+    width: 36%;
+  }
+}
+
+
+@media screen and (max-width: 700px) {
+  .artboard img {
+    width: 50%;
+  }
+
+  #main {
+    width: 50%;
+  }
+
+  #input {
+    width: 44%;
+  }
+}
+
+
+@media screen and (max-width: 500px) {
+
+  .artboard img {
+    display: none;
+  }
+
+  .artboard {
+    display: none;
+  }
+
+  #main {
+    width: 100%;
+  }
+
+  #input {
+    width: 93%;
+  }
+}
+
+@media screen and (max-width: 360px) {
+
+  #input {
+    width: 91.5%;
+  }
+}
