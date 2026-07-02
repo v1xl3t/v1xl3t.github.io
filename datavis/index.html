@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="">
     <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          /* Presentation only (does not touch the sketch): the sketch draws a
+             fixed 1000x750 canvas; centre it and scale it to fill the viewport
+             so it fills the run-it-here modal instead of sitting cramped in the
+             top-left over a big black void. */
+          html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+          /* fill the viewport and scale the 4:3 drawing up to fit (letterboxed).
+             p5 hard-codes an inline 1000x750 px size, so override with !important. */
+          canvas {
+            position: fixed !important; inset: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            object-fit: contain !important;
+          }
+          /* p5 appends the audio button + volume slider to <body>; pin them to a
+             subtle corner so they stay reachable without adding a scrollbar. */
+          body > button, body > input[type=range] {
+            position: fixed; z-index: 10; bottom: 14px;
+            font-family: "Courier New", monospace;
+          }
+          body > button { right: 14px; padding: 6px 10px; cursor: pointer; }
+          body > input[type=range] { right: 150px; }
+        </style>
         <script src="p5/p5.js"></script>
         <script src="p5/addons/p5.sound.js"></script>
         <script src="Brackets/sketch/201022dataProject.js"></script>
