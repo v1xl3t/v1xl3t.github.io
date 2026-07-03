@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sweet Cream | Apparel</title>
+<style>
+  :root{
+    --ink:#1b1b1b;
+    --cream:#efeae0;
+    --cream-2:#e7e0d3;
+    --sky:#17a7df;
+    --sky-bright:#22b8ee;
+    --pink:#e8548f;
+    --sand:#e3ab74;
+    --muted:#8a8378;
+    --line:#d8d0c2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Helvetica Neue",Helvetica,"Segoe UI",Arial,sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.5;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block}
+  a{color:inherit;text-decoration:none}
+  .wrap{width:100%;max-width:1180px;margin:0 auto;padding:0 22px}
+
+  /* ---------- Sticky header ---------- */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:60;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 26px;
+    transition:background .35s ease, box-shadow .35s ease, transform .4s ease, opacity .4s ease;
+  }
+  header.on-hero{transform:translateY(-110%);opacity:0;pointer-events:none}
+  header.solid{background:rgba(239,234,224,.94);backdrop-filter:blur(6px);box-shadow:0 1px 0 var(--line)}
+  header .nav-left{display:flex;gap:22px;font-size:12px;letter-spacing:.18em;font-weight:700}
+  header .nav-left a.shop{color:var(--pink)}
+  header .nav-left a.book{color:var(--sky)}
+  header.on-hero .nav-left a{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+  header .wordmark{height:30px;opacity:0;transition:opacity .35s ease;pointer-events:none}
+  header.solid .wordmark{opacity:1;pointer-events:auto}
+  header .nav-right{display:flex;gap:16px;align-items:center;font-size:11px;letter-spacing:.14em;font-weight:600;color:var(--ink)}
+  header.on-hero .nav-right{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+  header .cart b{color:var(--pink)}
+  header.on-hero .cart b{color:var(--sky-bright)}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;min-height:100vh;
+    display:flex;align-items:flex-end;
+    background:#0d0f10;
+    background-image:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.05) 30%,rgba(0,0,0,.55)),url("media/campaign-goggles.jpg");
+    background-size:cover;background-position:center 30%;
+    overflow:hidden;
+  }
+  .hero .bee-nav{
+    position:absolute;top:78px;left:26px;z-index:10;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .hero .bee-nav img{width:52px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));margin-bottom:14px}
+  .hero .bee-nav a{color:#fff;font-size:13px;letter-spacing:.2em;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .hero .hero-copy{position:relative;z-index:5;padding:0 26px 64px;max-width:760px}
+  .hero .tag{
+    font-size:clamp(34px,7vw,72px);font-weight:800;letter-spacing:.02em;line-height:.98;
+    color:#fff;text-transform:uppercase;text-shadow:0 2px 24px rgba(0,0,0,.5)
+  }
+  .hero .tag span{color:var(--sky-bright)}
+  .hero .sub{color:#efe9df;margin-top:16px;font-size:15px;letter-spacing:.04em;max-width:440px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+  .hero .scroll-cue{margin-top:26px;display:inline-block;font-size:11px;letter-spacing:.24em;color:#fff;border:1px solid rgba(255,255,255,.6);padding:11px 20px;border-radius:40px;font-weight:600}
+
+  /* ---------- Section shells ---------- */
+  section{padding:96px 0}
+  .sec-head{text-align:center;margin-bottom:44px}
+  .sec-head .kick{color:var(--pink);font-size:11px;letter-spacing:.28em;font-weight:700;text-transform:uppercase}
+  .sec-head h2{font-size:clamp(26px,4vw,40px);letter-spacing:.02em;margin-top:10px;text-transform:uppercase;font-weight:800}
+  .sec-head p{color:var(--muted);margin-top:12px;max-width:520px;margin-left:auto;margin-right:auto;font-size:14px}
+
+  /* ---------- Shop grid ---------- */
+  #shop{background:var(--cream)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:26px 20px}
+  .card-p{cursor:pointer;text-align:center}
+  .card-p .ph{
+    background:#fff;border-radius:4px;overflow:hidden;aspect-ratio:1/1;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .3s ease, box-shadow .3s ease;
+  }
+  .card-p .ph img{width:100%;height:100%;object-fit:cover}
+  .card-p:hover .ph{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.12)}
+  .card-p h3{font-size:12px;letter-spacing:.14em;font-weight:700;margin-top:16px;text-transform:uppercase}
+  .card-p .price{color:var(--muted);font-size:13px;margin-top:5px}
+
+  /* ---------- Lookbook / Book ---------- */
+  #book{background:var(--cream-2)}
+  .look{display:grid;grid-template-columns:2fr 1fr;grid-auto-rows:220px;gap:12px}
+  .look figure{overflow:hidden;border-radius:3px;background:#111}
+  .look figure img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s ease}
+  .look figure:hover img{transform:scale(1.05)}
+  .look .tall{grid-row:span 2}
+  .look .wide{grid-column:span 2}
+
+  /* ---------- Film credits card ---------- */
+  .film{margin-top:40px;display:grid;grid-template-columns:1.4fr 1fr;gap:0;border-radius:5px;overflow:hidden;background:#111;color:#e9e4da;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+  .film .still{position:relative;min-height:340px;background:url("media/campaign-goggles.jpg") center/cover}
+  .film .still .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .film .still .play span{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center}
+  .film .still .play span::after{content:"";border-left:20px solid var(--ink);border-top:12px solid transparent;border-bottom:12px solid transparent;margin-left:5px}
+  .film .meta{padding:34px 32px;font-size:13px;line-height:1.9}
+  .film .meta h4{color:var(--sky-bright);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px}
+  .film .meta .title{font-size:22px;font-weight:800;color:#fff;letter-spacing:.03em;margin-bottom:18px}
+  .film .meta .cred{color:#b7b0a5}
+  .film .meta .cred b{color:#efe9df;font-weight:600}
+  .film .meta .role{margin-top:18px;padding-top:16px;border-top:1px solid #2c2c2c;color:var(--sky-bright);font-weight:600;letter-spacing:.04em}
+
+  /* ---------- Footer ---------- */
+  footer{background:var(--cream);padding:54px 0 40px;border-top:1px solid var(--line)}
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .foot .social{display:flex;gap:16px}
+  .foot .social a svg{width:20px;height:20px;fill:var(--muted);transition:fill .2s}
+  .foot .social a:hover svg{fill:var(--ink)}
+  .foot .contact{font-size:11px;letter-spacing:.12em;color:var(--muted)}
+  .foot .bee{width:30px}
+  .foot .credit{font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+  .archival{max-width:1180px;margin:26px auto 0;padding:16px 22px 0;border-top:1px dashed var(--line);text-align:center;font-size:11px;color:var(--muted);line-height:1.7}
+  .archival b{color:var(--ink)}
+
+  /* ---------- Product modal ---------- */
+  .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,18,14,.55);backdrop-filter:blur(3px)}
+  .modal.open{display:flex}
+  .modal .box{background:var(--cream);border-radius:6px;max-width:900px;width:100%;max-height:90vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;position:relative}
+  .modal .box .m-img{background:#fff;display:flex;align-items:center;justify-content:center;padding:26px}
+  .modal .box .m-img img{width:100%;object-fit:contain;max-height:420px}
+  .modal .box .m-info{padding:40px 34px}
+  .modal .box .m-info h3{font-size:24px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}
+  .modal .box .m-info .m-price{font-size:20px;margin:16px 0}
+  .modal .box .m-info .spec{color:var(--muted);font-size:13px;line-height:1.8;margin-bottom:22px}
+  .modal .box .m-info label{display:block;font-size:11px;letter-spacing:.14em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
+  .modal .box .m-info .sizes{display:flex;gap:8px;margin-bottom:22px}
+  .modal .box .m-info .sizes button{border:1px solid var(--line);background:#fff;padding:8px 14px;border-radius:3px;cursor:pointer;font-size:12px;letter-spacing:.08em}
+  .modal .box .m-info .sizes button.sel{border-color:var(--ink);background:var(--ink);color:#fff}
+  .modal .box .m-info .add{width:100%;background:var(--ink);color:#fff;border:none;padding:15px;border-radius:3px;font-size:12px;letter-spacing:.18em;font-weight:700;cursor:pointer;text-transform:uppercase}
+  .modal .box .m-info .add:hover{background:var(--sky)}
+  .modal .box .close{position:absolute;top:14px;right:16px;font-size:26px;line-height:1;color:var(--ink);background:none;border:none;cursor:pointer;z-index:2}
+
+  /* ---------- Toast ---------- */
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:13px 22px;border-radius:40px;font-size:12px;letter-spacing:.08em;opacity:0;transition:.35s;z-index:120;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- Reveal ---------- */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- Responsive ---------- */
+  @media(max-width:900px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .film{grid-template-columns:1fr}
+    .film .still{min-height:240px}
+    .modal .box{grid-template-columns:1fr}
+    .look{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:560px){
+    header{padding:12px 16px}
+    header .nav-left{gap:14px}
+    header .nav-right .login{display:none}
+    section{padding:64px 0}
+    .grid{gap:20px 14px}
+    .hero .bee-nav{top:70px;left:16px}
+    .hero .hero-copy{padding:0 18px 48px}
+    .look{grid-template-columns:1fr;grid-auto-rows:200px}
+    .look .wide{grid-column:auto}
+  }
+</style>
+</head>
+<body>
+
+<header id="hd" class="on-hero">
+  <nav class="nav-left">
+    <a class="shop" href="#shop">SHOP</a>
+    <a class="book" href="#book">BOOK</a>
+  </nav>
+  <a href="#top"><img class="wordmark" src="media/wordmark.png" alt="Sweet Cream"></a>
+  <div class="nav-right">
+    <span class="login">LOG IN</span>
+    <span class="cart">CART <b id="cartCount">0</b></span>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero">
+  <div class="bee-nav">
+    <img src="media/bee-logo.png" alt="Sweet Cream">
+    <a href="#shop">SHOP</a>
+    <a href="#book">BOOK</a>
+  </div>
+  <div class="hero-copy">
+    <h1 class="tag">Become <span>Unacceptable</span></h1>
+    <p class="sub">Screen-printed apparel and short films from Sweet Cream. Guerrilla art, feminine iconography, and a little chaos.</p>
+    <a class="scroll-cue" href="#shop">ENTER THE SHOP</a>
+  </div>
+</section>
+
+<section id="shop">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">Collection</div>
+      <h2>Shop</h2>
+      <p>The current drop. Unisex, 100% cotton, 6.5oz. Click any piece for details.</p>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
+<section id="book">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">Editorial</div>
+      <h2>Book</h2>
+      <p>The lookbook and the films that carry the brand. Shot on location, scored for the streets.</p>
+    </div>
+    <div class="look reveal">
+      <figure class="tall"><img src="media/campaign-creep.jpg" alt="Sweet Cream campaign"></figure>
+      <figure><img src="media/campaign-helmet.png" alt="Helmet Girl tee"></figure>
+      <figure><img src="media/prod-creep.png" alt="Creep tee"></figure>
+      <figure class="wide"><img src="media/campaign-goggles.jpg" alt="Goggles campaign"></figure>
+    </div>
+
+    <div class="film reveal">
+      <div class="still"><div class="play"><span></span></div></div>
+      <div class="meta">
+        <h4>Featured Film</h4>
+        <div class="title">Sweet Cream &mdash; SS22</div>
+        <div class="cred">
+          Director / Editor: <b>Joseann Tejeda</b><br>
+          Cinematographer: <b>Demauni Sankey</b><br>
+          Assistant Director: <b>Adrian Rodriguez</b><br>
+          Music: <b>BSTERTHEGAWD</b>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div class="social">
+      <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.9.07 1.17.05 1.8.25 2.23.42.56.22.96.48 1.38.9.42.42.68.82.9 1.38.17.42.37 1.06.42 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.17-1.06.37-2.23.42-1.27.06-1.65.07-4.9.07s-3.63 0-4.9-.07c-1.17-.05-1.8-.25-2.23-.42a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.17-.42-.37-1.06-.42-2.23C2.2 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.42-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.17 1.06-.37 2.23-.42C8.42 2.2 8.8 2.2 12 2.2Zm0 1.8c-3.14 0-3.5 0-4.74.07-.9.04-1.38.19-1.7.31-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.12.32-.27.8-.31 1.7C3.44 8.9 3.43 9.26 3.43 12s0 3.1.07 4.34c.04.9.19 1.38.31 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.12.8.27 1.7.31 1.24.07 1.6.07 4.74.07s3.5 0 4.74-.07c.9-.04 1.38-.19 1.7-.31.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.12-.32.27-.8.31-1.7.07-1.24.07-1.6.07-4.34s0-3.1-.07-4.34c-.04-.9-.19-1.38-.31-1.7a2.85 2.85 0 0 0-.69-1.06 2.85 2.85 0 0 0-1.06-.69c-.32-.12-.8-.27-1.7-.31C15.5 4 15.14 4 12 4Zm0 3.06A4.94 4.94 0 1 1 12 17a4.94 4.94 0 0 1 0-9.94Zm0 1.8a3.14 3.14 0 1 0 0 6.28 3.14 3.14 0 0 0 0-6.28Zm5.14-.9a1.15 1.15 0 1 1-2.3 0 1.15 1.15 0 0 1 2.3 0Z"/></svg></a>
+      <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23.5 6.5a3 3 0 0 0-2.1-2.1C19.5 3.9 12 3.9 12 3.9s-7.5 0-9.4.5A3 3 0 0 0 .5 6.5C0 8.4 0 12 0 12s0 3.6.5 5.5a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.5.5-5.5s0-3.6-.5-5.5ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg></a>
+    </div>
+    <div class="contact">CONTACT.SWEETCREAM@GMAIL.COM</div>
+    <img class="bee" src="media/bee-logo.png" alt="">
+    <div class="credit">Site by Vi Ellis &middot; MMXXII</div>
+  </div>
+  <div class="archival">
+    Archival rebuild for portfolio. Original site, brand identity and merch by <b>Vi Ellis</b>.
+    Vi contributed <b>composition and sound design</b> to several of the brand's films. Not a live store &mdash; visual demo only.
+  </div>
+</footer>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <button class="close" id="mClose" aria-label="Close">&times;</button>
+    <div class="m-img"><img id="mImg" alt=""></div>
+    <div class="m-info">
+      <h3 id="mName"></h3>
+      <div class="m-price" id="mPrice"></div>
+      <div class="spec">Unisex &middot; 100% Cotton &middot; 6.5oz Shirt<br><span id="mColor"></span></div>
+      <label>Size</label>
+      <div class="sizes" id="mSizes"></div>
+      <button class="add" id="mAdd">Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const products = [
+    {name:"Helmet Girl Tee", price:"$30.00", img:"media/prod-helmet.png", color:"White"},
+    {name:"Bebop Getaway Polo", price:"$80.00", img:"media/prod-bebop.png", color:"Cream / Teal"},
+    {name:"Vega Tee", price:"$35.00", img:"media/prod-vega.png", color:"Ash"},
+    {name:"Bee Tee", price:"$35.00", img:"media/prod-bee.png", color:"White"},
+    {name:"Spray Paint Perfume Tee", price:"$35.00", img:"media/prod-spraypaint.png", color:"White / Black"},
+    {name:"Creep Tee", price:"$35.00", img:"media/prod-creep.png", color:"Teal"}
+  ];
+  const grid = document.getElementById('grid');
+  products.forEach((p,i)=>{
+    const el = document.createElement('div');
+    el.className='card-p reveal';
+    el.style.transitionDelay=(i*60)+'ms';
+    el.innerHTML=`<div class="ph"><img src="${p.img}" alt="${p.name}" loading="lazy"></div>
+      <h3>${p.name}</h3><div class="price">${p.price}</div>`;
+    el.addEventListener('click',()=>openModal(p));
+    grid.appendChild(el);
+  });
+
+  // Modal
+  const modal=document.getElementById('modal');
+  function openModal(p){
+    document.getElementById('mImg').src=p.img;
+    document.getElementById('mName').textContent=p.name;
+    document.getElementById('mPrice').textContent=p.price;
+    document.getElementById('mColor').textContent="Color: "+p.color;
+    const sizes=document.getElementById('mSizes');
+    sizes.innerHTML='';
+    ["S","M","L","XL"].forEach((s,idx)=>{
+      const b=document.createElement('button');b.textContent=s;if(idx===2)b.classList.add('sel');
+      b.onclick=()=>{[...sizes.children].forEach(c=>c.classList.remove('sel'));b.classList.add('sel')};
+      sizes.appendChild(b);
+    });
+    modal.classList.add('open');
+  }
+  document.getElementById('mClose').onclick=()=>modal.classList.remove('open');
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
+
+  // Cart demo
+  let cart=0;
+  const cartCount=document.getElementById('cartCount');
+  const toast=document.getElementById('toast');
+  let tT;
+  function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>toast.classList.remove('show'),2200);}
+  document.getElementById('mAdd').onclick=()=>{
+    cart++;cartCount.textContent=cart;
+    modal.classList.remove('open');
+    showToast("Added to bag — demo only, no checkout");
+  };
+  document.querySelector('.cart').addEventListener('click',()=>showToast("This is an archival demo — no live cart"));
+
+  // Sticky header state
+  const hd=document.getElementById('hd');
+  const hero=document.querySelector('.hero');
+  function onScroll(){
+    const past = window.scrollY > hero.offsetHeight - 90;
+    hd.classList.toggle('solid',past);
+    hd.classList.toggle('on-hero',!past);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+
+  // Reveal on scroll
+  const io=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
