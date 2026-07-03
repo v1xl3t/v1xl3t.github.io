@@ -113,6 +113,7 @@ export function initRenderView(api) {
     return g;
   }
   const MODEL_SIZE = 100;   // normalized max-dimension for each imported model
+  const MODEL_XSCALE = 10;  // default ×10 on X (thin single-pane forms need thickness)
 
   function nameFromUrl(url, i) {
     try { return decodeURIComponent(url.split('/').pop().replace(/\.[^.]+$/, '')) || ('Model ' + (i + 1)); }
@@ -126,14 +127,21 @@ export function initRenderView(api) {
         const items = [];
         geos.forEach((g, i) => { if (g) items.push({ g, name: nameFromUrl(urls[i], i) }); });
         if (!items.length) { flash('Could not load model'); return; }
-        // each geometry is normalized to MODEL_SIZE, so an even row reads clean
-        const spacing = MODEL_SIZE * 1.5;
-        items.forEach(({ g, name }, i) => {
+        // create the objects (each normalized to MODEL_SIZE), X-scaled ×10 by
+        // default (these single-pane forms read as thin without it), then lay
+        // them out in a row using their scaled widths so nothing overlaps.
+        const objs = items.map(({ g, name }) => {
           const obj = new CadObject({ kind: 'boolean', geometry: g, name });
           obj.setColor(0xc9d0d8);                                 // neutral, like the reference renders
-          obj.mesh.position.x = (i - (items.length - 1) / 2) * spacing;
-          doc.addImported(obj);
+          obj.mesh.scale.x = MODEL_XSCALE;
+          const s = new THREE.Vector3(); g.boundingBox.getSize(s);
+          obj.__w = (s.x || 1) * MODEL_XSCALE;
+          return obj;
         });
+        const gap = MODEL_SIZE * 0.6;
+        const total = objs.reduce((a, o) => a + o.__w, 0) + gap * (objs.length - 1);
+        let cursor = -total / 2;
+        objs.forEach((obj) => { obj.mesh.position.x = cursor + obj.__w / 2; cursor += obj.__w + gap; doc.addImported(obj); });
         applyPreset(preset);
         fit();
       });
