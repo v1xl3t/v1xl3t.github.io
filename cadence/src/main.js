@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { initRenderView } from './renderview.js';
 
 import { CadDocument } from './model.js';
 import { Inspector } from './ui.js';
@@ -245,6 +246,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
 });
 
 function pickAt(e) {
+  if (document.body.classList.contains('render-view')) return;  // render view = look, don't edit
   const r = renderer.domElement.getBoundingClientRect();
   ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1;
   ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1;
@@ -475,6 +477,13 @@ doc.addEventListener('add', (e) => styleMaterial(e.detail));
 doc.addEventListener('change', (e) => { if (e.detail) styleMaterial(e.detail); });
 doc.addEventListener('regroup', () => doc.list.forEach(styleMaterial));
 doc.addEventListener('undo', () => doc.list.forEach(styleMaterial));
+
+// ---------------------------------------------------------------- render view
+// Presentation mode: hides the editing chrome, shows a render bar, and can load
+// an external .obj read-only (?model=…&view=render) for the portfolio.
+const renderView = initRenderView({
+  THREE, scene, camera, renderer, orbit, gizmo, doc, applyRenderMode,
+});
 
 // ---------------------------------------------------------------- lasso select
 // A mode (toolbar button / L): while on, left-drag draws a freehand loop and
@@ -1194,7 +1203,10 @@ function setupOnboarding() {
   document.getElementById('app').appendChild(tips);
   let seen = false;
   try { seen = !!localStorage.getItem(ONBOARD_KEY); } catch {}
-  if (!seen) setTimeout(startTour, 700);
+  // Don't run onboarding when launched as a read-only portfolio viewer.
+  let asViewer = false;
+  try { const q = new URLSearchParams(location.search); asViewer = q.has('model') || q.get('view') === 'render'; } catch {}
+  if (!seen && !asViewer) setTimeout(startTour, 700);
 }
 
 // ---------------------------------------------------------------- resize + loop
