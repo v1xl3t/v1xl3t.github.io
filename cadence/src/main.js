@@ -24,6 +24,14 @@ import { ROLE_LABELS } from './primitives.js';
 import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, controlMap, unitLabel } from './settings.js';
 import { zipSync } from 'fflate';
 
+// Launched as a read-only portfolio viewer? (?model= / ?models= / ?view=render)
+// In that mode we don't seed a starter cube, restore, or autosave — the scene
+// is driven entirely by the URL so it never clobbers a real user's document.
+const IS_VIEWER = (() => {
+  try { const q = new URLSearchParams(location.search); return q.has('model') || q.has('models') || q.get('view') === 'render'; }
+  catch { return false; }
+})();
+
 // ---------------------------------------------------------------- scene setup
 const canvas = document.getElementById('viewport');
 // logarithmicDepthBuffer keeps depth precision sane across the huge near:far
@@ -116,7 +124,7 @@ doc.addEventListener('regroup', () => rebuildSceneFromDoc());
 // same path the undo tree uses to debounce-save the project to localStorage. Because
 // same-origin tabs share localStorage, a save made in the portfolio "Run it here"
 // preview iframe carries over when CADence is opened in its own tab.
-doc.addEventListener('history', () => scheduleAutosave(doc));
+doc.addEventListener('history', () => { if (!IS_VIEWER) scheduleAutosave(doc); });
 
 function rebuildSceneFromDoc() {
   // Drop every cad mesh currently in the scene, re-add from the model.
@@ -1217,6 +1225,10 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
+// The window 'resize' event doesn't fire when only the iframe is resized (e.g.
+// the portfolio modal growing after open), which left the camera aspect stale
+// and the model looking squashed. A ResizeObserver on <body> catches it.
+if (window.ResizeObserver) { try { new ResizeObserver(resize).observe(document.body); } catch {} }
 resize();
 
 function tick() {
@@ -1244,7 +1256,8 @@ setupOnboarding();
 // reopening from the portfolio preview iframe in a fresh tab — picks up exactly
 // where the session left off. If there's nothing valid to restore, seed a starter
 // box so first load isn't empty.
-if (!restoreAutosave(doc)) doc.add('box');
+if (IS_VIEWER) { /* renderview loads the model(s) from the URL; no starter cube */ }
+else if (!restoreAutosave(doc)) doc.add('box');
 setStatus();
 
 // Expose for console tinkering / debugging.

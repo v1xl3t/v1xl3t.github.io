@@ -158,6 +158,16 @@ export class CadDocument extends EventTarget {
     return obj;
   }
 
+  // Register a pre-built object (e.g. an imported mesh wrapped as a CadObject).
+  // It becomes a normal, selectable, movable document object. Does not commit,
+  // so it won't spam undo history — callers manage that if needed.
+  addImported(obj) {
+    obj.name = this._uniqueName(obj.name);
+    this.objects.set(obj.id, obj);
+    this._emit('add', obj);
+    return obj;
+  }
+
   remove(id) {
     const obj = this.objects.get(id);
     if (!obj) return;
