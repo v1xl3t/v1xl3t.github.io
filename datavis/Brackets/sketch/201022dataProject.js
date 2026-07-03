@@ -81,9 +81,12 @@ var z = 0;
 // ---- LAB MODE (modal-only extras; DORMANT unless the page is opened with ?lab=1) ----
 // When off, everything below is inert and the sketch behaves exactly as the original.
 const LAB = (function(){ try { return new URLSearchParams(window.location.search).has('lab'); } catch(e){ return false; } })();
-let labManual = false;   // becomes true once the viewer scrubs with the wheel
-let labScrubS = 0;       // manual timeline position, in "frames"
-let sOffset = 0;         // lets the auto timeline restart (e.g. after a CSV upload)
+let labScrubS = 0;         // current timeline position, in "frames"
+let sOffset = 0;           // lets auto playback restart / resume from a point
+let labScrubbing = false;  // true briefly while the wheel is actively moving
+let labSticky = 'play';    // tap toggles 'play' <-> 'pause'
+let labResumeTimer = null; // resumes auto shortly after the wheel stops
+let builtinTable = null;   // the original dataset, kept for "Reset to original data"
 
 function preload()
 {
@@ -138,6 +141,7 @@ function setup()
     
     //convert table info to array variables
 
+    builtinTable = table;   // remember the original dataset (lab "reset")
     processTable();
 
     slider = createSlider(0, 1, 0.5, 0.01);
@@ -220,16 +224,20 @@ function draw()
 
     s = frameCount - sOffset;
 
-    // lab: the wheel takes over the timeline (dormant unless ?lab=1)
-    if (LAB && labManual) s = labScrubS;
+    // lab (dormant unless ?lab=1): wheel-scrub or a tapped pause freezes the
+    // timeline; otherwise auto-plays and we keep labScrubS tracking "now" so a
+    // pause/scrub always starts from the current moment.
+    if (LAB)
+    {
+        if (labScrubbing || labSticky === 'pause') s = labScrubS;
+        else labScrubS = s;
+    }
 
     //screen update
 
     background(9);
     drawNotes();
     drawUI();
-
-    if (LAB) drawLabHint();
     
     if(s > (week.length * 60) + 750)
     {
@@ -427,7 +435,8 @@ function drawUI()
 
 // ======================= LAB MODE (modal-only) =======================
 // Everything below only runs when the page is opened with ?lab=1. The built-in
-// project (plain /datavis/) never calls any of it.
+// project (plain /datavis/) never calls any of it. All added portfolio UI lives
+// OUTSIDE the project (in a bar above it); the project itself is framed + tagged.
 
 // Highest meaningful timeline position (past this, q clamps anyway).
 function labMaxS()
@@ -435,59 +444,124 @@ function labMaxS()
     return (60 * 2) * (table.getRowCount() - 1) + 200;
 }
 
-// Place the lab bar just under the cyan title bar. The canvas is object-fit:
-// contain, so work out where the 1000x750 drawing actually sits in the viewport.
-function positionLabBar()
-{
-    var bar = document.getElementById('labbar');
-    if (!bar) return;
-    var scale = Math.min(window.innerWidth / 1000, window.innerHeight / 750);
-    var drawnTop = (window.innerHeight - 750 * scale) / 2;
-    var drawnLeft = (window.innerWidth - 1000 * scale) / 2;
-    bar.style.top = (drawnTop + 60 * scale + 8) + 'px';   // 60 = title-bar height
-    bar.style.left = (drawnLeft + 12) + 'px';
-}
-
 function setupLab()
 {
     var css = document.createElement('style');
     css.textContent =
-      '#labbar{position:fixed;top:12px;left:12px;z-index:20;display:flex;gap:8px;align-items:center;'
-      + 'font-family:"Courier New",monospace;font-size:12px;color:#cfe8ff;background:rgba(6,12,20,.66);'
-      + 'border:1px solid rgba(120,200,255,.35);border-radius:10px;padding:7px 9px;}'
-      + '#labbar .tag{color:#7fd2ff;font-weight:bold;letter-spacing:.09em;}'
-      + '#labbar button,#labbar label{cursor:pointer;font:inherit;color:#eaf6ff;background:rgba(120,200,255,.14);'
-      + 'border:1px solid rgba(120,200,255,.4);border-radius:7px;padding:4px 8px;}'
-      + '#labbar a{color:#9ad8ff;text-decoration:none;border-bottom:1px dashed rgba(154,216,255,.5);}'
-      + '#labbar #labAuto{display:none;}';
+      'body.lab{display:flex;flex-direction:column;}'
+      // portfolio bar: deliberately dark chrome, NOT the project's cyan, so the
+      // added controls read as separate from the original piece.
+      + '#pfbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;'
+      + 'padding:8px 12px;background:#0d1420;border-bottom:1px solid rgba(120,200,255,.25);'
+      + 'font-family:"Courier New",monospace;color:#cfe8ff;font-size:12px;position:relative;z-index:30;}'
+      + '#pfbar .pf-tag{color:#7fd2ff;font-weight:bold;letter-spacing:.08em;}'
+      + '#pfbar .pf-tag b{color:#eaf6ff;font-weight:600;letter-spacing:0;}'
+      + '#pfbar .pf-right{display:flex;align-items:center;gap:8px;position:relative;}'
+      + '#pfbar button{cursor:pointer;font:inherit;color:#eaf6ff;background:rgba(120,200,255,.14);'
+      + 'border:1px solid rgba(120,200,255,.4);border-radius:7px;padding:5px 9px;}'
+      + '#pfbar button:hover{background:rgba(120,200,255,.24);}'
+      + '#pfmenu{display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:250px;z-index:40;'
+      + 'background:#0d1420;border:1px solid rgba(120,200,255,.35);border-radius:10px;padding:10px;'
+      + 'flex-direction:column;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.5);}'
+      + '#pfmenu.open{display:flex;}'
+      + '#pfmenu label{cursor:pointer;font-size:12px;color:#eaf6ff;background:rgba(120,200,255,.14);'
+      + 'border:1px solid rgba(120,200,255,.4);border-radius:7px;padding:7px 9px;text-align:center;}'
+      + '#pfmenu a{font-size:12px;color:#9ad8ff;text-decoration:none;border-bottom:1px dashed rgba(154,216,255,.5);align-self:flex-start;}'
+      + '#pfmenu .hint{font-size:11px;color:#cfe8ff;opacity:.75;line-height:1.5;}'
+      + '#pfmenu .div{height:1px;background:rgba(120,200,255,.2);margin:2px 0;}'
+      // stage: fills the rest; the framed box = the ORIGINAL project.
+      + '#pfstage{position:relative;flex:1 1 auto;min-height:0;margin:10px;border:1px solid rgba(120,200,255,.3);'
+      + 'border-radius:8px;overflow:hidden;}'
+      + '#pfstage .pf-orig{position:absolute;top:6px;left:8px;z-index:5;font:11px "Courier New",monospace;'
+      + 'color:rgba(180,225,255,.85);background:rgba(6,12,20,.55);border:1px solid rgba(120,200,255,.25);'
+      + 'border-radius:6px;padding:2px 7px;pointer-events:none;}'
+      + 'body.lab canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}';
     document.head.appendChild(css);
 
+    document.body.classList.add('lab');
+
+    // ----- portfolio bar (added UI, outside the project) -----
     var bar = document.createElement('div');
-    bar.id = 'labbar';
+    bar.id = 'pfbar';
     bar.innerHTML =
-        '<span class="tag">LAB</span>'
-      + '<label>Upload Trends CSV<input id="labFile" type="file" accept=".csv,text/csv" hidden></label>'
-      + '<a href="https://trends.google.com/trends/explore" target="_blank" rel="noopener">Google Trends ↗</a>'
-      + '<button id="labAuto" title="Resume automatic playback">▶ Auto</button>';
-    document.body.appendChild(bar);
-    positionLabBar();
-    window.addEventListener('resize', positionLabBar);
+        '<span class="pf-tag">PORTFOLIO&nbsp;·&nbsp;<b>added controls</b></span>'
+      + '<span class="pf-right">'
+      +   '<button id="pfPlay" title="Play / pause (or tap the piece)">&#10074;&#10074; Pause</button>'
+      +   '<button id="pfData" title="Bring your own data">Data &#9662;</button>'
+      +   '<div id="pfmenu">'
+      +     '<label>Upload Google Trends CSV<input id="labFile" type="file" accept=".csv,text/csv" hidden></label>'
+      +     '<a href="https://trends.google.com/trends/explore" target="_blank" rel="noopener">Open Google Trends &#8599;</a>'
+      +     '<div class="hint">Add up to 3 search terms in Google Trends, then on the "Interest over time" card use the &#8943; menu &#8594; <b>Download CSV</b>, and upload it here.</div>'
+      +     '<div class="div"></div>'
+      +     '<button id="pfReset">Reset to original data</button>'
+      +     '<div class="hint">Scroll the piece to scrub the timeline (it resumes on its own). Tap it to play / pause.</div>'
+      +   '</div>'
+      + '</span>';
+    document.body.insertBefore(bar, document.body.firstChild);
 
-    document.getElementById('labFile').addEventListener('change', onLabFile);
-    document.getElementById('labAuto').addEventListener('click', function(){
-        labManual = false;
-        sOffset = frameCount - labScrubS;   // continue auto-play from here
-        this.style.display = 'none';
+    // ----- stage wrapping the p5 canvas (framed = the original project) -----
+    var stage = document.createElement('div');
+    stage.id = 'pfstage';
+    var tag = document.createElement('div');
+    tag.className = 'pf-orig';
+    tag.textContent = '▸ original project (2020)';
+    stage.appendChild(tag);
+    document.body.appendChild(stage);
+    var cnv = document.querySelector('canvas');
+    if (cnv) stage.appendChild(cnv);   // move the canvas into the framed stage
+
+    // ----- wiring -----
+    var menu = document.getElementById('pfmenu');
+    document.getElementById('pfData').addEventListener('click', function(e){
+        e.stopPropagation(); menu.classList.toggle('open');
     });
+    document.addEventListener('click', function(){ menu.classList.remove('open'); });
+    menu.addEventListener('click', function(e){ e.stopPropagation(); });
 
-    // mouse wheel scrubs the timeline manually
-    window.addEventListener('wheel', function(e){
-        labManual = true;
-        var a = document.getElementById('labAuto');
-        if (a) a.style.display = 'inline-block';
+    document.getElementById('pfPlay').addEventListener('click', labToggle);
+    document.getElementById('pfReset').addEventListener('click', labResetData);
+    document.getElementById('labFile').addEventListener('change', onLabFile);
+
+    // tap the piece to play / pause
+    if (cnv) cnv.addEventListener('click', labToggle);
+
+    // wheel scrubs; auto resumes ~0.8s after the wheel stops (unless tapped-paused)
+    stage.addEventListener('wheel', function(e){
+        labScrubbing = true;
         labScrubS = constrain(labScrubS + e.deltaY * 0.9, 0, labMaxS());
+        clearTimeout(labResumeTimer);
+        labResumeTimer = setTimeout(function(){
+            labScrubbing = false;
+            if (labSticky === 'play') sOffset = frameCount - labScrubS;
+        }, 800);
         e.preventDefault();
     }, { passive: false });
+
+    labUpdatePlayBtn();
+}
+
+// Tap / button toggles a sticky play <-> pause.
+function labToggle()
+{
+    if (labSticky === 'play') { labSticky = 'pause'; }              // freeze at current position
+    else { labSticky = 'play'; sOffset = frameCount - labScrubS; }  // resume from frozen point
+    labUpdatePlayBtn();
+}
+
+function labUpdatePlayBtn()
+{
+    var b = document.getElementById('pfPlay');
+    if (b) b.innerHTML = (labSticky === 'play') ? '❚❚ Pause' : '▶ Play';
+}
+
+function labResetData()
+{
+    if (!builtinTable) return;
+    table = builtinTable;
+    processTable();
+    sOffset = frameCount; labScrubS = 0; labScrubbing = false; labSticky = 'play';
+    labUpdatePlayBtn();
+    document.getElementById('pfmenu').classList.remove('open');
 }
 
 // Parse an uploaded Google Trends "Interest over time" CSV into a minimal
@@ -518,32 +592,14 @@ function onLabFile(e)
             table = shim;
             processTable();
             sOffset = frameCount;   // restart the timeline from the top
-            labManual = false;
+            labScrubbing = false;
+            labSticky = 'play';
             labScrubS = 0;
-            var a = document.getElementById('labAuto');
-            if (a) a.style.display = 'none';
+            labUpdatePlayBtn();
+            document.getElementById('pfmenu').classList.remove('open');
         } catch (err) {
             alert('Could not read that CSV: ' + err.message);
         }
     };
     reader.readAsText(f);
-}
-
-// Subtle on-canvas hint so the viewer knows the wheel is interactive.
-function drawLabHint()
-{
-    push();
-    textAlign(CENTER);
-    noStroke();
-    if (!labManual) {
-        var a = 130 + 90 * sin(frameCount * 0.06);
-        fill(180, 225, 255, a);
-        textSize(15);
-        text('↕ scroll to scrub the timeline', 500, 90);
-    } else {
-        fill(180, 225, 255, 150);
-        textSize(13);
-        text('manual — use ▶ Auto to resume', 500, 90);
-    }
-    pop();
 }
