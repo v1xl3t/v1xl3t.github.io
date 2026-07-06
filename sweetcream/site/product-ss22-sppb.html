@@ -31,11 +31,11 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="generator" content="Wix.com Website Builder"/>
 
-  <link rel="icon" sizes="192x192" href="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198%7Emv2.png">
-  <link rel="shortcut icon" href="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198%7Emv2.png" type="image/png"/>
-  <link rel="apple-touch-icon" href="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198%7Emv2.png" type="image/png"/>
+  
+  
+  
   <!-- Safari Pinned Tab Icon -->
-  <!-- <link rel="mask-icon" href="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198%7Emv2.png"> -->
+  <!--  -->
 
   <!-- Legacy Polyfills -->
   
@@ -191,7 +191,7 @@
 
 
 
-</head>
+<link rel="icon" href="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198~mv2.png"></head>
 <body class='' >
 
 
@@ -296,6 +296,30 @@
 
 
 
-<style>#sc-toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(20px);background:rgb(49,48,45);color:rgb(245,238,227);padding:12px 22px;font:15px/1.4 proxima-n-w01-reg,sans-serif;opacity:0;pointer-events:none;transition:all .3s;z-index:9999}#sc-toast.on{opacity:1;transform:translateX(-50%)}</style><div id="sc-toast">SWEET CREAM archive &mdash; the store is no longer active</div><script>document.addEventListener('click',function(e){var b=e.target.closest('button');if(b&&/add to cart|buy now/i.test(b.textContent)){e.preventDefault();var t=document.getElementById('sc-toast');t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);}});</script></body>
+<style>#sc-toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(20px);background:rgb(49,48,45);color:rgb(245,238,227);padding:12px 22px;font:15px/1.4 proxima-n-w01-reg,sans-serif;opacity:0;pointer-events:none;transition:all .3s;z-index:9999}#sc-toast.on{opacity:1;transform:translateX(-50%)}</style><div id="sc-toast">SWEET CREAM archive &mdash; the store is no longer active</div><script>
+(function(){var t=document.getElementById('sc-toast');
+window.scToast=function(){t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);};
+addEventListener('load',function(){
+document.querySelectorAll('button,a,[role=button]').forEach(function(el){
+ var tx=(el.textContent||'').trim();
+ if(tx==='Log In'){el.style.display='none';return;}
+ if(/^(add to cart|buy now|cart\b)/i.test(tx)){el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();scToast();},true);return;}
+ var al=(el.getAttribute('aria-label')||'')+' '+(el.getAttribute('data-hook')||'');
+ if(/cart|bag/i.test(al)){el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();scToast();},true);}
+});});})();</script><script>
+addEventListener('load',function(){
+var all=[].slice.call(document.images).filter(function(i){return i.width>30});
+if(!all.length)return;
+var main=all.reduce(function(a,b){return b.width*b.height>a.width*a.height?b:a});
+all.filter(function(i){return i!==main&&i.width<=130&&i.width>=36}).forEach(function(th){
+ th.style.cursor='pointer';
+ th.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();main.srcset='';main.src=th.src;},true);});
+if(main.parentElement){main.parentElement.style.overflow='hidden';
+main.style.transition='transform .15s';
+main.addEventListener('mousemove',function(e){var r=main.getBoundingClientRect();
+ main.style.transformOrigin=((e.clientX-r.left)/r.width*100)+'% '+((e.clientY-r.top)/r.height*100)+'%';
+ main.style.transform='scale(1.7)';});
+main.addEventListener('mouseleave',function(){main.style.transform='none';});}
+});</script></body>
 </html>
 

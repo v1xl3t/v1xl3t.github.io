@@ -50,13 +50,13 @@ main{max-width:1240px;margin:14px auto 0;padding:0 20px}
 /* modal carousel */
 #bk-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(245,238,227,.98);align-items:center;justify-content:center}
 #bk-modal.open{display:flex}
-#bk-modal img{max-width:88vw;max-height:90vh;object-fit:contain;box-shadow:0 8px 60px rgba(49,48,45,.18)}
+#bk-modal img{max-width:86vw;max-height:82vh;object-fit:contain;box-shadow:0 8px 60px rgba(49,48,45,.18)}
 .bk-x,.bk-prev,.bk-next{position:fixed;background:none;border:none;color:var(--ink);cursor:pointer;font-family:inherit;z-index:9002}
 .bk-x{top:22px;right:30px;font-size:34px;line-height:1}
 .bk-prev,.bk-next{top:50%;transform:translateY(-50%);font-size:52px;padding:18px}
 .bk-prev{left:14px}.bk-next{right:14px}
 .bk-prev:hover,.bk-next:hover,.bk-x:hover{color:var(--blue)}
-.bk-count{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:14px;letter-spacing:.2em;color:var(--ink)}
+.bk-count{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.2em;color:var(--ink)}
 /* films theater */
 #bk-films{max-width:1080px;margin:70px auto 0;padding:0 20px}
 #bk-films h2{text-align:center;font-size:20px;font-weight:400;letter-spacing:.42em;text-indent:.42em;margin-bottom:28px}
@@ -98,7 +98,7 @@ footer a:hover{color:var(--blue)}
 <header>
   <nav class="bk-nav"><a href="shop.html">SHOP</a><a href="lookbook.html" class="here">BOOK</a></nav>
   <a class="bk-mark" href="index.html"><img src="assets/3843f3_9a1cfc3460c74b2785a9f06f424e4c62~mv2.png" alt="Sweet Cream"></a>
-  <div class="bk-account">Log In
+  <div class="bk-account" id="bk-bagbtn" style="cursor:pointer">
     <span class="bk-bag"><svg viewBox="0 0 26 30"><path d="M4 9h18l-1.5 19h-15L4 9z"/><path d="M8.5 9V7a4.5 4.5 0 0 1 9 0v2"/></svg></span>
   </div>
 </header>
@@ -127,6 +127,7 @@ footer a:hover{color:var(--blue)}
   <span>SITE BY VI ELLIS IX XXX MMXXII</span>
 </footer>
 
+<div id="sc-toast" style="position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(20px);background:#31302D;color:#F5EEE3;padding:12px 22px;font:15px/1.4 proxima-n-w01-reg,sans-serif;opacity:0;pointer-events:none;transition:all .3s;z-index:9999">SWEET CREAM archive &mdash; the store is no longer active</div>
 <div id="bk-modal">
   <button class="bk-x" aria-label="Close">&times;</button>
   <button class="bk-prev" aria-label="Previous">&#8249;</button>
@@ -140,21 +141,25 @@ footer a:hover{color:var(--blue)}
 <script>
 (function(){
 // ---- height-balanced masonry
-var IMGS=[{"s": "assets/lookbook/IMG_7162.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7316.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7604.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7674.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7838.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7883.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8147.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8262.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8308.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8385.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8423.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8479.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8518.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8548.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8598.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8608.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8744.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8826.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8857.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8860.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8868.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8874.jpg", "a": 1.4995}, {"s": "assets/lookbook/X_3843f3_2530e598464b4a8c85d74945d10a56ae.jpg", "a": 0.5626}, {"s": "assets/lookbook/X_3843f3_aae000f8c4f849ea992e9c1b2f8e174b.jpg", "a": 0.5634}];
+var IMGS=[{"s": "assets/lookbook/IMG_7162.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7316.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7604.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7674.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7838.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7883.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8147.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8262.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8308.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8385.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8423.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8479.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8518.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8548.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8598.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8608.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8744.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8826.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8857.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8860.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8868.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8874.jpg", "a": 1.4995}, {"s": "assets/lookbook/X_3843f3_2530e598464b4a8c85d74945d10a56ae.jpg", "a": 0.5626}];
 var grid=document.getElementById('bk-grid'),lastN=0;
 function cols(){var w=innerWidth;return w<=620?1:(w<=1000?2:3)}
 function layout(){var n=cols();if(n===lastN)return;lastN=n;
  grid.innerHTML='';
- var heights=[],els=[];
- for(var c=0;c<n;c++){var d=document.createElement('div');d.className='bk-col';grid.appendChild(d);heights.push(0);els.push(d)}
+ var els=[];
+ for(var c=0;c<n;c++){var d=document.createElement('div');d.className='bk-col';grid.appendChild(d);els.push(d)}
+ // sequential fill (keeps each model's consecutive shots together per column)
+ var total=IMGS.reduce(function(s,i){return s+i.a},0),acc=0,c=0;
  IMGS.forEach(function(it,i){
-  var k=0;for(var c=1;c<n;c++)if(heights[c]<heights[k])k=c;
+  if(c<n-1&&acc+it.a/2>total/n*(c+1))c++;
   var fig=document.createElement('figure');fig.className='bk-item';
   var im=document.createElement('img');im.src=it.s;im.loading='lazy';im.alt='Sweet Cream FW22 lookbook';im.dataset.i=i;
   im.addEventListener('click',function(){modal.classList.add('open');show(i)});
-  fig.appendChild(im);els[k].appendChild(fig);heights[k]+=it.a;
+  fig.appendChild(im);els[c].appendChild(fig);acc+=it.a;
  });}
 addEventListener('resize',layout);
+var tt=document.getElementById('sc-toast');
+document.getElementById('bk-bagbtn').addEventListener('click',function(){tt.style.opacity=1;tt.style.transform='translateX(-50%)';clearTimeout(tt._h);tt._h=setTimeout(function(){tt.style.opacity=0;tt.style.transform='translateX(-50%) translateY(20px)'},2600);});
 // ---- modal carousel
 var srcs=IMGS.map(function(i){return i.s});
 var modal=document.getElementById('bk-modal'),mimg=modal.querySelector('img'),count=modal.querySelector('.bk-count'),cur=0;
