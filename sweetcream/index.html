@@ -1,74 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sweet Cream — site tour</title>
-<style>
-  :root{ --cy:#19c3f0; --bg:#0a0b0d; --fg:#eef2f5; --mut:#8b95a1; --line:#1b2530; }
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; }
-  body{ background:var(--bg); color:var(--fg); line-height:1.55;
-        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-  header{ display:flex; align-items:center; gap:12px; padding:16px 22px; border-bottom:1px solid var(--line); }
-  header .bee{ height:32px; width:auto; }
-  header .wm{ height:24px; width:auto; }
-  header .tag{ margin-left:auto; color:var(--mut); font-size:11px; letter-spacing:.14em; text-transform:uppercase; }
-  .wrap{ max-width:1080px; margin:0 auto; padding:26px 22px 40px; }
-  .lead{ color:var(--mut); max-width:660px; margin:0 0 22px; }
-  .film{ border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000; }
-  .film video{ width:100%; display:block; }
-  h2{ font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:var(--cy); margin:44px 0 14px; }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
-  .grid button{ padding:0; border:0; background:#0f1319; border-radius:10px; overflow:hidden; cursor:pointer; }
-  .grid img{ width:100%; aspect-ratio:16/9; object-fit:cover; display:block; transition:transform .3s ease; }
-  .grid button:hover img, .grid button:focus-visible img{ transform:scale(1.045); }
-  footer{ border-top:1px solid var(--line); margin-top:48px; padding:22px; color:var(--mut); font-size:13px; }
-  footer b{ color:var(--fg); }
-  #lb{ position:fixed; inset:0; background:rgba(0,0,0,.93); display:none; align-items:center; justify-content:center; padding:22px; z-index:50; }
-  #lb.open{ display:flex; }
-  #lb img{ max-width:100%; max-height:100%; border-radius:8px; }
-  #lb .x{ position:absolute; top:14px; right:20px; color:#fff; font-size:30px; line-height:1; background:none; border:0; cursor:pointer; }
-  @media (max-width:600px){ .grid{ grid-template-columns:1fr 1fr; } }
-</style>
+<meta http-equiv="refresh" content="0; url=/sweetcream/site/">
+<link rel="canonical" href="/sweetcream/site/">
+<title>Sweet Cream</title>
 </head>
-<body>
-  <header>
-    <img class="bee" src="media/bee-logo.png" alt="">
-    <img class="wm" src="media/wordmark.png" alt="Sweet Cream">
-    <span class="tag">Site tour &middot; SS22</span>
-  </header>
-
-  <div class="wrap">
-    <p class="lead">The site I designed and built for <b style="color:var(--fg)">Sweet Cream</b>, a streetwear label with cinematic brand films. The original store is gone, so this is a living archive of sweetcream.co: the original site, rebuilt page-for-page from its own assets and fully browsable, plus the full site tour below.</p>
-    <p style="margin:0 0 26px"><a href="site/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;background:var(--cy);color:#06232e;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:13px;padding:13px 22px;border-radius:10px;text-decoration:none">Enter the site &#8599;</a></p>
-
-    <div class="film">
-      <video src="media/sweetcream-tour.mp4" poster="media/sc-06-still-goggles.jpg" controls playsinline preload="metadata" muted autoplay loop></video>
-    </div>
-
-    <h2>Screen grabs</h2>
-    <div class="grid" id="grid">
-      <button data-full="media/sc-01-landing.jpg"><img src="media/sc-01-landing.jpg" alt="Sweet Cream landing, cyan wordmark" loading="lazy"></button>
-      <button data-full="media/sc-02-product-cream.jpg"><img src="media/sc-02-product-cream.jpg" alt="Product page, CREAM tee" loading="lazy"></button>
-      <button data-full="media/sc-03-product-pink.jpg"><img src="media/sc-03-product-pink.jpg" alt="Product page, pink tee" loading="lazy"></button>
-      <button data-full="media/sc-04-product-graphic.jpg"><img src="media/sc-04-product-graphic.jpg" alt="Product page, graphic tee" loading="lazy"></button>
-      <button data-full="media/sc-05-product.jpg"><img src="media/sc-05-product.jpg" alt="Product page" loading="lazy"></button>
-      <button data-full="media/sc-06-still-goggles.jpg"><img src="media/sc-06-still-goggles.jpg" alt="Film still, goggles" loading="lazy"></button>
-      <button data-full="media/sc-07-still-grass.jpg"><img src="media/sc-07-still-grass.jpg" alt="Film still, grass" loading="lazy"></button>
-      <button data-full="media/sc-08-still-duo.jpg"><img src="media/sc-08-still-duo.jpg" alt="Film still, two models" loading="lazy"></button>
-      <button data-full="media/sc-09-credits.jpg"><img src="media/sc-09-credits.jpg" alt="Sweet Cream: Motion film credits" loading="lazy"></button>
-    </div>
-  </div>
-
-  <footer>Archival capture of the original site. Site design and build by <b>Vi Ellis</b> &middot; MMXXII. Vi and <b>bsterthegawd</b> both composed and sound-designed music for Sweet Cream's films. Not a live store &mdash; a visual archive.</footer>
-
-  <div id="lb"><button class="x" aria-label="Close">&times;</button><img alt=""></div>
-  <script>
-    var grid = document.getElementById('grid'), lb = document.getElementById('lb'), lbimg = lb.querySelector('img');
-    grid.addEventListener('click', function(e){ var b = e.target.closest('button[data-full]'); if(!b) return; lbimg.src = b.dataset.full; lb.classList.add('open'); });
-    lb.addEventListener('click', function(){ lb.classList.remove('open'); lbimg.src=''; });
-    document.addEventListener('keydown', function(e){ if(e.key==='Escape') { lb.classList.remove('open'); lbimg.src=''; } });
-  </script>
-</body>
+<body><p>Redirecting to the <a href="/sweetcream/site/">Sweet Cream archive</a>.</p></body>
 </html>

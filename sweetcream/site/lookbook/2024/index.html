@@ -1514,62 +1514,7 @@ iframe.gvm5TL, .gvm5TL iframe{position:relative;display:block;z-index:1;border:0
 
 
 
-<style>
-#sc-toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(20px);background:rgb(49,48,45);color:rgb(245,238,227);padding:12px 22px;font:15px/1.4 proxima-n-w01-reg,sans-serif;opacity:0;pointer-events:none;transition:all .3s;z-index:9999}#sc-toast.on{opacity:1;transform:translateX(-50%)}
-#sc-cart{position:fixed;top:80px;right:18px;width:320px;max-width:92vw;background:#F5EEE3;border:2px solid #31302D;z-index:9500;font:14px/1.5 proxima-n-w01-reg,sans-serif;color:#31302D;display:none;box-shadow:0 10px 40px rgba(49,48,45,.25)}
-#sc-cart.open{display:block}
-#sc-cart h4{margin:0;padding:12px 16px;border-bottom:1px solid #31302D;font-size:13px;letter-spacing:.25em;font-weight:400}
-#sc-cart .rows{max-height:290px;overflow:auto}
-#sc-cart .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid rgba(49,48,45,.15)}
-#sc-cart .row b{font-weight:700;font-size:13px}
-#sc-cart .row small{display:block;color:#625F5B}
-#sc-cart .rm{background:none;border:none;font-size:17px;cursor:pointer;color:#31302D;padding:2px 6px}
-#sc-cart .rm:hover{color:#7FCCF7}
-#sc-cart .foot{padding:12px 16px}
-#sc-cart .sub{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px}
-#sc-cart .co{width:100%;background:#31302D;color:#F5EEE3;border:none;padding:12px;font:700 13px/1 proxima-n-w01-reg,sans-serif;letter-spacing:.12em;cursor:pointer}
-#sc-cart .co:hover{background:#000}
-#sc-cart .empty{padding:22px 16px;color:#625F5B;font-size:13px}
-</style>
-<div id="sc-toast">SWEET CREAM archive &mdash; the store is no longer active</div>
-<div id="sc-cart"><h4>CART</h4><div class="rows"></div><div class="foot"><div class="sub"><span>Subtotal</span><b class="tot">$0.00</b></div><button class="co">CHECKOUT</button></div></div>
-<script>
-(function(){var t=document.getElementById('sc-toast');
-window.scToast=function(){t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);};
-var K='sc_cart',panel=document.getElementById('sc-cart');
-function cart(){try{return JSON.parse(localStorage.getItem(K))||[]}catch(e){return[]}}
-function save(c){localStorage.setItem(K,JSON.stringify(c));render();}
-function money(n){return '$'+n.toFixed(2)}
-function render(){var c=cart(),r=panel.querySelector('.rows'),tot=0;r.innerHTML='';
- if(!c.length){r.innerHTML='<div class="empty">Your cart is empty.</div>';}
- c.forEach(function(it,i){tot+=it.p;
-  var d=document.createElement('div');d.className='row';
-  d.innerHTML='<span><b>'+it.n+'</b><small>'+(it.o||'')+'</small></span><span>'+money(it.p)+'</span>';
-  var x=document.createElement('button');x.className='rm';x.textContent='\u00d7';x.title='Remove';
-  x.onclick=function(){var cc=cart();cc.splice(i,1);save(cc);};
-  d.appendChild(x);r.appendChild(d);});
- panel.querySelector('.tot').textContent=money(tot);}
-window.scCartAdd=function(it){var c=cart();c.push(it);save(c);panel.classList.add('open');};
-window.scCartToggle=function(){render();panel.classList.toggle('open');};
-panel.querySelector('.co').addEventListener('click',function(){scToast();});
-addEventListener('load',function(){render();
-document.addEventListener('click',function(e){
- if(!panel.classList.contains('open'))return;
- if(!panel.contains(e.target)&&!e.target.closest('[data-sc-bag]'))panel.classList.remove('open');});
-document.querySelectorAll('button,a,[role=button],div[data-hook]').forEach(function(el){
- var tx=(el.textContent||'').trim();
- if(tx==='Log In'){el.style.display='none';return;}
- if(/^(add to cart|buy now)/i.test(tx)){el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();
-  if(window._scAddT&&Date.now()-window._scAddT<500)return;window._scAddT=Date.now();
-  var n=(document.querySelector('h1')||{}).textContent||document.title.split('|')[0];
-  var pm=(document.body.textContent.match(/\$([0-9]+(?:\.[0-9]{2})?)/)||[]);
-  var opts=[];var sz=document.querySelector('.sc-size.on');if(sz)opts.push('Size '+sz.textContent.trim());
-  var cw=document.querySelector('[data-hook=hidden-radio][aria-checked=true]');if(cw)opts.push(cw.getAttribute('aria-label'));
-  scCartAdd({n:n.trim(),p:pm[1]?parseFloat(pm[1]):0,o:opts.join(' \u00b7 ')});},true);return;}
- if(/^cart\b/i.test(tx)){el.setAttribute('data-sc-bag','1');el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();scCartToggle();},true);return;}
- var al=(el.getAttribute('aria-label')||'')+' '+(el.getAttribute('data-hook')||'');
- if(/cart|bag/i.test(al)){el.setAttribute('data-sc-bag','1');el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();scCartToggle();},true);}
-});});})();</script><script>
+<link rel="stylesheet" href="/sweetcream/site/assets/sc-store.css"><script src="/sweetcream/site/assets/sc-store.js"></script><script>
 (function(){var lb=document.getElementById('sc-lightbox'),im=lb.querySelector('img');
 document.querySelectorAll('.sc-gitem img').forEach(function(i){i.parentNode.addEventListener('click',function(){im.src=i.src;lb.classList.add('open');});});
 lb.addEventListener('click',function(){lb.classList.remove('open');im.src='';});
