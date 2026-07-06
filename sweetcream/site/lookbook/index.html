@@ -151,7 +151,16 @@ footer a:hover{color:var(--blue)}
 var IMGS=[{"s": "/sweetcream/site/assets/lookbook/IMG_7162.jpg", "a": 1.4995, "h": "/sweetcream/site/product/sppb/?color=Black", "l": "SHOP SPPB"}, {"s": "/sweetcream/site/assets/lookbook/IMG_7316.jpg", "a": 1.4995, "h": "/sweetcream/site/product/sppb/?color=Black", "l": "SHOP SPPB"}, {"s": "/sweetcream/site/assets/lookbook/IMG_7604.jpg", "a": 1.4995, "h": "/sweetcream/site/product/bee/?color=White", "l": "SHOP BEE"}, {"s": "/sweetcream/site/assets/lookbook/IMG_7674.jpg", "a": 1.4995, "h": "/sweetcream/site/product/bee/?color=White", "l": "SHOP BEE"}, {"s": "/sweetcream/site/assets/lookbook/IMG_7838.jpg", "a": 1.4995, "h": "/sweetcream/site/product/sppb/?color=White", "l": "SHOP SPPB"}, {"s": "/sweetcream/site/assets/lookbook/IMG_7883.jpg", "a": 1.4995, "h": "/sweetcream/site/product/bee/?color=White", "l": "SHOP BEE"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8147.jpg", "a": 1.4995, "h": "/sweetcream/site/product/creep/?color=Blue", "l": "SHOP CREEP"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8262.jpg", "a": 1.4995, "h": "/sweetcream/site/product/creep/?color=Blue", "l": "SHOP CREEP"}, {"s": "/sweetcream/site/assets/lookbook/E2_still1.jpg", "a": 0.5275, "h": "/sweetcream/site/shop/", "l": "SHOP THE COLLECTION"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8308.jpg", "a": 1.4995, "h": "/sweetcream/site/product/creep/?color=Blue", "l": "SHOP CREEP"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8385.jpg", "a": 1.4995, "h": "/sweetcream/site/product/vega-tee/?color=White", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8479.jpg", "a": 1.5009, "h": "/sweetcream/site/product/bee/?color=Pink", "l": "SHOP BEE"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8423.jpg", "a": 1.4995, "h": "/sweetcream/site/product/vega-tee/?color=White", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8518.jpg", "a": 1.5009, "h": "/sweetcream/site/product/vega-tee/?color=Pink", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8548.jpg", "a": 1.5009, "h": "/sweetcream/site/product/bee/?color=Pink", "l": "SHOP BEE"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8598.jpg", "a": 1.5009, "h": "/sweetcream/site/product/vega-tee/?color=White", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8608.jpg", "a": 1.5009, "h": "/sweetcream/site/product/vega-tee/?color=White", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8744.jpg", "a": 1.5009, "h": "/sweetcream/site/product/vega-tee/?color=White", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8826.jpg", "a": 1.5009, "h": "/sweetcream/site/product/vega-tee/?color=White", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8857.jpg", "a": 1.4995, "h": "/sweetcream/site/product/vega-tee/?color=Sage", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8860.jpg", "a": 1.4995, "h": "/sweetcream/site/product/vega-tee/?color=Sage", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8868.jpg", "a": 1.4995, "h": "/sweetcream/site/product/vega-tee/?color=Sage", "l": "SHOP VEGA"}, {"s": "/sweetcream/site/assets/lookbook/E3_still2.jpg", "a": 0.5275, "h": "/sweetcream/site/shop/", "l": "SHOP THE COLLECTION"}, {"s": "/sweetcream/site/assets/lookbook/IMG_8874.jpg", "a": 1.4995, "h": "/sweetcream/site/product/vega-tee/?color=Sage", "l": "SHOP VEGA"}];
 var grid=document.getElementById('bk-grid'),lastN=0;
 function cols(){var w=innerWidth;return w<=620?1:(w<=1000?2:3)}
-function layout(){var n=cols();if(n===lastN)return;lastN=n;
+function equalize(){var colsEls=[].slice.call(grid.querySelectorAll('.bk-col'));if(colsEls.length<2)return;
+ var colW=colsEls[0].clientWidth;
+ var data=colsEls.map(function(col){var figs=[].slice.call(col.children);
+  var sumA=figs.reduce(function(s,f){return s+parseFloat(f.dataset.a)},0);
+  return {col:col,figs:figs,sumA:sumA,gaps:(figs.length-1)*18};});
+ var H=Math.min.apply(null,data.map(function(d){return d.sumA*colW+d.gaps}));
+ data.forEach(function(d){var k=(H-d.gaps)/(d.sumA*colW);
+  d.figs.forEach(function(f){var h=parseFloat(f.dataset.a)*colW*k;
+   f.style.height=h+'px';var im=f.querySelector('img');im.style.height='100%';im.style.objectFit='cover';});});}
+function layout(){var n=cols();if(n===lastN){equalize();return}lastN=n;
  grid.innerHTML='';
  var els=[];
  for(var c=0;c<n;c++){var d=document.createElement('div');d.className='bk-col';grid.appendChild(d);els.push(d)}
@@ -159,7 +168,7 @@ function layout(){var n=cols();if(n===lastN)return;lastN=n;
  var total=IMGS.reduce(function(s,i){return s+i.a},0),acc=0,c=0;
  IMGS.forEach(function(it,i){
   if(c<n-1&&acc+it.a/2>total/n*(c+1))c++;
-  var fig=document.createElement('figure');fig.className='bk-item';
+  var fig=document.createElement('figure');fig.className='bk-item';fig.dataset.a=it.a;
   var im=document.createElement('img');im.src=it.s;im.loading='lazy';im.alt='Sweet Cream FW22 lookbook';im.dataset.i=i;
   im.addEventListener('click',function(){modal.classList.add('open');show(i)});
   fig.appendChild(im);
@@ -167,7 +176,7 @@ function layout(){var n=cols();if(n===lastN)return;lastN=n;
   sh.addEventListener('click',function(e){e.stopPropagation()});
   fig.appendChild(sh);
   els[c].appendChild(fig);acc+=it.a;
- });}
+ });equalize();}
 addEventListener('resize',layout);
 // ---- modal carousel
 var srcs=IMGS.map(function(i){return i.s});

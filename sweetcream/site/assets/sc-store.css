@@ -8,7 +8,7 @@ body.sc-cart-open #sc-back{opacity:1;pointer-events:auto}
 #sc-drawer .hd button{background:none;border:none;font-size:26px;cursor:pointer;color:#31302D;line-height:1}
 #sc-drawer .rows{flex:1;overflow:auto}
 #sc-drawer .row{display:flex;gap:12px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(49,48,45,.12)}
-#sc-drawer .row img{width:54px;height:64px;object-fit:cover;background:#fff}
+#sc-drawer .row img{width:54px;height:64px;object-fit:contain}
 #sc-drawer .row .inf{flex:1;min-width:0}
 #sc-drawer .row .inf b{font-size:13px;display:block}
 #sc-drawer .row .inf small{color:#625F5B}
