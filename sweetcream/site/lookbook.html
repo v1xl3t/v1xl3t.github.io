@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOOK | Sweet Cream</title>
+<link rel="icon" href="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198~mv2.png">
+<style>
+@font-face {
+    font-family:"Proxima-N-W01-Reg";
+    src:url("fonts/64017d81-9430-4cba-8219-8f5cc28b923e.woff2") format("woff2"),url("fonts/e56ecb6d-da41-4bd9-982d-2d295bec9ab0.woff") format("woff");
+font-display: block;
+}@font-face {
+    font-family: "DIN-Next-W01-Light";
+    src: url("fonts/3e0b2cd7-9657-438b-b4af-e04122e8f1f7.eot?#iefix");
+    src: url("fonts/3e0b2cd7-9657-438b-b4af-e04122e8f1f7.eot?#iefix") format("eot"),url("fonts/bc176270-17fa-4c78-a343-9fe52824e501.woff") format("woff"),url("fonts/3516f91d-ac48-42cd-acfe-1be691152cc4.ttf") format("truetype"),url("//static.parastorage.com/services/third-party/fonts/user-site-fonts/fonts/d1b1e866-a411-42ba-8f75-72bf28e23694.svg#d1b1e866-a411-42ba-8f75-72bf28e23694") format("svg");
+font-display: block;
+}@font-face {
+    font-family:"Avenir-LT-W01_35-Light1475496";
+    src:url("fonts/0078f486-8e52-42c0-ad81-3c8d3d43f48e.woff2") format("woff2"),url("fonts/908c4810-64db-4b46-bb8e-823eb41f68c0.woff") format("woff");
+font-display: block;
+}@font-face {
+    font-family:"Avenir-LT-W01_85-Heavy1475544";
+    src:url("fonts/d513e15e-8f35-4129-ad05-481815e52625.woff2") format("woff2"),url("fonts/61bd362e-7162-46bd-b67e-28f366c4afbe.woff") format("woff");
+font-display: block;
+}@font-face{font-family:"Proxima-N-W01-Reg";src:url("fonts/7e90123f-e4a7-4689-b41f-6bcfe331c00a.eot?#iefix");src:url("fonts/7e90123f-e4a7-4689-b41f-6bcfe331c00a.eot?#iefix") format("eot"),url("fonts/64017d81-9430-4cba-8219-8f5cc28b923e.woff2") format("woff2"),url("fonts/e56ecb6d-da41-4bd9-982d-2d295bec9ab0.woff") format("woff"),url("fonts/2aff4f81-3e97-4a83-9e6c-45e33c024796.ttf") format("truetype"),url("//static.parastorage.com/services/third-party/fonts/user-site-fonts/fonts/ab9cd062-380f-4b53-b1a7-c0bec7402235.svg#ab9cd062-380f-4b53-b1a7-c0bec7402235") format("svg")}
+:root{--cream:#F5EEE3;--ink:#31302D;--blue:#7FCCF7;--grey:#C4BEB6}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scrollbar-gutter:stable}
+body{background:var(--cream);color:var(--ink);font-family:proxima-n-w01-reg,proxima-n-w05-reg,sans-serif}
+a{color:inherit;text-decoration:none}
+/* header — wordmark centered, SHOP/BOOK left, login+bag right (decorative) */
+header{position:relative;max-width:1450px;margin:0 auto;height:150px}
+nav.bk-nav{position:absolute;left:48px;top:38px;display:flex;gap:26px;font-size:16px;font-weight:700;letter-spacing:.06em}
+nav.bk-nav a{color:var(--ink)}
+nav.bk-nav a.here{color:var(--blue)}
+.bk-mark{position:absolute;left:50%;top:26px;transform:translateX(-50%)}
+.bk-mark img{width:400px;max-width:56vw;height:auto;display:block}
+.bk-account{position:absolute;right:48px;top:34px;display:flex;align-items:center;gap:18px;font-size:14px;color:var(--ink)}
+.bk-bag{position:relative;width:26px;height:30px}
+.bk-bag svg{width:100%;height:100%;stroke:var(--blue);fill:none;stroke-width:2}
+/* masonry (JS height-balanced columns) */
+main{max-width:1240px;margin:14px auto 0;padding:0 20px}
+.bk-grid{display:flex;gap:18px;align-items:flex-start}
+.bk-col{flex:1;display:flex;flex-direction:column;gap:18px}
+@media(max-width:620px){header{height:118px}nav.bk-nav{left:20px;top:20px}.bk-account{display:none}.bk-mark{top:64px}.bk-mark img{max-width:70vw}}
+.bk-item{margin:0}
+.bk-item img{width:100%;height:auto;display:block;background:var(--grey);cursor:zoom-in;transition:opacity .25s}
+.bk-item img:hover{opacity:.92}
+/* modal carousel */
+#bk-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(245,238,227,.98);align-items:center;justify-content:center}
+#bk-modal.open{display:flex}
+#bk-modal img{max-width:88vw;max-height:90vh;object-fit:contain;box-shadow:0 8px 60px rgba(49,48,45,.18)}
+.bk-x,.bk-prev,.bk-next{position:fixed;background:none;border:none;color:var(--ink);cursor:pointer;font-family:inherit;z-index:9002}
+.bk-x{top:22px;right:30px;font-size:34px;line-height:1}
+.bk-prev,.bk-next{top:50%;transform:translateY(-50%);font-size:52px;padding:18px}
+.bk-prev{left:14px}.bk-next{right:14px}
+.bk-prev:hover,.bk-next:hover,.bk-x:hover{color:var(--blue)}
+.bk-count{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);font-size:14px;letter-spacing:.2em;color:var(--ink)}
+/* films theater */
+#bk-films{max-width:1080px;margin:70px auto 0;padding:0 20px}
+#bk-films h2{text-align:center;font-size:20px;font-weight:400;letter-spacing:.42em;text-indent:.42em;margin-bottom:28px}
+.film-stage{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden}
+.film-stage img.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.94}
+.film-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.film-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:14px;background:none;border:none;cursor:pointer;color:#fff;font-family:inherit;font-size:19px;z-index:3}
+.film-play .ring{width:58px;height:58px;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.film-play .ring::after{content:"";border-style:solid;border-width:10px 0 10px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.film-play span.lbl{text-decoration:underline;text-underline-offset:5px}
+.film-play:hover span.lbl{color:var(--blue)}
+.film-title{position:absolute;left:22px;bottom:16px;color:#fff;font-size:15px;letter-spacing:.08em;z-index:2;text-shadow:0 1px 8px rgba(0,0,0,.55)}
+.film-arrow{position:absolute;top:50%;transform:translateY(-50%);background:none;border:none;font-size:46px;color:var(--ink);cursor:pointer;padding:12px;z-index:4}
+.film-arrow:hover{color:var(--blue)}
+.film-arrow.l{left:-64px}.film-arrow.r{right:-64px}
+@media(max-width:1240px){.film-arrow.l{left:-14px;color:#fff}.film-arrow.r{right:-14px;color:#fff}}
+.film-thumbs{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.film-thumb{width:150px;aspect-ratio:16/9;padding:0;border:2px solid transparent;background:none;cursor:pointer}
+.film-thumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.75;transition:opacity .2s}
+.film-thumb:hover img{opacity:1}
+.film-thumb.on{border-color:var(--blue)}
+.film-thumb.on img{opacity:1}
+/* theater mode */
+body.theater{overflow:hidden}
+#bk-dim{display:none;position:fixed;inset:0;background:rgba(20,19,18,.9);z-index:8000}
+body.theater #bk-dim{display:block}
+body.theater .film-stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1200px,94vw);aspect-ratio:16/9;z-index:8001}
+body.theater .film-arrow,body.theater .film-thumbs{visibility:hidden}
+#bk-exit{display:none;position:fixed;top:18px;right:26px;z-index:8002;background:none;border:none;color:#fff;font-size:34px;cursor:pointer}
+body.theater #bk-exit{display:block}
+/* footer */
+footer{max-width:1450px;margin:80px auto 0;padding:34px 48px 42px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:13px;letter-spacing:.16em}
+footer .bee img{width:50px;height:60px;object-fit:cover;display:block}
+footer a:hover{color:var(--blue)}
+@media(max-width:620px){footer{flex-direction:column;text-align:center;padding:26px 20px 34px}}
+</style>
+</head>
+<body>
+<header>
+  <nav class="bk-nav"><a href="shop.html">SHOP</a><a href="lookbook.html" class="here">BOOK</a></nav>
+  <a class="bk-mark" href="index.html"><img src="assets/3843f3_9a1cfc3460c74b2785a9f06f424e4c62~mv2.png" alt="Sweet Cream"></a>
+  <div class="bk-account">Log In
+    <span class="bk-bag"><svg viewBox="0 0 26 30"><path d="M4 9h18l-1.5 19h-15L4 9z"/><path d="M8.5 9V7a4.5 4.5 0 0 1 9 0v2"/></svg></span>
+  </div>
+</header>
+
+<main>
+  <div class="bk-grid" id="bk-grid"></div>
+</main>
+
+<section id="bk-films">
+  <h2>FILMS</h2>
+  <div class="film-wrap" style="position:relative">
+    <div class="film-stage">
+      <img class="poster" src="assets/yt_gS9sXOgxsZk.jpg" alt="">
+      <div class="film-title">“READY-TO-FLY” SWEET CREAM FW22</div>
+      <button class="film-play"><span class="ring"></span><span class="lbl">Play Video</span></button>
+    </div>
+    <button class="film-arrow l" aria-label="Previous video">&#8249;</button>
+    <button class="film-arrow r" aria-label="Next video">&#8250;</button>
+  </div>
+  <div class="film-thumbs"><button class="film-thumb on" data-f="0" aria-label="“READY-TO-FLY” SWEET CREAM FW22"><img src="assets/yt_gS9sXOgxsZk.jpg" alt=""></button><button class="film-thumb" data-f="1" aria-label="Squid FunK — a 3D Animated Fashion Campaign"><img src="assets/yt_Ls8j0vaMnYY.jpg" alt=""></button><button class="film-thumb" data-f="2" aria-label="SWEET CREAM: MOTION"><img src="assets/yt_Nxx0j9Ot93o.jpg" alt=""></button><button class="film-thumb" data-f="3" aria-label="SWEET CREAM: HIGHWAY STAR"><img src="assets/yt_l4DrD2a8Foo.jpg" alt=""></button></div>
+</section>
+
+<footer>
+  <a href="mailto:contactsweetcream@gmail.com">CONTACTSWEETCREAM@GMAIL.COM</a>
+  <a class="bee" href="index.html"><img src="assets/8b4a9c_4c64974cdede4c07ae298e1c83eb4198~mv2.png" alt="Sweet Cream bee"></a>
+  <span>SITE BY VI ELLIS IX XXX MMXXII</span>
+</footer>
+
+<div id="bk-modal">
+  <button class="bk-x" aria-label="Close">&times;</button>
+  <button class="bk-prev" aria-label="Previous">&#8249;</button>
+  <img alt="">
+  <button class="bk-next" aria-label="Next">&#8250;</button>
+  <div class="bk-count"></div>
+</div>
+<div id="bk-dim"></div>
+<button id="bk-exit" aria-label="Exit theater">&times;</button>
+
+<script>
+(function(){
+// ---- height-balanced masonry
+var IMGS=[{"s": "assets/lookbook/IMG_7162.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7316.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7604.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7674.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7838.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_7883.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8147.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8262.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8308.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8385.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8423.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8479.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8518.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8548.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8598.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8608.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8744.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8826.jpg", "a": 1.5009}, {"s": "assets/lookbook/IMG_8857.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8860.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8868.jpg", "a": 1.4995}, {"s": "assets/lookbook/IMG_8874.jpg", "a": 1.4995}, {"s": "assets/lookbook/X_3843f3_2530e598464b4a8c85d74945d10a56ae.jpg", "a": 0.5626}, {"s": "assets/lookbook/X_3843f3_aae000f8c4f849ea992e9c1b2f8e174b.jpg", "a": 0.5634}];
+var grid=document.getElementById('bk-grid'),lastN=0;
+function cols(){var w=innerWidth;return w<=620?1:(w<=1000?2:3)}
+function layout(){var n=cols();if(n===lastN)return;lastN=n;
+ grid.innerHTML='';
+ var heights=[],els=[];
+ for(var c=0;c<n;c++){var d=document.createElement('div');d.className='bk-col';grid.appendChild(d);heights.push(0);els.push(d)}
+ IMGS.forEach(function(it,i){
+  var k=0;for(var c=1;c<n;c++)if(heights[c]<heights[k])k=c;
+  var fig=document.createElement('figure');fig.className='bk-item';
+  var im=document.createElement('img');im.src=it.s;im.loading='lazy';im.alt='Sweet Cream FW22 lookbook';im.dataset.i=i;
+  im.addEventListener('click',function(){modal.classList.add('open');show(i)});
+  fig.appendChild(im);els[k].appendChild(fig);heights[k]+=it.a;
+ });}
+addEventListener('resize',layout);
+// ---- modal carousel
+var srcs=IMGS.map(function(i){return i.s});
+var modal=document.getElementById('bk-modal'),mimg=modal.querySelector('img'),count=modal.querySelector('.bk-count'),cur=0;
+function show(i){cur=(i+srcs.length)%srcs.length;mimg.src=srcs[cur];count.textContent=(cur+1)+' / '+srcs.length;
+ new Image().src=srcs[(cur+1)%srcs.length];new Image().src=srcs[(cur-1+srcs.length)%srcs.length];}
+layout();
+modal.querySelector('.bk-x').onclick=function(){modal.classList.remove('open');mimg.src=''};
+modal.querySelector('.bk-prev').onclick=function(e){e.stopPropagation();show(cur-1)};
+modal.querySelector('.bk-next').onclick=function(e){e.stopPropagation();show(cur+1)};
+modal.addEventListener('click',function(e){if(e.target===modal)modal.classList.remove('open')});
+var tx=null;
+modal.addEventListener('touchstart',function(e){tx=e.touches[0].clientX},{passive:true});
+modal.addEventListener('touchend',function(e){if(tx===null)return;var dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>40)show(cur+(dx<0?1:-1));tx=null},{passive:true});
+// ---- films theater
+var films=[{id:"gS9sXOgxsZk",t:"“READY-TO-FLY” SWEET CREAM FW22"},{id:"Ls8j0vaMnYY",t:"Squid FunK — a 3D Animated Fashion Campaign"},{id:"Nxx0j9Ot93o",t:"SWEET CREAM: MOTION"},{id:"l4DrD2a8Foo",t:"SWEET CREAM: HIGHWAY STAR"}];
+var f=0,stage=document.querySelector('.film-stage'),poster=stage.querySelector('.poster'),
+ title=stage.querySelector('.film-title'),play=stage.querySelector('.film-play'),
+ thumbsEls=document.querySelectorAll('.film-thumb'),exitB=document.getElementById('bk-exit');
+function setFilm(i,keepPlaying){f=(i+films.length)%films.length;
+ var fr=stage.querySelector('iframe');
+ poster.src='assets/yt_'+films[f].id+'.jpg';title.textContent=films[f].t;
+ thumbsEls.forEach(function(t,j){t.classList.toggle('on',j===f)});
+ if(fr){if(keepPlaying){fr.src='https://www.youtube-nocookie.com/embed/'+films[f].id+'?autoplay=1&rel=0';}else{fr.remove();play.style.display='';poster.style.display='';}}}
+function openTheater(){document.body.classList.add('theater');
+ var fr=document.createElement('iframe');
+ fr.allow='autoplay; fullscreen; picture-in-picture';fr.allowFullscreen=true;
+ fr.src='https://www.youtube-nocookie.com/embed/'+films[f].id+'?autoplay=1&rel=0';
+ stage.appendChild(fr);play.style.display='none';poster.style.display='none';}
+function exitTheater(){document.body.classList.remove('theater');
+ var fr=stage.querySelector('iframe');if(fr)fr.remove();
+ play.style.display='';poster.style.display='';}
+play.onclick=openTheater;
+exitB.onclick=exitTheater;
+document.getElementById('bk-dim').onclick=exitTheater;
+document.querySelector('.film-arrow.l').onclick=function(){setFilm(f-1,document.body.classList.contains('theater'))};
+document.querySelector('.film-arrow.r').onclick=function(){setFilm(f+1,document.body.classList.contains('theater'))};
+thumbsEls.forEach(function(t){t.onclick=function(){setFilm(+t.dataset.f,document.body.classList.contains('theater'))}});
+// ---- keys
+document.addEventListener('keydown',function(e){
+ if(modal.classList.contains('open')){
+  if(e.key==='Escape')modal.classList.remove('open');
+  if(e.key==='ArrowLeft')show(cur-1);
+  if(e.key==='ArrowRight')show(cur+1);
+ }else if(document.body.classList.contains('theater')){
+  if(e.key==='Escape')exitTheater();
+ }});
+})();
+</script>
+</body>
+</html>
