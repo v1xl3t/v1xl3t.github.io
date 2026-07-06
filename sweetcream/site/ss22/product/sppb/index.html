@@ -372,8 +372,22 @@ main.addEventListener('mousemove',function(e){var r=main.getBoundingClientRect()
  main.style.transformOrigin=((e.clientX-r.left)/r.width*100)+'% '+((e.clientY-r.top)/r.height*100)+'%';
  main.style.transform='scale(1.6)';});
 main.addEventListener('mouseleave',function(){main.style.transform='none';});}
-// size chips (Wix dropdown is dead SSR; hidden via CSS above)
+// thumbnail strip: make it scrollable + wire the chevron arrows
+var nav=document.querySelector('[data-hook=product-gallery-navigation-root]');
+if(nav){var strip=nav.querySelector('[data-hook=thumbnail-root]');strip=strip&&strip.parentElement;
+ while(strip&&strip!==nav&&strip.scrollHeight<=strip.clientHeight+4)strip=strip.parentElement;
+ if(strip===nav||!strip){strip=nav.querySelector('[data-hook=thumbnail-root]').parentElement;strip.style.maxHeight='430px';}
+ if(strip){strip.style.overflowY='auto';strip.style.scrollBehavior='smooth';
+  [].slice.call(nav.querySelectorAll('button')).forEach(function(b){
+   if(b.querySelector('img'))return; // thumb buttons, not arrows
+   b.style.cursor='pointer';
+   b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();
+    var r=b.getBoundingClientRect(),s=strip.getBoundingClientRect();
+    strip.scrollBy(0,(r.top<s.top?-1:1)*Math.max(120,strip.clientHeight*0.7));},true);});}}
+// size chips ONLY on sized items (pages that shipped a Size dropdown);
+// 1-of-1 pieces get none (Wix dropdown is dead SSR; hidden via CSS above)
 var atc=[].slice.call(document.querySelectorAll('button')).filter(function(b){return /add to cart/i.test(b.textContent)})[0];
+if(atc&&!document.querySelector('[data-hook=options-dropdown]'))atc=null;
 if(atc){var sz=document.createElement('div');sz.className='sc-sizes';
  sz.innerHTML='<small>SIZE</small>'+['S','M','L','XL'].map(function(s){return '<button type=button class=sc-size>'+s+'</button>'}).join('');
  atc.parentElement.insertBefore(sz,atc);
