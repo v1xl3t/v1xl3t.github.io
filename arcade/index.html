@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goal Arcade</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟</text></svg>">
+<style>
+:root{
+  --bg:#f6efe3; --panel:#fffaf1; --panel2:#f3e9d8; --ink:#4a3f35; --ink2:#8a7a68;
+  --line:#e2d5c0; --accent:#e07a5f; --sage:#81b29a; --lav:#b8a1d9; --peach:#f2cc8f;
+  --ticket:#e63946; --good:#5a9367; --shadow:0 4px 14px rgba(74,63,53,.12);
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#241f1c; --panel:#2f2925; --panel2:#3a322c; --ink:#f0e6d8; --ink2:#b3a390;
+    --line:#4a4038; --shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box; margin:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Segoe UI",ui-rounded,system-ui,sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+input,select,textarea{font:inherit; color:var(--ink); background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+h1,h2,h3{font-family:ui-monospace,Consolas,monospace; letter-spacing:.06em; text-transform:uppercase}
+
+/* ---------- header ---------- */
+header{
+  width:100%; max-width:1060px; padding:14px 16px 8px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+header h1{font-size:1.05rem}
+header h1 small{display:block; font-size:.62rem; color:var(--ink2); letter-spacing:.14em; margin-top:2px}
+.hdr-spacer{flex:1}
+.stat{
+  background:var(--panel); border:1px solid var(--line); border-radius:999px;
+  padding:7px 14px; font-weight:700; box-shadow:var(--shadow); font-size:.95rem;
+  display:flex; align-items:center; gap:6px;
+}
+.stat.clicky:hover{transform:translateY(-1px)}
+.hdr-btn{
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:7px 11px; box-shadow:var(--shadow); font-size:.95rem;
+}
+.hdr-btn:hover{background:var(--panel2)}
+.hdr-btn.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+.badge{background:var(--ticket); color:#fff; border-radius:999px; font-size:.68rem; padding:1px 6px; font-weight:700}
+
+/* ---------- scene ---------- */
+#sceneWrap{
+  position:relative; width:100%; max-width:1000px; margin:6px auto 0; padding:0 12px;
+  user-select:none; -webkit-user-select:none;
+}
+#sceneBox{position:relative; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); border:1px solid var(--line)}
+canvas#scene{display:block; width:100%; image-rendering:pixelated; background:#1d1712}
+.scene-label{
+  position:absolute; transform:translate(-50%,0); pointer-events:none;
+  font-family:ui-monospace,monospace; font-size:clamp(8px,1.3vw,12px); font-weight:700;
+  color:#fff8ec; text-shadow:0 1px 0 #000a, 0 0 6px #0008; letter-spacing:.08em; white-space:nowrap;
+}
+#bubble{
+  position:absolute; transform:translate(-50%,-100%); pointer-events:none; display:none;
+  background:#fff8ec; color:#4a3f35; border-radius:8px; padding:3px 8px;
+  font-family:ui-monospace,monospace; font-size:clamp(9px,1.4vw,12px); font-weight:700;
+  box-shadow:0 2px 6px #0006; white-space:nowrap;
+}
+#bubble::after{content:""; position:absolute; left:50%; bottom:-5px; transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:#fff8ec; border-bottom:none}
+#sceneHint{max-width:1000px; width:100%; padding:6px 16px 0; color:var(--ink2); font-size:.78rem; text-align:center}
+#quickRow{display:flex; gap:8px; justify-content:center; padding:10px 12px; flex-wrap:wrap}
+.quick-btn{
+  background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 14px;
+  font-family:ui-monospace,monospace; font-weight:700; font-size:.8rem; letter-spacing:.06em;
+  box-shadow:var(--shadow);
+}
+.quick-btn:hover{transform:translateY(-1px)}
+
+/* ---------- dashboard ---------- */
+#dash{display:none; width:100%; max-width:1060px; padding:8px 14px 30px}
+body.dashboard #dash{display:block}
+body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{display:none}
+.lanes{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px}
+.lane-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:14px; display:flex; flex-direction:column}
+.lane-head{display:flex; align-items:baseline; gap:8px; margin-bottom:4px}
+.lane-head h2{font-size:.85rem}
+.lane-head .reset{margin-left:auto; font-size:.7rem; color:var(--ink2)}
+.pbar{height:7px; border-radius:99px; background:var(--panel2); overflow:hidden; margin:6px 0 10px}
+.pbar > div{height:100%; border-radius:99px; transition:width .35s}
+
+/* ---------- item rows ---------- */
+.item-row{
+  display:flex; align-items:center; gap:9px; padding:7px 6px; border-radius:10px;
+}
+.item-row:hover{background:var(--panel2)}
+.item-row .check{
+  width:26px; height:26px; flex:none; border-radius:8px; border:2px solid var(--line);
+  display:flex; align-items:center; justify-content:center; font-size:15px; color:transparent;
+  background:var(--panel);
+}
+.item-row .check:not(:disabled):hover{border-color:var(--sage)}
+.item-row.done .check{background:var(--sage); border-color:var(--sage); color:#fff}
+.item-row .t{flex:1; min-width:0; font-size:.92rem; line-height:1.25}
+.item-row.done .t{color:var(--ink2)}
+.item-row.done .ttl{text-decoration:line-through}
+.item-row .sub{display:block; font-size:.7rem; color:var(--ink2); text-decoration:none}
+.item-row .pts{
+  flex:none; font-size:.74rem; font-weight:800; padding:3px 8px; border-radius:999px;
+  background:var(--peach); color:#5c4520; font-family:ui-monospace,monospace;
+}
+.item-row.bonus .pts{background:var(--lav); color:#3c2c56}
+.item-row .edit{flex:none; opacity:.35; font-size:.85rem; padding:2px 4px}
+.item-row .edit:hover{opacity:1}
+.tag{font-size:.66rem; padding:0 5px; border-radius:6px; background:var(--panel2); border:1px solid var(--line); color:var(--ink2); vertical-align:1px; margin-left:4px}
+.add-row{margin-top:8px; font-size:.82rem; color:var(--ink2); padding:6px; border-radius:10px; text-align:left}
+.add-row:hover{background:var(--panel2); color:var(--ink)}
+
+/* ---------- modal ---------- */
+#overlay{
+  position:fixed; inset:0; background:rgba(30,22,16,.5); display:none;
+  align-items:center; justify-content:center; padding:16px; z-index:50;
+}
+#overlay.open{display:flex}
+#modal{
+  background:var(--panel); border-radius:18px; box-shadow:0 18px 60px rgba(0,0,0,.4);
+  width:min(560px,100%); max-height:88vh; overflow:auto; padding:20px;
+  border:1px solid var(--line);
+}
+#modal h2{font-size:.95rem; margin-bottom:10px; display:flex; align-items:center; gap:8px}
+#modal h2 .x{margin-left:auto; font-size:1.1rem; opacity:.5; padding:2px 8px}
+#modal h2 .x:hover{opacity:1}
+.field{display:flex; flex-direction:column; gap:4px; margin:10px 0}
+.field label{font-size:.74rem; font-weight:700; color:var(--ink2); text-transform:uppercase; letter-spacing:.06em}
+.frow{display:flex; gap:14px; flex-wrap:wrap; align-items:center}
+.frow .field{flex:1; min-width:110px}
+.checkline{display:flex; align-items:center; gap:8px; font-size:.9rem; margin:8px 0}
+.checkline input{width:18px; height:18px}
+.btn{
+  background:var(--accent); color:#fff; font-weight:700; border-radius:10px; padding:9px 18px;
+}
+.btn:hover{filter:brightness(1.06)}
+.btn.ghost{background:var(--panel2); color:var(--ink); border:1px solid var(--line)}
+.btn.danger{background:var(--ticket)}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+.btnrow{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap}
+.btnrow .spacer{flex:1}
+
+/* ---------- shop ---------- */
+.wallet-big{
+  font-family:ui-monospace,monospace; font-size:1.6rem; font-weight:800; text-align:center;
+  background:var(--panel2); border-radius:12px; padding:12px; margin-bottom:14px; border:1px dashed var(--line);
+}
+.prize-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+.prize{
+  background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; position:relative;
+}
+.prize .em{font-size:1.9rem}
+.prize .nm{font-size:.85rem; font-weight:700; line-height:1.2}
+.prize .cost{font-family:ui-monospace,monospace; font-size:.78rem; font-weight:800; color:var(--ticket)}
+.prize .redeem{background:var(--ticket); color:#fff; font-size:.75rem; font-weight:800; border-radius:999px; padding:5px 14px}
+.prize .redeem:disabled{background:var(--line); color:var(--ink2)}
+.prize .pedit{position:absolute; top:6px; right:8px; opacity:.35; font-size:.8rem}
+.prize .pedit:hover{opacity:1}
+
+/* ---------- ledger ---------- */
+.ledger-row{display:flex; gap:10px; padding:6px 4px; border-bottom:1px solid var(--line); font-size:.85rem; align-items:baseline}
+.ledger-row .when{flex:none; width:104px; color:var(--ink2); font-size:.72rem; font-family:ui-monospace,monospace}
+.ledger-row .lbl{flex:1; min-width:0}
+.ledger-row .delta{flex:none; font-family:ui-monospace,monospace; font-weight:800}
+.delta.pos{color:var(--good)} .delta.neg{color:var(--ticket)}
+
+/* ---------- toast + confetti ---------- */
+#toasts{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:80; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none}
+.toast{
+  background:var(--ink); color:var(--bg); padding:9px 18px; border-radius:999px; font-weight:700;
+  box-shadow:var(--shadow); animation:toastIn .25s ease, toastOut .4s ease 2.2s forwards; font-size:.92rem;
+}
+@keyframes toastIn{from{opacity:0; transform:translateY(14px)}}
+@keyframes toastOut{to{opacity:0; transform:translateY(10px)}}
+.confetti{position:fixed; z-index:90; font-size:1.3rem; pointer-events:none; animation:conf 1.15s ease-out forwards}
+@keyframes conf{
+  from{transform:translate(0,0) rotate(0)}
+  to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot)); opacity:0}
+}
+.note{font-size:.78rem; color:var(--ink2); margin-top:10px; line-height:1.45}
+hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
+.retired-row{display:flex; gap:8px; align-items:center; font-size:.85rem; padding:4px 0; color:var(--ink2)}
+.retired-row button{color:var(--accent); font-size:.78rem; font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="appTitle">Goal Arcade<small>daily · weekly · monthly · prizes</small></h1>
+  <div class="hdr-spacer"></div>
+  <button class="stat clicky" id="walletStat" title="Open the prize counter">🎟 <span id="walletVal">0</span></button>
+  <div class="stat" id="streakStat" title="Days in a row with every required daily done">🔥 <span id="streakVal">0</span></div>
+  <button class="hdr-btn" id="modeBtn" title="Toggle arcade / dashboard view">🕹️</button>
+  <button class="hdr-btn" id="contanBtn" title="Contan task queue">🤖 <span class="badge" id="contanCount" style="display:none">0</span></button>
+  <button class="hdr-btn" id="ledgerBtn" title="Ticket history">📜</button>
+  <button class="hdr-btn" id="soundBtn" title="Sounds on/off">🔊</button>
+  <button class="hdr-btn" id="settingsBtn" title="Settings">⚙️</button>
+</header>
+
+<div id="sceneWrap">
+  <div id="sceneBox">
+    <canvas id="scene" width="320" height="192"></canvas>
+    <div id="labels"></div>
+    <div id="bubble"></div>
+  </div>
+</div>
+<div id="sceneHint">arrows / WASD to waddle · <b>E</b> or <b>Space</b> to open a machine · or just tap where you want to go</div>
+<div id="quickRow">
+  <button class="quick-btn" data-open="daily">☀️ DAILY</button>
+  <button class="quick-btn" data-open="weekly">🌿 WEEKLY</button>
+  <button class="quick-btn" data-open="monthly">🌙 MONTHLY</button>
+  <button class="quick-btn" data-open="shop">🎟 PRIZES</button>
+</div>
+
+<div id="dash"><div class="lanes" id="lanesGrid"></div></div>
+
+<div id="overlay"><div id="modal"></div></div>
+<div id="toasts"></div>
+
+<script>
+"use strict";
+/* =====================================================
+   Vi's Goal Arcade - single-file, local-first.
+   Data lives in localStorage ("arcade.save.v1").
+   Export/import JSON in Settings. No network, ever.
+===================================================== */
+
+const SAVE_KEY = "arcade.save.v1";
+const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3);
+const pad = n => String(n).padStart(2,"0");
+const $ = s => document.querySelector(s);
+
+/* ---------- state ---------- */
+let state = load();
+
+function seedState(){
+  const mk = (lane,title,points,o={}) => ({ id:uid(), lane, title, points,
+    repeat:o.repeat!==false, bonus:!!o.bonus, contan:!!o.contan, auto:o.auto||null,
+    notes:o.notes||"", done:false, doneTs:0, archived:false });
+  return {
+    version:1,
+    settings:{ title:"Goal Arcade", weekStart:1, sounds:true, mode:"hub" },
+    wallet:0,
+    ledger:[],
+    completions:{},
+    created:Date.now(),
+    items:[
+      mk("daily","Stretch or take a short walk",10),
+      mk("daily","Tidy one surface",10),
+      mk("daily","Do a quick evening check-in",10),
+      mk("daily","Check off a weekly item",15,{auto:"weekly",notes:"Completes itself when any weekly item is checked today."}),
+      mk("daily","Bonus, an extra creative hour",20,{bonus:true}),
+      mk("weekly","Laundry",25),
+      mk("weekly","Finish one project task",30),
+      mk("weekly","Reach out to a friend",20),
+      mk("weekly","Check off a monthly item",25,{auto:"monthly",notes:"Completes itself when any monthly item is checked this week."}),
+      mk("weekly","Bonus, deep-clean something",30,{bonus:true}),
+      mk("monthly","Review your goals and plans",60),
+      mk("monthly","Back up your files",50),
+      mk("monthly","Replace these sample goals with your own 🙂",40,{repeat:false}),
+    ],
+    prizes:[
+      { id:uid(), emoji:"🎮", name:"Game session", cost:100 },
+      { id:uid(), emoji:"🍨", name:"Fun dessert", cost:150 },
+      { id:uid(), emoji:"🍿", name:"Movie night", cost:200 },
+      { id:uid(), emoji:"🛏️", name:"Guilt-free lazy morning", cost:250 },
+      { id:uid(), emoji:"🎁", name:"Treat-yourself gift", cost:500 },
+    ],
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && s.version===1 && Array.isArray(s.items)) return s; }
+  }catch(e){ console.warn("load failed", e); }
+  return seedState();
+}
+function save(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+
+/* ---------- periods ---------- */
+function dayKeyOf(d=new Date()){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function monthKeyOf(d=new Date()){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; }
+function weekStartOf(d=new Date()){
+  const x = new Date(d); x.setHours(0,0,0,0);
+  const diff = (x.getDay() - state.settings.weekStart + 7) % 7;
+  x.setDate(x.getDate()-diff); return x;
+}
+function weekKeyOf(d=new Date()){ return "W" + dayKeyOf(weekStartOf(d)); }
+function periodKey(lane, d=new Date()){
+  return lane==="daily" ? dayKeyOf(d) : lane==="weekly" ? weekKeyOf(d) : monthKeyOf(d);
+}
+function resetsIn(lane){
+  const now = new Date(); let end;
+  if(lane==="daily"){ end = new Date(now); end.setHours(24,0,0,0); }
+  else if(lane==="weekly"){ end = weekStartOf(now); end.setDate(end.getDate()+7); }
+  else { end = new Date(now.getFullYear(), now.getMonth()+1, 1); }
+  const ms = end - now, h = Math.floor(ms/36e5), dDays = Math.floor(h/24);
+  return dDays >= 1 ? `resets in ${dDays}d` : `resets in ${Math.max(1,h)}h`;
+}
+
+/* ---------- items + completion ---------- */
+const LANES = ["daily","weekly","monthly"];
+const LANE_META = {
+  daily:{ label:"Daily", icon:"☀️", color:"var(--accent)" },
+  weekly:{ label:"Weekly", icon:"🌿", color:"var(--sage)" },
+  monthly:{ label:"Monthly", icon:"🌙", color:"var(--lav)" },
+};
+function compsOf(item){ return state.completions[item.id] || (state.completions[item.id]={}); }
+function isDone(item){ return !!compsOf(item)[periodKey(item.lane)]; }
+function visibleItems(lane){
+  const pk = periodKey(lane);
+  return state.items.filter(i => {
+    if(i.lane!==lane || i.archived) return false;
+    if(!i.repeat && i.done && periodKey(lane, new Date(i.doneTs)) !== pk) return false; // retired one-shot
+    return true;
+  });
+}
+function retiredOneShots(){
+  return state.items.filter(i => !i.repeat && i.done && !i.archived &&
+    periodKey(i.lane, new Date(i.doneTs)) !== periodKey(i.lane));
+}
+function addLedger(delta, label){
+  state.wallet += delta;
+  state.ledger.push({ ts:Date.now(), delta, label });
+  if(state.ledger.length > 1000) state.ledger = state.ledger.slice(-800);
+}
+function toggleItem(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!item || item.auto) return;
+  const pk = periodKey(item.lane), comp = compsOf(item);
+  if(comp[pk]){
+    delete comp[pk]; addLedger(-item.points, "↩ "+item.title);
+    if(!item.repeat){ item.done=false; item.doneTs=0; }
+    sfx("un");
+  }else{
+    comp[pk] = Date.now(); addLedger(item.points, item.title);
+    if(!item.repeat){ item.done=true; item.doneTs=Date.now(); }
+    sfx("coin"); toast(`+${item.points} 🎟  ${item.title}`); birdHop();
+  }
+  syncAutoItems(); save(); renderAll();
+}
+/* link items: daily "check a weekly" / weekly "check a monthly" */
+function syncAutoItems(){
+  const today = dayKeyOf(), thisWeek = weekKeyOf();
+  for(const a of state.items){
+    if(!a.auto || a.archived) continue;
+    const srcLane = a.auto; // 'weekly' or 'monthly'
+    const should = state.items.some(s => {
+      if(s.lane!==srcLane || s.auto || s.archived) return false;
+      const ts = compsOf(s)[periodKey(srcLane)];
+      if(!ts) return false;
+      const d = new Date(ts);
+      return a.lane==="daily" ? dayKeyOf(d)===today : weekKeyOf(d)===thisWeek;
+    });
+    const pk = periodKey(a.lane), comp = compsOf(a);
+    if(should && !comp[pk]){ comp[pk]=Date.now(); addLedger(a.points, "🔗 "+a.title); toast(`+${a.points} 🎟  ${a.title} (auto)`); }
+    else if(!should && comp[pk]){ delete comp[pk]; addLedger(-a.points, "↩ 🔗 "+a.title); }
+  }
+}
+function laneProgress(lane){
+  const req = visibleItems(lane).filter(i=>!i.bonus);
+  const done = req.filter(isDone).length;
+  return { done, total:req.length };
+}
+function streak(){
+  const daily = state.items.filter(i=>i.lane==="daily" && i.repeat && !i.bonus && !i.archived);
+  if(!daily.length) return 0;
+  let n=0; const d = new Date();
+  const doneOn = dk => daily.every(i => {
+    const c = state.completions[i.id]; return c && c[dk];
+  });
+  if(!doneOn(dayKeyOf(d))) d.setDate(d.getDate()-1); // today not done yet doesn't break streak
+  for(let k=0; k<400; k++){
+    if(doneOn(dayKeyOf(d))){ n++; d.setDate(d.getDate()-1); } else break;
+  }
+  return n;
+}
+
+/* ---------- rendering ---------- */
+function renderHeader(){
+  $("#walletVal").textContent = state.wallet;
+  $("#streakVal").textContent = streak();
+  $("#appTitle").childNodes[0].textContent = state.settings.title;
+  const q = state.items.filter(i=>i.contan && !i.archived && !isDone(i)).length;
+  const b = $("#contanCount"); b.style.display = q? "" : "none"; b.textContent = q;
+  $("#soundBtn").textContent = state.settings.sounds ? "🔊" : "🔇";
+  $("#modeBtn").textContent = state.settings.mode==="hub" ? "📋" : "🕹️";
+  $("#modeBtn").title = state.settings.mode==="hub" ? "Switch to dashboard view" : "Switch to arcade view";
+  document.body.classList.toggle("dashboard", state.settings.mode==="dashboard");
+}
+function itemRowHTML(item){
+  const done = isDone(item);
+  const tags = [
+    item.auto ? `<span class="tag" title="auto-completes via linked lane">🔗 auto</span>` : "",
+    item.bonus ? `<span class="tag" title="optional, pure bonus points">⭐ bonus</span>` : "",
+    !item.repeat ? `<span class="tag" title="one cycle only, retires when done">1×</span>` : "",
+    item.contan ? `<span class="tag" title="in the Contan queue">🤖</span>` : "",
+  ].join("");
+  const notes = item.notes ? `<span class="sub">${esc(item.notes)}</span>` : "";
+  return `<div class="item-row ${done?"done":""} ${item.bonus?"bonus":""}" data-id="${item.id}">
+    <button class="check" data-act="toggle" ${item.auto?'disabled title="Auto item, it completes itself when you check an item in the linked lane"':""}>✓</button>
+    <div class="t"><span class="ttl">${esc(item.title)}</span>${tags}${notes}</div>
+    <button class="pts" data-act="edit" title="edit points">+${item.points} 🎟</button>
+    <button class="edit" data-act="edit" title="edit">✎</button>
+  </div>`;
+}
+function laneHTML(lane, compact){
+  const m = LANE_META[lane], p = laneProgress(lane);
+  const pct = p.total ? Math.round(p.done/p.total*100) : 0;
+  return `<div class="lane-head">${compact?"":`<h2>${m.icon} ${m.label}</h2>`}
+      <span style="font-size:.75rem;color:var(--ink2)">${p.done}/${p.total}</span>
+      <span class="reset">${resetsIn(lane)}</span></div>
+    <div class="pbar"><div style="width:${pct}%;background:${m.color}"></div></div>
+    <div class="items">${visibleItems(lane).map(itemRowHTML).join("")}</div>
+    <button class="add-row" data-add="${lane}">＋ add ${lane} item</button>`;
+}
+function renderDash(){
+  if(state.settings.mode!=="dashboard") return;
+  $("#lanesGrid").innerHTML = LANES.map(l=>`<div class="lane-card" data-lane="${l}">${laneHTML(l)}</div>`).join("")
+    + `<div class="lane-card"><div class="lane-head"><h2>🎟 Prize Counter</h2></div>
+        <div style="font-size:.85rem;color:var(--ink2);margin-bottom:10px">Trade tickets for treats.</div>
+        <button class="btn" data-open="shop" style="align-self:flex-start">Open the counter</button></div>`;
+}
+let modalKind = null; // {kind:'lane'|'shop'|..., lane?}
+function renderAll(){
+  renderHeader(); renderDash();
+  if(modalKind){
+    if(modalKind.kind==="lane") openLane(modalKind.lane, true);
+    else if(modalKind.kind==="shop") openShop(true);
+    else if(modalKind.kind==="contan") openContan(true);
+  }
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- modal plumbing ---------- */
+function openModal(html, kind){
+  modalKind = kind || null;
+  $("#modal").innerHTML = html;
+  $("#overlay").classList.add("open");
+}
+function closeModal(){ modalKind=null; $("#overlay").classList.remove("open"); }
+$("#overlay").addEventListener("click", e=>{ if(e.target.id==="overlay") closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
+
+const xBtn = `<button class="x" data-act="close">✕</button>`;
+
+function openLane(lane, rerender){
+  const m = LANE_META[lane];
+  openModal(`<h2>${m.icon} ${m.label} goals ${xBtn}</h2>${laneHTML(lane, true)}`, {kind:"lane", lane});
+  if(!rerender) sfx("open");
+}
+
+/* ---------- item editor ---------- */
+function openEditor(itemId, lane){
+  const item = itemId ? state.items.find(i=>i.id===itemId) : null;
+  const v = item || { title:"", lane:lane||"daily", points:10, repeat:true, bonus:false, contan:false, notes:"" };
+  openModal(`<h2>${item?"Edit item":"New item"} ${xBtn}</h2>
+    <div class="field"><label>Title</label><input id="fTitle" value="${esc(v.title)}" placeholder="e.g. Water the plants"></div>
+    <div class="frow">
+      <div class="field"><label>Lane</label><select id="fLane">
+        ${LANES.map(l=>`<option value="${l}" ${v.lane===l?"selected":""}>${LANE_META[l].label}</option>`).join("")}</select></div>
+      <div class="field"><label>Points 🎟</label><input id="fPts" type="number" min="0" step="5" value="${v.points}"></div>
+    </div>
+    <label class="checkline"><input type="checkbox" id="fRepeat" ${v.repeat?"checked":""}> Repeats every cycle <span style="color:var(--ink2);font-size:.78rem">(unchecked = one-shot, retires when done)</span></label>
+    <label class="checkline"><input type="checkbox" id="fBonus" ${v.bonus?"checked":""}> ⭐ Bonus (optional, pure extra points)</label>
+    <label class="checkline"><input type="checkbox" id="fContan" ${v.contan?"checked":""}> 🤖 Contan can automate this (adds it to the queue)</label>
+    <div class="field"><label>Notes</label><textarea id="fNotes" rows="2">${esc(v.notes)}</textarea></div>
+    <div class="btnrow">
+      <button class="btn" data-act="saveItem" data-id="${item?item.id:""}">Save</button>
+      <button class="btn ghost" data-act="close">Cancel</button>
+      <span class="spacer"></span>
+      ${item?`<button class="btn danger" data-act="deleteItem" data-id="${item.id}">Delete</button>`:""}
+    </div>
+    ${item && item.auto ? `<div class="note">This is a 🔗 linked item. It checks itself when you complete an item in the <b>${item.auto}</b> lane, and you can rename it or change its points.</div>`:""}`);
+  setTimeout(()=>$("#fTitle").focus(), 50);
+}
+function saveItemFromForm(id){
+  const title = $("#fTitle").value.trim();
+  if(!title){ $("#fTitle").focus(); return; }
+  const vals = {
+    title, lane: $("#fLane").value, points: Math.max(0, parseInt($("#fPts").value||"0",10)),
+    repeat: $("#fRepeat").checked, bonus: $("#fBonus").checked,
+    contan: $("#fContan").checked, notes: $("#fNotes").value.trim(),
+  };
+  if(id){ Object.assign(state.items.find(i=>i.id===id), vals); }
+  else{ state.items.push(Object.assign({ id:uid(), auto:null, done:false, doneTs:0, archived:false }, vals)); }
+  save(); closeModal(); renderAll(); toast("Saved ✓");
+}
+function deleteItem(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!confirm(`Delete "${item.title}"? Its past ticket history stays in the ledger.`)) return;
+  state.items = state.items.filter(i=>i.id!==id);
+  delete state.completions[id];
+  save(); closeModal(); renderAll();
+}
+
+/* ---------- prize shop ---------- */
+function openShop(rerender){
+  const rows = state.prizes.map(p=>`
+    <div class="prize" data-pid="${p.id}">
+      <button class="pedit" data-act="editPrize" data-id="${p.id}">✎</button>
+      <div class="em">${p.emoji||"🎁"}</div><div class="nm">${esc(p.name)}</div>
+      <div class="cost">${p.cost} 🎟</div>
+      <button class="redeem" data-act="redeem" data-id="${p.id}" ${state.wallet<p.cost?"disabled":""}>REDEEM</button>
+    </div>`).join("");
+  const spends = state.ledger.filter(l=>l.delta<0 && l.label.startsWith("🏆")).slice(-6).reverse();
+  openModal(`<h2>🎟 Prize Counter ${xBtn}</h2>
+    <div class="wallet-big">🎟 ${state.wallet} tickets</div>
+    <div class="prize-grid">${rows}</div>
+    <div class="btnrow">
+      <button class="btn ghost" data-act="addPrize">＋ add prize</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" data-act="adjustWallet" title="Manual ticket correction">± adjust tickets</button>
+    </div>
+    ${spends.length?`<hr class="sep"><div style="font-size:.78rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Recently redeemed</div>${
+      spends.map(l=>`<div class="ledger-row"><span class="when">${fmtTs(l.ts)}</span><span class="lbl">${esc(l.label)}</span><span class="delta neg">${l.delta}</span></div>`).join("")}`:""}
+    <div class="note">Every cost is editable (✎). Redeeming spends the tickets and logs it, and the treat itself is yours to go enjoy. 🍨</div>`,
+    {kind:"shop"});
+  if(!rerender) sfx("open");
+}
+function redeem(id){
+  const p = state.prizes.find(x=>x.id===id);
+  if(!p || state.wallet < p.cost) return;
+  addLedger(-p.cost, `🏆 ${p.name}`);
+  save(); sfx("fanfare"); confetti(); toast(`🏆 ${p.name}, enjoy it, you earned it!`); birdHop();
+  renderAll();
+}
+function openPrizeEditor(id){
+  const p = id ? state.prizes.find(x=>x.id===id) : { emoji:"🎁", name:"", cost:100 };
+  openModal(`<h2>${id?"Edit prize":"New prize"} ${xBtn}</h2>
+    <div class="frow">
+      <div class="field" style="flex:0 0 70px"><label>Emoji</label><input id="pEmoji" value="${esc(p.emoji||"")}" maxlength="4"></div>
+      <div class="field"><label>Prize</label><input id="pName" value="${esc(p.name)}" placeholder="e.g. Bubble tea run"></div>
+      <div class="field" style="flex:0 0 110px"><label>Cost 🎟</label><input id="pCost" type="number" min="1" step="10" value="${p.cost}"></div>
+    </div>
+    <div class="btnrow">
+      <button class="btn" data-act="savePrize" data-id="${id||""}">Save</button>
+      <button class="btn ghost" data-act="close">Cancel</button>
+      <span class="spacer"></span>
+      ${id?`<button class="btn danger" data-act="deletePrize" data-id="${id}">Delete</button>`:""}
+    </div>`);
+  setTimeout(()=>$("#pName").focus(),50);
+}
+function savePrizeFromForm(id){
+  const name = $("#pName").value.trim(); if(!name){ $("#pName").focus(); return; }
+  const vals = { emoji:$("#pEmoji").value.trim()||"🎁", name, cost:Math.max(1,parseInt($("#pCost").value||"1",10)) };
+  if(id) Object.assign(state.prizes.find(p=>p.id===id), vals);
+  else state.prizes.push(Object.assign({id:uid()}, vals));
+  save(); openShop();
+}
+
+/* ---------- ledger ---------- */
+function fmtTs(ts){ const d=new Date(ts); return `${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function openLedger(){
+  const rows = state.ledger.slice(-120).reverse().map(l=>
+    `<div class="ledger-row"><span class="when">${fmtTs(l.ts)}</span><span class="lbl">${esc(l.label)}</span>
+     <span class="delta ${l.delta>=0?"pos":"neg"}">${l.delta>=0?"+":""}${l.delta}</span></div>`).join("");
+  openModal(`<h2>📜 Ticket history ${xBtn}</h2>${rows||'<div class="note">Nothing yet. Go check something off!</div>'}`);
+  sfx("open");
+}
+
+/* ---------- contan queue ---------- */
+function openContan(rerender){
+  const q = state.items.filter(i=>i.contan && !i.archived && !isDone(i));
+  const md = ["## Contan task queue — "+dayKeyOf(), ...q.map(i=>`- [ ] ${i.title} (${i.lane}${i.notes? "; "+i.notes:""})`)].join("\n");
+  openModal(`<h2>🤖 Contan queue ${xBtn}</h2>
+    ${q.length? q.map(i=>`<div class="item-row"><div class="t">${esc(i.title)}<span class="tag">${i.lane}</span>${i.notes?`<span class="sub">${esc(i.notes)}</span>`:""}</div><span class="pts">+${i.points} 🎟</span></div>`).join("")
+      : `<div class="note">No items flagged 🤖 right now. Flag any goal as "Contan can automate this" in its editor and it shows up here.</div>`}
+    <div class="btnrow">
+      <button class="btn" data-act="copyQueue" ${q.length?"":"disabled"}>Copy queue for Contan</button>
+    </div>
+    <div class="note">Copies a markdown checklist. Paste it into a Claude Code session and I'll take the automatable ones off your plate, then you cash in the tickets when they're verified done. Teamwork.</div>
+    <textarea id="queueMd" style="position:absolute;left:-9999px">${esc(md)}</textarea>`,
+    {kind:"contan"});
+  if(!rerender) sfx("open");
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  const retired = retiredOneShots();
+  openModal(`<h2>⚙️ Settings ${xBtn}</h2>
+    <div class="field"><label>App title</label><input id="sTitle" value="${esc(state.settings.title)}"></div>
+    <div class="frow">
+      <div class="field"><label>Week starts on</label><select id="sWeekStart">
+        <option value="1" ${state.settings.weekStart===1?"selected":""}>Monday</option>
+        <option value="0" ${state.settings.weekStart===0?"selected":""}>Sunday</option></select></div>
+    </div>
+    <label class="checkline"><input type="checkbox" id="sSounds" ${state.settings.sounds?"checked":""}> Sounds</label>
+    <div class="btnrow"><button class="btn" data-act="saveSettings">Save settings</button></div>
+    <hr class="sep">
+    <div class="btnrow">
+      <button class="btn ghost" data-act="export">⬇ Export save (JSON)</button>
+      <button class="btn ghost" data-act="import">⬆ Import save</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+    ${retired.length? `<hr class="sep"><div style="font-size:.78rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em">Retired one-shots</div>
+      ${retired.map(i=>`<div class="retired-row"><span style="flex:1">✓ ${esc(i.title)}</span><button data-act="reviveItem" data-id="${i.id}">bring back</button></div>`).join("")}`:""}
+    <hr class="sep">
+    <div class="btnrow"><button class="btn danger" data-act="resetAll">Reset EVERYTHING</button></div>
+    <div class="note">Local first. Everything lives in this browser's localStorage plus your exports, and nothing ever leaves your device.</div>`);
+  sfx("open");
+}
+function exportSave(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `arcade-save-${dayKeyOf()}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Save exported ⬇");
+}
+function importSave(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const s = JSON.parse(r.result);
+      if(!s || s.version!==1 || !Array.isArray(s.items)) throw new Error("not an arcade save");
+      state = s; save(); closeModal(); renderAll(); toast("Save imported ✓");
+    }catch(e){ alert("That file doesn't look like an arcade save. "+e.message); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- global click handling ---------- */
+document.addEventListener("click", e=>{
+  const openBtn = e.target.closest("[data-open]");
+  if(openBtn){ const k = openBtn.dataset.open; k==="shop" ? openShop() : openLane(k); return; }
+  const addBtn = e.target.closest("[data-add]");
+  if(addBtn){ openEditor(null, addBtn.dataset.add); return; }
+  const act = e.target.closest("[data-act]");
+  if(!act) return;
+  const id = act.dataset.id;
+  switch(act.dataset.act){
+    case "close": closeModal(); break;
+    case "toggle": toggleItem(act.closest(".item-row").dataset.id); break;
+    case "edit": openEditor(act.closest(".item-row").dataset.id); break;
+    case "saveItem": saveItemFromForm(id||null); break;
+    case "deleteItem": deleteItem(id); break;
+    case "addPrize": openPrizeEditor(null); break;
+    case "editPrize": openPrizeEditor(id); break;
+    case "savePrize": savePrizeFromForm(id||null); break;
+    case "deletePrize":
+      if(confirm("Delete this prize?")){ state.prizes = state.prizes.filter(p=>p.id!==id); save(); openShop(); }
+      break;
+    case "redeem": redeem(id); break;
+    case "copyQueue": {
+      const ta = $("#queueMd"); ta.select();
+      (navigator.clipboard? navigator.clipboard.writeText(ta.value) : Promise.reject())
+        .catch(()=>document.execCommand("copy"));
+      toast("Queue copied, paste it to Contan 🤖");
+      break;
+    }
+    case "adjustWallet": {
+      const v = prompt("Adjust tickets by how much? (e.g. 50 or -20)");
+      const n = parseInt(v,10);
+      if(!isNaN(n) && n!==0){ addLedger(n, "manual adjustment"); save(); renderAll(); }
+      break;
+    }
+    case "saveSettings":
+      state.settings.title = $("#sTitle").value.trim() || state.settings.title;
+      state.settings.weekStart = parseInt($("#sWeekStart").value,10);
+      state.settings.sounds = $("#sSounds").checked;
+      save(); closeModal(); renderAll(); toast("Settings saved ✓");
+      break;
+    case "export": exportSave(); break;
+    case "import": {
+      const f = $("#importFile");
+      f.onchange = () => f.files[0] && importSave(f.files[0]);
+      f.click(); break;
+    }
+    case "reviveItem": {
+      const it = state.items.find(i=>i.id===id);
+      it.done=false; it.doneTs=0; save(); openSettings(); renderAll(); break;
+    }
+    case "resetAll":
+      if(confirm("Reset EVERYTHING? This wipes all goals, tickets and history.") &&
+         confirm("Really really? Export a save first if you're not sure.")){
+        state = seedState(); save(); closeModal(); renderAll();
+      }
+      break;
+  }
+});
+$("#walletStat").addEventListener("click", ()=>openShop());
+$("#ledgerBtn").addEventListener("click", openLedger);
+$("#settingsBtn").addEventListener("click", openSettings);
+$("#contanBtn").addEventListener("click", ()=>openContan());
+$("#soundBtn").addEventListener("click", ()=>{ state.settings.sounds=!state.settings.sounds; save(); renderHeader(); if(state.settings.sounds) sfx("coin"); });
+$("#modeBtn").addEventListener("click", ()=>{
+  state.settings.mode = state.settings.mode==="hub" ? "dashboard" : "hub";
+  save(); renderAll(); sfx("open");
+});
+
+/* ---------- toasts + confetti ---------- */
+function toast(msg){
+  const t = document.createElement("div"); t.className="toast"; t.textContent=msg;
+  $("#toasts").appendChild(t); setTimeout(()=>t.remove(), 2800);
+}
+function confetti(){
+  const EM = ["🎟","✨","🎉","⭐","🎊"];
+  for(let i=0;i<26;i++){
+    const s = document.createElement("span"); s.className="confetti";
+    s.textContent = EM[i%EM.length];
+    s.style.left = (window.innerWidth/2)+"px"; s.style.top = (window.innerHeight/2)+"px";
+    s.style.setProperty("--dx", (Math.random()*440-220)+"px");
+    s.style.setProperty("--dy", (Math.random()*-360-40)+"px");
+    s.style.setProperty("--rot", (Math.random()*720-360)+"deg");
+    document.body.appendChild(s); setTimeout(()=>s.remove(), 1200);
+  }
+}
+
+/* ---------- sounds (tiny webaudio blips) ---------- */
+let actx = null;
+function chirp(kind){ // the bird's voice: quick rising sine syllables
+  if(!state.settings.sounds) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    const t0 = actx.currentTime;
+    const sylls = kind==="peep" ? [[0,1900,2500,.07]] : [[0,1800,2700,.08],[.11,2100,3100,.09]];
+    for(const [at,f0,f1,dur] of sylls){
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(f0, t0+at);
+      o.frequency.exponentialRampToValueAtTime(f1, t0+at+dur*.7);
+      o.frequency.exponentialRampToValueAtTime(f1*.85, t0+at+dur);
+      g.gain.setValueAtTime(.0001, t0+at);
+      g.gain.exponentialRampToValueAtTime(.05, t0+at+.015);
+      g.gain.exponentialRampToValueAtTime(.0001, t0+at+dur);
+      o.connect(g).connect(actx.destination);
+      o.start(t0+at); o.stop(t0+at+dur+.02);
+    }
+  }catch(e){}
+}
+function flutter(){ // soft wing flutter: tremolo-shaped filtered noise
+  if(!state.settings.sounds || document.hidden) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") return; // stay quiet until she has interacted
+    const dur = .32, t0 = actx.currentTime;
+    const buf = actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){
+      const t = i/actx.sampleRate;
+      const beats = .55 + .45*Math.sin(2*Math.PI*26*t);       // ~26 wingbeats/sec
+      d[i] = (Math.random()*2-1) * beats * Math.exp(-3.5*t);
+    }
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const bp = actx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1100; bp.Q.value=.9;
+    const g = actx.createGain(); g.gain.value = .028;
+    src.connect(bp).connect(g).connect(actx.destination);
+    src.start(t0);
+  }catch(e){}
+}
+setInterval(()=>{ if(Math.random()<.5){ flutter(); birdHop(); } }, 24000); // every 24 to 48s or so
+function sfx(kind){
+  if(!state.settings.sounds) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    const notes = { coin:[[880,0,.07],[1318,.07,.12]], un:[[440,0,.06],[330,.06,.09]],
+      open:[[660,0,.05]], fanfare:[[659,0,.1],[784,.1,.1],[988,.2,.1],[1318,.3,.22]] }[kind]||[];
+    for(const [f,at,dur] of notes){
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type="square"; o.frequency.value=f;
+      g.gain.setValueAtTime(.0001, actx.currentTime+at);
+      g.gain.exponentialRampToValueAtTime(.06, actx.currentTime+at+.01);
+      g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+at+dur);
+      o.connect(g).connect(actx.destination);
+      o.start(actx.currentTime+at); o.stop(actx.currentTime+at+dur+.02);
+    }
+  }catch(e){}
+}
+
+/* =====================================================
+   THE ARCADE - top-down pixel hub
+===================================================== */
+const COLS=20, ROWS=12, T=16;
+const cvs = $("#scene"), ctx = cvs.getContext("2d");
+const OBJS = [
+  { id:"daily",   label:"DAILY",   x:2,  y:1, w:2, h:2, col:"#ffb26b", col2:"#c26a2e" },
+  { id:"weekly",  label:"WEEKLY",  x:6,  y:1, w:2, h:2, col:"#8fd3a8", col2:"#3f8c5f" },
+  { id:"monthly", label:"MONTHLY", x:10, y:1, w:2, h:2, col:"#c3a6ff", col2:"#7458b5" },
+  { id:"shop",    label:"PRIZES",  x:14, y:1, w:4, h:2, col:"#ff8fa0", col2:"#c14b60", counter:true },
+];
+const BLOCKED = new Set(["1,10","18,10"]); // corner plants
+function walkableTile(x,y){
+  return x>=1 && x<=18 && y>=3 && y<=10 && !BLOCKED.has(x+","+y);
+}
+function objAt(x,y){ return OBJS.find(o => x>=o.x && x<o.x+o.w && y>=o.y && y<o.y+o.h); }
+function adjacentObj(px,py){
+  return OBJS.find(o => px>=o.x-1 && px<=o.x+o.w && py>=o.y-1 && py<=o.y+o.h);
+}
+const player = { tx:9, ty:8, x:9*T, y:8*T, face:1, moving:false, path:[], openOnArrive:null, hopUntil:0 };
+function birdHop(){ player.hopUntil = performance.now()+700; }
+
+/* bird sprite (10x8), keys: o outline, b body, e eye, k beak, w wing, .=empty */
+const BIRD = [
+  "...oooo...",
+  "..obbbbo..",
+  ".obbebbbo.",
+  ".obbbbbko.",
+  "obbbbbbo..",
+  "obwwwbbo..",
+  ".obbbbo...",
+  "..oo.oo...",
+];
+const BIRDC = { o:"#463229", b:"#f6d7a8", e:"#2e2320", k:"#e8903a", w:"#e07a5f" };
+
+function drawScene(now){
+  const frame = Math.floor(now/300);
+  // floor
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){
+    ctx.fillStyle = (y%2? "#c9975f":"#d3a26b");
+    if((x*3+y*7)%11===0) ctx.fillStyle = "#c08e56";
+    ctx.fillRect(x*T,y*T,T,T);
+    ctx.fillStyle = "rgba(0,0,0,.07)"; ctx.fillRect(x*T,y*T+T-1,T,1);
+  }
+  // rug
+  ctx.fillStyle="#a86648"; ctx.fillRect(6*T-4,5*T-4,8*T+8,4*T+8);
+  ctx.fillStyle="#e8b4a0"; ctx.fillRect(6*T,5*T,8*T,4*T);
+  ctx.fillStyle="#d98973";
+  for(let i=0;i<8;i++) ctx.fillRect(6*T+8+i*T, 5*T+2*T-2, 6, 4);
+  // walls (top band + side/bottom trim)
+  ctx.fillStyle="#7a5647"; ctx.fillRect(0,0,COLS*T,3*T);
+  ctx.fillStyle="#8d6754"; for(let x=0;x<COLS;x++) if(x%2) ctx.fillRect(x*T,0,T,3*T);
+  ctx.fillStyle="#5d4034"; ctx.fillRect(0,3*T-3,COLS*T,3);
+  ctx.fillStyle="#4a332a";
+  ctx.fillRect(0,0,T/2,ROWS*T); ctx.fillRect(COLS*T-T/2,0,T/2,ROWS*T); ctx.fillRect(0,ROWS*T-T/2,COLS*T,T/2);
+  // string lights
+  const LC=["#ff6b81","#ffd93d","#8fd3a8","#74b9ff"];
+  for(let i=1;i<19;i++){
+    ctx.fillStyle="rgba(0,0,0,.25)"; ctx.fillRect(i*T+6,4,2,2);
+    ctx.fillStyle = (frame+i)%4===0 ? "#fff" : LC[i%4];
+    ctx.fillRect(i*T+5,6,4,4);
+  }
+  // machines + counter
+  for(const o of OBJS){
+    const X=o.x*T, Y=o.y*T, W=o.w*T, H=o.h*T;
+    if(o.counter){
+      ctx.fillStyle="#5d4034"; ctx.fillRect(X,Y+H-10,W,10);            // counter base shadow
+      ctx.fillStyle="#a5713f"; ctx.fillRect(X,Y+6,W,H-10);             // body
+      ctx.fillStyle="#c98d55"; ctx.fillRect(X,Y+2,W,8);                // counter top
+      ctx.fillStyle="#8a5a30"; ctx.fillRect(X,Y+10,W,2);
+      // ticket roll
+      ctx.fillStyle="#e63946"; ctx.fillRect(X+8,Y+14,12,12);
+      ctx.fillStyle="#fff8ec"; ctx.fillRect(X+12,Y+18,4,4);
+      // prize shelf: little prizes
+      ctx.fillStyle="#ffd93d"; ctx.fillRect(X+28,Y+16,8,8);
+      ctx.fillStyle="#74b9ff"; ctx.fillRect(X+40,Y+14,8,10);
+      ctx.fillStyle="#ff8fa0"; ctx.fillRect(X+52,Y+17,7,7);
+      // star sign
+      ctx.fillStyle = (frame%2)? "#ffd93d" : "#ffb26b";
+      ctx.fillRect(X+W/2-3, Y-6, 6, 6);
+    }else{
+      ctx.fillStyle="rgba(0,0,0,.28)"; ctx.fillRect(X+2,Y+H-4,W-4,4);  // shadow
+      ctx.fillStyle="#3c2f45"; ctx.fillRect(X+1,Y,W-2,H-2);            // cabinet body
+      ctx.fillStyle=o.col2;    ctx.fillRect(X+1,Y,W-2,5);              // marquee
+      ctx.fillStyle=o.col;     ctx.fillRect(X+3,Y+1,W-6,3);
+      ctx.fillStyle="#14101c"; ctx.fillRect(X+5,Y+8,W-10,H-18);        // screen bezel
+      ctx.fillStyle=o.col;                                            // screen glow pixels
+      for(let i=0;i<6;i++){
+        const sx = X+7+((i*5+frame*3)%(W-16)), sy = Y+10+((i*7+frame*2)%(H-24));
+        ctx.globalAlpha = .35+((i+frame)%3)*.25;
+        ctx.fillRect(sx,sy,3,2);
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle="#2a2135"; ctx.fillRect(X+5,Y+H-9,W-10,4);         // control deck
+      ctx.fillStyle=o.col;     ctx.fillRect(X+8,Y+H-8,3,2); ctx.fillRect(X+14,Y+H-8,3,2);
+    }
+  }
+  // plants
+  for(const [px,py] of [[1,10],[18,10]]){
+    const X=px*T, Y=py*T;
+    ctx.fillStyle="#b3552e"; ctx.fillRect(X+4,Y+8,8,7);
+    ctx.fillStyle="#8a3e20"; ctx.fillRect(X+4,Y+8,8,2);
+    ctx.fillStyle="#6a994e"; ctx.fillRect(X+5,Y+2,6,7);
+    ctx.fillStyle="#81b29a"; ctx.fillRect(X+2,Y+4,5,5); ctx.fillRect(X+9,Y+3,5,6);
+  }
+  // player shadow + bird
+  const bx = Math.round(player.x)+3, byBase = Math.round(player.y)+4;
+  let yoff = 0;
+  if(now < player.hopUntil) yoff = -Math.abs(Math.sin(now/55)*3);
+  else if(player.moving) yoff = -Math.abs(Math.sin(now/70)*1.6);
+  else yoff = Math.sin(now/900)>0.995 ? -1 : 0;
+  ctx.fillStyle="rgba(0,0,0,.22)";
+  ctx.fillRect(bx+1, byBase+8, 8, 3);
+  const blink = Math.floor(now/2600)%8===0 && (now%2600)<160;
+  for(let r=0;r<BIRD.length;r++){
+    for(let c=0;c<BIRD[r].length;c++){
+      const ch = BIRD[r][c]; if(ch===".") continue;
+      const col = (ch==="e" && blink) ? BIRDC.b : BIRDC[ch];
+      const cc = player.face===1 ? c : (BIRD[r].length-1-c);
+      ctx.fillStyle = col;
+      ctx.fillRect(bx+cc, Math.round(byBase+yoff)+r, 1, 1);
+    }
+  }
+}
+
+/* movement */
+const held = new Set();
+const DIRS = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+               w:[0,-1], s:[0,1], a:[-1,0], d:[1,0] };
+document.addEventListener("keydown", e=>{
+  if($("#overlay").classList.contains("open")) return;
+  if(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const k = e.key.length===1 ? e.key.toLowerCase() : e.key;
+  if(DIRS[k]){
+    held.add(k); e.preventDefault();
+    player.path=[]; player.openOnArrive=null; player.peepOnArrive=false;
+    tryStep(DIRS[k][0], DIRS[k][1]); // step on tap; holding continues via the loop
+  }
+  if((e.key==="e" || e.key==="E" || e.key===" " || e.key==="Enter")){
+    const o = adjacentObj(player.tx, player.ty);
+    if(o){ e.preventDefault(); openObj(o); }
+  }
+});
+document.addEventListener("keyup", e=>{
+  const k = e.key.length===1 ? e.key.toLowerCase() : e.key; held.delete(k);
+});
+function openObj(o){ o.id==="shop" ? openShop() : openLane(o.id); }
+function tryStep(dx,dy){
+  if(player.moving) return;
+  if(dx) player.face = dx;
+  const nx = player.tx+dx, ny = player.ty+dy;
+  if(!walkableTile(nx,ny)) return;
+  player.tx = nx; player.ty = ny; player.moving = true;
+}
+function bfsPath(sx,sy,tx,ty){
+  if(sx===tx && sy===ty) return [];
+  const Q=[[sx,sy]], prev={}, seen=new Set([sx+","+sy]);
+  while(Q.length){
+    const [x,y]=Q.shift();
+    for(const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
+      const nx=x+dx, ny=y+dy, k=nx+","+ny;
+      if(seen.has(k) || !walkableTile(nx,ny)) continue;
+      seen.add(k); prev[k]=[x,y];
+      if(nx===tx && ny===ty){
+        const path=[[nx,ny]]; let cur=[x,y];
+        while(cur[0]!==sx || cur[1]!==sy){ path.unshift(cur); cur=prev[cur[0]+","+cur[1]]; }
+        return path;
+      }
+      Q.push([nx,ny]);
+    }
+  }
+  return null;
+}
+cvs.addEventListener("pointerdown", e=>{
+  const r = cvs.getBoundingClientRect();
+  const px = (e.clientX-r.left)/r.width*COLS*T;
+  const py = (e.clientY-r.top)/r.height*ROWS*T;
+  // tap the bird herself -> she chirps
+  if(Math.hypot(px-(player.x+8), py-(player.y+8)) < 15){
+    chirp(); birdHop(); return;
+  }
+  const tx = Math.floor(px/T), ty = Math.floor(py/T);
+  const o = objAt(tx,ty);
+  let goal = null;
+  if(o){
+    if(adjacentObj(player.tx,player.ty)===o){ openObj(o); return; }
+    // nearest walkable tile under the object
+    let best=null, bd=1e9;
+    for(let x=o.x-1; x<=o.x+o.w; x++) for(let y=o.y-1; y<=o.y+o.h; y++){
+      if(!walkableTile(x,y)) continue;
+      const d = Math.abs(x-player.tx)+Math.abs(y-player.ty);
+      if(d<bd){ bd=d; best=[x,y]; }
+    }
+    goal = best; player.openOnArrive = o;
+  }else if(walkableTile(tx,ty)){
+    goal = [tx,ty]; player.openOnArrive = null; player.peepOnArrive = true;
+  }
+  if(goal){
+    const p = bfsPath(player.tx, player.ty, goal[0], goal[1]);
+    if(p) player.path = p;
+  }
+});
+
+/* main loop */
+let lastT = 0;
+function loop(now){
+  const dt = Math.min(50, now-lastT); lastT = now;
+  if(player.moving){
+    const gx = player.tx*T, gy = player.ty*T, sp = 0.115*dt;
+    player.x += Math.sign(gx-player.x)*Math.min(sp, Math.abs(gx-player.x));
+    player.y += Math.sign(gy-player.y)*Math.min(sp, Math.abs(gy-player.y));
+    if(player.x===gx && player.y===gy){
+      player.moving = false;
+      if(!player.path.length && player.openOnArrive){
+        const o = player.openOnArrive; player.openOnArrive=null;
+        if(adjacentObj(player.tx,player.ty)===o) openObj(o);
+      }else if(!player.path.length && player.peepOnArrive){
+        player.peepOnArrive = false; chirp("peep");
+      }
+    }
+  }
+  if(!player.moving){
+    if(player.path.length){
+      const [nx,ny] = player.path.shift();
+      tryStep(nx-player.tx, ny-player.ty);
+    }else{
+      for(const k of held){ const d=DIRS[k]; if(d){ player.path=[]; player.openOnArrive=null; player.peepOnArrive=false; tryStep(d[0],d[1]); break; } }
+    }
+  }
+  drawScene(now);
+  // interact bubble
+  const o = adjacentObj(player.tx, player.ty);
+  const bub = $("#bubble");
+  if(o && !$("#overlay").classList.contains("open") && state.settings.mode==="hub"){
+    bub.style.display = "block";
+    bub.textContent = (matchMedia("(pointer:coarse)").matches ? "tap: " : "E: ") + o.label;
+    bub.style.left = ((player.x+8)/(COLS*T)*100)+"%";
+    bub.style.top  = ((player.y-6)/(ROWS*T)*100)+"%";
+  }else bub.style.display = "none";
+  requestAnimationFrame(loop);
+}
+
+/* object labels (DOM, crisp at any scale) */
+(function makeLabels(){
+  const box = $("#labels");
+  for(const o of OBJS){
+    const d = document.createElement("div");
+    d.className = "scene-label"; d.textContent = o.label;
+    d.style.left = ((o.x+o.w/2)/COLS*100)+"%";
+    d.style.top  = ((o.y+o.h)/ROWS*100+1)+"%";
+    box.appendChild(d);
+  }
+})();
+
+/* ---------- init ---------- */
+syncAutoItems(); save(); renderAll();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
