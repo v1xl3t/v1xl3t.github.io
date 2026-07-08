@@ -34,6 +34,7 @@ function setup() {
 
   x = START_X;
   y = START_Y;
+  randomSeed(chapterWorm0); // chapters are deterministic, so the timeline can replay them
 
   resetView();
 
@@ -51,25 +52,26 @@ let stepsPerFrame = 250;
 // looping function
 function draw() {
 
-  if (chapterPause > 0) {
-    // brief rest with the finished chapter on display
-    if (--chapterPause === 0) {
-      art.background(255);
-      x = START_X; y = START_Y;
-      bx0 = by0 = Infinity; bx1 = by1 = -Infinity;
+  if (playing) {
+    if (chapterPause > 0) {
+      // brief rest with the finished chapter on display
+      if (--chapterPause === 0) newChapter();
+    } else {
+      stepChunk(stepsPerFrame);
+      chapterMaxStep = Math.max(chapterMaxStep, chapterStep);
+      // chapter ends when the DRAWN band nears the stage edge, so no motif is
+      // ever clipped by the buffer boundary
+      if (bx1 - bx0 > ART_W - 420 || x > ART_W - 140 || bx0 < 60) chapterPause = 150;
     }
-  } else {
-    for (let n = 0; n < stepsPerFrame; n++) {
-      // draw current character in the string
-      drawIt(binaryString[stringWorm]);
-
-      // increment reading point within string, wrap end
-      stringWorm++;
-      if (stringWorm > binaryString.length-1) stringWorm = 0;
-    }
-    // reached the right edge: let the chapter breathe, then start the next
-    if (x > ART_W - 80) chapterPause = 150;
+  } else if (replayTarget !== null) {
+    // timeline scrub: rewinds restart the chapter, then fast-forward in bursts
+    if (replayTarget < chapterStep) rewindChapter();
+    const chunk = Math.min(30000, replayTarget - chapterStep);
+    if (chunk > 0) stepChunk(chunk);
+    if (chapterStep >= replayTarget) replayTarget = null;
+    chapterMaxStep = Math.max(chapterMaxStep, chapterStep);
   }
+  syncTimeline();
 
   // keep the canvas matched to the window (covers embedded/iframe resizes too)
   if (width !== windowWidth || height !== windowHeight) {
@@ -94,14 +96,59 @@ function draw() {
   pop();
 }
 
+function stepChunk(n) {
+  for (let i = 0; i < n; i++) {
+    drawIt(binaryString[(chapterWorm0 + chapterStep) % binaryString.length]);
+    chapterStep++;
+  }
+}
+
+function rewindChapter() {
+  art.background(255);
+  x = START_X; y = START_Y;
+  currentAngle = chapterAngle0;
+  chapterStep = 0;
+  randomSeed(chapterWorm0);
+  bx0 = by0 = Infinity; bx1 = by1 = -Infinity;
+}
+
+function newChapter() {
+  chapterWorm0 = (chapterWorm0 + chapterMaxStep) % binaryString.length;
+  chapterAngle0 = currentAngle;
+  chapterMaxStep = 0;
+  rewindChapter();
+}
+
+/* ------------- timeline: pause + scrub the chapter -------------- */
+function syncTimeline() {
+  const tl = document.getElementById("tl"), pp = document.getElementById("ppBtn");
+  if (!tl) return;
+  tl.max = chapterMaxStep;
+  if (replayTarget === null) tl.value = chapterStep;
+  pp.textContent = playing ? "⏸" : "▶";
+}
+window.primesTimeline = {
+  scrub(v) { playing = false; replayTarget = Math.max(0, Math.min(+v, chapterMaxStep)); },
+  toggle() {
+    playing = !playing;
+    if (playing) replayTarget = null; // resume drawing from wherever the scrub sits
+  },
+};
+
 /* ---------------- camera: zoom + pan controls ----------------
    wheel zooms toward the cursor, drag pans, pinch zooms on touch,
    double click (or the home button) resets the view              */
 
 const ART_W = 7000, ART_H = 2600;   // stage sized to the path's real band
-const START_X = 900, START_Y = 1750; // measured so the band fits the stage
+const START_X = 1000, START_Y = 1750; // measured so the band fits the stage
 let art;                // offscreen buffer the turtle draws into
 let chapterPause = 0;   // frames of rest between chapters
+let playing = true;         // false = manual timeline mode
+let chapterStep = 0;        // steps drawn in the current chapter
+let chapterMaxStep = 0;     // furthest this chapter has ever been drawn
+let chapterWorm0 = 0;       // where in the prime string this chapter began
+let chapterAngle0 = 0;      // turtle heading at chapter start
+let replayTarget = null;    // timeline scrub destination
 let zoom = 1, panX = 0, panY = 0;
 let pinchDist = 0;
 let interacted = false; // camera auto-follows the artwork until you take over

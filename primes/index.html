@@ -8,6 +8,12 @@
   </head>
   <body>
     <script src="sketch.js"></script>
+    <div class="timeline" aria-label="Chapter timeline">
+      <button id="ppBtn" onclick="primesTimeline.toggle()" title="Pause or resume the drawing">⏸</button>
+      <input id="tl" type="range" min="0" max="0" step="500" value="0"
+        oninput="primesTimeline.scrub(this.value)"
+        title="Scrub through this chapter like print layers">
+    </div>
     <div class="cam-controls" aria-label="Camera controls">
       <button onclick="primesCam.zin()"  title="Zoom in">＋</button>
       <button onclick="primesCam.zout()" title="Zoom out">－</button>
@@ -25,6 +31,18 @@
         box-shadow: 0 3px 10px rgba(20,30,60,.15);
       }
       .cam-controls button:hover { background: #eef2ff; }
+      .timeline {
+        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 10px;
+        background: #ffffffee; border: 1px solid #ccd; border-radius: 14px;
+        padding: 8px 14px; box-shadow: 0 3px 10px rgba(20,30,60,.15);
+        width: min(60vw, 520px);
+      }
+      .timeline button {
+        border: none; background: none; font-size: 17px; cursor: pointer; color: #345;
+        width: 30px; height: 30px; flex: none;
+      }
+      .timeline input[type="range"] { flex: 1; accent-color: #4a7dd6; cursor: pointer; }
     </style>
   </body>
 </html>
