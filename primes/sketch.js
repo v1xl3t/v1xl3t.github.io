@@ -35,6 +35,8 @@ function setup() {
   x = START_X;
   y = START_Y;
   randomSeed(chapterWorm0); // chapters are deterministic, so the timeline can replay them
+  const lo = document.getElementById("loading");
+  if (lo) lo.remove();
 
   resetView();
 
@@ -68,7 +70,10 @@ function draw() {
     if (replayTarget < chapterStep) rewindChapter();
     const chunk = Math.min(30000, replayTarget - chapterStep);
     if (chunk > 0) stepChunk(chunk);
-    if (chapterStep >= replayTarget) replayTarget = null;
+    if (chapterStep >= replayTarget) {
+      replayTarget = null;
+      if (resumeAfterReplay) { resumeAfterReplay = false; playing = true; }
+    }
     chapterMaxStep = Math.max(chapterMaxStep, chapterStep);
   }
   syncTimeline();
@@ -123,15 +128,26 @@ function newChapter() {
 function syncTimeline() {
   const tl = document.getElementById("tl"), pp = document.getElementById("ppBtn");
   if (!tl) return;
-  tl.max = chapterMaxStep;
-  if (replayTarget === null) tl.value = chapterStep;
+  // while a finger or cursor holds the slider, the human is the source of truth
+  if (!window.__tlDrag) {
+    tl.max = chapterMaxStep;
+    tl.value = chapterStep;
+  }
   pp.textContent = playing ? "⏸" : "▶";
 }
 window.primesTimeline = {
-  scrub(v) { playing = false; replayTarget = Math.max(0, Math.min(+v, chapterMaxStep)); },
+  scrub(v) {
+    playing = false; resumeAfterReplay = false;
+    replayTarget = Math.max(0, Math.min(+v, chapterMaxStep));
+  },
+  release(v) {
+    replayTarget = Math.max(0, Math.min(+v, chapterMaxStep));
+    if (replayTarget === chapterStep) { replayTarget = null; playing = true; }
+    else resumeAfterReplay = true; // finish the burst, then keep drawing
+  },
   toggle() {
-    playing = !playing;
-    if (playing) replayTarget = null; // resume drawing from wherever the scrub sits
+    playing = !playing; resumeAfterReplay = false;
+    if (playing) replayTarget = null;
   },
 };
 
@@ -149,6 +165,7 @@ let chapterMaxStep = 0;     // furthest this chapter has ever been drawn
 let chapterWorm0 = 0;       // where in the prime string this chapter began
 let chapterAngle0 = 0;      // turtle heading at chapter start
 let replayTarget = null;    // timeline scrub destination
+let resumeAfterReplay = false; // release the slider and playback continues
 let zoom = 1, panX = 0, panY = 0;
 let pinchDist = 0;
 let interacted = false; // camera auto-follows the artwork until you take over

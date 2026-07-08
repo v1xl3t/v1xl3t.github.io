@@ -7,12 +7,16 @@
 
   </head>
   <body>
+    <div id="loading">growing the L-system<span class="pulse">&hellip;</span></div>
     <script src="sketch.js"></script>
     <div class="timeline" aria-label="Chapter timeline">
       <button id="ppBtn" onclick="primesTimeline.toggle()" title="Pause or resume the drawing">⏸</button>
       <input id="tl" type="range" min="0" max="0" step="500" value="0"
+        onpointerdown="window.__tlDrag=1"
         oninput="primesTimeline.scrub(this.value)"
-        title="Scrub through this chapter like print layers">
+        onpointerup="window.__tlDrag=0; primesTimeline.release(this.value)"
+        onchange="window.__tlDrag=0; primesTimeline.release(this.value)"
+        title="Scrub through this chapter like print layers, playback resumes when you let go">
     </div>
     <div class="cam-controls" aria-label="Camera controls">
       <button onclick="primesCam.zin()"  title="Zoom in">＋</button>
@@ -43,6 +47,13 @@
         width: 30px; height: 30px; flex: none;
       }
       .timeline input[type="range"] { flex: 1; accent-color: #4a7dd6; cursor: pointer; }
+      #loading {
+        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: #fff; color: #678; font: 15px/1.4 -apple-system, "Segoe UI", sans-serif;
+        letter-spacing: .04em; z-index: 50;
+      }
+      .pulse { animation: pulse 1s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: .25; } }
     </style>
   </body>
 </html>
