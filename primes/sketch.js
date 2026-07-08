@@ -88,13 +88,19 @@ function draw() {
     panY += (t.py - panY) * 0.06;
   }
 
-  // render the artwork through the camera
+  // render the artwork through the camera. Only the visible slice of the
+  // buffer is composited, so deep zooms stay cheap and the page stays at
+  // full frame rate (blitting the whole scaled buffer melted the GPU).
   background(255);
-  push();
-  translate(panX, panY);
-  scale(zoom);
-  image(art, 0, 0);
-  pop();
+  const sx = Math.max(0, -panX / zoom);
+  const sy = Math.max(0, -panY / zoom);
+  const sw = Math.min(ART_W - sx, width / zoom);
+  const sh = Math.min(ART_H - sy, height / zoom);
+  if (sw > 0 && sh > 0) {
+    image(art,
+      panX + sx * zoom, panY + sy * zoom, sw * zoom, sh * zoom,
+      sx, sy, sw, sh);
+  }
 }
 
 function stepChunk(n) {
