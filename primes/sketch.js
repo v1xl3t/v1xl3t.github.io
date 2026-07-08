@@ -23,15 +23,17 @@ function preload() {
 // second function to run following 'preload()'
 function setup() {
 
-  // visible canvas fills the window; the artwork accumulates in a big
-  // offscreen buffer that the camera looks at
+  // visible canvas fills the window; the artwork accumulates in a wide
+  // offscreen buffer that the camera looks at. The turtle's path is a
+  // horizontal band (measured: ~2100px tall, marching right forever), so the
+  // stage is wide and short, and when the turtle reaches the right edge the
+  // piece begins a new chapter on a fresh canvas.
   createCanvas(windowWidth, windowHeight);
-  art = createGraphics(ART, ART);
+  art = createGraphics(ART_W, ART_H);
   art.background(255);
 
-  // determine start position (center of the artwork buffer)
-  x = ART/2;
-  y = ART/2;
+  x = START_X;
+  y = START_Y;
 
   resetView();
 
@@ -49,13 +51,24 @@ let stepsPerFrame = 250;
 // looping function
 function draw() {
 
-  for (let n = 0; n < stepsPerFrame; n++) {
-    // draw current character in the string
-    drawIt(binaryString[stringWorm]);
+  if (chapterPause > 0) {
+    // brief rest with the finished chapter on display
+    if (--chapterPause === 0) {
+      art.background(255);
+      x = START_X; y = START_Y;
+      bx0 = by0 = Infinity; bx1 = by1 = -Infinity;
+    }
+  } else {
+    for (let n = 0; n < stepsPerFrame; n++) {
+      // draw current character in the string
+      drawIt(binaryString[stringWorm]);
 
-    // increment reading point within string, wrap end
-    stringWorm++;
-    if (stringWorm > binaryString.length-1) stringWorm = 0;
+      // increment reading point within string, wrap end
+      stringWorm++;
+      if (stringWorm > binaryString.length-1) stringWorm = 0;
+    }
+    // reached the right edge: let the chapter breathe, then start the next
+    if (x > ART_W - 80) chapterPause = 150;
   }
 
   // keep the canvas matched to the window (covers embedded/iframe resizes too)
@@ -85,19 +98,23 @@ function draw() {
    wheel zooms toward the cursor, drag pans, pinch zooms on touch,
    double click (or the home button) resets the view              */
 
-const ART = 3000;       // artwork buffer size
+const ART_W = 7000, ART_H = 2600;   // stage sized to the path's real band
+const START_X = 900, START_Y = 1750; // measured so the band fits the stage
 let art;                // offscreen buffer the turtle draws into
+let chapterPause = 0;   // frames of rest between chapters
 let zoom = 1, panX = 0, panY = 0;
 let pinchDist = 0;
 let interacted = false; // camera auto-follows the artwork until you take over
 let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity; // drawn extent
 
-function fitZoom() { return Math.min(width, height) / ART; }
+function fitZoom() { return Math.min(width / ART_W, height / ART_H); }
 
 // fit the drawn artwork (with padding), or the whole buffer if empty
 function fitTarget() {
   let x0 = bx0, y0 = by0, x1 = bx1, y1 = by1;
-  if (!isFinite(x0) || x1 - x0 < 60 || y1 - y0 < 60) { x0 = 0; y0 = 0; x1 = ART; y1 = ART; }
+  if (!isFinite(x0) || x1 - x0 < 60 || y1 - y0 < 60) {
+    x0 = START_X - 200; y0 = START_Y - 200; x1 = START_X + 200; y1 = START_Y + 200;
+  }
   const pad = Math.max(40, (x1 - x0) * 0.08);
   x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
   const z = Math.min(width / (x1 - x0), height / (y1 - y0), 8);
