@@ -54,29 +54,16 @@ let stepsPerFrame = 250;
 // looping function
 function draw() {
 
-  if (playing) {
-    if (chapterPause > 0) {
-      // brief rest with the finished chapter on display
-      if (--chapterPause === 0) newChapter();
-    } else {
-      stepChunk(stepsPerFrame);
-      chapterMaxStep = Math.max(chapterMaxStep, chapterStep);
-      // chapter ends when the DRAWN band nears the stage edge, so no motif is
-      // ever clipped by the buffer boundary
-      if (bx1 - bx0 > ART_W - 420 || x > ART_W - 140 || bx0 < 60) chapterPause = 150;
-    }
-  } else if (replayTarget !== null) {
-    // timeline scrub: rewinds restart the chapter, then fast-forward in bursts
-    if (replayTarget < chapterStep) rewindChapter();
-    const chunk = Math.min(30000, replayTarget - chapterStep);
-    if (chunk > 0) stepChunk(chunk);
-    if (chapterStep >= replayTarget) {
-      replayTarget = null;
-      if (resumeAfterReplay) { resumeAfterReplay = false; playing = true; }
-    }
+  if (chapterPause > 0) {
+    // brief rest with the finished chapter on display
+    if (--chapterPause === 0) newChapter();
+  } else {
+    stepChunk(stepsPerFrame);
     chapterMaxStep = Math.max(chapterMaxStep, chapterStep);
+    // chapter ends when the DRAWN band nears the stage edge, so no motif is
+    // ever clipped by the buffer boundary
+    if (bx1 - bx0 > ART_W - 420 || x > ART_W - 140 || bx0 < 60) chapterPause = 150;
   }
-  syncTimeline();
 
   // keep the canvas matched to the window (covers embedded/iframe resizes too)
   if (width !== windowWidth || height !== windowHeight) {
@@ -124,33 +111,6 @@ function newChapter() {
   rewindChapter();
 }
 
-/* ------------- timeline: pause + scrub the chapter -------------- */
-function syncTimeline() {
-  const tl = document.getElementById("tl"), pp = document.getElementById("ppBtn");
-  if (!tl) return;
-  // while a finger or cursor holds the slider, the human is the source of truth
-  if (!window.__tlDrag) {
-    tl.max = chapterMaxStep;
-    tl.value = chapterStep;
-  }
-  pp.textContent = playing ? "⏸" : "▶";
-}
-window.primesTimeline = {
-  scrub(v) {
-    playing = false; resumeAfterReplay = false;
-    replayTarget = Math.max(0, Math.min(+v, chapterMaxStep));
-  },
-  release(v) {
-    replayTarget = Math.max(0, Math.min(+v, chapterMaxStep));
-    if (replayTarget === chapterStep) { replayTarget = null; playing = true; }
-    else resumeAfterReplay = true; // finish the burst, then keep drawing
-  },
-  toggle() {
-    playing = !playing; resumeAfterReplay = false;
-    if (playing) replayTarget = null;
-  },
-};
-
 /* ---------------- camera: zoom + pan controls ----------------
    wheel zooms toward the cursor, drag pans, pinch zooms on touch,
    double click (or the home button) resets the view              */
@@ -159,13 +119,10 @@ const ART_W = 7000, ART_H = 2600;   // stage sized to the path's real band
 const START_X = 1000, START_Y = 1750; // measured so the band fits the stage
 let art;                // offscreen buffer the turtle draws into
 let chapterPause = 0;   // frames of rest between chapters
-let playing = true;         // false = manual timeline mode
 let chapterStep = 0;        // steps drawn in the current chapter
-let chapterMaxStep = 0;     // furthest this chapter has ever been drawn
+let chapterMaxStep = 0;     // steps in the finished chapter
 let chapterWorm0 = 0;       // where in the prime string this chapter began
 let chapterAngle0 = 0;      // turtle heading at chapter start
-let replayTarget = null;    // timeline scrub destination
-let resumeAfterReplay = false; // release the slider and playback continues
 let zoom = 1, panX = 0, panY = 0;
 let pinchDist = 0;
 let interacted = false; // camera auto-follows the artwork until you take over
