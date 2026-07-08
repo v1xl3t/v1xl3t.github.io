@@ -519,8 +519,6 @@ function openShop(rerender){
     <div class="prize-grid">${rows}</div>
     <div class="btnrow">
       <button class="btn ghost" data-act="addPrize">＋ add prize</button>
-      <span class="spacer"></span>
-      <button class="btn ghost" data-act="adjustWallet" title="Manual ticket correction">± adjust tickets</button>
     </div>
     ${spends.length?`<hr class="sep"><div style="font-size:.78rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Recently redeemed</div>${
       spends.map(l=>`<div class="ledger-row"><span class="when">${fmtTs(l.ts)}</span><span class="lbl">${esc(l.label)}</span><span class="delta neg">${l.delta}</span></div>`).join("")}`:""}
@@ -657,12 +655,6 @@ document.addEventListener("click", e=>{
       (navigator.clipboard? navigator.clipboard.writeText(ta.value) : Promise.reject())
         .catch(()=>document.execCommand("copy"));
       toast("Queue copied, paste it to Contan 🤖");
-      break;
-    }
-    case "adjustWallet": {
-      const v = prompt("Adjust tickets by how much? (e.g. 50 or -20)");
-      const n = parseInt(v,10);
-      if(!isNaN(n) && n!==0){ addLedger(n, "manual adjustment"); save(); renderAll(); }
       break;
     }
     case "saveSettings":
