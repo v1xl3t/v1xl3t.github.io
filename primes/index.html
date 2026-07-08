@@ -13,6 +13,11 @@
       <div>growing the L-system<span class="pulse">&hellip;</span></div>
     </div>
     <script src="sketch.js"></script>
+    <div class="speed" aria-label="Animation speed">
+      <button data-speed="1" onclick="primesSpeed.set(1, this)">1x</button>
+      <button data-speed="2" onclick="primesSpeed.set(2, this)">2x</button>
+      <button data-speed="3" class="on" onclick="primesSpeed.set(3, this)">3x</button>
+    </div>
     <div class="cam-controls" aria-label="Camera controls">
       <button onclick="primesCam.zin()"  title="Zoom in">＋</button>
       <button onclick="primesCam.zout()" title="Zoom out">－</button>
@@ -30,6 +35,17 @@
         box-shadow: 0 3px 10px rgba(20,30,60,.15);
       }
       .cam-controls button:hover { background: #eef2ff; }
+      .speed {
+        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+        display: flex; gap: 4px; background: #ffffffee; border: 1px solid #ccd;
+        border-radius: 12px; padding: 5px; box-shadow: 0 3px 10px rgba(20,30,60,.15);
+      }
+      .speed button {
+        border: none; background: none; color: #678; font-size: 13px; font-weight: 700;
+        padding: 6px 13px; border-radius: 8px; cursor: pointer;
+      }
+      .speed button:hover { background: #eef2ff; }
+      .speed button.on { background: #4a7dd6; color: #fff; }
       #loading {
         position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px;
         align-items: center; justify-content: center;
