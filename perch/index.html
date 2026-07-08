@@ -81,11 +81,37 @@ canvas#scene{display:block; width:100%; image-rendering:pixelated; background:#1
 .quick-btn:hover{transform:translateY(-1px)}
 
 /* ---------- dashboard ---------- */
-#dash{display:none; width:100%; max-width:1060px; padding:8px 14px 30px}
+#dash{display:none; width:100%; max-width:1060px; padding:8px 14px 30px; overflow-x:clip}
 body.dashboard #dash{display:block}
 body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{display:none}
 .lanes{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px}
 .lane-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:14px; display:flex; flex-direction:column}
+
+/* ---------- 3D lane carousel (narrow screens) ---------- */
+.lanes.carousel{display:block}
+.car-wrap{width:var(--carW); margin:4px auto 0}
+.car-stage{perspective:1300px; height:min(60vh,540px); position:relative; pointer-events:none}
+.car-card.front{pointer-events:auto}
+.car-ring{ position:absolute; inset:0 }
+.car-card{
+  position:absolute; inset:0;
+  overflow-y:auto; overscroll-behavior:contain; pointer-events:none;
+  transition:transform .55s cubic-bezier(.22,.61,.36,1), opacity .45s, filter .45s;
+}
+.car-card:not(.front){opacity:.42; filter:saturate(.6)}
+.floor-shadow{
+  width:72%; height:15px; margin:16px auto 0; border-radius:50%;
+  background:radial-gradient(ellipse at center, rgba(40,25,15,.3), transparent 70%);
+  filter:blur(3px);
+}
+.car-nav{display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px}
+.car-arrow{
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:6px 12px; box-shadow:var(--shadow); font-size:.85rem;
+}
+.car-arrow:hover{background:var(--panel2)}
+.car-dot{font-size:.95rem; opacity:.38; padding:4px 6px; transition:opacity .2s, transform .2s}
+.car-dot.on{opacity:1; transform:scale(1.25)}
 .lane-head{display:flex; align-items:baseline; gap:8px; margin-bottom:4px}
 .lane-head h2{font-size:.85rem}
 .lane-head .reset{margin-left:auto; font-size:.7rem; color:var(--ink2)}
@@ -532,12 +558,61 @@ function laneHTML(lane, compact){
     <div class="items">${visibleItems(lane).map(itemRowHTML).join("")}</div>
     <button class="add-row" data-add="${lane}">＋ add ${lane} item</button>`;
 }
+const prizePanelHTML = () => `<div class="lane-head"><h2>🎟 Prize Counter</h2></div>
+        <div style="font-size:.85rem;color:var(--ink2);margin-bottom:10px">You have <b>${state.wallet} 🎟</b>. Trade tickets for treats.</div>
+        <button class="btn" data-open="shop" style="align-self:flex-start">Open the counter</button>`;
+let carIdx = 0;
+const CAR_PANELS = [
+  { icon:"☀️", label:"Daily" }, { icon:"🌿", label:"Weekly" },
+  { icon:"🌙", label:"Monthly" }, { icon:"🎟", label:"Prizes" },
+];
 function renderDash(){
   if(state.settings.mode!=="dashboard") return;
-  $("#lanesGrid").innerHTML = LANES.map(l=>`<div class="lane-card" data-lane="${l}">${laneHTML(l)}</div>`).join("")
-    + `<div class="lane-card"><div class="lane-head"><h2>🎟 Prize Counter</h2></div>
-        <div style="font-size:.85rem;color:var(--ink2);margin-bottom:10px">Trade tickets for treats.</div>
-        <button class="btn" data-open="shop" style="align-self:flex-start">Open the counter</button></div>`;
+  const grid = $("#lanesGrid");
+  if(window.innerWidth >= 900){
+    grid.className = "lanes";
+    grid.innerHTML = LANES.map(l=>`<div class="lane-card" data-lane="${l}">${laneHTML(l)}</div>`).join("")
+      + `<div class="lane-card">${prizePanelHTML()}</div>`;
+    return;
+  }
+  // narrow screens: the lanes ride a rotating 3D carousel
+  grid.className = "lanes carousel";
+  const w = Math.min(window.innerWidth * 0.86, 380);
+  const panels = LANES.map(l=>`<div class="car-card lane-card" data-lane="${l}">${laneHTML(l)}</div>`)
+    .concat(`<div class="car-card lane-card">${prizePanelHTML()}</div>`);
+  grid.innerHTML = `<div class="car-wrap" style="--carW:${w}px;--carR:${Math.round(w/2+28)}px">
+      <div class="car-stage"><div class="car-ring">${panels.join("")}</div></div>
+      <div class="floor-shadow"></div>
+      <div class="car-nav">
+        <button class="car-arrow" data-car="-1" title="previous card">◀</button>
+        ${CAR_PANELS.map((p,i)=>`<button class="car-dot" data-cardot="${i}" title="${p.label}">${p.icon}</button>`).join("")}
+        <button class="car-arrow" data-car="1" title="next card">▶</button>
+      </div>
+    </div>`;
+  const wrap = grid.querySelector(".car-wrap");
+  let sx = null;
+  wrap.addEventListener("touchstart", e=>{ sx = e.touches[0].clientX; }, {passive:true});
+  wrap.addEventListener("touchend", e=>{
+    if(sx===null) return;
+    const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if(Math.abs(dx) > 40){ carIdx = (carIdx + (dx<0?1:-1) + 4) % 4; updateCar(); sfx("open"); }
+  }, {passive:true});
+  updateCar();
+}
+function updateCar(){
+  const ring = document.querySelector(".car-ring");
+  if(!ring) return;
+  [...ring.children].forEach((c,i)=>{
+    const d = (i - carIdx + 4) % 4; // 0 front, 1 right, 3 left, 2 tucked behind
+    let t, o, z;
+    if(d===0){      t = "translateX(0) rotateY(0deg) scale(1)";        o = 1;   z = 3; }
+    else if(d===1){ t = "translateX(58%) rotateY(-34deg) scale(.88)";  o = .45; z = 2; }
+    else if(d===3){ t = "translateX(-58%) rotateY(34deg) scale(.88)";  o = .45; z = 2; }
+    else {          t = "translateX(0) rotateY(0deg) scale(.76)";      o = 0;   z = 1; }
+    c.style.transform = t; c.style.opacity = o; c.style.zIndex = z;
+    c.classList.toggle("front", d===0);
+  });
+  document.querySelectorAll(".car-dot").forEach((d,i)=>d.classList.toggle("on", i===carIdx));
 }
 let modalKind = null; // {kind:'lane'|'shop'|..., lane?}
 function renderAll(){
@@ -745,6 +820,10 @@ document.addEventListener("click", e=>{
   if(openBtn){ const k = openBtn.dataset.open; k==="shop" ? openShop() : openLane(k); return; }
   const addBtn = e.target.closest("[data-add]");
   if(addBtn){ openEditor(null, addBtn.dataset.add); return; }
+  const arrow = e.target.closest("[data-car]");
+  if(arrow){ carIdx = (carIdx + parseInt(arrow.dataset.car,10) + 4) % 4; updateCar(); sfx("open"); return; }
+  const dot = e.target.closest("[data-cardot]");
+  if(dot){ carIdx = parseInt(dot.dataset.cardot,10); updateCar(); sfx("open"); return; }
   const act = e.target.closest("[data-act]");
   if(!act) return;
   const id = act.dataset.id;
@@ -1187,6 +1266,11 @@ function loop(now){
 })();
 
 /* ---------- init ---------- */
+let rszTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(rszTimer);
+  rszTimer = setTimeout(()=>{ if(state.settings.mode==="dashboard") renderDash(); }, 200);
+});
 syncAutoItems(); save(); renderAll();
 requestAnimationFrame(loop);
 </script>
