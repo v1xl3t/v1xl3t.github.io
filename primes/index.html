@@ -12,41 +12,10 @@
       <div class="trail" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <div>growing the L-system<span class="pulse">&hellip;</span></div>
     </div>
-    <script src="sketch.js?v=10"></script>
-    <div class="speed" aria-label="Animation speed">
-      <button data-speed="1" class="on">1x</button>
-      <button data-speed="2">2x</button>
-      <button data-speed="3">3x</button>
-    </div>
-    <div class="cam-controls" aria-label="Camera controls">
-      <button data-cam="zin" title="Zoom in">＋</button>
-      <button data-cam="zout" title="Zoom out">－</button>
-      <button data-cam="home" title="Fit the whole drawing">⌂</button>
-    </div>
+    <script src="sketch.js?v=11"></script>
     <style>
       html, body { margin: 0; overflow: hidden; }
       canvas { display: block; touch-action: none; position: relative; z-index: 0; }
-      .speed, .cam-controls { z-index: 20; }
-      .cam-controls {
-        position: fixed; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px;
-      }
-      .cam-controls button {
-        width: 42px; height: 42px; border-radius: 12px; border: 1px solid #ccd;
-        background: #ffffffee; color: #345; font-size: 18px; cursor: pointer;
-        box-shadow: 0 3px 10px rgba(20,30,60,.15);
-      }
-      .cam-controls button:hover { background: #eef2ff; }
-      .speed {
-        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
-        display: flex; gap: 4px; background: #ffffffee; border: 1px solid #ccd;
-        border-radius: 12px; padding: 5px; box-shadow: 0 3px 10px rgba(20,30,60,.15);
-      }
-      .speed button {
-        border: none; background: none; color: #678; font-size: 13px; font-weight: 700;
-        padding: 6px 13px; border-radius: 8px; cursor: pointer;
-      }
-      .speed button:hover { background: #eef2ff; }
-      .speed button.on { background: #4a7dd6; color: #fff; }
       #loading {
         position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px;
         align-items: center; justify-content: center;
