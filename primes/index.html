@@ -2,12 +2,29 @@
 <html lang="en">
   <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.2.0/p5.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.2.0/addons/p5.sound.min.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8" />
 
   </head>
   <body>
     <script src="sketch.js"></script>
+    <div class="cam-controls" aria-label="Camera controls">
+      <button onclick="primesCam.zin()"  title="Zoom in">＋</button>
+      <button onclick="primesCam.zout()" title="Zoom out">－</button>
+      <button onclick="primesCam.home()" title="Fit the whole drawing">⌂</button>
+    </div>
+    <style>
+      html, body { margin: 0; overflow: hidden; }
+      canvas { display: block; touch-action: none; }
+      .cam-controls {
+        position: fixed; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px;
+      }
+      .cam-controls button {
+        width: 42px; height: 42px; border-radius: 12px; border: 1px solid #ccd;
+        background: #ffffffee; color: #345; font-size: 18px; cursor: pointer;
+        box-shadow: 0 3px 10px rgba(20,30,60,.15);
+      }
+      .cam-controls button:hover { background: #eef2ff; }
+    </style>
   </body>
 </html>

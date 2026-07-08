@@ -22,14 +22,18 @@ function preload() {
 
 // second function to run following 'preload()'
 function setup() {
-  
-  // instantiate graphics window
-  createCanvas(3000, 3000);
-  background(255);
 
-  // determine start position (center)
-  x = width/2;
-  y = height-(height/2);
+  // visible canvas fills the window; the artwork accumulates in a big
+  // offscreen buffer that the camera looks at
+  createCanvas(windowWidth, windowHeight);
+  art = createGraphics(ART, ART);
+  art.background(255);
+
+  // determine start position (center of the artwork buffer)
+  x = ART/2;
+  y = ART/2;
+
+  resetView();
 
   // compute L-system
   for (let i = 0; i < numLoops; i++) {
@@ -54,7 +58,80 @@ function draw() {
     if (stringWorm > binaryString.length-1) stringWorm = 0;
   }
 
+  // render the artwork through the camera
+  background(244);
+  push();
+  translate(panX, panY);
+  scale(zoom);
+  image(art, 0, 0);
+  pop();
 }
+
+/* ---------------- camera: zoom + pan controls ----------------
+   wheel zooms toward the cursor, drag pans, pinch zooms on touch,
+   double click (or the home button) resets the view              */
+
+const ART = 3000;       // artwork buffer size
+let art;                // offscreen buffer the turtle draws into
+let zoom = 1, panX = 0, panY = 0;
+let pinchDist = 0;
+
+function fitZoom() { return Math.min(width, height) / ART; }
+
+function resetView() {
+  zoom = fitZoom();
+  panX = (width  - ART * zoom) / 2;
+  panY = (height - ART * zoom) / 2;
+}
+
+function zoomAt(mx, my, factor) {
+  const next = constrain(zoom * factor, fitZoom() * 0.5, 8);
+  factor = next / zoom;
+  panX = mx - (mx - panX) * factor;
+  panY = my - (my - panY) * factor;
+  zoom = next;
+}
+
+function mouseWheel(e) {
+  zoomAt(mouseX, mouseY, e.delta > 0 ? 0.9 : 1.1);
+  return false; // keep the page from scrolling
+}
+
+function mouseDragged() {
+  if (touches.length > 1) return false; // pinch handles two fingers
+  panX += movedX;
+  panY += movedY;
+  return false;
+}
+
+function doubleClicked() { resetView(); }
+
+function touchMoved() {
+  if (touches.length === 2) {
+    const d = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
+    const cx = (touches[0].x + touches[1].x) / 2;
+    const cy = (touches[0].y + touches[1].y) / 2;
+    if (pinchDist > 0) zoomAt(cx, cy, d / pinchDist);
+    pinchDist = d;
+    return false;
+  }
+  pinchDist = 0;
+  return mouseDragged();
+}
+
+function touchEnded() { pinchDist = 0; }
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  resetView();
+}
+
+// on-screen buttons (added by index.html)
+window.primesCam = {
+  zin:  () => zoomAt(width/2, height/2, 1.35),
+  zout: () => zoomAt(width/2, height/2, 1/1.35),
+  home: () => resetView(),
+};
 
 // L-system calculator
 function lindenmayer(s) {
@@ -122,7 +199,7 @@ function drawIt(k) {
     let x1 = x + step*cos(radians(currentAngle));
     let y1 = y + step*sin(radians(currentAngle));
     // connect the old and the new
-    line(x, y, x1, y1);
+    art.line(x, y, x1, y1);
 
     // update turtle position
     x = x1;
@@ -148,7 +225,7 @@ function drawIt(k) {
   radius = radius / 5;
 
   // draw new frame
-  fill(r, g, b, a);
-  stroke(r, g, b, a);
-  ellipse(x, y, radius, radius);
+  art.fill(r, g, b, a);
+  art.stroke(r, g, b, a);
+  art.ellipse(x, y, radius, radius);
 }
