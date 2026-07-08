@@ -214,6 +214,35 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .prize .pedit{position:absolute; top:6px; right:8px; opacity:.35; font-size:.8rem}
 .prize .pedit:hover{opacity:1}
 
+/* ---------- calendar ---------- */
+#modal.wide{width:min(920px,100%)}
+.cal-head{display:flex; align-items:center; gap:8px; margin-bottom:10px}
+.cal-head .mon{font-family:ui-monospace,monospace; font-weight:800; font-size:.95rem; letter-spacing:.05em; flex:1; text-align:center}
+.cal-nav{background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:5px 12px}
+.cal-nav:hover{border-color:var(--accent)}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.cal-dow{font-size:.62rem; color:var(--ink2); text-align:center; font-weight:800; text-transform:uppercase; padding:2px 0}
+.cal-cell{
+  min-height:66px; border:1px solid var(--line); border-radius:9px; padding:3px 4px;
+  background:var(--panel2); cursor:pointer; display:flex; flex-direction:column; gap:2px; overflow:hidden;
+  text-align:left;
+}
+.cal-cell:hover{border-color:var(--accent)}
+.cal-cell.out{opacity:.35}
+.cal-cell.today .dnum{background:var(--accent); color:#fff; border-radius:99px; padding:0 5px}
+.cal-cell.sel{background:var(--panel); border-color:var(--accent); box-shadow:var(--shadow)}
+.cal-cell .dnum{font-size:.66rem; font-weight:800; color:var(--ink2); align-self:flex-start}
+.cchip{
+  font-size:.56rem; line-height:1.45; background:var(--peach); color:#5c4520; border-radius:5px;
+  padding:0 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; max-width:100%;
+}
+.cchip.done{background:var(--sage); color:#fff; text-decoration:line-through}
+.cchip.carried{background:var(--lav); color:#3c2c56}
+.cal-more{font-size:.55rem; color:var(--ink2); pointer-events:none}
+.cal-day-panel{margin-top:14px; border-top:1px solid var(--line); padding-top:10px}
+.cal-day-panel h3{font-size:.8rem; margin-bottom:6px; color:var(--ink2)}
+@media (max-width:560px){ .cal-cell{min-height:46px; padding:2px 3px} }
+
 /* ---------- ledger ---------- */
 .ledger-row{display:flex; gap:10px; padding:6px 4px; border-bottom:1px solid var(--line); font-size:.85rem; align-items:baseline}
 .ledger-row .when{flex:none; width:104px; color:var(--ink2); font-size:.72rem; font-family:ui-monospace,monospace}
@@ -247,6 +276,7 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
   <div class="hdr-spacer"></div>
   <button class="stat clicky" id="walletStat" title="Open the prize counter">🎟 <span id="walletVal">0</span></button>
   <div class="stat" id="streakStat" title="Days in a row with every required daily done">🔥 <span id="streakVal">0</span></div>
+  <button class="hdr-btn" id="calBtn" title="Calendar">📅</button>
   <button class="hdr-btn" id="undoBtn" title="Undo (Ctrl+Z)">↩</button>
   <button class="hdr-btn" id="redoBtn" title="Redo (Ctrl+Y)">↪</button>
   <button class="hdr-btn" id="modeBtn" title="Toggle arcade / dashboard view">🕹️</button>
@@ -621,6 +651,7 @@ function renderAll(){
     if(modalKind.kind==="lane") openLane(modalKind.lane, true);
     else if(modalKind.kind==="shop") openShop(true);
     else if(modalKind.kind==="contan") openContan(true);
+    else if(modalKind.kind==="cal") openCalendar(true);
   }
 }
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -631,7 +662,7 @@ function openModal(html, kind){
   $("#modal").innerHTML = html;
   $("#overlay").classList.add("open");
 }
-function closeModal(){ modalKind=null; $("#overlay").classList.remove("open"); }
+function closeModal(){ modalKind=null; $("#overlay").classList.remove("open"); $("#modal").classList.remove("wide"); }
 $("#overlay").addEventListener("click", e=>{ if(e.target.id==="overlay") closeModal(); });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
 
@@ -655,7 +686,10 @@ function openEditor(itemId, lane){
       <div class="field"><label>Points 🎟</label><input id="fPts" type="number" min="0" step="5" value="${v.points}"></div>
     </div>
     <label class="checkline"><input type="checkbox" id="fRepeat" ${v.repeat?"checked":""}> Repeats every cycle <span style="color:var(--ink2);font-size:.78rem">(unchecked = one-shot, retires when done)</span></label>
-    <div class="frow"><div class="field" style="flex:0 0 170px"><label>Times per cycle ↻</label><input id="fLoopN" type="number" min="1" max="24" value="${v.loopN||1}" title="e.g. 2 for meds taken AM and PM"></div></div>
+    <div class="frow">
+      <div class="field" style="flex:0 0 170px"><label>Times per cycle ↻</label><input id="fLoopN" type="number" min="1" max="24" value="${v.loopN||1}" title="e.g. 2 for meds taken AM and PM"></div>
+      <div class="field" style="flex:0 0 190px"><label>On the calendar 📅</label><input id="fDue" type="date" value="${v.due||""}"></div>
+    </div>
     <label class="checkline"><input type="checkbox" id="fBonus" ${v.bonus?"checked":""}> ⭐ Bonus (optional, pure extra points)</label>
     <label class="checkline"><input type="checkbox" id="fContan" ${v.contan?"checked":""}> 🤖 ${esc(aName())} can automate this (adds it to the queue)</label>
     <div class="field"><label>Notes</label><textarea id="fNotes" rows="2">${esc(v.notes)}</textarea></div>
@@ -676,6 +710,7 @@ function saveItemFromForm(id){
     repeat: $("#fRepeat").checked, bonus: $("#fBonus").checked,
     contan: $("#fContan").checked, notes: $("#fNotes").value.trim(),
     loopN: Math.max(1, Math.min(24, parseInt($("#fLoopN").value||"1",10))),
+    due: $("#fDue").value || null,
   };
   if(id){ Object.assign(state.items.find(i=>i.id===id), vals); }
   else{ state.items.push(Object.assign({ id:uid(), auto:null, done:false, doneTs:0, archived:false }, vals)); }
@@ -752,6 +787,75 @@ function openLedger(){
   sfx("open");
 }
 
+/* ---------- calendar ---------- */
+let calY, calM, selDay, calPicking = false;
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function openCalendar(rerender){
+  if(!rerender){
+    const now = new Date();
+    calY = now.getFullYear(); calM = now.getMonth();
+    selDay = dayKeyOf(); calPicking = false;
+  }
+  const today = dayKeyOf();
+  const ws = state.settings.weekStart;
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const dows = Array.from({length:7}, (_,i)=>DOW[(i+ws)%7]);
+  const first = new Date(calY, calM, 1);
+  const offset = (first.getDay() - ws + 7) % 7;
+  const scheduled = dk => state.items.filter(i => !i.archived && i.due === dk);
+  const carried = state.items.filter(i => !i.archived && i.due && i.due < today && !isDone(i)
+    && !(!i.repeat && i.done));
+  let cells = "";
+  for(let i=0; i<42; i++){
+    const d = new Date(calY, calM, 1 - offset + i);
+    const dk = dayKeyOf(d);
+    const items = scheduled(dk);
+    const extra = dk===today ? carried.filter(c => c.due !== today) : [];
+    const chips = items.slice(0,3).map(it =>
+      `<span class="cchip ${isDone(it)?"done":""}">${esc(it.title)}</span>`)
+      .concat(extra.slice(0, 3-Math.min(items.length,3)).map(it =>
+        `<span class="cchip carried">↪ ${esc(it.title)}</span>`));
+    const more = items.length + extra.length - chips.length;
+    cells += `<button class="cal-cell ${d.getMonth()!==calM?"out":""} ${dk===today?"today":""} ${dk===selDay?"sel":""}"
+      data-calday="${dk}"><span class="dnum">${d.getDate()}</span>${chips.join("")}${more>0?`<span class="cal-more">+${more} more</span>`:""}</button>`;
+  }
+  const selItems = scheduled(selDay);
+  const selCarried = selDay===today ? carried.filter(c => c.due !== today) : [];
+  const dayRow = (it, isCarry) => `<div class="item-row ${isDone(it)?"done":""}" data-id="${it.id}">
+      <button class="check" data-act="toggle" ${it.auto?"disabled":""}>✓</button>
+      <div class="t"><span class="ttl">${esc(it.title)}</span>${isCarry?`<span class="tag" title="carried over from ${it.due}">↪ carried</span>`:""}<span class="tag">${it.lane}</span></div>
+      <span class="pts">+${it.points} 🎟</span>
+      <button class="edit" data-act="unsched" title="remove from calendar">✕</button>
+    </div>`;
+  const pickerHTML = () => {
+    const cands = state.items.filter(i => !i.archived && !i.auto &&
+      !(!i.repeat && i.done) && i.due !== selDay);
+    return `<h3>Pick an item to schedule on ${selDay}</h3>
+      ${cands.map(it => `<div class="item-row" data-id="${it.id}">
+        <div class="t"><span class="ttl">${esc(it.title)}</span><span class="tag">${it.lane}</span>${it.due?`<span class="tag">now on ${it.due}</span>`:""}</div>
+        <button class="btn ghost" data-act="schedSet" data-id="${it.id}" style="padding:4px 12px;font-size:.78rem">here</button>
+      </div>`).join("") || '<div class="note">Everything is already scheduled.</div>'}
+      <div class="btnrow"><button class="btn ghost" data-act="schedCancel">Back</button></div>`;
+  };
+  const panelHTML = calPicking ? pickerHTML() :
+    `<h3>${selDay === today ? "Today, " : ""}${selDay}</h3>
+     ${selItems.map(it => dayRow(it,false)).join("")}${selCarried.map(it => dayRow(it,true)).join("")}
+     ${!selItems.length && !selCarried.length ? '<div class="note">Nothing scheduled this day.</div>' : ""}
+     <button class="add-row" data-act="schedOpen">＋ schedule an item on this day</button>`;
+  openModal(`<h2>📅 Calendar ${xBtn}</h2>
+    <div class="cal-head">
+      <button class="cal-nav" data-act="calPrev" title="previous month">◀</button>
+      <span class="mon">${MONTHS[calM]} ${calY}</span>
+      <button class="cal-nav" data-act="calNext" title="next month">▶</button>
+    </div>
+    <div class="cal-grid">${dows.map(d=>`<span class="cal-dow">${d}</span>`).join("")}${cells}</div>
+    <div class="cal-day-panel">${panelHTML}</div>
+    <div class="note">Tap a day to see or schedule items. Unfinished scheduled items drift gently onto today with a ↪, no alarms, no guilt.</div>`,
+    {kind:"cal"});
+  $("#modal").classList.add("wide");
+  if(!rerender) sfx("open");
+}
+
 /* ---------- contan queue ---------- */
 function openContan(rerender){
   const q = state.items.filter(i=>i.contan && !i.archived && !isDone(i));
@@ -816,6 +920,8 @@ function importSave(file){
 
 /* ---------- global click handling ---------- */
 document.addEventListener("click", e=>{
+  const dayBtn = e.target.closest("[data-calday]");
+  if(dayBtn){ selDay = dayBtn.dataset.calday; calPicking = false; openCalendar(true); return; }
   const openBtn = e.target.closest("[data-open]");
   if(openBtn){ const k = openBtn.dataset.open; k==="shop" ? openShop() : openLane(k); return; }
   const addBtn = e.target.closest("[data-add]");
@@ -835,6 +941,20 @@ document.addEventListener("click", e=>{
     case "up": moveItem(act.closest(".item-row").dataset.id, -1); break;
     case "down": moveItem(act.closest(".item-row").dataset.id, 1); break;
     case "noteToggle": act.closest(".item-row").classList.toggle("notes-open"); break;
+    case "calPrev": calM--; if(calM<0){calM=11;calY--;} openCalendar(true); break;
+    case "calNext": calM++; if(calM>11){calM=0;calY++;} openCalendar(true); break;
+    case "schedOpen": calPicking = true; openCalendar(true); break;
+    case "schedCancel": calPicking = false; openCalendar(true); break;
+    case "schedSet": {
+      const it = state.items.find(i=>i.id===id);
+      it.due = selDay; calPicking = false;
+      save(); renderAll(); toast(`📅 ${it.title} scheduled`);
+      break;
+    }
+    case "unsched": {
+      const it = state.items.find(i=>i.id===act.closest(".item-row").dataset.id);
+      it.due = null; save(); renderAll(); break;
+    }
     case "saveItem": saveItemFromForm(id||null); break;
     case "deleteItem": deleteItem(id); break;
     case "addPrize": openPrizeEditor(null); break;
@@ -878,6 +998,7 @@ document.addEventListener("click", e=>{
 });
 $("#walletStat").addEventListener("click", ()=>openShop());
 $("#ledgerBtn").addEventListener("click", openLedger);
+$("#calBtn").addEventListener("click", ()=>openCalendar());
 $("#settingsBtn").addEventListener("click", openSettings);
 $("#contanBtn").addEventListener("click", ()=>openContan());
 $("#soundBtn").addEventListener("click", ()=>{ state.settings.sounds=!state.settings.sounds; save(); renderHeader(); if(state.settings.sounds) sfx("coin"); });
