@@ -58,8 +58,22 @@ function draw() {
     if (stringWorm > binaryString.length-1) stringWorm = 0;
   }
 
+  // keep the canvas matched to the window (covers embedded/iframe resizes too)
+  if (width !== windowWidth || height !== windowHeight) {
+    resizeCanvas(windowWidth, windowHeight);
+  }
+
+  // auto-follow: ease the camera around the growing drawing until Vi's
+  // visitor grabs the controls themselves
+  if (!interacted) {
+    const t = fitTarget();
+    zoom += (t.z - zoom) * 0.06;
+    panX += (t.px - panX) * 0.06;
+    panY += (t.py - panY) * 0.06;
+  }
+
   // render the artwork through the camera
-  background(244);
+  background(255);
   push();
   translate(panX, panY);
   scale(zoom);
@@ -75,16 +89,29 @@ const ART = 3000;       // artwork buffer size
 let art;                // offscreen buffer the turtle draws into
 let zoom = 1, panX = 0, panY = 0;
 let pinchDist = 0;
+let interacted = false; // camera auto-follows the artwork until you take over
+let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity; // drawn extent
 
 function fitZoom() { return Math.min(width, height) / ART; }
 
+// fit the drawn artwork (with padding), or the whole buffer if empty
+function fitTarget() {
+  let x0 = bx0, y0 = by0, x1 = bx1, y1 = by1;
+  if (!isFinite(x0) || x1 - x0 < 60 || y1 - y0 < 60) { x0 = 0; y0 = 0; x1 = ART; y1 = ART; }
+  const pad = Math.max(40, (x1 - x0) * 0.08);
+  x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
+  const z = Math.min(width / (x1 - x0), height / (y1 - y0), 8);
+  return { z, px: (width - (x0 + x1) * z) / 2, py: (height - (y0 + y1) * z) / 2 };
+}
+
 function resetView() {
-  zoom = fitZoom();
-  panX = (width  - ART * zoom) / 2;
-  panY = (height - ART * zoom) / 2;
+  const t = fitTarget();
+  zoom = t.z; panX = t.px; panY = t.py;
+  interacted = false; // hand the camera back to auto-follow
 }
 
 function zoomAt(mx, my, factor) {
+  interacted = true;
   const next = constrain(zoom * factor, fitZoom() * 0.5, 8);
   factor = next / zoom;
   panX = mx - (mx - panX) * factor;
@@ -99,6 +126,7 @@ function mouseWheel(e) {
 
 function mouseDragged() {
   if (touches.length > 1) return false; // pinch handles two fingers
+  interacted = true;
   panX += movedX;
   panY += movedY;
   return false;
@@ -123,7 +151,7 @@ function touchEnded() { pinchDist = 0; }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  resetView();
+  if (!interacted) resetView();
 }
 
 // on-screen buttons (added by index.html)
@@ -228,4 +256,8 @@ function drawIt(k) {
   art.fill(r, g, b, a);
   art.stroke(r, g, b, a);
   art.ellipse(x, y, radius, radius);
+
+  // grow the artwork's known bounding box (the camera follows this)
+  if (x < bx0) bx0 = x; if (x > bx1) bx1 = x;
+  if (y < by0) by0 = y; if (y > by1) by1 = y;
 }
