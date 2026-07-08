@@ -107,7 +107,28 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .item-row .t{flex:1; min-width:0; font-size:.92rem; line-height:1.25}
 .item-row.done .t{color:var(--ink2)}
 .item-row.done .ttl{text-decoration:line-through}
-.item-row .sub{display:block; font-size:.7rem; color:var(--ink2); text-decoration:none}
+.item-row .sub{display:none; font-size:.7rem; color:var(--ink2); text-decoration:none}
+.item-row.notes-open .sub{display:block}
+.item-row .noteb{font-size:.65rem; color:var(--ink2); padding:0 4px; vertical-align:1px}
+.item-row.notes-open .noteb{transform:rotate(180deg)}
+.item-row .mover{display:flex; flex-direction:column; gap:0; opacity:0; transition:opacity .15s; margin-right:-4px}
+.item-row:hover .mover{opacity:.45}
+.item-row .mover:hover{opacity:1}
+.item-row .mover button{font-size:.5rem; line-height:1.1; padding:1px 3px; color:var(--ink2)}
+.item-row .mover button:hover{color:var(--accent)}
+@media (pointer:coarse){ .item-row .mover{opacity:.3} }
+.item-row .loopb{
+  flex:none; font-size:.68rem; font-weight:800; padding:2px 7px; border-radius:999px;
+  border:1px solid var(--line); color:var(--ink2); font-family:ui-monospace,monospace;
+}
+.item-row .loopb:hover{border-color:var(--accent); color:var(--accent)}
+.item-row .check.multi{font-size:.6rem; font-weight:800; font-family:ui-monospace,monospace}
+.item-row.partial .check{border-color:var(--peach); color:#5c4520; background:var(--peach)}
+#hintCorner{
+  position:fixed; left:12px; bottom:10px; z-index:40; max-width:46vw;
+  font-size:.72rem; color:var(--ink2); font-family:ui-monospace,monospace;
+  pointer-events:none; opacity:.85; line-height:1.3;
+}
 .item-row .pts{
   flex:none; font-size:.74rem; font-weight:800; padding:3px 8px; border-radius:999px;
   background:var(--peach); color:#5c4520; font-family:ui-monospace,monospace;
@@ -200,6 +221,8 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
   <div class="hdr-spacer"></div>
   <button class="stat clicky" id="walletStat" title="Open the prize counter">🎟 <span id="walletVal">0</span></button>
   <div class="stat" id="streakStat" title="Days in a row with every required daily done">🔥 <span id="streakVal">0</span></div>
+  <button class="hdr-btn" id="undoBtn" title="Undo (Ctrl+Z)">↩</button>
+  <button class="hdr-btn" id="redoBtn" title="Redo (Ctrl+Y)">↪</button>
   <button class="hdr-btn" id="modeBtn" title="Toggle arcade / dashboard view">🕹️</button>
   <button class="hdr-btn" id="contanBtn" title="Contan task queue">🤖 <span class="badge" id="contanCount" style="display:none">0</span></button>
   <button class="hdr-btn" id="ledgerBtn" title="Ticket history">📜</button>
@@ -226,6 +249,7 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
 
 <div id="overlay"><div id="modal"></div></div>
 <div id="toasts"></div>
+<div id="hintCorner"></div>
 
 <script>
 "use strict";
@@ -286,7 +310,33 @@ function load(){
   }catch(e){ console.warn("load failed", e); }
   return seedState();
 }
-function save(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+let undoStack = [], redoStack = [], suppressUndo = false;
+function save(){
+  const next = JSON.stringify(state);
+  if(!suppressUndo){
+    const prev = localStorage.getItem(SAVE_KEY);
+    if(prev && prev !== next){
+      undoStack.push(prev);
+      if(undoStack.length > 40) undoStack.shift();
+      redoStack.length = 0;
+    }
+  }
+  localStorage.setItem(SAVE_KEY, next);
+}
+function doUndo(){
+  if(!undoStack.length) return;
+  redoStack.push(JSON.stringify(state));
+  state = JSON.parse(undoStack.pop());
+  suppressUndo = true; save(); suppressUndo = false;
+  renderAll(); toast("↩ undone"); sfx("un");
+}
+function doRedo(){
+  if(!redoStack.length) return;
+  undoStack.push(JSON.stringify(state));
+  state = JSON.parse(redoStack.pop());
+  suppressUndo = true; save(); suppressUndo = false;
+  renderAll(); toast("↪ redone"); sfx("open");
+}
 
 /* ---------- periods ---------- */
 function dayKeyOf(d=new Date()){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
@@ -317,7 +367,16 @@ const LANE_META = {
   monthly:{ label:"Monthly", icon:"🌙", color:"var(--lav)" },
 };
 function compsOf(item){ return state.completions[item.id] || (state.completions[item.id]={}); }
-function isDone(item){ return !!compsOf(item)[periodKey(item.lane)]; }
+function loopN(item){ return Math.max(1, item.loopN || 1); }
+function compCount(item, pk = periodKey(item.lane)){
+  const v = compsOf(item)[pk];
+  return Array.isArray(v) ? v.length : (v ? 1 : 0);
+}
+function lastCompTs(item, pk){
+  const v = compsOf(item)[pk];
+  return Array.isArray(v) ? v[v.length-1] : v;
+}
+function isDone(item){ return compCount(item) >= loopN(item); }
 function visibleItems(lane){
   const pk = periodKey(lane);
   return state.items.filter(i => {
@@ -339,16 +398,56 @@ function toggleItem(id){
   const item = state.items.find(i=>i.id===id);
   if(!item || item.auto) return;
   const pk = periodKey(item.lane), comp = compsOf(item);
-  if(comp[pk]){
-    delete comp[pk]; addLedger(-item.points, "↩ "+item.title);
-    if(!item.repeat){ item.done=false; item.doneTs=0; }
-    sfx("un");
+  const n = loopN(item), cur = compCount(item, pk);
+  if(n === 1){
+    if(cur){
+      delete comp[pk]; addLedger(-item.points, "↩ "+item.title);
+      if(!item.repeat){ item.done=false; item.doneTs=0; }
+      sfx("un");
+    }else{
+      comp[pk] = Date.now(); addLedger(item.points, item.title);
+      if(!item.repeat){ item.done=true; item.doneTs=Date.now(); }
+      sfx("coin"); toast(`+${item.points} 🎟  ${item.title}`); birdHop();
+    }
   }else{
-    comp[pk] = Date.now(); addLedger(item.points, item.title);
-    if(!item.repeat){ item.done=true; item.doneTs=Date.now(); }
-    sfx("coin"); toast(`+${item.points} 🎟  ${item.title}`); birdHop();
+    // multi-count loops (e.g. meds AM + PM): clicks count up, a click when full resets
+    const arr = Array.isArray(comp[pk]) ? comp[pk] : (comp[pk] ? [comp[pk]] : []);
+    if(cur >= n){
+      addLedger(-item.points * arr.length, "↩ "+item.title);
+      delete comp[pk]; sfx("un");
+    }else{
+      arr.push(Date.now()); comp[pk] = arr;
+      addLedger(item.points, `${item.title} (${arr.length}/${n})`);
+      sfx("coin"); toast(`+${item.points} 🎟  ${item.title}  ${arr.length}/${n}`); birdHop();
+    }
   }
   syncAutoItems(); save(); renderAll();
+}
+function cycleLoopMode(item){
+  if(item.auto) return;
+  if(!item.repeat){                       // Once Only -> Loop every cycle
+    item.repeat = true; item.loopN = 1; item.done=false; item.doneTs=0;
+    toast("↻ loops every cycle");
+  }else if(loopN(item) === 1){            // Loop -> Custom (N per cycle)
+    const per = item.lane==="daily" ? "day" : item.lane==="weekly" ? "week" : "month";
+    const v = parseInt(prompt(`How many times per ${per}?`, "2"), 10);
+    if(v >= 2){ item.loopN = v; toast(`↻ custom, ${v}× per ${per}`); }
+    else { item.repeat = false; item.loopN = 1; toast("1× once only, retires when done"); }
+  }else{                                  // Custom -> Once Only
+    item.repeat = false; item.loopN = 1;
+    toast("1× once only, retires when done");
+  }
+  save(); renderAll();
+}
+function moveItem(id, dir){
+  const item = state.items.find(i=>i.id===id);
+  if(!item) return;
+  const lane = visibleItems(item.lane);
+  const target = lane[lane.indexOf(item) + dir];
+  if(!target) return;
+  const a = state.items.indexOf(item), b = state.items.indexOf(target);
+  state.items[a] = target; state.items[b] = item;
+  save(); renderAll();
 }
 /* link items: daily "check a weekly" / weekly "check a monthly" */
 function syncAutoItems(){
@@ -358,7 +457,7 @@ function syncAutoItems(){
     const srcLane = a.auto; // 'weekly' or 'monthly'
     const should = state.items.some(s => {
       if(s.lane!==srcLane || s.auto || s.archived) return false;
-      const ts = compsOf(s)[periodKey(srcLane)];
+      const ts = lastCompTs(s, periodKey(srcLane));
       if(!ts) return false;
       const d = new Date(ts);
       return a.lane==="daily" ? dayKeyOf(d)===today : weekKeyOf(d)===thisWeek;
@@ -378,7 +477,8 @@ function streak(){
   if(!daily.length) return 0;
   let n=0; const d = new Date();
   const doneOn = dk => daily.every(i => {
-    const c = state.completions[i.id]; return c && c[dk];
+    const c = state.completions[i.id], v = c && c[dk];
+    return (Array.isArray(v) ? v.length : (v ? 1 : 0)) >= loopN(i);
   });
   if(!doneOn(dayKeyOf(d))) d.setDate(d.getDate()-1); // today not done yet doesn't break streak
   for(let k=0; k<400; k++){
@@ -401,17 +501,23 @@ function renderHeader(){
   document.body.classList.toggle("dashboard", state.settings.mode==="dashboard");
 }
 function itemRowHTML(item){
-  const done = isDone(item);
+  const done = isDone(item), n = loopN(item), cur = compCount(item);
   const tags = [
     item.auto ? `<span class="tag" title="auto-completes via linked lane">🔗 auto</span>` : "",
     item.bonus ? `<span class="tag" title="optional, pure bonus points">⭐ bonus</span>` : "",
-    !item.repeat ? `<span class="tag" title="one cycle only, retires when done">1×</span>` : "",
-    item.contan ? `<span class="tag" title="in the Contan queue">🤖</span>` : "",
+    item.contan ? `<span class="tag" title="in the assistant queue">🤖</span>` : "",
   ].join("");
-  const notes = item.notes ? `<span class="sub">${esc(item.notes)}</span>` : "";
-  return `<div class="item-row ${done?"done":""} ${item.bonus?"bonus":""}" data-id="${item.id}">
-    <button class="check" data-act="toggle" ${item.auto?'disabled title="Auto item, it completes itself when you check an item in the linked lane"':""}>✓</button>
+  const notes = item.notes ? `<button class="noteb" data-act="noteToggle" title="show notes">▾</button><span class="sub">${esc(item.notes)}</span>` : "";
+  const loopLabel = !item.repeat ? "1×" : (n>1 ? `↻${n}` : "↻");
+  const loopTitle = !item.repeat ? "Once only. Click to cycle loop mode"
+    : n>1 ? `Loops ${n}× per cycle. Click to cycle loop mode`
+    : "Loops every cycle. Click to cycle loop mode";
+  const checkFace = (n>1 && cur>0 && !done) ? `${cur}/${n}` : "✓";
+  return `<div class="item-row ${done?"done":""} ${item.bonus?"bonus":""} ${(n>1&&cur>0&&!done)?"partial":""}" data-id="${item.id}">
+    <span class="mover"><button data-act="up" title="move up">▲</button><button data-act="down" title="move down">▼</button></span>
+    <button class="check ${n>1?"multi":""}" data-act="toggle" ${item.auto?'disabled title="Auto item, it completes itself when you check an item in the linked lane"':`title="${n>1?`${cur} of ${n} this cycle`:"check off"}"`}>${checkFace}</button>
     <div class="t"><span class="ttl">${esc(item.title)}</span>${tags}${notes}</div>
+    ${item.auto?"":`<button class="loopb" data-act="loopMode" title="${loopTitle}">${loopLabel}</button>`}
     <button class="pts" data-act="edit" title="edit points">+${item.points} 🎟</button>
     <button class="edit" data-act="edit" title="edit">✎</button>
   </div>`;
@@ -474,6 +580,7 @@ function openEditor(itemId, lane){
       <div class="field"><label>Points 🎟</label><input id="fPts" type="number" min="0" step="5" value="${v.points}"></div>
     </div>
     <label class="checkline"><input type="checkbox" id="fRepeat" ${v.repeat?"checked":""}> Repeats every cycle <span style="color:var(--ink2);font-size:.78rem">(unchecked = one-shot, retires when done)</span></label>
+    <div class="frow"><div class="field" style="flex:0 0 170px"><label>Times per cycle ↻</label><input id="fLoopN" type="number" min="1" max="24" value="${v.loopN||1}" title="e.g. 2 for meds taken AM and PM"></div></div>
     <label class="checkline"><input type="checkbox" id="fBonus" ${v.bonus?"checked":""}> ⭐ Bonus (optional, pure extra points)</label>
     <label class="checkline"><input type="checkbox" id="fContan" ${v.contan?"checked":""}> 🤖 ${esc(aName())} can automate this (adds it to the queue)</label>
     <div class="field"><label>Notes</label><textarea id="fNotes" rows="2">${esc(v.notes)}</textarea></div>
@@ -493,6 +600,7 @@ function saveItemFromForm(id){
     title, lane: $("#fLane").value, points: Math.max(0, parseInt($("#fPts").value||"0",10)),
     repeat: $("#fRepeat").checked, bonus: $("#fBonus").checked,
     contan: $("#fContan").checked, notes: $("#fNotes").value.trim(),
+    loopN: Math.max(1, Math.min(24, parseInt($("#fLoopN").value||"1",10))),
   };
   if(id){ Object.assign(state.items.find(i=>i.id===id), vals); }
   else{ state.items.push(Object.assign({ id:uid(), auto:null, done:false, doneTs:0, archived:false }, vals)); }
@@ -644,6 +752,10 @@ document.addEventListener("click", e=>{
     case "close": closeModal(); break;
     case "toggle": toggleItem(act.closest(".item-row").dataset.id); break;
     case "edit": openEditor(act.closest(".item-row").dataset.id); break;
+    case "loopMode": cycleLoopMode(state.items.find(i=>i.id===act.closest(".item-row").dataset.id)); break;
+    case "up": moveItem(act.closest(".item-row").dataset.id, -1); break;
+    case "down": moveItem(act.closest(".item-row").dataset.id, 1); break;
+    case "noteToggle": act.closest(".item-row").classList.toggle("notes-open"); break;
     case "saveItem": saveItemFromForm(id||null); break;
     case "deleteItem": deleteItem(id); break;
     case "addPrize": openPrizeEditor(null); break;
@@ -693,6 +805,50 @@ $("#soundBtn").addEventListener("click", ()=>{ state.settings.sounds=!state.sett
 $("#modeBtn").addEventListener("click", ()=>{
   state.settings.mode = state.settings.mode==="hub" ? "dashboard" : "hub";
   save(); renderAll(); sfx("open");
+});
+$("#undoBtn").addEventListener("click", doUndo);
+$("#redoBtn").addEventListener("click", doRedo);
+document.addEventListener("keydown", e=>{
+  if(!(e.ctrlKey||e.metaKey)) return;
+  if(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const k = e.key.toLowerCase();
+  if(k==="z" && !e.shiftKey){ e.preventDefault(); doUndo(); }
+  else if(k==="y" || (k==="z" && e.shiftKey)){ e.preventDefault(); doRedo(); }
+});
+
+/* corner hint (CADence style): whatever you hover explains itself bottom-left */
+const hintEl = $("#hintCorner");
+let hintTapTimer = null;
+document.addEventListener("mouseover", e=>{
+  const t = e.target.closest("[title]");
+  hintEl.textContent = t ? t.getAttribute("title") : "";
+});
+document.addEventListener("click", e=>{
+  const t = e.target.closest("[title]");
+  if(!t || !matchMedia("(pointer:coarse)").matches) return;
+  hintEl.textContent = t.getAttribute("title");
+  clearTimeout(hintTapTimer);
+  hintTapTimer = setTimeout(()=>{ hintEl.textContent=""; }, 2500);
+});
+
+/* notes auto-open after hovering a row for 3 seconds (PC only) */
+let noteHoverTimer = null;
+document.addEventListener("mouseover", e=>{
+  const row = e.target.closest(".item-row");
+  clearTimeout(noteHoverTimer);
+  if(!row || !row.querySelector(".sub") || row.classList.contains("notes-open")) return;
+  noteHoverTimer = setTimeout(()=>{
+    row.classList.add("notes-open");
+    row.dataset.hoverOpened = "1";
+  }, 3000);
+});
+document.addEventListener("mouseout", e=>{
+  const row = e.target.closest(".item-row");
+  clearTimeout(noteHoverTimer);
+  if(row && row.dataset.hoverOpened && !row.contains(e.relatedTarget)){
+    row.classList.remove("notes-open");
+    delete row.dataset.hoverOpened;
+  }
 });
 
 /* ---------- toasts + confetti ---------- */
