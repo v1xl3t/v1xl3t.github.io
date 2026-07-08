@@ -12,20 +12,21 @@
       <div class="trail" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <div>growing the L-system<span class="pulse">&hellip;</span></div>
     </div>
-    <script src="sketch.js"></script>
+    <script src="sketch.js?v=9"></script>
     <div class="speed" aria-label="Animation speed">
-      <button data-speed="1" onclick="primesSpeed.set(1, this)">1x</button>
-      <button data-speed="2" onclick="primesSpeed.set(2, this)">2x</button>
-      <button data-speed="3" class="on" onclick="primesSpeed.set(3, this)">3x</button>
+      <button data-speed="1" class="on">1x</button>
+      <button data-speed="2">2x</button>
+      <button data-speed="3">3x</button>
     </div>
     <div class="cam-controls" aria-label="Camera controls">
-      <button onclick="primesCam.zin()"  title="Zoom in">＋</button>
-      <button onclick="primesCam.zout()" title="Zoom out">－</button>
-      <button onclick="primesCam.home()" title="Fit the whole drawing">⌂</button>
+      <button data-cam="zin" title="Zoom in">＋</button>
+      <button data-cam="zout" title="Zoom out">－</button>
+      <button data-cam="home" title="Fit the whole drawing">⌂</button>
     </div>
     <style>
       html, body { margin: 0; overflow: hidden; }
-      canvas { display: block; touch-action: none; }
+      canvas { display: block; touch-action: none; position: relative; z-index: 0; }
+      .speed, .cam-controls { z-index: 20; }
       .cam-controls {
         position: fixed; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px;
       }

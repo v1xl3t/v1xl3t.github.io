@@ -39,6 +39,7 @@ function setup() {
   if (lo) lo.remove();
 
   resetView();
+  wireControls();
 
   // compute L-system
   for (let i = 0; i < numLoops; i++) {
@@ -51,15 +52,13 @@ function setup() {
 // several per frame reaches the same result faster for the embedded view.
 // Speeds: 1x is a slow meditative build, 3x is the classic embedded pace.
 const SPEED_STEPS = { 1: 83, 2: 166, 3: 250 };
-let stepsPerFrame = SPEED_STEPS[3];
+let stepsPerFrame = SPEED_STEPS[1]; // start meditative, speed up on request
 
-window.primesSpeed = {
-  set(mult, btn) {
-    stepsPerFrame = SPEED_STEPS[mult] || SPEED_STEPS[3];
-    document.querySelectorAll(".speed button").forEach(b =>
-      b.classList.toggle("on", b === btn));
-  },
-};
+function setSpeed(mult, btn) {
+  stepsPerFrame = SPEED_STEPS[mult] || SPEED_STEPS[1];
+  document.querySelectorAll(".speed button").forEach(b =>
+    b.classList.toggle("on", b === btn));
+}
 
 // looping function
 function draw() {
@@ -202,12 +201,19 @@ function windowResized() {
   if (!interacted) resetView();
 }
 
-// on-screen buttons (added by index.html)
-window.primesCam = {
+// on-screen buttons: wired here (not inline) so a cached page can never
+// point at handlers that do not exist yet
+const CAM_FNS = {
   zin:  () => zoomAt(width/2, height/2, 1.35),
   zout: () => zoomAt(width/2, height/2, 1/1.35),
   home: () => resetView(),
 };
+function wireControls() {
+  document.querySelectorAll(".speed button").forEach(b =>
+    b.addEventListener("click", () => setSpeed(+b.dataset.speed, b)));
+  document.querySelectorAll("[data-cam]").forEach(b =>
+    b.addEventListener("click", () => CAM_FNS[b.dataset.cam]()));
+}
 
 // L-system calculator
 function lindenmayer(s) {
