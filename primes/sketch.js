@@ -57,8 +57,12 @@ function preload() {
 }
 
 function setup() {
+  // cap densities: phones default to 3x, which would silently triple every
+  // canvas dimension (the art buffer alone became ~360MB and killed the tab)
+  pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
   createCanvas(windowWidth, windowHeight);
   art = createGraphics(ART_W, ART_H);
+  art.pixelDensity(1);
   art.background(255);
   x = START_X;
   y = START_Y;
