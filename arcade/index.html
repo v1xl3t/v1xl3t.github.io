@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Goal Arcade</title>
+<title>Perch</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟</text></svg>">
 <style>
 :root{
@@ -196,7 +196,7 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
 <body>
 
 <header>
-  <h1 id="appTitle">Goal Arcade<small>daily · weekly · monthly · prizes</small></h1>
+  <h1 id="appTitle">Perch<small>daily · weekly · monthly · prizes</small></h1>
   <div class="hdr-spacer"></div>
   <button class="stat clicky" id="walletStat" title="Open the prize counter">🎟 <span id="walletVal">0</span></button>
   <div class="stat" id="streakStat" title="Days in a row with every required daily done">🔥 <span id="streakVal">0</span></div>
@@ -250,7 +250,7 @@ function seedState(){
     notes:o.notes||"", done:false, doneTs:0, archived:false });
   return {
     version:1,
-    settings:{ title:"Goal Arcade", weekStart:1, sounds:true, mode:"hub", assistantName:"Assistant" },
+    settings:{ title:"Perch", weekStart:1, sounds:true, mode:"hub", assistantName:"Assistant" },
     wallet:0,
     ledger:[],
     completions:{},

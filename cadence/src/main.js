@@ -19,6 +19,7 @@ import { Timeline } from './timeline.js';
 import { DimChips } from './dimchips.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
 import { scheduleAutosave, restoreAutosave, clearAutosave } from './autosave.js';
+import { buildShareLink, tryLoadSharedLink } from './sharelink.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
 import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, controlMap, unitLabel } from './settings.js';
@@ -335,6 +336,14 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
       else flash('Nothing to save yet.');
       break;
     case 'load-project': document.getElementById('file-input').click(); break;
+    case 'share-link':
+      buildShareLink(doc).then(url => {
+        if (!url) { flash('Nothing to share yet — add a solid first.'); return; }
+        navigator.clipboard.writeText(url)
+          .then(() => flash('Share link copied. Anyone who opens it sees this design.'))
+          .catch(() => { prompt('Copy this share link:', url); });
+      });
+      break;
     case 'selftest':  runSelfTest(); break;
   }
 });
@@ -1257,6 +1266,7 @@ setupOnboarding();
 // where the session left off. If there's nothing valid to restore, seed a starter
 // box so first load isn't empty.
 if (IS_VIEWER) { /* renderview loads the model(s) from the URL; no starter cube */ }
+else if (await tryLoadSharedLink(doc)) flash('Shared design loaded. Your own last session is safe in a backup.');
 else if (!restoreAutosave(doc)) doc.add('box');
 setStatus();
 
