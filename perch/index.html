@@ -238,10 +238,34 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 }
 .cchip.done{background:var(--sage); color:#fff; text-decoration:line-through}
 .cchip.carried{background:var(--lav); color:#3c2c56}
+.cchip.fin{background:#2f7d6b; color:#eafff8}
+.cchip.fin.paid{background:var(--sage); color:#fff; opacity:.72}
 .cal-more{font-size:.55rem; color:var(--ink2); pointer-events:none}
 .cal-day-panel{margin-top:14px; border-top:1px solid var(--line); padding-top:10px}
 .cal-day-panel h3{font-size:.8rem; margin-bottom:6px; color:var(--ink2)}
 @media (max-width:560px){ .cal-cell{min-height:46px; padding:2px 3px} }
+
+/* finance (bills & payments) */
+.fin-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0}
+.fin-sum-cell{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:9px 6px; text-align:center}
+.fin-sum-cell.paid{border-color:var(--sage)} .fin-sum-cell.rem{border-color:var(--accent)}
+.fin-sum-n{display:block; font-weight:800; font-size:1rem; color:var(--ink)}
+.fin-sum-l{display:block; font-size:.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink2); margin-top:2px}
+.fin-list{display:flex; flex-direction:column; gap:6px}
+.fin-row{display:flex; align-items:center; gap:9px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:7px 9px}
+.fin-row.paid{opacity:.66}
+.fin-day{flex:0 0 auto; min-width:26px; height:26px; display:grid; place-items:center; border-radius:7px; background:var(--panel); border:1px solid var(--line); font-weight:800; font-size:.8rem; color:var(--ink2)}
+.fin-t{flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px}
+.fin-t .ttl{font-weight:700; font-size:.86rem}
+.fin-t .sub{flex-basis:100%; font-size:.7rem; color:var(--ink2)}
+.fin-t .tag{font-size:.6rem; background:var(--panel); border:1px solid var(--line); color:var(--ink2); border-radius:99px; padding:1px 7px}
+.fin-t .tag.late{background:#e6394622; border-color:var(--ticket); color:var(--ticket)}
+.fin-t .tag.due{background:#e07a5f22; border-color:var(--accent); color:var(--accent)}
+.fin-amt{flex:0 0 auto; font-weight:800; font-size:.86rem; color:var(--ink)}
+.fin-check{flex:0 0 auto; font-size:.7rem; font-weight:700; border:1px solid var(--line); background:var(--panel); color:var(--ink2); border-radius:99px; padding:4px 10px; cursor:pointer}
+.fin-check:hover{border-color:var(--good); color:var(--good)}
+.fin-check.on{background:var(--good); border-color:var(--good); color:#fff}
+@media (max-width:560px){ .fin-check{padding:4px 8px} .fin-amt{font-size:.8rem} }
 
 /* ---------- ledger ---------- */
 .ledger-row{display:flex; gap:10px; padding:6px 4px; border-bottom:1px solid var(--line); font-size:.85rem; align-items:baseline}
@@ -277,6 +301,7 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
   <button class="stat clicky" id="walletStat" title="Open the prize counter">🎟 <span id="walletVal">0</span></button>
   <div class="stat" id="streakStat" title="Days in a row with every required daily done">🔥 <span id="streakVal">0</span></div>
   <button class="hdr-btn" id="calBtn" title="Calendar">📅</button>
+  <button class="hdr-btn" id="finBtn" title="Bills & payments">💳</button>
   <button class="hdr-btn" id="undoBtn" title="Undo (Ctrl+Z)">↩</button>
   <button class="hdr-btn" id="redoBtn" title="Redo (Ctrl+Y)">↪</button>
   <button class="hdr-btn" id="modeBtn" title="Toggle arcade / dashboard view">🕹️</button>
@@ -357,12 +382,24 @@ function seedState(){
       { id:uid(), emoji:"🛏️", name:"Guilt-free lazy morning", cost:250 },
       { id:uid(), emoji:"🎁", name:"Treat-yourself gift", cost:500 },
     ],
+    finance:[
+      { id:uid(), name:"Streaming service", amount:15.99, cycle:"monthly", day:22, purpose:"Entertainment", note:"", paid:{} },
+      { id:uid(), name:"Phone plan", amount:30, cycle:"monthly", day:22, purpose:"Utility", note:"", paid:{} },
+      { id:uid(), name:"Cloud storage", amount:11.99, cycle:"monthly", day:11, purpose:"Work", note:"", paid:{} },
+      { id:uid(), name:"Music platform (yearly)", amount:144, cycle:"annual", month:1, day:15, purpose:"Music", note:"", paid:{} },
+      { id:uid(), name:"Domain renewal (yearly)", amount:43.99, cycle:"annual", month:3, day:5, purpose:"Work", note:"", paid:{} },
+      { id:uid(), name:"Auto insurance", amount:92.61, cycle:"custom",
+        dates:[{m:9,d:1},{m:10,d:1},{m:11,d:1},{m:12,d:1},{m:1,d:1},{m:2,d:1}], purpose:"Utility",
+        note:"Auto-deducted the 1st, September through February.", paid:{} },
+    ],
   };
 }
 function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
-    if(raw){ const s = JSON.parse(raw); if(s && s.version===1 && Array.isArray(s.items)) return s; }
+    if(raw){ const s = JSON.parse(raw); if(s && s.version===1 && Array.isArray(s.items)){
+      if(!Array.isArray(s.finance)) s.finance = [];
+      return s; } }
   }catch(e){ console.warn("load failed", e); }
   return seedState();
 }
@@ -789,6 +826,7 @@ function openLedger(){
 
 /* ---------- calendar ---------- */
 let calY, calM, selDay, calPicking = false;
+let finY, finM;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 function openCalendar(rerender){
   if(!rerender){
@@ -816,8 +854,12 @@ function openCalendar(rerender){
       .concat(extra.slice(0, 3-Math.min(items.length,3)).map(it =>
         `<span class="cchip carried">↪ ${esc(it.title)}</span>`));
     const more = items.length + extra.length - chips.length;
+    const fin = finOccur(d.getFullYear(), d.getMonth()).filter(o=>o.day===d.getDate());
+    const finSum = fin.reduce((s,o)=>s+o.amount,0);
+    const finPaidAll = fin.length && fin.every(o=>!!(o.f.paid && o.f.paid[finPaidKey(d.getFullYear(),d.getMonth(),o.day)]));
+    const finChip = fin.length ? `<span class="cchip fin ${finPaidAll?"paid":""}" title="${fin.map(o=>esc(o.f.name)).join(", ")}">💲${money(finSum)}</span>` : "";
     cells += `<button class="cal-cell ${d.getMonth()!==calM?"out":""} ${dk===today?"today":""} ${dk===selDay?"sel":""}"
-      data-calday="${dk}"><span class="dnum">${d.getDate()}</span>${chips.join("")}${more>0?`<span class="cal-more">+${more} more</span>`:""}</button>`;
+      data-calday="${dk}"><span class="dnum">${d.getDate()}</span>${chips.join("")}${finChip}${more>0?`<span class="cal-more">+${more} more</span>`:""}</button>`;
   }
   const selItems = scheduled(selDay);
   const selCarried = selDay===today ? carried.filter(c => c.due !== today) : [];
@@ -852,6 +894,68 @@ function openCalendar(rerender){
     <div class="cal-day-panel">${panelHTML}</div>
     <div class="note">Tap a day to see or schedule items. Unfinished scheduled items drift gently onto today with a ↪, no alarms, no guilt.</div>`,
     {kind:"cal"});
+  $("#modal").classList.add("wide");
+  if(!rerender) sfx("open");
+}
+
+/* ---------- finance (bills & payments) ---------- */
+function daysInMonth(Y,M){ return new Date(Y, M+1, 0).getDate(); }
+function money(n){ return "$" + Number(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+// recurring payment occurrences that fall in month (Y,M), sorted by day
+function finOccur(Y,M){
+  const dim = daysInMonth(Y,M);
+  const out = [];
+  for(const f of (state.finance||[])){
+    if(f.cycle==="monthly"){
+      out.push({ f, day:Math.min(f.day||1, dim), amount:+f.amount });
+    } else if(f.cycle==="annual"){
+      if((f.month||1)-1===M) out.push({ f, day:Math.min(f.day||1, dim), amount:+f.amount });
+    } else if(f.cycle==="custom"){
+      for(const dt of (f.dates||[])) if((dt.m||1)-1===M) out.push({ f, day:Math.min(dt.d||1, dim), amount:+f.amount });
+    }
+  }
+  return out.sort((a,b)=>a.day-b.day);
+}
+function finPaidKey(Y,M,day){ return `${Y}-${pad(M+1)}-${pad(day)}`; }
+function isFinPaid(o){ return !!(o.f.paid && o.f.paid[finPaidKey(finY,finM,o.day)]); }
+function openFinance(rerender){
+  if(!rerender){ const now=new Date(); finY=now.getFullYear(); finM=now.getMonth(); }
+  const occ = finOccur(finY,finM);
+  const today = new Date(); const isThisMonth = today.getFullYear()===finY && today.getMonth()===finM;
+  const todayDay = today.getDate();
+  const total = occ.reduce((s,o)=>s+o.amount,0);
+  const paidSum = occ.filter(isFinPaid).reduce((s,o)=>s+o.amount,0);
+  const remaining = total - paidSum;
+  const row = o => {
+    const paid = isFinPaid(o);
+    const past = isThisMonth && !paid && o.day < todayDay;
+    const soon = isThisMonth && !paid && o.day >= todayDay;
+    return `<div class="fin-row ${paid?"paid":""}" data-finid="${o.f.id}" data-finday="${o.day}">
+      <span class="fin-day" title="due on the ${o.day}">${o.day}</span>
+      <div class="fin-t">
+        <span class="ttl">${esc(o.f.name)}</span>
+        ${o.f.purpose?`<span class="tag">${esc(o.f.purpose)}</span>`:""}
+        ${past?'<span class="tag late">past due</span>':soon?'<span class="tag due">upcoming</span>':""}
+        ${o.f.note?`<span class="sub">${esc(o.f.note)}</span>`:""}
+      </div>
+      <span class="fin-amt">${money(o.amount)}</span>
+      <button class="fin-check ${paid?"on":""}" data-act="finPaid" title="${paid?"mark unpaid":"mark paid"}">${paid?"✓ paid":"mark paid"}</button>
+    </div>`;
+  };
+  openModal(`<h2>💳 Bills &amp; payments ${xBtn}</h2>
+    <div class="cal-head">
+      <button class="cal-nav" data-act="finPrev" title="previous month">◀</button>
+      <span class="mon">${MONTHS[finM]} ${finY}</span>
+      <button class="cal-nav" data-act="finNext" title="next month">▶</button>
+    </div>
+    <div class="fin-summary">
+      <div class="fin-sum-cell"><span class="fin-sum-n">${money(total)}</span><span class="fin-sum-l">due this month</span></div>
+      <div class="fin-sum-cell paid"><span class="fin-sum-n">${money(paidSum)}</span><span class="fin-sum-l">paid</span></div>
+      <div class="fin-sum-cell rem"><span class="fin-sum-n">${money(remaining)}</span><span class="fin-sum-l">still to go</span></div>
+    </div>
+    <div class="fin-list">${occ.length? occ.map(row).join("") : '<div class="note">No payments fall in this month.</div>'}</div>
+    <div class="note">Recurring bills, laid out by their due day. Tap a payment to mark it paid, it is remembered per month. Nothing here spends tickets, and your numbers never leave this device.</div>`,
+    {kind:"fin"});
   $("#modal").classList.add("wide");
   if(!rerender) sfx("open");
 }
@@ -943,6 +1047,20 @@ document.addEventListener("click", e=>{
     case "noteToggle": act.closest(".item-row").classList.toggle("notes-open"); break;
     case "calPrev": calM--; if(calM<0){calM=11;calY--;} openCalendar(true); break;
     case "calNext": calM++; if(calM>11){calM=0;calY++;} openCalendar(true); break;
+    case "finPrev": finM--; if(finM<0){finM=11;finY--;} openFinance(true); break;
+    case "finNext": finM++; if(finM>11){finM=0;finY++;} openFinance(true); break;
+    case "finPaid": {
+      const row = act.closest(".fin-row");
+      const f = state.finance.find(x=>x.id===row.dataset.finid);
+      if(f){
+        f.paid = f.paid || {};
+        const key = finPaidKey(finY, finM, parseInt(row.dataset.finday,10));
+        const nowPaid = !f.paid[key];
+        if(nowPaid) f.paid[key] = true; else delete f.paid[key];
+        save(); openFinance(true); sfx(nowPaid?"coin":"un");
+      }
+      break;
+    }
     case "schedOpen": calPicking = true; openCalendar(true); break;
     case "schedCancel": calPicking = false; openCalendar(true); break;
     case "schedSet": {
@@ -999,6 +1117,7 @@ document.addEventListener("click", e=>{
 $("#walletStat").addEventListener("click", ()=>openShop());
 $("#ledgerBtn").addEventListener("click", openLedger);
 $("#calBtn").addEventListener("click", ()=>openCalendar());
+$("#finBtn").addEventListener("click", ()=>openFinance());
 $("#settingsBtn").addEventListener("click", openSettings);
 $("#contanBtn").addEventListener("click", ()=>openContan());
 $("#soundBtn").addEventListener("click", ()=>{ state.settings.sounds=!state.settings.sounds; save(); renderHeader(); if(state.settings.sounds) sfx("coin"); });
