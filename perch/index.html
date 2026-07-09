@@ -245,6 +245,11 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .cal-day-panel h3{font-size:.8rem; margin-bottom:6px; color:var(--ink2)}
 @media (max-width:560px){ .cal-cell{min-height:46px; padding:2px 3px} }
 
+/* share snapshot banner */
+#shareBanner{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:center;
+  background:var(--lav); color:#2c2044; padding:8px 14px; font-size:.82rem; font-weight:600; text-align:center}
+#shareBanner button{background:#2c2044; color:#fff; border:none; border-radius:99px; padding:5px 14px; font-size:.78rem; font-weight:700; cursor:pointer}
+
 /* finance (bills & payments) */
 .fin-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0}
 .fin-sum-cell{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:9px 6px; text-align:center}
@@ -405,6 +410,7 @@ function load(){
 }
 let undoStack = [], redoStack = [], suppressUndo = false;
 function save(){
+  if(READ_ONLY) return; // viewing someone's snapshot; never touch this device's save
   const next = JSON.stringify(state);
   if(!suppressUndo){
     const prev = localStorage.getItem(SAVE_KEY);
@@ -1007,6 +1013,9 @@ function openSettings(){
       <button class="btn ghost" data-act="import">⬆ Import save</button>
       <input type="file" id="importFile" accept=".json" style="display:none">
     </div>
+    <div class="btnrow"><button class="btn ghost" data-act="shareSnap">🔗 Share a read-only snapshot</button></div>
+    <textarea id="shareOut" readonly style="display:none;width:100%;height:52px;margin-top:6px;font-size:.72rem" onclick="this.select()"></textarea>
+    <div class="note">A snapshot link holds your whole board inside the link itself, nothing is uploaded. Whoever opens it sees a read-only copy and their own board stays untouched.</div>
     ${retired.length? `<hr class="sep"><div style="font-size:.78rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em">Retired one-shots</div>
       ${retired.map(i=>`<div class="retired-row"><span style="flex:1">✓ ${esc(i.title)}</span><button data-act="reviveItem" data-id="${i.id}">bring back</button></div>`).join("")}`:""}
     <hr class="sep">
@@ -1112,6 +1121,15 @@ document.addEventListener("click", e=>{
       save(); closeModal(); renderAll(); toast("Settings saved ✓");
       break;
     case "export": exportSave(); break;
+    case "shareSnap": {
+      buildShareSnapshot().then(url=>{
+        (navigator.clipboard? navigator.clipboard.writeText(url) : Promise.reject())
+          .then(()=>toast("Snapshot link copied 🔗"))
+          .catch(()=>{ const t=$("#shareOut"); if(t){ t.value=url; t.style.display="block"; t.select(); } toast("Snapshot link ready 🔗"); });
+      });
+      break;
+    }
+    case "exitShare": location.hash=""; location.reload(); break;
     case "import": {
       const f = $("#importFile");
       f.onchange = () => f.files[0] && importSave(f.files[0]);
@@ -1520,13 +1538,61 @@ function loop(now){
   }
 })();
 
+/* ---------- share snapshot (read-only link) ----------
+   The whole board is deflated into the URL fragment (#s=...). It never touches
+   a server, so a snapshot is only visible to whoever holds the link. Opening one
+   shows it READ-ONLY: the viewer's own localStorage save is never written, so
+   nothing of theirs is lost, and their checks on a snapshot don't persist. */
+let READ_ONLY = false;
+function _b64url(bytes){ let s=""; for(let i=0;i<bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function _unb64url(s){ const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")); const o=new Uint8Array(b.length); for(let i=0;i<b.length;i++) o[i]=b.charCodeAt(i); return o; }
+async function _pipe(bytes,Ctor,mode){ const st=new Blob([bytes]).stream().pipeThrough(new Ctor(mode)); return new Uint8Array(await new Response(st).arrayBuffer()); }
+async function buildShareSnapshot(){
+  const snap = JSON.parse(JSON.stringify(state));
+  snap._sharedAt = Date.now();
+  const raw = new TextEncoder().encode(JSON.stringify(snap));
+  let payload;
+  try { payload = "z"+_b64url(await _pipe(raw,CompressionStream,"deflate-raw")); }
+  catch { payload = "j"+_b64url(raw); }
+  return `${location.origin}${location.pathname}#s=${payload}`;
+}
+async function tryLoadShareSnapshot(){
+  const m = location.hash.match(/[#&]s=([A-Za-z0-9_\-]+)/);
+  if(!m) return false;
+  try{
+    const kind=m[1][0], body=m[1].slice(1);
+    let raw=_unb64url(body);
+    if(kind==="z") raw=await _pipe(raw,DecompressionStream,"deflate-raw");
+    else if(kind!=="j") return false;
+    const data=JSON.parse(new TextDecoder().decode(raw));
+    if(!data || data.version!==1 || !Array.isArray(data.items)) return false;
+    if(!Array.isArray(data.finance)) data.finance=[];
+    READ_ONLY=true; state=data;
+    showShareBanner(data._sharedAt);
+    return true;
+  }catch(e){ console.warn("share snapshot failed to load",e); return false; }
+}
+function showShareBanner(ts){
+  const when = ts ? new Date(ts).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "";
+  const hasOwn = !!localStorage.getItem(SAVE_KEY);
+  const bar=document.createElement("div");
+  bar.id="shareBanner";
+  bar.innerHTML=`<span>📷 Shared snapshot${when?` from ${when}`:""} — read-only, your checks here won't be saved.</span>
+    <button data-act="exitShare">${hasOwn?"View your own board →":"Start your own board →"}</button>`;
+  document.body.prepend(bar);
+}
+
 /* ---------- init ---------- */
 let rszTimer = null;
 window.addEventListener("resize", ()=>{
   clearTimeout(rszTimer);
   rszTimer = setTimeout(()=>{ if(state.settings.mode==="dashboard") renderDash(); }, 200);
 });
-syncAutoItems(); save(); renderAll();
+(async ()=>{
+  const shared = await tryLoadShareSnapshot();
+  if(!shared){ syncAutoItems(); save(); }
+  renderAll();
+})();
 requestAnimationFrame(loop);
 </script>
 </body>
