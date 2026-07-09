@@ -1664,18 +1664,20 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
     var io = ("IntersectionObserver" in window) ? new IntersectionObserver(function(entries){
       entries.forEach(function(e){
         var v = e.target.__vid; if (!v) return;
-        if (e.isIntersecting) v.play().catch(function(){}); else v.pause();
+        if (e.isIntersecting){
+          if (!v.src) { v.src = e.target.__src; v.load(); }  // fetch only once the card is in view
+          v.play().catch(function(){});
+        } else v.pause();
       });
     }, { threshold: 0.2 }) : null;
     Array.prototype.slice.call(vids).forEach(function(btn){
       var v = document.createElement("video");
-      v.src = btn.getAttribute("data-video");
       var poster = btn.getAttribute("data-poster"); if (poster) v.poster = poster;
-      v.muted = true; v.loop = true; v.playsInline = true; v.preload = "metadata";
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = "none";  // no eager download
       v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
       btn.appendChild(v);                                // overlays the poster <img>; pointer-events:none
-      btn.__vid = v; btn.classList.add("playing");
-      if (io) io.observe(btn); else { v.autoplay = true; v.play().catch(function(){}); }
+      btn.__vid = v; btn.__src = btn.getAttribute("data-video"); btn.classList.add("playing");
+      if (io) io.observe(btn); else { v.src = btn.__src; v.autoplay = true; v.play().catch(function(){}); }
     });
   })();
 
