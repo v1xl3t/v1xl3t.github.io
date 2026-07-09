@@ -879,10 +879,22 @@ function openCalendar(rerender){
       </div>`).join("") || '<div class="note">Everything is already scheduled.</div>'}
       <div class="btnrow"><button class="btn ghost" data-act="schedCancel">Back</button></div>`;
   };
+  const [sy, sm, sd] = selDay.split("-").map(Number);
+  const selFin = finOccur(sy, sm-1).filter(o => o.day === sd);
+  const finRow = o => {
+    const paid = !!(o.f.paid && o.f.paid[selDay]);
+    return `<div class="fin-row ${paid?"paid":""}" data-finid="${o.f.id}" data-finkey="${selDay}">
+      <span class="fin-day">💲</span>
+      <div class="fin-t"><span class="ttl">${esc(o.f.name)}</span>${o.f.purpose?`<span class="tag">${esc(o.f.purpose)}</span>`:""}</div>
+      <span class="fin-amt">${money(o.amount)}</span>
+      <button class="fin-check ${paid?"on":""}" data-act="finPaid" title="${paid?"mark unpaid":"mark paid"}">${paid?"✓ paid":"mark paid"}</button>
+    </div>`;
+  };
   const panelHTML = calPicking ? pickerHTML() :
     `<h3>${selDay === today ? "Today, " : ""}${selDay}</h3>
      ${selItems.map(it => dayRow(it,false)).join("")}${selCarried.map(it => dayRow(it,true)).join("")}
-     ${!selItems.length && !selCarried.length ? '<div class="note">Nothing scheduled this day.</div>' : ""}
+     ${!selItems.length && !selCarried.length && !selFin.length ? '<div class="note">Nothing scheduled this day.</div>' : ""}
+     ${selFin.length ? `<div class="fin-list" style="margin-top:8px">${selFin.map(finRow).join("")}</div>` : ""}
      <button class="add-row" data-act="schedOpen">＋ schedule an item on this day</button>`;
   openModal(`<h2>📅 Calendar ${xBtn}</h2>
     <div class="cal-head">
@@ -930,7 +942,7 @@ function openFinance(rerender){
     const paid = isFinPaid(o);
     const past = isThisMonth && !paid && o.day < todayDay;
     const soon = isThisMonth && !paid && o.day >= todayDay;
-    return `<div class="fin-row ${paid?"paid":""}" data-finid="${o.f.id}" data-finday="${o.day}">
+    return `<div class="fin-row ${paid?"paid":""}" data-finid="${o.f.id}" data-finkey="${finPaidKey(finY,finM,o.day)}">
       <span class="fin-day" title="due on the ${o.day}">${o.day}</span>
       <div class="fin-t">
         <span class="ttl">${esc(o.f.name)}</span>
@@ -1054,10 +1066,13 @@ document.addEventListener("click", e=>{
       const f = state.finance.find(x=>x.id===row.dataset.finid);
       if(f){
         f.paid = f.paid || {};
-        const key = finPaidKey(finY, finM, parseInt(row.dataset.finday,10));
+        const key = row.dataset.finkey;
         const nowPaid = !f.paid[key];
         if(nowPaid) f.paid[key] = true; else delete f.paid[key];
-        save(); openFinance(true); sfx(nowPaid?"coin":"un");
+        save();
+        // re-render whichever view is open (calendar day panel or finance modal)
+        document.querySelector(".cal-grid") ? openCalendar(true) : openFinance(true);
+        sfx(nowPaid?"coin":"un");
       }
       break;
     }
