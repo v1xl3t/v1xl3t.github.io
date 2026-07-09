@@ -25,6 +25,13 @@
 
   /* top bar */
   header{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--panel);flex-wrap:wrap}
+  #shareBanner{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;max-width:min(560px,94vw);
+    display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center;text-align:center;
+    background:var(--panel2);border:1px solid var(--accent);border-radius:12px;padding:11px 15px;font-size:13px;
+    color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  #shareBanner .share-actions{display:flex;gap:8px}
+  #shareBanner button{background:var(--accent);border:none;color:#fff;border-radius:99px;padding:6px 14px;font-weight:700;cursor:pointer}
+  #shareBanner button.ghost{background:transparent;color:var(--text);border:1.5px solid var(--border)}
   .brand{font-weight:800;letter-spacing:-.01em}
   .brand b{color:var(--accent)}
   .sep{width:1px;height:24px;background:var(--border);margin:0 2px}
@@ -180,6 +187,7 @@
     <button id="export-sheet" title="Export the whole loop as a horizontal sprite sheet PNG">Sprite sheet</button>
     <button id="save" title="Download project (.json)">Save</button>
     <button id="load" title="Load a project (.json)">Load</button>
+    <button id="sharelink" title="Copy a backup / sync link that holds this whole animation">🔗 Link</button>
     <input type="file" id="file" accept=".json" hidden />
   </header>
 
@@ -338,7 +346,8 @@ const inBounds = (x, y) => x >= 0 && y >= 0 && x < P.w && y < P.h;
 function clampTransitions() { for (const L of P.layers) for (const t of L.transitions) if (t.startFrame >= P.loop) t.startFrame = P.loop - 1; }
 
 // --- persistence ------------------------------------------------------------
-function save() { try { localStorage.setItem('layerloop', JSON.stringify(P)); } catch {} }
+let PREVIEW = false; // previewing an animation opened from a link; nothing persists until adopted
+function save() { if (PREVIEW) return; try { localStorage.setItem('layerloop', JSON.stringify(P)); } catch {} }
 function load() { try { return JSON.parse(localStorage.getItem('layerloop')); } catch { return null; } }
 
 // --- undo / redo ------------------------------------------------------------
@@ -1012,11 +1021,66 @@ window.addEventListener('keydown', (e) => {
 });
 function setTool(t) { tool = t; if (t !== 'lasso') { /* keep selection but stop any in-progress lasso */ lassoing = false; } document.querySelectorAll('.tool').forEach((x) => x.classList.toggle('on', x.dataset.tool === t)); updateStatus(); render(); }
 
+// ============================================================ share / backup / sync link
+//   The whole animation is deflated into the URL fragment (#s=...) — nothing is
+//   uploaded. Open the link on another device (or later) to carry the project
+//   there, or keep the link as a backup. Opening one previews it, then "Load"
+//   adopts it onto this device (backing up whatever was here first).
+const LL_BACKUP_KEY = 'layerloop.backup-before-link';
+function _b64url(bytes){ let s=''; for(let i=0;i<bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function _unb64url(s){ const b=atob(s.replace(/-/g,'+').replace(/_/g,'/')); const o=new Uint8Array(b.length); for(let i=0;i<b.length;i++) o[i]=b.charCodeAt(i); return o; }
+async function _pipe(bytes,Ctor,mode){ const st=new Blob([bytes]).stream().pipeThrough(new Ctor(mode)); return new Uint8Array(await new Response(st).arrayBuffer()); }
+async function buildShareLink(){
+  const snap = JSON.parse(JSON.stringify(P)); snap._sharedAt = Date.now();
+  const raw = new TextEncoder().encode(JSON.stringify(snap));
+  let payload;
+  try { payload = 'z'+_b64url(await _pipe(raw,CompressionStream,'deflate-raw')); }
+  catch { payload = 'j'+_b64url(raw); }
+  return `${location.origin}${location.pathname}#s=${payload}`;
+}
+async function tryLoadShareLink(){
+  const m = location.hash.match(/[#&]s=([A-Za-z0-9_\-]+)/);
+  if(!m) return false;
+  try{
+    const kind=m[1][0], body=m[1].slice(1);
+    let raw=_unb64url(body);
+    if(kind==='z') raw=await _pipe(raw,DecompressionStream,'deflate-raw');
+    else if(kind!=='j') return false;
+    const data=normalize(JSON.parse(new TextDecoder().decode(raw)));
+    if(!data || !Array.isArray(data.layers)) return false;
+    const when = data._sharedAt ? new Date(data._sharedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '';
+    delete data._sharedAt;
+    PREVIEW = true; P = data;
+    const hasOwn = !!localStorage.getItem('layerloop');
+    const bar=document.createElement('div'); bar.id='shareBanner';
+    bar.innerHTML=`<span>📥 This link holds a Layerloop animation${when?` saved ${when}`:''}. Load it here to keep editing${hasOwn?', your current animation is backed up first':''}.</span>`+
+      `<span class="share-actions"><button id="ll-load">Load animation</button>${hasOwn?'<button id="ll-keep" class="ghost">Keep mine</button>':''}</span>`;
+    document.body.prepend(bar);
+    bar.querySelector('#ll-load').onclick = () => {
+      try{ const own=localStorage.getItem('layerloop'); if(own) localStorage.setItem(LL_BACKUP_KEY, own); }catch{}
+      PREVIEW=false; save(); bar.remove();
+      history.replaceState(null,'',location.pathname+location.search);
+    };
+    const keep = bar.querySelector('#ll-keep');
+    if(keep) keep.onclick = () => { location.hash=''; location.reload(); };
+    return true;
+  }catch(e){ console.warn('share link failed to load', e); return false; }
+}
+$('sharelink').onclick = async () => {
+  const btn = $('sharelink'), label = btn.textContent;
+  const url = await buildShareLink();
+  try { await navigator.clipboard.writeText(url); btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = label; }, 1600); }
+  catch { prompt('Copy this backup / sync link:', url); }
+};
+
 // boot
-$('fps').value = P.fps; $('cw').value = P.w; $('ch').value = P.h; $('brush').value = brush;
-$('onion').classList.toggle('on', P.onion);
-window.addEventListener('resize', () => { fitScale(); render(); if (stage.on) { fitStage(); stageRender(); } });
-fitScale(); refreshAll(); updateUndoButtons();
+(async () => {
+  await tryLoadShareLink();
+  $('fps').value = P.fps; $('cw').value = P.w; $('ch').value = P.h; $('brush').value = brush;
+  $('onion').classList.toggle('on', P.onion);
+  window.addEventListener('resize', () => { fitScale(); render(); if (stage.on) { fitStage(); stageRender(); } });
+  fitScale(); refreshAll(); updateUndoButtons();
+})();
 </script>
 </body>
 </html>
