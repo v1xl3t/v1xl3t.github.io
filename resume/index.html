@@ -21,6 +21,13 @@
 
   .bar { position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
          padding:10px 14px; background:var(--chrome); border-bottom:1px solid var(--border); }
+  #shareBanner { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:9999;
+    max-width:min(560px,94vw); display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:center;
+    text-align:center; background:var(--chrome); border:1px solid var(--border); border-radius:12px; padding:11px 15px;
+    font-size:13px; color:var(--text); box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  #shareBanner .share-actions { display:flex; gap:8px; }
+  #shareBanner button { background:#3b82f6; border:none; color:#fff; border-radius:99px; padding:6px 14px; font-weight:700; cursor:pointer; }
+  #shareBanner button.ghost { background:transparent; color:var(--text); border:1.5px solid var(--border); }
   .bar .brand { font-weight:700; margin-right:6px; } .bar .brand span { color:#4c8dff; }
   .bar button, .bar select, .bar label.swatch { font:inherit; color:var(--text); background:#1f262f;
          border:1px solid var(--border); border-radius:7px; padding:6px 10px; cursor:pointer; }
@@ -186,6 +193,7 @@
     </select>
     <button id="save">Save JSON</button>
     <button id="load">Load</button>
+    <button id="sharelink" title="Copy a backup / sync link holding this résumé">🔗 Link</button>
     <input type="file" id="file" accept="application/json,.json" hidden />
   </div>
   <div class="sheet-wrap"><article class="sheet" id="sheet" aria-label="Résumé"></article></div>
@@ -242,7 +250,8 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 let R = loadTpl(curKey);
 
 function loadTpl(key) { try { const s = localStorage.getItem(LSP + key); if (s) return JSON.parse(s); } catch {} return clone(TEMPLATES[key].data); }
-function save() { try { localStorage.setItem(LSP + curKey, JSON.stringify(R)); localStorage.setItem(LSP + "current", curKey); } catch {} }
+let PREVIEW = false; // previewing a résumé opened from a link; nothing persists until adopted
+function save() { if (PREVIEW) return; try { localStorage.setItem(LSP + curKey, JSON.stringify(R)); localStorage.setItem(LSP + "current", curKey); } catch {} }
 
 function getPath(p){ return p.split(".").reduce((o,k)=>o?.[k], R); }
 function setPath(p,v){ const ks=p.split("."); let o=R; for(let i=0;i<ks.length-1;i++) o=o[ks[i]]; o[ks[ks.length-1]]=v; }
@@ -422,9 +431,60 @@ document.getElementById("ob-close").onclick = () => { try { localStorage.setItem
 document.getElementById("ob-blank").onclick = () => { try { localStorage.setItem(OB_KEY, "1"); } catch {} R = clone(BLANK); render(); hideOb(); };
 ob.addEventListener("click", e => { if (e.target === ob) hideOb(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") hideOb(); });
-try { if (!localStorage.getItem(OB_KEY)) showOb(); } catch {}
+/* ---------- share / backup / sync link ----------
+   The whole résumé is deflated into the URL fragment (#s=...) — nothing is
+   uploaded. Open the link on another device (or later) to carry it there, or keep
+   the link as a backup. Opening one previews it, then "Load" adopts it onto this
+   device (backing up whatever résumé was here first). */
+const RS_BACKUP_KEY = LSP + "backup-before-link";
+function _b64url(bytes){ let s=""; for(let i=0;i<bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function _unb64url(s){ const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")); const o=new Uint8Array(b.length); for(let i=0;i<b.length;i++) o[i]=b.charCodeAt(i); return o; }
+async function _pipe(bytes,Ctor,mode){ const st=new Blob([bytes]).stream().pipeThrough(new Ctor(mode)); return new Uint8Array(await new Response(st).arrayBuffer()); }
+async function buildShareLink(){
+  const snap = { app:"resume-studio", key:curKey, data:R, _sharedAt:Date.now() };
+  const raw = new TextEncoder().encode(JSON.stringify(snap));
+  let payload;
+  try { payload = "z"+_b64url(await _pipe(raw,CompressionStream,"deflate-raw")); }
+  catch { payload = "j"+_b64url(raw); }
+  return `${location.origin}${location.pathname}#s=${payload}`;
+}
+async function tryLoadShareLink(){
+  const m = location.hash.match(/[#&]s=([A-Za-z0-9_\-]+)/);
+  if(!m) return false;
+  try{
+    const kind=m[1][0], body=m[1].slice(1);
+    let raw=_unb64url(body);
+    if(kind==="z") raw=await _pipe(raw,DecompressionStream,"deflate-raw");
+    else if(kind!=="j") return false;
+    const snap=JSON.parse(new TextDecoder().decode(raw));
+    if(!snap || snap.app!=="resume-studio" || !snap.data || !Array.isArray(snap.data.sections)) return false;
+    PREVIEW = true; R = snap.data; if(snap.key) curKey = snap.key;
+    const when = snap._sharedAt ? new Date(snap._sharedAt).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "";
+    const hasOwn = !!localStorage.getItem(LSP + curKey);
+    const bar=document.createElement("div"); bar.id="shareBanner";
+    bar.innerHTML=`<span>📥 This link holds a résumé${when?` saved ${when}`:""}. Load it here to keep editing${hasOwn?", your current one is backed up first":""}.</span>`+
+      `<span class="share-actions"><button id="rs-load">Load résumé</button>${hasOwn?'<button id="rs-keep" class="ghost">Keep mine</button>':''}</span>`;
+    document.body.prepend(bar);
+    bar.querySelector("#rs-load").onclick = () => {
+      try{ const own=localStorage.getItem(LSP+curKey); if(own) localStorage.setItem(RS_BACKUP_KEY, own); }catch{}
+      PREVIEW=false; save(); bar.remove();
+      history.replaceState(null,"",location.pathname+location.search);
+    };
+    const keep = bar.querySelector("#rs-keep");
+    if(keep) keep.onclick = () => { location.hash=""; location.reload(); };
+    return true;
+  }catch(e){ console.warn("share link failed to load", e); return false; }
+}
+document.getElementById("sharelink").onclick = async () => {
+  const btn = document.getElementById("sharelink"), label = btn.textContent;
+  const url = await buildShareLink();
+  try { await navigator.clipboard.writeText(url); btn.textContent = "✓ Copied"; setTimeout(()=>{ btn.textContent = label; }, 1600); }
+  catch { prompt("Copy this backup / sync link:", url); }
+};
 
-render();
+try { if (!location.hash.includes("s=") && !localStorage.getItem(OB_KEY)) showOb(); } catch {}
+
+(async () => { await tryLoadShareLink(); render(); })();
 </script>
 </body>
 </html>
