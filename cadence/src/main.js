@@ -1266,7 +1266,14 @@ setupOnboarding();
 // where the session left off. If there's nothing valid to restore, seed a starter
 // box so first load isn't empty.
 if (IS_VIEWER) { /* renderview loads the model(s) from the URL; no starter cube */ }
-else if (await tryLoadSharedLink(doc)) flash('Shared design loaded. Your own last session is safe in a backup.');
+else if (await tryLoadSharedLink(doc)) {
+  flash('Shared design loaded. Your own last session is safe in a backup.');
+  // Adopt the shared design as this session's working project: drop the #d= from
+  // the URL so a close-and-reopen restores your edited autosave (not the original
+  // link), and persist it right away so it survives even before the first edit.
+  try { history.replaceState(null, '', location.pathname + location.search); } catch {}
+  scheduleAutosave(doc, 0);
+}
 else if (!restoreAutosave(doc)) doc.add('box');
 setStatus();
 
