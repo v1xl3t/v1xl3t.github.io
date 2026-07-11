@@ -861,7 +861,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
   <div class="wrap">
     <p class="section-label reveal-l">Selected Work</p>
     <h2 class="section-title reveal" id="work-title">Things I've shipped</h2>
-    <p class="section-sub reveal">Filter by discipline. Each project follows the same shape: the problem, my role, the approach, and what came of it.</p>
+    <p class="section-sub reveal">Filter by discipline. Each project in short: what it is, my role, and what came of it.</p>
 
     <div class="filters reveal" role="group" aria-label="Filter projects by discipline">
       <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">17</span></button>
@@ -878,20 +878,16 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       <article class="card reveal" data-lanes="ai">
         <div class="tags"><span class="chip lane" data-l="ai">AI &amp; Engineering</span><span class="chip">2025 · Treobytes</span></div>
         <h3>Claude AI Skill Tree</h3>
-        <p class="blurb">A production AI agent system on the Claude API that generates compliant, submission-ready proposals and grant documents from live data via RAG. I designed and shipped it solo.</p>
+        <p class="blurb">A production AI agent system on the Claude API that generates compliant, submission-ready proposals and grant documents from live data via RAG. I designed and shipped it solo on a three-layer skill architecture that non-technical users operate.</p>
         <p class="outcome">Cut team turnaround from four days to five hours, with an automated LLM-as-judge review flagging policy and brand-guideline violations before anything reaches a client.</p>
         <div class="stack"><span>Claude API</span><span>RAG</span><span>LLM-as-judge</span><span>Python</span><span>JSON schema</span></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>A small team needed compliant, submission-ready documents far faster than people could produce them by hand, and without hiring engineers to operate the system.<b>Approach</b>A three-layer agent architecture: reusable primitives compose into domain skills, which compose into full workflows. RAG pulls live data, and an automated LLM-as-judge review gates every output against policy and brand guidelines before delivery, so the system scales to non-technical users without becoming brittle.</p>
-        </details>
       </article>
 
       <!-- 2 -->
       <article class="card reveal d1" data-lanes="hardware ai">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026 · Independent</span></div>
         <h3>CADence</h3>
-        <p class="blurb">A browser 3D modeler that makes precise, professional-grade CAD as approachable as a toy.</p>
+        <p class="blurb">A browser 3D modeler that makes precise, professional-grade CAD as approachable as a toy. Every shape is stored as an editable recipe of exact parameters, which is what makes the freeform-to-precise switch possible.</p>
         <p class="outcome">Solid modeling with exact dimensions and clean STEP export, plus the move beginner and pro tools both miss, switching between freeform sculpting and precise, editable parametric design on the fly.</p>
         <div class="stack"><span>JavaScript</span><span>Three.js</span><span>WebGL</span><span>Geometry kernel</span><span>B-rep</span></div>
         <div class="thumbs">
@@ -899,17 +895,13 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/cadence/cadence-02.jpg" data-cap="Plush skin, one of several built-in UI themes"><img src="media/cadence/cadence-02.jpg" alt="CADence in the Plush lavender skin" loading="lazy"></button>
         </div>
         <div class="links"><button class="run-inline" type="button" data-app="/cadence/" data-title="CADence"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/cadence/" target="_blank" rel="noopener">Live demo</a></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>Beginner 3D tools are easy but imprecise; professional CAD is precise but intimidating, and neither lets you move freely between freeform sculpting and exact, editable design.<b>Approach</b>Every shape is stored as a recipe of exact parameters, and the 3D model is generated from that recipe. Keeping that history is what makes switching between freeform and precise modeling possible.</p>
-        </details>
       </article>
 
       <!-- 3 -->
       <article class="card reveal d2" data-lanes="hardware">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2026 · Treobytes</span></div>
         <h3>Arduino MIDI Keyboard</h3>
-        <p class="blurb">A buildable MIDI keyboard kit that teaches students to wire real circuitry, designed end to end from CAD to the breadboard and safe for a classroom.</p>
+        <p class="blurb">A buildable MIDI keyboard kit that teaches students to wire real circuitry. I designed the circuit, the USB-HID firmware, and the laser-cut enclosure end to end, safe and simple enough for a classroom.</p>
         <p class="outcome">Students assemble it themselves, placing real components onto a breadboard over an accurate schematic overlay. Plug-and-play with no drivers, compatible with any standard DAW.</p>
         <div class="stack"><span>Arduino Leonardo</span><span>USB-HID firmware</span><span>C++</span><span>OnShape CAD</span><span>Laser cutting</span><span>STEM kit design</span></div>
         <div class="thumbs">
@@ -918,17 +910,13 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/keyboard/keyboard-03.png" data-cap="Wiring overlay: real components placed onto an accurate schematic on the breadboard"><img src="media/keyboard/keyboard-03.png" alt="Wiring schematic overlay" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/keyboard/keyboard-04.jpg" data-cap="Prototype build"><img src="media/keyboard/keyboard-04.jpg" alt="Keyboard kit prototype build" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>An affordable music controller a student could build themselves, plug-and-play, and safe and simple enough for a classroom.<b>Approach</b>I designed the circuit and wrote the USB-HID firmware so it is recognized as a plug-and-play MIDI device with no drivers. I designed the enclosure in CAD for laser-cut assembly, and pathed the full schematic onto a semi-transparent breadboard overlay, so students place real components directly onto an accurate schematic as they build.</p>
-        </details>
       </article>
 
       <!-- 4 -->
       <article class="card reveal" data-lanes="audio ai">
         <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022-23 · Independent</span></div>
         <h3>Adaptive Game-Audio Tool</h3>
-        <p class="blurb">An audio system that reshapes a game's musical score in real time. Composers write the stems by hand, and the engine rearranges and warps them live, tied to in-game parameters like player movement and action. Showcased at GDC San Francisco 2024.</p>
+        <p class="blurb">An audio system that reshapes a game's musical score in real time. Composers write the stems by hand, and the engine rearranges and warps them live with player movement and action. Demoed end to end in Night Shift, my thesis game, with voice acting, UI art, and logo by Emanuel Nation.</p>
         <p class="outcome">Showcased at the Game Developers Conference, San Francisco 2024, and shipped as the audio engine of an indie studio's game.</p>
         <div class="stack"><span>Unreal Engine 5</span><span>UE Blueprint</span><span>Wwise / FMOD</span><span>adaptive audio</span></div>
         <div class="thumbs">
@@ -937,12 +925,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/nightshift/nightshift-03.png" data-cap="Night Shift, in-engine scene"><img src="media/nightshift/nightshift-03.png" alt="Night Shift in-engine scene" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/nightshift/nightshift-04.png" data-cap="Night Shift, in-engine scene"><img src="media/nightshift/nightshift-04.png" alt="Night Shift in-engine scene" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/nightshift/nightshift-05.png" data-cap="Night Shift, in-engine scene"><img src="media/nightshift/nightshift-05.png" alt="Night Shift in-engine scene" loading="lazy"></button>
-          <button class="thumb" type="button" data-full="media/nightshift/nightshift-06.png" data-cap="Night Shift, thesis key art"><img src="media/nightshift/nightshift-06.png" alt="Night Shift thesis key art" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>Problem</b>Linear soundtracks loop and flatten replay value. I wanted a score that responds to the game in real time instead of repeating.<b>Approach</b>An adaptive, dynamic audio package built in two Blueprints. Composers write the musical stems by hand; the engine rearranges and warps them live, tied to in-game parameters like player movement and action, so the mix stays coherent while it shifts with play. A dialogue datatable drives in-game voice lines from structured data. I first built it as a prototype with Odd Orca Studios for their Unreal Engine 4 game, then rebuilt and expanded it into the full package for my thesis.<b>Demo: Night Shift</b>I built Night Shift as my thesis game to showcase the package end to end. Solo build of the Blueprints, music, and systems, with voice acting, in-game UI art, and the logo by Emanuel Nation, an opening voice-line cameo by game designer Cameron Williams, and 3D assets from Unreal Engine Marketplace artists.</p>
-        </details>
       </article>
 
       <!-- 5 -->
@@ -959,10 +942,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/treotools/treotools-04.jpg" data-cap="Inventory management console (trē·tory) for operations oversight"><img src="media/treotools/treotools-04.jpg" alt="TreoTools inventory management console" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/treotools/treotools-05.jpg" data-cap="Admin analytics and reporting view"><img src="media/treotools/treotools-05.jpg" alt="TreoTools admin analytics and reporting" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I built it end to end in React. A standout feature pairs an exhaustive search with a fast heuristic to satisfy seating constraints quickly enough to use live.</p>
-        </details>
       </article>
 
       <!-- 6 -->
@@ -979,10 +958,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/kuka/kuka-pipeline.png" data-cap="The Grasshopper definition: the visual pipeline that drives the geometry"><img src="media/kuka/kuka-pipeline.png" alt="Grasshopper node graph for the generative pipeline" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/kuka/kuka-opening.jpg" data-cap="Top-down view into the printed sculpture's opening"><img src="media/kuka/kuka-opening.jpg" alt="Top-down view into the printed sculpture" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I wrote generative geometry that translates algorithmic forms into tool paths a KUKA robotic arm can print, bridging computational design and physical making.</p>
-        </details>
       </article>
 
       <!-- 7 -->
@@ -1004,10 +979,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/primes/primes-08.jpg" data-cap="Iteration 6 overlaid on iteration 8"><img src="media/primes/primes-08.jpg" alt="Prime pattern, iteration 6 over 8" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/primes/primes-09.jpg" data-cap="The generative algorithm: iterate the L-system, plot prime positions, loop"><img src="media/primes/primes-09.jpg" alt="Generative algorithm flowchart" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I built an interactive p5.js sketch that renders prime / L-system patterns as generative fractal forms in the browser.</p>
-        </details>
       </article>
 
       <!-- Musically-Represented Data -->
@@ -1021,32 +992,24 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <div class="thumbs">
           <button class="thumb" type="button" data-full="media/datavis/datavis-01.png" data-cap="Search-interest data scrolling down a piano roll, each term voiced by an instrument"><img src="media/datavis/datavis-01.png" alt="Data sonification piano roll visualization" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Google Trends data for three search terms is loaded from a CSV, and each term's popularity is mapped onto notes in C major. As the piano roll scrolls, notes that reach the keyboard trigger their instrument in real time. The piece sonifies the surge of public attention in the United States during the summer and autumn of 2020.</p>
-        </details>
       </article>
 
       <!-- 8 -->
       <article class="card reveal d1" data-lanes="audio">
         <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">2022 · Film</span></div>
         <h3>HAIKU: The Story of a Wilting Trillium (OST)</h3>
-        <p class="blurb">An original soundtrack that won Silver for Best Composer at the Tokyo Film Awards.</p>
+        <p class="blurb">An original soundtrack I wrote, orchestrated, mixed, and mastered, recorded with live session musicians and featured in IndieWrap's 2023 short-film collection.</p>
         <p class="outcome">Silver, Best Composer, Tokyo Film Awards 2022; Best Original Music nominee, New Creators Film Awards 2022.</p>
         <div class="stack"><span>Composition</span><span>Orchestration</span><span>Mixing / Mastering</span></div>
         <div class="links"><a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a><a href="https://indiewrapmag.com/film/explore-the-boundless-creativity-of-short-films-in-indiewraps-new-book/" target="_blank" rel="noopener">IndieWrap</a></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I wrote, orchestrated, mixed, and mastered the original score, shaping the film's emotional arc through music. Recorded with live session musicians Federico Gucciardo, Demauni Sankey, and director Joseann Tejeda, who contributed to one of the songs. Featured in IndieWrap's 2023 short-film collection.</p>
-        </details>
       </article>
 
       <!-- Sweet Cream -->
       <article class="card reveal" data-lanes="web audio">
         <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">2022 · Sweet Cream</span></div>
         <h3>Sweet Cream</h3>
-        <p class="blurb">A streetwear brand that pairs screen-printed and cut-and-sew apparel with cinematic brand films. I composed music for several of the brand's films and campaign spots, and designed and built the storefront around the same artistic identity.</p>
-        <p class="outcome">Original music and web design carried the Fall 2022 launch across the site, lookbook, and social films, for a brand that ran its own store at sweetcream.co until discontinued in 2025.</p>
+        <p class="blurb">A streetwear brand with cinematic drops. I scored several of its films and campaign spots and built the sweetcream.co storefront around the brand's identity.</p>
+        <p class="outcome">Music and web design carried the Fall 2022 launch; the archive preserves the original site, lookbook, and store page for page.</p>
         <div class="stack"><span>Web design</span><span>Original score</span><span>Composition</span><span>Sound design</span><span>Foley / SFX</span><span>Mixing</span><span>HTML / CSS</span></div>
         <div class="thumbs">
           <button class="thumb thumb-video" type="button" data-video="media/sweetcream/squidfunk.mp4" data-poster="media/sweetcream/squidfunk-poster.jpg" data-cap="Squid FunK: a 3D animated fashion campaign for Sweet Cream, scored by me"><img src="media/sweetcream/squidfunk-poster.jpg" alt="Squid FunK animated fashion campaign" loading="lazy"></button>
@@ -1054,23 +1017,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb thumb-video" type="button" data-video="media/sweetcream/ad1.mp4" data-poster="media/sweetcream/ad1-poster.jpg" data-cap="Sweet Cream 2023 promotional short, dir. Emanuel Nation. Music composed, arranged, mixed and mastered by me (Dec 2022 to Jan 2023)"><img src="media/sweetcream/ad1-poster.jpg" alt="Sweet Cream 2023 promotional short" loading="lazy"></button><button class="thumb thumb-video" type="button" data-video="media/sweetcream/ad2.mp4" data-poster="media/sweetcream/ad2-poster.jpg" data-cap="Sweet Cream 2023 promotional short, dir. Emanuel Nation. Loopable soundtrack written, performed and recorded by me"><img src="media/sweetcream/ad2-poster.jpg" alt="Sweet Cream 2023 promotional short" loading="lazy"></button>
         </div>
         <div class="links"><button class="run-inline" type="button" data-app="/sweetcream/site/" data-title="Sweet Cream"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/sweetcream/site/" target="_blank" rel="noopener">Open the site</a></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Problem · Approach</summary>
-          <p class="dl"><b>The brand</b>Sweet Cream is an artistic outlet led by young creatives aiming to blur the lines between traditional feminine and masculine traits within fashion. Inspired by the likes of KidSuper, Hirohiko Araki, and Tony Viramontes, Sweet Cream’s Debut Collection focuses heavily on hand screen-printed designs that combine and glorify guerilla art and luxury narratives, creating a story of accelerated motion and outlaw heroism through its iconic characters and designs.<b>Approach</b>I scored several of the brand's short films and campaign spots, cutting the music and effects to the edit so each drop felt cinematic. I also built the sweetcream.co storefront around the brand's identity. The archive is the original site rebuilt page-for-page from its own assets, home film, lookbook, and full store.</p>
-        </details>
-      </article>
-
-      <!-- LEGOSET -->
-      <article class="card reveal" data-lanes="web">
-        <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip">2017 · LEGOSET</span></div>
-        <h3>LEGOSET Collective</h3>
-        <p class="blurb">The site for LEGOSET, a now retired underground music label and collective. My first web design contract, built in 2017.</p>
-        <p class="outcome">The collective ran on this site through its run; it is preserved here page for page from the original.</p>
-        <div class="stack"><span>Web design</span><span>Visual identity</span><span>Wix</span></div>
-        <div class="thumbs">
-          <a class="thumb" href="/legoset/" target="_blank" rel="noopener" title="Open the LEGOSET archive"><img src="media/legoset/lg-home.jpg" alt="LEGOSET site home, pink LEGO brick on static noise" loading="lazy"></a>
-        </div>
-        <div class="links"><button class="run-inline" type="button" data-app="/legoset/" data-title="LEGOSET Collective"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/legoset/" target="_blank" rel="noopener">Open the site</a></div>
       </article>
 
       <!-- AltaMed -->
@@ -1080,10 +1026,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <p class="blurb">I contributed front-end development to a shipped English and Spanish translator tool for AltaMed, a healthcare provider, so bilingual patients and providers could communicate clearly. Accessibility and bilingual content stayed the priority throughout.</p>
         <p class="outcome">Shipped to production, and I built WebFlow demos for a broader healthcare-site overhaul.</p>
         <div class="stack"><span>React</span><span>JavaScript</span><span>WebFlow</span><span>Accessibility</span><span>Bilingual content</span></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I built the front end with React and modern web platforms, and created WebFlow demos for the healthcare-site overhaul, keeping bilingual content and accessible design at the center of every screen.</p>
-        </details>
+        <div class="links"><a href="https://www.altamed.org/" target="_blank" rel="noopener">altamed.org</a></div>
       </article>
 
       <!-- 9 -->
@@ -1091,7 +1034,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <div class="tags"><span class="chip lane" data-l="hardware">3D / Art</span><span class="chip">2022 · Contract</span></div>
         <h3>Wang Shui: Gallery Installation Prototype</h3>
         <p class="blurb">A 3D digital prototype built for contemporary artist Wang Shui. I modeled his sculpture concepts in Maya, then recreated the gallery in Unity as a walkable, fully simulated prototype with projection mapping, so the installation could be experienced before it was built.</p>
-        <p class="outcome">Final installation exhibited at the <a href="https://www.jsc.art/" target="_blank" rel="noopener">Julia Stoschek Collection</a>, Berlin (2022).</p>
+        <p class="outcome">The prototype let the artist walk and refine the installation before it was fabricated.</p>
         <div class="stack"><span>Maya</span><span>Unity</span><span>walkable simulation</span><span>projection mapping</span></div>
         <div class="thumbs">
           <button class="thumb thumb-video" type="button" data-video="media/wangshui/wangshui-gallery.mp4" data-poster="media/wangshui/wangshui-gallery-poster.jpg" data-cap="The final piece: the three sculptures in a dark gallery with the video mapped onto their surfaces"><img src="media/wangshui/wangshui-gallery-poster.jpg" alt="The three sculptures in the gallery, final render" loading="lazy"></button>
@@ -1102,10 +1045,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/wangshui/ws-wire.png" data-cap="All three sculptures as editable wireframe geometry"><img src="media/wangshui/ws-wire.png" alt="All three sculptures as wireframe geometry" loading="lazy"></button>
         </div>
         <div class="links"><button class="run-inline" type="button" data-app="/cadence/?view=render&amp;models=models/wangshui/rvsn1.obj,models/wangshui/rvsn2.obj,models/wangshui/rvsn3.obj" data-title="Wang Shui sculptures in 3D"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>View all three in 3D</button></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I built the 3D models in Maya from the artist's sketches and assembled a Unity environment with a projection-mapping simulation, a navigable digital prototype of the planned piece.</p>
-        </details>
       </article>
 
       <!-- 10 -->
@@ -1116,10 +1055,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <p class="outcome">Students leave able to build working game audio in a real game engine, not just talk about it.</p>
         <div class="stack"><span>Unity</span><span>Unreal Engine 5</span><span>Wwise / FMOD</span><span>C#</span></div>
         <div class="links"><a href="https://woodbury.edu/faculty/vi-ellis" target="_blank" rel="noopener">Faculty page</a></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>I developed and deliver the curriculum, lectures and labs from DAW fundamentals through adaptive audio via C# scripting and UE Blueprint with audio middleware.</p>
-        </details>
       </article>
 
       <!-- 11 -->
@@ -1133,10 +1068,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/leads/leads-01.jpg" data-cap="Analyzer output: a long public LCAP document distilled into a fit score, district profile, and priority ranking (San Diego Unified)"><img src="media/leads/leads-01.jpg" alt="LCAP analyzer fit score, San Diego Unified" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/leads/leads-02.jpg" data-cap="Per-district profile with scored keyword counts and a priority label (Coronado Unified)"><img src="media/leads/leads-02.jpg" alt="LCAP analyzer district profile, Coronado Unified" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Pulls structured data from lengthy public documents against a defined schema, scores each against a rubric, and feeds the prioritized leads into the CRM.</p>
-        </details>
       </article>
 
       <!-- Game & Film Credits -->
@@ -1161,7 +1092,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
                     <tr><td class="c-title">(2 unannounced titles)</td><td>Composer</td><td class="c-year">2026</td><td>Pending release</td></tr>
                     <tr><td class="c-title">Robococo</td><td>Composer, Technical Sound Designer</td><td class="c-year">2025</td><td>Cesarajg<span class="ct-meta">PC</span></td></tr>
                     <tr><td class="c-title">Brace Yourself</td><td>Composer, Technical Sound Designer</td><td class="c-year">2025</td><td>Bzar<span class="ct-meta">PC</span></td></tr>
-                    <tr><td class="c-title">Night Shift</td><td>Composer, Audio Designer, Tools Developer</td><td class="c-year">2023</td><td>Necro.World<span class="ct-meta">PC</span><span class="ct-note">Built with Vi's UE5 Blueprint tool; shown at GDC SF 2024</span></td></tr>
+                    <tr><td class="c-title">Night Shift</td><td>Composer, Audio Designer, Tools Developer</td><td class="c-year">2023</td><td>Necro.World<span class="ct-meta">PC</span><span class="ct-note">Built with my UE5 Blueprint tool; shown at GDC SF 2024</span></td></tr>
                     <tr><td class="c-title">Bermuda Triangle: Depths</td><td>Composer, Audio Designer</td><td class="c-year">2022</td><td>Avalon Custer<span class="ct-meta">4D VR</span></td></tr>
                     <tr><td class="c-title">High Flyer</td><td>Composer</td><td class="c-year">2022</td><td>Krypto Chronic<span class="ct-meta">Mobile</span></td></tr>
                     <tr><td class="c-title">Neighborrhea</td><td>Composer</td><td class="c-year">2022</td><td>Judah Ellis<span class="ct-meta">PC</span></td></tr>
@@ -1226,10 +1157,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <p class="outcome">Shipped as a no-install web app: pixel drawing, layers, frames, states, brush and selection tools, playback, and PNG export.</p>
         <div class="stack"><span>JavaScript</span><span>Canvas 2D</span><span>Web</span></div>
         <div class="links"><button class="run-inline" type="button" data-app="/anim/" data-title="Layerloop"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/anim/" target="_blank" rel="noopener">Live</a></div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Built a layer and frame model where each cell carries its own state, composited live on a Canvas pipeline with onion-skinning, undo, and shape tools, then exported to PNG sequences.</p>
-        </details>
       </article>
 
       <!-- 18 -->
@@ -1251,10 +1178,6 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
           <button class="thumb" type="button" data-full="media/gan/gan-07.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-07.jpg" alt="GAN generated sample" loading="lazy"></button>
           <button class="thumb" type="button" data-full="media/gan/gan-08.jpg" data-cap="Generated sample from the trained network"><img src="media/gan/gan-08.jpg" alt="GAN generated sample" loading="lazy"></button>
         </div>
-        <details>
-          <summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Approach</summary>
-          <p class="dl"><b>Approach</b>Assembled and cleaned the dataset, built and trained the adversarial network on GPU with checkpointing, and evaluated outputs across runs, so I reason about inference cost and model behavior firsthand.</p>
-        </details>
       </article>
 
     </div>
@@ -1306,8 +1229,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
     <ul class="press-list">
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Silver, Best Composer, Tokyo Film Awards 2022</summary><p class="dl">Awarded for the original score of the short film <i>HAIKU</i>. The film also took a Best Original Music nomination at the 2022 New Creators Film Awards and was featured in IndieWrap's 2023 published short-film collection. <a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Showcased at GDC San Francisco 2024</summary><p class="dl">A generative game-audio tool, built in Unreal Engine 5 for an indie game studio, was showcased at the Game Developers Conference in San Francisco. It assembles a unique soundtrack per game session from interchangeable musical layers.</p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Featured in Dezeen, 2023</summary><p class="dl">Computational design work was featured in Dezeen's School Shows. The generative piece computes natural numbers and runs an L-system through multiple iterations to grow fractal forms in the browser. <a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a> · <a href="https://editor.p5js.org/levi.e.82568/full/OpG8HU3Jt" target="_blank" rel="noopener">Live demo</a></p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Exhibited at Julia Stoschek Collection, Berlin, 2022</summary><p class="dl">A 3D-modeled and Unity projection-mapping prototype, built for contemporary artist Wang Shui, became part of an installation exhibited at the Julia Stoschek Collection in Berlin.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Featured in Dezeen, 2023</summary><p class="dl">Computational design work was featured in Dezeen's School Shows. The generative piece computes natural numbers and runs an L-system through multiple iterations to grow fractal forms in the browser. <a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a> · <a href="/primes/" target="_blank" rel="noopener">Live demo</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Magna Cum Laude, Woodbury University</summary><p class="dl">B.S. in Applied Computer Science (Media Arts), 2023, with a 3.8 GPA. Recognized with the Best Thesis Award for the graduating class, Academic Excellence Awards in 2022 and 2023, and Dean's List every semester.</p></details></li>
     </ul>
   </div>
