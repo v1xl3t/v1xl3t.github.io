@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>VI ELLIS — ISSUE 01 (preview)</title>
+<meta name="description" content="Preview of the vi-ellis.com zine rebuild. Unlisted.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23131016'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23ffd23f' font-family='monospace' font-weight='bold'%3EV%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Public+Sans:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f3eee4;      /* aged stock */
+  --ink:#191419;
+  --ink-soft:#4d4550;
+  --accent:#ffd23f;     /* cover yellow */
+  --rule:#19141922;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --disp:"Archivo Black",Impact,"Arial Black",sans-serif;
+  --body:"Public Sans",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+body{
+  margin:0; background:var(--paper); color:var(--ink); font-family:var(--body);
+  line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+/* paper grain over everything */
+body::after{
+  content:""; position:fixed; inset:0; z-index:50; pointer-events:none; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+img{max-width:100%; display:block}
+a{color:inherit}
+::selection{background:var(--accent); color:var(--ink)}
+
+/* ---------- fixed chrome: preview stamp + rail ---------- */
+.stamp{
+  position:fixed; top:14px; left:14px; z-index:60; transform:rotate(-6deg);
+  font-family:var(--mono); font-size:.62rem; letter-spacing:.14em; font-weight:600;
+  color:#b3261e; border:2px solid #b3261e; border-radius:4px; padding:4px 8px;
+  background:#f3eee4d9; text-transform:uppercase; opacity:.85;
+}
+.rail{
+  position:fixed; right:12px; top:50%; transform:translateY(-50%); z-index:60;
+  display:flex; flex-direction:column; gap:10px; align-items:center;
+}
+.rail a{
+  width:10px; height:10px; border-radius:50%; border:2px solid var(--ink);
+  background:transparent; display:block; transition:background .2s, transform .2s;
+}
+.rail a.on{background:var(--ink); transform:scale(1.3)}
+.rail a:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.progress{
+  position:fixed; top:0; left:0; height:4px; background:var(--ink); width:0%;
+  z-index:61;
+}
+@media (max-width:640px){ .rail{display:none} }
+
+/* ---------- shared spread scaffolding ---------- */
+.spread{ min-height:100svh; position:relative; padding:clamp(56px,10vw,120px) clamp(20px,6vw,72px); }
+.folio{
+  font-family:var(--mono); font-size:.68rem; letter-spacing:.18em; text-transform:uppercase;
+  display:flex; justify-content:space-between; gap:12px;
+  border-bottom:2px solid currentColor; padding-bottom:8px; margin-bottom:clamp(28px,5vw,54px);
+}
+.kicker{ font-family:var(--mono); font-size:.75rem; letter-spacing:.22em; text-transform:uppercase; margin:0 0 14px }
+h1,h2{ font-family:var(--disp); line-height:.95; letter-spacing:-.01em; margin:0; text-transform:uppercase }
+.lede{ font-size:clamp(1.02rem,1rem + .4vw,1.25rem); max-width:58ch }
+.spread .body{ max-width:62ch }
+.facts{
+  font-family:var(--mono); font-size:.78rem; line-height:1.9; letter-spacing:.02em;
+  border-left:3px solid currentColor; padding-left:14px; margin:26px 0;
+}
+.reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s cubic-bezier(.22,.61,.36,1) }
+.reveal.in{ opacity:1; transform:none }
+@media (prefers-reduced-motion:reduce){ .reveal{opacity:1; transform:none; transition:none} }
+
+/* ---------- 00 · cover ---------- */
+#cover{ background:var(--accent); display:flex; flex-direction:column; justify-content:center; overflow:hidden }
+#cover .masthead{ font-size:clamp(3rem,1rem + 13vw,9.5rem); }
+#cover .masthead span{ display:block }
+#cover .masthead .outline{
+  color:transparent; -webkit-text-stroke:3px var(--ink); text-stroke:3px var(--ink);
+}
+#cover .issue{
+  font-family:var(--mono); font-weight:600; font-size:.8rem; letter-spacing:.3em;
+  text-transform:uppercase; margin-top:22px;
+}
+#cover .barcode{
+  margin-top:34px; height:44px; width:min(220px,60%);
+  background:repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 6px, var(--ink) 6px 11px, transparent 11px 13px);
+}
+.ticker{
+  position:absolute; left:0; right:0; bottom:0; border-top:3px solid var(--ink);
+  background:var(--paper); font-family:var(--mono); font-size:.72rem; letter-spacing:.12em;
+  text-transform:uppercase; white-space:nowrap; overflow:hidden; padding:9px 0;
+}
+.ticker span{ display:inline-block; padding-left:100%; animation:tick 26s linear infinite }
+@keyframes tick{ to{ transform:translateX(-100%) } }
+@media (prefers-reduced-motion:reduce){ .ticker span{ animation:none; padding-left:1rem } }
+
+/* ---------- 01 · contents ---------- */
+#toc{ background:var(--paper) }
+.toc-list{ list-style:none; margin:0; padding:0; max-width:860px }
+.toc-list li{ border-bottom:2px solid var(--ink) }
+.toc-list a, .toc-list .soon{
+  display:flex; align-items:baseline; gap:16px; padding:16px 4px; text-decoration:none;
+}
+.toc-list .no{ font-family:var(--mono); font-size:.75rem; min-width:2.4em }
+.toc-list .t{ font-family:var(--disp); text-transform:uppercase; font-size:clamp(1.05rem,.9rem + 1.4vw,1.9rem); line-height:1.05 }
+.toc-list .vibe{ margin-left:auto; font-family:var(--mono); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; text-align:right }
+.toc-list a:hover .t{ -webkit-text-stroke:1px var(--ink); color:transparent }
+.toc-list .soon{ opacity:.38 }
+@media (max-width:560px){ .toc-list .vibe{ display:none } }
+
+/* ---------- 02 · sweet cream (loud) ---------- */
+#sweetcream{ background:#ff4fa3; color:#1c0a14; overflow:hidden }
+#sweetcream::before{ /* halftone field */
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.24;
+  background-image:radial-gradient(#1c0a14 1.3px, transparent 1.3px);
+  background-size:11px 11px;
+}
+#sweetcream .blob{
+  position:absolute; border-radius:52% 48% 61% 39% / 44% 59% 41% 56%;
+  background:#ffd23f; mix-blend-mode:hard-light; pointer-events:none;
+}
+#sweetcream .b1{ width:44vw; height:44vw; right:-14vw; top:-10vw; transform:rotate(12deg) }
+#sweetcream .b2{ width:22vw; height:22vw; left:-8vw; bottom:6vh; background:#7df9ff }
+#sweetcream h2{ font-size:clamp(2.6rem,1rem + 8.5vw,6.8rem); position:relative }
+#sweetcream h2 em{ font-style:normal; color:#fff; text-shadow:4px 4px 0 #1c0a14 }
+#sweetcream .content{ position:relative; z-index:1 }
+.sticker{
+  display:inline-block; transform:rotate(-4deg); background:#fff; border:3px solid #1c0a14;
+  border-radius:999px; font-family:var(--mono); font-weight:600; font-size:.7rem;
+  letter-spacing:.14em; text-transform:uppercase; padding:7px 14px;
+  box-shadow:4px 4px 0 #1c0a14; margin:0 8px 10px 0;
+}
+.sc-shots{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-top:30px; max-width:840px }
+.sc-shots figure{ margin:0; border:3px solid #1c0a14; box-shadow:6px 6px 0 #1c0a14; background:#fff; transform:rotate(-1.4deg) }
+.sc-shots figure:nth-child(2n){ transform:rotate(1.6deg) }
+.sc-shots img{ aspect-ratio:4/3; object-fit:cover; width:100% }
+.sc-shots figcaption{ font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; padding:7px 9px }
+
+/* ---------- 03 · treobytes (clean) ---------- */
+#treobytes{ background:#fcfcfa; color:#16181d }
+#treobytes .folio{ border-color:#16181d33 }
+#treobytes h2{ font-size:clamp(2rem,1rem + 5.4vw,4.6rem) }
+.grid2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:clamp(20px,4vw,44px); margin-top:clamp(26px,4vw,46px); max-width:1060px }
+.case{ border-top:3px solid #16181d; padding-top:16px }
+.case h3{ font-family:var(--body); font-weight:800; font-size:1.06rem; margin:0 0 8px; letter-spacing:.01em }
+.case p{ margin:.4em 0; font-size:.95rem; color:#3a3f49 }
+.case .metric{ font-family:var(--mono); font-size:.74rem; letter-spacing:.04em; color:#16181d; background:#eef0ea; padding:8px 10px; display:inline-block; margin-top:10px }
+
+/* ---------- 04 · altamed (subdued) ---------- */
+#altamed{ background:#e9f0ee; color:#253334 }
+#altamed .folio{ border-color:#25333440 }
+#altamed h2{ font-family:var(--body); font-weight:400; text-transform:none; letter-spacing:0; font-size:clamp(1.7rem,1rem + 3.4vw,3.1rem); line-height:1.2; max-width:22ch }
+#altamed .body{ color:#3c4c4d }
+.calm-rule{ width:64px; height:2px; background:#25333455; margin:26px 0 }
+
+/* ---------- 05 · outro ---------- */
+#outro{ background:var(--ink); color:var(--paper); display:flex; flex-direction:column; justify-content:center }
+#outro h2{ font-size:clamp(1.9rem,1rem + 5vw,4.4rem); color:transparent; -webkit-text-stroke:2px var(--paper) }
+#outro .links{ margin-top:30px; display:flex; flex-wrap:wrap; gap:12px }
+#outro .links a{
+  font-family:var(--mono); font-size:.74rem; letter-spacing:.14em; text-transform:uppercase;
+  border:2px solid var(--paper); padding:10px 16px; text-decoration:none;
+}
+#outro .links a:hover{ background:var(--accent); color:var(--ink); border-color:var(--accent) }
+#outro .note{ font-family:var(--mono); font-size:.72rem; opacity:.66; max-width:52ch; margin-top:34px; line-height:1.9 }
+</style>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<span class="stamp" aria-hidden="true">v2 preview · unlisted</span>
+<nav class="rail" aria-label="Spreads">
+  <a href="#cover" data-dot="cover" aria-label="Cover"></a>
+  <a href="#toc" data-dot="toc" aria-label="Contents"></a>
+  <a href="#sweetcream" data-dot="sweetcream" aria-label="Sweet Cream"></a>
+  <a href="#treobytes" data-dot="treobytes" aria-label="Treobytes"></a>
+  <a href="#altamed" data-dot="altamed" aria-label="AltaMed"></a>
+  <a href="#outro" data-dot="outro" aria-label="Outro"></a>
+</nav>
+
+<!-- 00 · COVER -->
+<section class="spread" id="cover" aria-label="Cover">
+  <p class="kicker reveal">A portfolio, staged as a zine</p>
+  <h1 class="masthead reveal">
+    <span>Vi</span>
+    <span class="outline">Ellis</span>
+  </h1>
+  <p class="issue reveal">Issue 01 · The Work · 17 projects, 31 credits</p>
+  <div class="barcode reveal" aria-hidden="true"></div>
+  <div class="ticker" aria-hidden="true"><span>Engineer · Product developer · Composer &nbsp;✂&nbsp; production AI · hardware · game audio · web &nbsp;✂&nbsp; GDC SF 2024 · Dezeen · Tokyo Film Awards · Hammer Museum &nbsp;✂&nbsp; scroll to read &nbsp;✂&nbsp; Engineer · Product developer · Composer &nbsp;✂&nbsp; production AI · hardware · game audio · web &nbsp;✂&nbsp; scroll to read &nbsp;✂&nbsp;</span></div>
+</section>
+
+<!-- 01 · CONTENTS -->
+<section class="spread" id="toc" aria-labelledby="toc-title">
+  <div class="folio"><span>Issue 01</span><span>Contents</span><span>p.01</span></div>
+  <h2 id="toc-title" class="reveal" style="font-size:clamp(1.9rem,1rem + 4.5vw,3.8rem); margin-bottom:26px">In this issue</h2>
+  <ul class="toc-list">
+    <li class="reveal"><a href="#sweetcream"><span class="no">02</span><span class="t">Sweet Cream</span><span class="vibe">Loud · screen-print</span></a></li>
+    <li class="reveal"><a href="#treobytes"><span class="no">03</span><span class="t">Treobytes, in production</span><span class="vibe">Clean · professional</span></a></li>
+    <li class="reveal"><a href="#altamed"><span class="no">04</span><span class="t">AltaMed</span><span class="vibe">Subdued · care</span></a></li>
+    <li class="reveal"><span class="soon"><span class="no">05</span><span class="t">Night Shift &amp; the adaptive score</span><span class="vibe">Being typeset</span></span></li>
+    <li class="reveal"><span class="soon"><span class="no">06</span><span class="t">WangShui · KUKA · Primes · GAN</span><span class="vibe">Being typeset</span></span></li>
+    <li class="reveal"><span class="soon"><span class="no">07</span><span class="t">Credits, press &amp; contact</span><span class="vibe">Being typeset</span></span></li>
+  </ul>
+  <p class="facts reveal" style="margin-top:34px">This is a working preview of the vi-ellis.com rebuild.<br>Three spreads set the range: loud, clean, subdued.<br>Same facts, same structure, more me.</p>
+</section>
+
+<!-- 02 · SWEET CREAM (loud) -->
+<section class="spread" id="sweetcream" aria-labelledby="sc-title">
+  <div class="blob b1" aria-hidden="true"></div>
+  <div class="blob b2" aria-hidden="true"></div>
+  <div class="content">
+    <div class="folio"><span>02 · Web &amp; Music</span><span>2022 · Sweet Cream</span><span>p.02</span></div>
+    <h2 id="sc-title" class="reveal">Sweet <em>Cream</em></h2>
+    <div style="margin:22px 0 6px" class="reveal">
+      <span class="sticker">Original score</span><span class="sticker">Storefront design</span><span class="sticker">Fall 2022 launch</span>
+    </div>
+    <p class="lede body reveal">A streetwear brand with cinematic drops. I scored several of its films and campaign spots and built the sweetcream.co storefront around the brand's identity. Music and web design carried the launch, and the archive preserves the original site page for page.</p>
+    <div class="sc-shots reveal">
+      <figure><img src="/media/sweetcream/squidfunk-poster.jpg" alt="Squid FunK animated fashion campaign" loading="lazy"><figcaption>Squid FunK · scored by me</figcaption></figure>
+      <figure><img src="/media/sweetcream/highwaystar-poster.jpg" alt="Highway Star brand film" loading="lazy"><figcaption>Highway Star · music by me</figcaption></figure>
+      <figure><img src="/media/sweetcream/ad1-poster.jpg" alt="Sweet Cream 2023 promotional short" loading="lazy"><figcaption>2023 promo · dir. Emanuel Nation</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 03 · TREOBYTES (clean) -->
+<section class="spread" id="treobytes" aria-labelledby="tb-title">
+  <div class="folio"><span>03 · AI &amp; Engineering</span><span>2025 to 2026 · Treobytes</span><span>p.03</span></div>
+  <p class="kicker reveal">The clean spread</p>
+  <h2 id="tb-title" class="reveal">Shipped, adopted,<br>in production</h2>
+  <div class="grid2">
+    <div class="case reveal">
+      <h3>Claude AI Skill Tree</h3>
+      <p>A production AI agent system on the Claude API that generates compliant, submission-ready proposals and grant documents from live data via RAG. I designed and shipped it solo on a three-layer skill architecture that non-technical users operate.</p>
+      <span class="metric">4 days → 5 hours turnaround</span>
+    </div>
+    <div class="case reveal">
+      <h3>TreoTools</h3>
+      <p>An internal React platform I built from the ground up, pairing a daily-use facilitator app with a management admin console. Adopted org-wide as the hub for daily operations.</p>
+      <span class="metric">Org-wide adoption</span>
+    </div>
+    <div class="case reveal">
+      <h3>Arduino MIDI Keyboard</h3>
+      <p>A buildable kit that teaches students to wire real circuitry. I designed the circuit, the USB-HID firmware, and the laser-cut enclosure end to end, safe and simple enough for a classroom.</p>
+      <span class="metric">Plug-and-play, no drivers</span>
+    </div>
+  </div>
+</section>
+
+<!-- 04 · ALTAMED (subdued) -->
+<section class="spread" id="altamed" aria-labelledby="am-title">
+  <div class="folio"><span>04 · Web &amp; Design</span><span>2022 · AltaMed</span><span>p.04</span></div>
+  <p class="kicker reveal">The quiet spread</p>
+  <h2 id="am-title" class="reveal">Language should never stand between a patient and their care.</h2>
+  <div class="calm-rule reveal" aria-hidden="true"></div>
+  <p class="body reveal">I contributed front-end development to a shipped English and Spanish translator tool for AltaMed, a healthcare provider, so bilingual patients and providers could communicate clearly. Accessibility and bilingual content stayed the priority throughout, and I built WebFlow demos for a broader healthcare-site overhaul.</p>
+  <p class="facts reveal">React · JavaScript · WebFlow · Accessibility<br>Shipped to production · <a href="https://www.altamed.org/" target="_blank" rel="noopener">altamed.org</a></p>
+</section>
+
+<!-- 05 · OUTRO -->
+<section class="spread" id="outro" aria-labelledby="out-title">
+  <div class="folio" style="border-color:#f3eee440"><span>Issue 01</span><span>To be continued</span><span>p.05</span></div>
+  <h2 id="out-title" class="reveal">The rest of the issue is being typeset.</h2>
+  <div class="links reveal">
+    <a href="/">Current portfolio</a>
+    <a href="/apps/">Apps</a>
+    <a href="mailto:contactviellis@gmail.com">Contact</a>
+  </div>
+  <p class="note reveal">Unlisted preview. The live site at vi-ellis.com is untouched until this issue is blessed. Textures, type, and color here are placeholders awaiting the moodboard in the asset inbox. Pastel and cyber skins come after the standard issue ships.</p>
+</section>
+
+<script>
+(function(){
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // reveals
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target);} });
+  },{threshold:.15});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+  // rail dots
+  var dots = {};
+  document.querySelectorAll(".rail a").forEach(function(a){ dots[a.dataset.dot]=a; });
+  var so = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      var d = dots[e.target.id];
+      if(d){ d.classList.toggle("on", e.isIntersecting && e.intersectionRatio > .4); }
+    });
+  },{threshold:[.45]});
+  document.querySelectorAll(".spread").forEach(function(s){ so.observe(s); });
+  // progress bar
+  var bar = document.getElementById("progress");
+  function onScroll(){
+    var h = document.documentElement;
+    var p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+    bar.style.width = (p*100).toFixed(2) + "%";
+  }
+  document.addEventListener("scroll", onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>
