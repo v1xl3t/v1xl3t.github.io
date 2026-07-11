@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en" data-skin="pastel">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Skin Lab — cursor followers (preview)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23131016'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23ffd23f' font-family='monospace' font-weight='bold'%3EV%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{ --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; --disp:"Archivo Black",Impact,sans-serif; }
+*{box-sizing:border-box}
+body{ margin:0; font-family:var(--mono); line-height:1.6; overflow-x:hidden; transition:background .4s, color .4s; }
+html[data-skin="pastel"] body{ background:#fdf3e7; color:#5a4a6a; }
+html[data-skin="cyber"]  body{ background:#07090c; color:#8df0c2; }
+img{max-width:100%}
+main{ max-width:720px; margin:0 auto; padding:110px 20px 40vh; }
+h1{ font-family:var(--disp); text-transform:uppercase; line-height:1; font-size:clamp(1.6rem,1rem + 4vw,3rem); margin:0 0 14px }
+h2{ font-family:var(--disp); text-transform:uppercase; font-size:1rem; margin:44px 0 8px }
+p{ font-size:.85rem }
+code{ font-weight:600 }
+.bar{
+  position:fixed; top:0; left:0; right:0; z-index:90; display:flex; gap:8px; align-items:center;
+  padding:12px 16px; font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
+  backdrop-filter:blur(6px);
+}
+html[data-skin="pastel"] .bar{ background:#fdf3e7d9; border-bottom:2px solid #5a4a6a }
+html[data-skin="cyber"] .bar{ background:#07090cd9; border-bottom:2px solid #8df0c2 }
+.bar button{
+  font:inherit; letter-spacing:inherit; text-transform:inherit; cursor:pointer;
+  padding:7px 14px; border-radius:999px; border:2px solid currentColor; background:transparent; color:inherit;
+}
+.bar button[aria-pressed="true"]{ }
+html[data-skin="pastel"] .bar button[aria-pressed="true"]{ background:#5a4a6a; color:#fdf3e7 }
+html[data-skin="cyber"] .bar button[aria-pressed="true"]{ background:#8df0c2; color:#07090c }
+.bar .count{ margin-left:auto; font-weight:600 }
+html[data-skin="pastel"] .count{ display:none }
+.hint{ opacity:.75 }
+html[data-skin="cyber"] main a{ color:#8df0c2 }
+html[data-skin="pastel"] main a{ color:#5a4a6a }
+
+/* scanlines for cyber */
+html[data-skin="cyber"] body::after{
+  content:""; position:fixed; inset:0; z-index:80; pointer-events:none; opacity:.14;
+  background:repeating-linear-gradient(0deg, transparent 0 2px, #000 2px 3px);
+}
+
+/* ------- followers (shared) ------- */
+.fw{ position:fixed; left:0; top:0; z-index:95; pointer-events:none; will-change:transform; }
+.hide{ display:none !important }
+html.hascursor[data-skin] body{ cursor:none }
+html.hascursor[data-skin] a, html.hascursor[data-skin] button{ cursor:none }
+
+/* butterfly: 2-frame stepped flap, fired occasionally by JS */
+#butterfly svg{ display:block }
+#butterfly .w{ transform-origin:12px 12px; }
+#butterfly.flap .wl{ animation:flapL .28s steps(2,end) 2 }
+#butterfly.flap .wr{ animation:flapR .28s steps(2,end) 2 }
+@keyframes flapL{ 50%{ transform:scaleX(.25) } }
+@keyframes flapR{ 50%{ transform:scaleX(.25) } }
+
+/* reptile evolution pop */
+#critter .stage{ display:none; transform-origin:center }
+#critter[data-stage="1"] .s1, #critter[data-stage="2"] .s2, #critter[data-stage="3"] .s3{ display:block }
+#critter.pop svg{ animation:pop .32s steps(3,end) 1 }
+@keyframes pop{ 40%{ transform:scale(1.45) rotate(-6deg) } }
+
+/* ufo */
+#ufo .up{ opacity:0 }
+#ufo[data-lv="1"] .u1{opacity:1} #ufo[data-lv="2"] .u1,#ufo[data-lv="2"] .u2{opacity:1}
+#ufo[data-lv="3"] .u1,#ufo[data-lv="3"] .u2,#ufo[data-lv="3"] .u3{opacity:1}
+#ufo .beam{ opacity:0; transition:opacity .15s }
+#ufo.tract .beam{ opacity:.8 }
+
+/* artifacts in the page */
+.artifact{
+  display:inline-grid; place-items:center; width:34px; height:34px; margin:0 6px; vertical-align:middle;
+  border:2px dashed currentColor; border-radius:8px; font-size:1rem;
+  transition:transform .4s, opacity .4s;
+}
+.artifact.got{ transform:scale(0) rotate(180deg); opacity:0 }
+#trail{ position:fixed; inset:0; z-index:94; pointer-events:none }
+.rm-note{ display:none; padding:10px 14px; border:2px solid currentColor; margin:16px 0; font-size:.75rem }
+@media (prefers-reduced-motion:reduce){
+  .rm-note{ display:block }
+  .fw,#trail{ display:none !important }
+  html.hascursor[data-skin] body, html.hascursor[data-skin] a, html.hascursor[data-skin] button{ cursor:auto }
+}
+</style>
+</head>
+<body>
+<div class="bar" role="toolbar" aria-label="Skin switch">
+  <button id="bp" aria-pressed="true">🦋 Pastel</button>
+  <button id="bc" aria-pressed="false">🛸 Cyber</button>
+  <span class="count" id="count">0/4 artifacts</span>
+</div>
+
+<canvas id="trail" aria-hidden="true"></canvas>
+
+<!-- butterfly cursor (pastel) -->
+<div class="fw" id="butterfly" aria-hidden="true">
+  <svg width="26" height="24" viewBox="0 0 26 24">
+    <g class="w wl"><path d="M12 12 C4 2 0 6 2 11 C0 16 5 20 12 12Z" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.4"/></g>
+    <g class="w wr"><path d="M14 12 C22 2 26 6 24 11 C26 16 21 20 14 12Z" fill="#a3d9f5" stroke="#5a4a6a" stroke-width="1.4"/></g>
+    <ellipse cx="13" cy="12" rx="1.6" ry="4.6" fill="#5a4a6a"/>
+  </svg>
+</div>
+
+<!-- chibi critter (pastel follower) -->
+<div class="fw" id="critter" data-stage="1" aria-hidden="true">
+  <svg width="72" height="60" viewBox="0 0 72 60">
+    <g class="stage s1">
+      <ellipse cx="36" cy="44" rx="13" ry="9" fill="#b8e6c9" stroke="#5a4a6a" stroke-width="1.6"/>
+      <circle cx="45" cy="36" r="8" fill="#b8e6c9" stroke="#5a4a6a" stroke-width="1.6"/>
+      <circle cx="47" cy="34" r="2.2" fill="#5a4a6a"/>
+      <path d="M23 46 Q16 48 15 43" fill="none" stroke="#5a4a6a" stroke-width="1.6" stroke-linecap="round"/>
+    </g>
+    <g class="stage s2">
+      <ellipse cx="34" cy="42" rx="17" ry="12" fill="#cbb8e6" stroke="#5a4a6a" stroke-width="1.6"/>
+      <circle cx="48" cy="30" r="10" fill="#cbb8e6" stroke="#5a4a6a" stroke-width="1.6"/>
+      <circle cx="51" cy="28" r="2.6" fill="#5a4a6a"/>
+      <path d="M43 20 l3 -6 l3 6 M49 19 l3 -6 l3 6" fill="#f5d3a3" stroke="#5a4a6a" stroke-width="1.4"/>
+      <path d="M17 46 Q8 50 7 42" fill="none" stroke="#5a4a6a" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <g class="stage s3">
+      <ellipse cx="32" cy="40" rx="20" ry="15" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.6"/>
+      <circle cx="52" cy="22" r="12" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.6"/>
+      <circle cx="56" cy="20" r="3" fill="#5a4a6a"/>
+      <path d="M40 12 l4 -8 l4 8 M48 10 l4 -8 l4 8" fill="#f5d3a3" stroke="#5a4a6a" stroke-width="1.4"/>
+      <path d="M14 44 Q2 50 2 38" fill="none" stroke="#5a4a6a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M22 52 l3 6 M34 54 l2 6 M44 50 l3 6" stroke="#5a4a6a" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </svg>
+</div>
+
+<!-- crosshair cursor (cyber) -->
+<div class="fw" id="cross" aria-hidden="true">
+  <svg width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="8" fill="none" stroke="#8df0c2" stroke-width="1.4"/>
+    <path d="M14 0v8M14 20v8M0 14h8M20 14h8" stroke="#8df0c2" stroke-width="1.4"/>
+    <circle cx="14" cy="14" r="1.6" fill="#ff5560"/>
+  </svg>
+</div>
+
+<!-- ufo (cyber follower) -->
+<div class="fw" id="ufo" data-lv="0" aria-hidden="true">
+  <svg width="84" height="74" viewBox="0 0 84 74">
+    <polygon class="beam" points="30,34 54,34 66,72 18,72" fill="#8df0c2" opacity=".8" style="mix-blend-mode:screen"/>
+    <ellipse cx="42" cy="30" rx="26" ry="10" fill="#0e1a16" stroke="#8df0c2" stroke-width="1.6"/>
+    <path d="M26 24 a16 12 0 0 1 32 0" fill="#0e1a16" stroke="#8df0c2" stroke-width="1.6"/>
+    <g class="up u1"><path d="M42 12 v-7 M42 5 l4 -3" stroke="#8df0c2" stroke-width="1.6" fill="none"/><circle cx="47" cy="1.6" r="1.6" fill="#ff5560"/></g>
+    <g class="up u2"><circle cx="28" cy="30" r="2" fill="#8df0c2"/><circle cx="42" cy="33" r="2" fill="#ff5560"/><circle cx="56" cy="30" r="2" fill="#8df0c2"/></g>
+    <g class="up u3"><path d="M14 28 l-9 4 M70 28 l9 4" stroke="#8df0c2" stroke-width="2.4" stroke-linecap="round"/></g>
+  </svg>
+</div>
+
+<main>
+  <h1>Skin Lab</h1>
+  <p class="hint">Placeholder shapes, real behavior. Move the mouse. Scroll. Switch skins up top. Real art comes from the moodboard, this page locks the <em>feel</em>.</p>
+  <p class="rm-note">Reduced motion is on, so followers are disabled here, exactly as they will be on the real site. Palettes still switch.</p>
+
+  <h2>Pastel 🦋</h2>
+  <p>Your cursor is the butterfly. It barely animates, an occasional two-frame flap, like a blink. The critter chasing it evolves as you scroll deeper: hatchling → frilled → chibi dino. It never devolves. On touch screens it becomes a corner mascot instead.</p>
+
+  <h2>Cyber 🛸</h2>
+  <p>Crosshair cursor with a sketchy decaying trail, redrawn at ~12fps on purpose. The UFO tails your cursor. Fly it near an artifact to tractor-beam it aboard, each pickup upgrades the saucer (antenna, lights, fins). Catch all of them on this page: <span class="artifact" data-a>✦</span> <span class="artifact" data-a>⚡</span></p>
+
+  <h2>Numbers to bless (or tune)</h2>
+  <p>
+  butterfly flap: every 4–9s · critter chase: lerp 0.055 · critter evolve: 33% / 66% scroll ·
+  UFO chase: lerp 0.045 + sine hover · trail decay: 0.5s · trail rate: 12fps · pickup radius: 60px
+  </p>
+  <p>Scroll on. There are two more artifacts below, so the whole loop is testable.</p>
+
+  <h2>Filler spread A</h2>
+  <p>Imagine the Sweet Cream spread here. In pastel, its pinks soften to blush. In cyber, its shapes go wireframe green on void. Keep scrolling to grow the critter. <span class="artifact" data-a>♪</span></p>
+
+  <h2>Filler spread B</h2>
+  <p>Imagine AltaMed here, always the quietest spread in every skin. Cyber mutes its glitches out of respect, pastel keeps it nearly untouched. <span class="artifact" data-a>▣</span></p>
+
+  <h2>End of lab</h2>
+  <p>By now the critter should be a dinosaur and the UFO fully kitted if you caught all four. Back to <a href="/v2/">the issue preview</a>. · <span class="hint">unlisted · noindex</span></p>
+</main>
+
+<script>
+(function(){
+  var html = document.documentElement;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var fine = window.matchMedia("(pointer: fine)").matches;
+  var bp = document.getElementById("bp"), bc = document.getElementById("bc");
+  var butterfly = document.getElementById("butterfly"), critter = document.getElementById("critter");
+  var cross = document.getElementById("cross"), ufo = document.getElementById("ufo");
+  var countEl = document.getElementById("count");
+  var canvas = document.getElementById("trail"), ctx = canvas.getContext("2d");
+
+  function setSkin(s){
+    html.setAttribute("data-skin", s);
+    bp.setAttribute("aria-pressed", String(s==="pastel"));
+    bc.setAttribute("aria-pressed", String(s==="cyber"));
+    var pastel = s==="pastel";
+    butterfly.classList.toggle("hide", !pastel);
+    critter.classList.toggle("hide", !pastel);
+    cross.classList.toggle("hide", pastel);
+    ufo.classList.toggle("hide", pastel);
+    canvas.classList.toggle("hide", pastel);
+    try{ localStorage.setItem("vi-skin-lab", s); }catch(e){}
+  }
+  bp.addEventListener("click", function(){ setSkin("pastel"); });
+  bc.addEventListener("click", function(){ setSkin("cyber"); });
+  var saved = null; try{ saved = localStorage.getItem("vi-skin-lab"); }catch(e){}
+  setSkin(saved === "cyber" ? "cyber" : "pastel");
+
+  if (reduce || !fine){
+    [butterfly, critter, cross, ufo, canvas].forEach(function(el){ el.classList.add("hide"); });
+    return; // palettes still switch; followers off
+  }
+  html.classList.add("hascursor");
+
+  var mx = innerWidth/2, my = innerHeight/2;
+  var cx = mx, cy = my, ux = mx, uy = my;
+  addEventListener("pointermove", function(e){ mx = e.clientX; my = e.clientY; }, {passive:true});
+
+  // butterfly occasional flap
+  (function flapLoop(){
+    setTimeout(function(){
+      butterfly.classList.add("flap");
+      setTimeout(function(){ butterfly.classList.remove("flap"); }, 600);
+      flapLoop();
+    }, 4000 + Math.random()*5000);
+  })();
+
+  // critter evolution by scroll depth (never devolves)
+  var stage = 1;
+  function checkStage(){
+    var h = document.documentElement;
+    var p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+    var want = p > .66 ? 3 : p > .33 ? 2 : 1;
+    if (want > stage){
+      stage = want;
+      critter.setAttribute("data-stage", stage);
+      critter.classList.add("pop");
+      setTimeout(function(){ critter.classList.remove("pop"); }, 340);
+    }
+  }
+  addEventListener("scroll", checkStage, {passive:true});
+
+  // cyber artifacts
+  var artifacts = [].slice.call(document.querySelectorAll(".artifact"));
+  var got = 0, total = artifacts.length;
+  countEl.textContent = "0/" + total + " artifacts";
+  function tryPickup(){
+    if (html.getAttribute("data-skin") !== "cyber") return;
+    artifacts.forEach(function(a){
+      if (a.classList.contains("got")) return;
+      var r = a.getBoundingClientRect();
+      var ax = r.left + r.width/2, ay = r.top + r.height/2;
+      var d = Math.hypot(ax - ux, ay - (uy + 30));
+      if (d < 60){
+        a.classList.add("got");
+        got++;
+        ufo.setAttribute("data-lv", Math.min(3, got));
+        ufo.classList.add("tract");
+        setTimeout(function(){ ufo.classList.remove("tract"); }, 450);
+        countEl.textContent = got + "/" + total + " artifacts" + (got === total ? " · full kit! ✧" : "");
+      }
+    });
+  }
+
+  // sketchy trail (cyber): low-rate sampling + jittered strokes
+  function fit(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  fit(); addEventListener("resize", fit);
+  var pts = [], lastSample = 0;
+
+  function frame(t){
+    // exact-position cursors
+    butterfly.style.transform = "translate(" + (mx-13) + "px," + (my-12) + "px)";
+    cross.style.transform = "translate(" + (mx-14) + "px," + (my-14) + "px)";
+    // lerped followers
+    cx += (mx - 30 - cx) * 0.055; cy += (my + 14 - cy) * 0.055;
+    critter.style.transform = "translate(" + cx + "px," + cy + "px)";
+    var hover = Math.sin(t/420) * 5;
+    ux += (mx - 42 - ux) * 0.045; uy += (my - 90 - uy) * 0.045;
+    ufo.style.transform = "translate(" + ux + "px," + (uy + hover) + "px)";
+    tryPickup();
+
+    if (html.getAttribute("data-skin") === "cyber"){
+      if (t - lastSample > 83){ // ~12fps sampling = sketchy
+        pts.push({x:mx, y:my, t:t});
+        lastSample = t;
+      }
+      while (pts.length && t - pts[0].t > 500) pts.shift();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (var pass=0; pass<2; pass++){
+        ctx.beginPath();
+        for (var i=0;i<pts.length;i++){
+          var j = 2.2, p = pts[i];
+          var x = p.x + (Math.random()*2-1)*j, y = p.y + (Math.random()*2-1)*j;
+          i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+        }
+        ctx.strokeStyle = "rgba(141,240,194," + (pass ? .18 : .38) + ")";
+        ctx.lineWidth = pass ? 2.2 : 1.1;
+        ctx.stroke();
+      }
+    } else {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
