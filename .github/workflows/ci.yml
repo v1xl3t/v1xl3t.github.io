@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: No em/en dashes in portfolio copy
+        run: |
+          if grep -rIlP "[\x{2013}\x{2014}]" index.html apps/index.html ; then
+            echo "::error::Em or en dash found in the files listed above (use a hyphen)."
+            exit 1
+          fi
+          echo "Dash check passed."
+
+      - name: Install Playwright (Chromium)
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm i -D playwright >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: Smoke test (serve + headless load)
+        run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 2
+          node .github/scripts/smoke.mjs http://localhost:8080
+          STATUS=$?
+          kill $SRV 2>/dev/null || true
+          exit $STATUS
