@@ -204,9 +204,22 @@ html[data-skin="cyber"] #altamed{ background:#0d1413; color:#a8c9c0 }
 }
 #outro .links a:hover{ background:var(--accent); color:var(--ink); border-color:var(--accent) }
 #outro .note{ font-family:var(--mono); font-size:.72rem; opacity:.66; max-width:52ch; margin-top:34px; line-height:1.9 }
-.unlock{ display:none; font-family:var(--mono); font-size:.78rem; margin-top:22px; padding:10px 14px; border:2px dashed var(--paper); max-width:52ch }
-html.done-pastel[data-skin="pastel"] #unlock-pastel{ display:block }
-html.done-cyber[data-skin="cyber"] #unlock-cyber{ display:block }
+.unlock{ display:none } /* hidden text source for the completion modal */
+
+/* completion modal */
+.winmodal{ position:fixed; inset:0; z-index:200; display:none; place-items:center; background:rgba(24,12,34,.55); padding:20px }
+.winmodal.show{ display:grid; animation:winfade .28s ease }
+@keyframes winfade{ from{ opacity:0 } to{ opacity:1 } }
+.winmodal-card{ position:relative; max-width:min(92vw,420px); background:var(--paper); color:var(--ink); border:3px solid var(--ink); border-radius:16px; padding:30px 26px 24px; text-align:center; font-family:var(--mono); box-shadow:0 18px 50px rgba(0,0,0,.4); animation:winpop .42s cubic-bezier(.2,1.35,.5,1) }
+@keyframes winpop{ 0%{ transform:scale(.72) translateY(18px) } 100%{ transform:none } }
+.win-emoji{ font-size:3rem; line-height:1.4 }
+.win-msg{ font-size:.85rem; line-height:1.75; margin-top:4px }
+.win-ok{ margin-top:20px; font-family:var(--mono); font-size:.8rem; padding:9px 24px; border:2px solid var(--ink); background:var(--accent); color:var(--ink); border-radius:9px; cursor:pointer }
+.win-ok:hover{ filter:brightness(.96) }
+.winmodal-x{ position:absolute; top:6px; right:12px; background:none; border:none; font-size:1.5rem; color:var(--ink); cursor:pointer; line-height:1 }
+html[data-skin="cyber"] .winmodal{ background:rgba(0,12,7,.72) }
+html[data-skin="cyber"] .winmodal-card{ box-shadow:0 0 42px rgba(141,240,194,.5), 0 18px 50px rgba(0,0,0,.5) }
+@media (prefers-reduced-motion:reduce){ .winmodal.show{ animation:none } .winmodal-card{ animation:none } }
 
 /* ================= FOLLOWERS & MINIGAMES ================= */
 .fw{ position:fixed; left:0; top:0; z-index:95; pointer-events:none; will-change:transform; display:none }
@@ -257,10 +270,10 @@ html.fx[data-skin="pastel"] button, html.fx[data-skin="cyber"] button{ cursor:no
 }
 html[data-skin="pastel"] .pickup, html[data-skin="cyber"] .pickup{ display:inline-grid; place-items:center; pointer-events:auto }
 .pickup svg{ display:none }
-html[data-skin="pastel"] .pickup:not(.got-p) svg.snack{ animation:glowP 1.7s ease-in-out infinite }
-html[data-skin="cyber"] .pickup:not(.got-c) svg.art{ animation:glowC 1.7s ease-in-out infinite }
-@keyframes glowP{ 0%,100%{ filter:drop-shadow(0 0 1.5px rgba(245,163,199,.55)) } 50%{ filter:drop-shadow(0 0 8px rgba(169,222,249,.95)) } }
-@keyframes glowC{ 0%,100%{ filter:drop-shadow(0 0 1.5px rgba(141,240,194,.4)) } 50%{ filter:drop-shadow(0 0 9px rgba(141,240,194,.95)) } }
+html[data-skin="pastel"] .pickup:not(.got-p) svg.snack{ animation:glowP 1.4s ease-in-out infinite }
+html[data-skin="cyber"] .pickup:not(.got-c) svg.art{ animation:glowC 1.4s ease-in-out infinite }
+@keyframes glowP{ 0%,100%{ filter:drop-shadow(0 0 2px rgba(245,163,199,.6)); transform:scale(1) } 50%{ filter:drop-shadow(0 0 11px rgba(169,222,249,1)); transform:scale(1.13) } }
+@keyframes glowC{ 0%,100%{ filter:drop-shadow(0 0 2px rgba(141,240,194,.5)); transform:scale(1) } 50%{ filter:drop-shadow(0 0 12px rgba(141,240,194,1)); transform:scale(1.13) } }
 html[data-skin="pastel"] .pickup .snack{ display:block }
 html[data-skin="cyber"] .pickup .art{ display:block }
 html[data-skin="pastel"] .pickup.got-p{ transform:scale(0) rotate(140deg); opacity:0 }
@@ -362,9 +375,9 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
     </g>
     <g class="stage s3">
       <path d="M14 46 q-12 4 -13 -7 q7 0 9 4 q1 3 4 3Z" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="M26 33 l5 -14 l5 13 M38 28 l5 -15 l5 13 M50 19 l4 -13 l4 12" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
       <ellipse cx="34" cy="42" rx="22" ry="17" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.8"/>
       <circle cx="56" cy="22" r="13" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.8"/>
-      <path d="M29 29 l3 -7 l4 6 M39 23 l3 -8 l4 6 M49 17 l3 -7 l4 6" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
       <ellipse cx="27" cy="57" rx="4" ry="4.8" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.5"/>
       <ellipse cx="42" cy="58" rx="4" ry="4.8" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.5"/>
       <circle cx="60" cy="20" r="3.4" fill="#5a4a6a"/><circle cx="61.4" cy="18.8" r="1.1" fill="#fff"/>
@@ -495,6 +508,15 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
   <p class="unlock" id="unlock-cyber">🛸 Full kit. Saucer complete. In the shipped issue this unlocks the colophon, the page about how the zine was made.</p>
 </section>
 
+<div class="winmodal" id="winmodal" aria-hidden="true">
+  <div class="winmodal-card" role="dialog" aria-modal="true" aria-labelledby="win-msg">
+    <button class="winmodal-x" id="winclose" aria-label="Close">×</button>
+    <div class="win-emoji" id="win-emoji" aria-hidden="true">🦋</div>
+    <p class="win-msg" id="win-msg"></p>
+    <button class="win-ok" id="winok" type="button">Sweet</button>
+  </div>
+</div>
+
 <script>
 (function(){
   var html = document.documentElement;
@@ -558,23 +580,70 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
       if (el.classList.contains("got-p")) return;
       el.classList.add("got-p"); el.classList.remove("bloom");
       gotP++;
+      collectSound("pastel");
       critter.classList.add(gotP === TOTAL ? "dance" : "hop");
       setTimeout(function(){ critter.classList.remove("hop","dance"); }, gotP === TOTAL ? 2500 : 450);
-      if (gotP === TOTAL) html.classList.add("done-pastel");
+      if (gotP === TOTAL){ winSound("pastel"); showWin("pastel"); }
     } else {
       if (el.classList.contains("got-c")) return;
       el.classList.add("got-c");
       gotC++;
+      collectSound("cyber");
       ufo.setAttribute("data-lv", Math.min(3, gotC));
       ufo.classList.add("tract");
       setTimeout(function(){ ufo.classList.remove("tract"); }, 520);
       if (gotC === TOTAL){
-        html.classList.add("done-cyber","glitch");
+        html.classList.add("glitch");
         setTimeout(function(){ html.classList.remove("glitch"); }, 600);
+        winSound("cyber"); showWin("cyber");
       }
     }
     updateHud();
   }
+
+  /* ---------- cute sounds (WebAudio synth, no files; first play is inside a click gesture) ---------- */
+  var actx = null;
+  function beep(freqs, dur, type, vol){
+    try{
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      var t0 = actx.currentTime;
+      for (var i=0;i<freqs.length;i++){
+        var o = actx.createOscillator(), g = actx.createGain(), st = t0 + i*0.085;
+        o.type = type || "sine"; o.frequency.value = freqs[i];
+        g.gain.setValueAtTime(0, st);
+        g.gain.linearRampToValueAtTime(vol || 0.12, st + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, st + (dur || 0.18));
+        o.connect(g); g.connect(actx.destination);
+        o.start(st); o.stop(st + (dur || 0.18) + 0.03);
+      }
+    }catch(e){}
+  }
+  function collectSound(skin){
+    if (skin === "pastel") beep([880, 1320], 0.15, "sine", 0.12);
+    else beep([620, 930], 0.12, "triangle", 0.1);
+  }
+  function winSound(skin){
+    if (skin === "pastel") beep([784, 988, 1319, 1568], 0.24, "sine", 0.13);
+    else beep([523, 659, 784, 1047], 0.2, "square", 0.09);
+  }
+
+  /* ---------- completion modal ---------- */
+  var winmodal = document.getElementById("winmodal");
+  var MSG = {
+    pastel: { emoji:"🦋", text: (document.getElementById("unlock-pastel").textContent || "").replace(/^\s*\S+\s*/, "") },
+    cyber:  { emoji:"🛸", text: (document.getElementById("unlock-cyber").textContent || "").replace(/^\s*\S+\s*/, "") }
+  };
+  function showWin(skin){
+    document.getElementById("win-emoji").textContent = MSG[skin].emoji;
+    document.getElementById("win-msg").textContent = MSG[skin].text;
+    winmodal.classList.add("show"); winmodal.setAttribute("aria-hidden","false");
+    var ok = document.getElementById("winok"); if (ok) ok.focus();
+  }
+  function hideWin(){ winmodal.classList.remove("show"); winmodal.setAttribute("aria-hidden","true"); }
+  document.getElementById("winok").addEventListener("click", hideWin);
+  document.getElementById("winclose").addEventListener("click", hideWin);
+  winmodal.addEventListener("click", function(e){ if (e.target === winmodal) hideWin(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") hideWin(); });
 
   /* click / tap a glowing pickup to collect it (no auto-collect on scroll or proximity) */
   pickups.forEach(function(p){
@@ -586,8 +655,9 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
   function resetPickups(){
     gotP = 0; gotC = 0;
     pickups.forEach(function(p){ p.classList.remove("got-p","got-c","bloom"); });
-    html.classList.remove("done-pastel","done-cyber","glitch");
+    html.classList.remove("glitch");
     if (ufo) ufo.setAttribute("data-lv","0");
+    hideWin();
     updateHud();
   }
 
