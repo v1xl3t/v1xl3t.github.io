@@ -157,7 +157,7 @@ h1,h2{ font-family:var(--disp); line-height:.95; letter-spacing:-.01em; margin:0
 html[data-skin="pastel"] #sweetcream{ background:#ffc4de; color:#5a4a6a }
 html[data-skin="pastel"] #sweetcream::before{ background-image:radial-gradient(#5a4a6a 1.3px, transparent 1.3px); opacity:.14 }
 html[data-skin="pastel"] #sweetcream .b1{ background:#fff3b8 }
-html[data-skin="pastel"] #sweetcream .b2{ background:#c9f2df }
+html[data-skin="pastel"] #sweetcream .b2{ background:#bfe6fb }
 html[data-skin="pastel"] #sweetcream h2 em{ text-shadow:4px 4px 0 #5a4a6a }
 html[data-skin="pastel"] .sticker{ border-color:#5a4a6a; box-shadow:4px 4px 0 #5a4a6a; color:#5a4a6a }
 html[data-skin="pastel"] .sc-shots figure{ border-color:#5a4a6a; box-shadow:6px 6px 0 #5a4a6a }
@@ -215,7 +215,7 @@ html.fx[data-skin="cyber"] #cross, html.fx[data-skin="cyber"] #ufo{ display:bloc
 html.mz[data-skin="pastel"] #critter, html.mz[data-skin="cyber"] #ufo{ display:block }
 html.mz .fw.mascot{ left:auto; top:auto; right:10px; bottom:10px; transform:none !important }
 #trailc{ position:fixed; inset:0; z-index:94; pointer-events:none; display:none }
-html.fx[data-skin="cyber"] #trailc{ display:block }
+html.fx[data-skin="cyber"] #trailc, html.fx[data-skin="pastel"] #trailc{ display:block }
 html.fx[data-skin="pastel"] body, html.fx[data-skin="cyber"] body,
 html.fx[data-skin="pastel"] a, html.fx[data-skin="cyber"] a,
 html.fx[data-skin="pastel"] button, html.fx[data-skin="cyber"] button{ cursor:none }
@@ -255,8 +255,12 @@ html.fx[data-skin="pastel"] button, html.fx[data-skin="cyber"] button{ cursor:no
   display:none; width:34px; height:34px; margin:0 6px; vertical-align:middle;
   transition:transform .45s cubic-bezier(.5,-.4,.7,1.4), opacity .4s; position:relative;
 }
-html[data-skin="pastel"] .pickup, html[data-skin="cyber"] .pickup{ display:inline-grid; place-items:center }
+html[data-skin="pastel"] .pickup, html[data-skin="cyber"] .pickup{ display:inline-grid; place-items:center; pointer-events:auto }
 .pickup svg{ display:none }
+html[data-skin="pastel"] .pickup:not(.got-p) svg.snack{ animation:glowP 1.7s ease-in-out infinite }
+html[data-skin="cyber"] .pickup:not(.got-c) svg.art{ animation:glowC 1.7s ease-in-out infinite }
+@keyframes glowP{ 0%,100%{ filter:drop-shadow(0 0 1.5px rgba(245,163,199,.55)) } 50%{ filter:drop-shadow(0 0 8px rgba(169,222,249,.95)) } }
+@keyframes glowC{ 0%,100%{ filter:drop-shadow(0 0 1.5px rgba(141,240,194,.4)) } 50%{ filter:drop-shadow(0 0 9px rgba(141,240,194,.95)) } }
 html[data-skin="pastel"] .pickup .snack{ display:block }
 html[data-skin="cyber"] .pickup .art{ display:block }
 html[data-skin="pastel"] .pickup.got-p{ transform:scale(0) rotate(140deg); opacity:0 }
@@ -310,8 +314,8 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
 
 <!-- pastel ambience -->
 <span class="petal" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1 C13 4 13 10 8 15 C3 10 3 4 8 1Z" fill="#f7bcd4" opacity=".8"/></svg></span>
-<span class="petal" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1 C13 4 13 10 8 15 C3 10 3 4 8 1Z" fill="#cdb9ee" opacity=".8"/></svg></span>
-<span class="petal" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M8 1 C13 4 13 10 8 15 C3 10 3 4 8 1Z" fill="#b8e6c9" opacity=".8"/></svg></span>
+<span class="petal" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1 C13 4 13 10 8 15 C3 10 3 4 8 1Z" fill="#a9def9" opacity=".85"/></svg></span>
+<span class="petal" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M8 1 C13 4 13 10 8 15 C3 10 3 4 8 1Z" fill="#ffffff" opacity=".9" stroke="#f5c9de" stroke-width=".6"/></svg></span>
 <span class="petal" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 16 16"><path d="M8 1 C13 4 13 10 8 15 C3 10 3 4 8 1Z" fill="#ffe3a8" opacity=".8"/></svg></span>
 
 <!-- butterfly cursor (pastel) -->
@@ -323,7 +327,7 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
       <circle cx="8.5" cy="16" r="1.2" fill="#ffe3a8"/>
     </g>
     <g class="w wr">
-      <path d="M17 15 C26 2 32 5 30.5 11 C33 17 26 24 17 15Z" fill="#cdb9ee" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M17 15 C26 2 32 5 30.5 11 C33 17 26 24 17 15Z" fill="#a9def9" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
       <circle cx="25.5" cy="10" r="1.8" fill="#fff" opacity=".9"/>
       <circle cx="23.5" cy="16" r="1.2" fill="#ffe3a8"/>
     </g>
@@ -336,32 +340,36 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
 <div class="fw mascot" id="critter" data-stage="1" aria-hidden="true">
   <svg width="80" height="66" viewBox="0 0 80 66">
     <g class="stage s1">
-      <path d="M24 50 Q14 53 13 45" fill="none" stroke="#5a4a6a" stroke-width="2" stroke-linecap="round"/>
-      <ellipse cx="38" cy="46" rx="15" ry="11" fill="#b8e6c9" stroke="#5a4a6a" stroke-width="1.7"/>
-      <circle cx="50" cy="36" r="10" fill="#b8e6c9" stroke="#5a4a6a" stroke-width="1.7"/>
+      <path d="M25 50 q-9 2 -10 -5 q5 0 7 3 q1 2 3 2Z" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <ellipse cx="38" cy="46" rx="15" ry="11" fill="#a9def9" stroke="#5a4a6a" stroke-width="1.7"/>
+      <circle cx="50" cy="36" r="10" fill="#a9def9" stroke="#5a4a6a" stroke-width="1.7"/>
+      <ellipse cx="33" cy="57" rx="3" ry="3.6" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.3"/>
+      <ellipse cx="44" cy="57.5" rx="3" ry="3.6" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.3"/>
       <circle cx="53" cy="34" r="2.8" fill="#5a4a6a"/><circle cx="54" cy="33.2" r=".9" fill="#fff"/>
       <circle cx="47" cy="39.5" r="2" fill="#f5a3c7" opacity=".75"/>
-      <path d="M31 56 l0 3 M43 57 l0 3" stroke="#5a4a6a" stroke-width="2.4" stroke-linecap="round"/>
-      <path d="M35 33 q3 -4 6 0" fill="none" stroke="#5a4a6a" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M50 41 q3 2.5 6 0" fill="none" stroke="#5a4a6a" stroke-width="1.4" stroke-linecap="round"/>
     </g>
     <g class="stage s2">
-      <path d="M17 48 Q5 52 5 42" fill="none" stroke="#5a4a6a" stroke-width="2.6" stroke-linecap="round"/>
-      <ellipse cx="36" cy="44" rx="19" ry="14" fill="#cdb9ee" stroke="#5a4a6a" stroke-width="1.7"/>
-      <circle cx="52" cy="30" r="12" fill="#cdb9ee" stroke="#5a4a6a" stroke-width="1.7"/>
-      <path d="M44 19 l4 -7 l4 6 l4 -6 l4 7" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M18 48 q-11 3 -12 -6 q6 0 8 4 q1 2 4 2Z" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.6" stroke-linejoin="round"/>
+      <ellipse cx="36" cy="44" rx="19" ry="14" fill="#eaf3fb" stroke="#5a4a6a" stroke-width="1.7"/>
+      <circle cx="52" cy="30" r="12" fill="#eaf3fb" stroke="#5a4a6a" stroke-width="1.7"/>
+      <path d="M40 21 l3 -7 l4 6 l4 -6 l3 7" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <ellipse cx="30" cy="57" rx="3.4" ry="4.2" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.4"/>
+      <ellipse cx="43" cy="58" rx="3.4" ry="4.2" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.4"/>
       <circle cx="56" cy="28" r="3.2" fill="#5a4a6a"/><circle cx="57.2" cy="27" r="1" fill="#fff"/>
       <circle cx="49" cy="33.5" r="2.4" fill="#f5a3c7" opacity=".75"/>
-      <path d="M27 57 l0 4 M40 58 l0 4" stroke="#5a4a6a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M53 35 q3.5 3 7 0" fill="none" stroke="#5a4a6a" stroke-width="1.5" stroke-linecap="round"/>
     </g>
     <g class="stage s3">
-      <path d="M12 44 Q0 50 1 36" fill="none" stroke="#5a4a6a" stroke-width="3.6" stroke-linecap="round"/>
+      <path d="M14 46 q-12 4 -13 -7 q7 0 9 4 q1 3 4 3Z" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.7" stroke-linejoin="round"/>
       <ellipse cx="34" cy="42" rx="22" ry="17" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.8"/>
       <circle cx="56" cy="22" r="13" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.8"/>
-      <path d="M20 28 l4 -8 l5 7 M30 22 l4 -8 l5 7 M42 15 l4 -8 l5 7" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M29 29 l3 -7 l4 6 M39 23 l3 -8 l4 6 M49 17 l3 -7 l4 6" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <ellipse cx="27" cy="57" rx="4" ry="4.8" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.5"/>
+      <ellipse cx="42" cy="58" rx="4" ry="4.8" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.5"/>
       <circle cx="60" cy="20" r="3.4" fill="#5a4a6a"/><circle cx="61.4" cy="18.8" r="1.1" fill="#fff"/>
       <circle cx="52" cy="26" r="2.6" fill="#fff" opacity=".6"/>
-      <path d="M63 30 q4 2 2 5" fill="none" stroke="#5a4a6a" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M24 58 l0 5 M40 60 l0 5" stroke="#5a4a6a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M57 29 q4 3 7 -0.5" fill="none" stroke="#5a4a6a" stroke-width="1.6" stroke-linecap="round"/>
     </g>
   </svg>
 </div>
@@ -530,15 +538,16 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
   btn.addEventListener("click", function(){
     var i = SKINS.indexOf(html.getAttribute("data-skin"));
     setSkin(SKINS[(i+1) % SKINS.length]);
+    resetPickups();
   });
-  var q = new URLSearchParams(location.search).get("skin");
-  var saved = null; try{ saved = localStorage.getItem("vi-skin"); }catch(e){}
-  setSkin(SKINS.indexOf(q) > -1 ? q : (SKINS.indexOf(saved) > -1 ? saved : "standard"));
-
   /* ---------- minigame state ---------- */
   var pickups = [].slice.call(document.querySelectorAll(".pickup"));
   var TOTAL = pickups.length;
   var gotP = 0, gotC = 0;
+  /* apply saved / URL skin now that the counters exist (so the HUD reads right on load) */
+  var q = new URLSearchParams(location.search).get("skin");
+  var saved = null; try{ saved = localStorage.getItem("vi-skin"); }catch(e){}
+  setSkin(SKINS.indexOf(q) > -1 ? q : (SKINS.indexOf(saved) > -1 ? saved : "standard"));
   function updateHud(){
     var s = html.getAttribute("data-skin");
     if (s === "pastel") hud.textContent = "🍓 " + gotP + "/" + TOTAL;
@@ -567,6 +576,21 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
     updateHud();
   }
 
+  /* click / tap a glowing pickup to collect it (no auto-collect on scroll or proximity) */
+  pickups.forEach(function(p){
+    p.addEventListener("click", function(){
+      var s = html.getAttribute("data-skin");
+      if (s === "pastel" || s === "cyber") collect(p, s);
+    });
+  });
+  function resetPickups(){
+    gotP = 0; gotC = 0;
+    pickups.forEach(function(p){ p.classList.remove("got-p","got-c","bloom"); });
+    html.classList.remove("done-pastel","done-cyber","glitch");
+    if (ufo) ufo.setAttribute("data-lv","0");
+    updateHud();
+  }
+
   /* ---------- critter evolution (shared; never devolves) ---------- */
   var critter = document.getElementById("critter"), ufo = document.getElementById("ufo");
   var stage = 1;
@@ -584,16 +608,8 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
   if (reduce) return; /* palettes only */
 
   if (!fine){
-    /* ---------- mascot mode (touch): parked follower, collect on scroll-past ---------- */
+    /* mascot mode (touch): parked follower; collect by tapping the glowing pickups */
     html.classList.add("mz");
-    var mo = new IntersectionObserver(function(es){
-      es.forEach(function(e){
-        if (!e.isIntersecting) return;
-        var s = html.getAttribute("data-skin");
-        if (s === "pastel" || s === "cyber") collect(e.target, s);
-      });
-    },{threshold:.9});
-    pickups.forEach(function(p){ mo.observe(p); });
     return;
   }
 
@@ -613,60 +629,47 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
       butterfly.classList.add("flap");
       setTimeout(function(){ butterfly.classList.remove("flap"); }, 640);
       flapLoop();
-    }, 4000 + Math.random()*5000);
+    }, 1500 + Math.random()*2000);
   })();
 
-  var activeSnack = null;
   var pts = [], lastSample = 0;
+  var sparks = [], lastMx = mx, lastMy = my;
+  var SPARKCOL = ["#ffffff","#a9def9","#f7bcd4"]; /* white, baby blue, pink (trans flag) */
 
   function frame(t){
     var skin = html.getAttribute("data-skin");
     butterfly.style.transform = "translate(" + (mx-16) + "px," + (my-15) + "px)";
     cross.style.transform = "translate(" + (mx-15) + "px," + (my-15) + "px)";
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
     if (skin === "pastel"){
-      /* butterfly blooms a snack; critter runs to eat it */
-      if (!activeSnack){
-        for (var i=0;i<pickups.length;i++){
-          var p = pickups[i];
-          if (p.classList.contains("got-p")) continue;
-          var r = p.getBoundingClientRect();
-          if (!r.width) continue;
-          if (Math.hypot(r.x+r.width/2-mx, r.y+r.height/2-my) < 56){
-            activeSnack = p; p.classList.add("bloom"); break;
-          }
-        }
-      }
-      var tx, ty;
-      if (activeSnack){
-        var ar = activeSnack.getBoundingClientRect();
-        if (!ar.width || activeSnack.classList.contains("got-p")){ activeSnack = null; }
-        else {
-          tx = ar.x + ar.width/2 - 46; ty = ar.y + ar.height/2 - 40;
-          if (Math.hypot(ar.x+ar.width/2 - (cx+46), ar.y+ar.height/2 - (cy+40)) < 42){
-            collect(activeSnack, "pastel"); activeSnack = null;
-          }
-        }
-      }
-      if (tx === undefined){ tx = mx - 36; ty = my + 16; }
+      /* critter pet trails the cursor */
+      var tx = mx - 36, ty = my + 16;
       cx += (tx - cx) * 0.06; cy += (ty - cy) * 0.06;
       critter.style.transform = "translate(" + cx + "px," + cy + "px)" + (tx < cx - 4 ? " scaleX(-1)" : "");
-    }
-
-    if (skin === "cyber"){
+      /* subtle sparkle trail as the mouse moves */
+      if (Math.hypot(mx-lastMx, my-lastMy) > 5){
+        sparks.push({ x:mx+(Math.random()*10-5), y:my+(Math.random()*10-5), life:1,
+                      r:1+Math.random()*1.8, c:SPARKCOL[(Math.random()*SPARKCOL.length)|0] });
+        lastMx = mx; lastMy = my;
+      }
+      for (var si=sparks.length-1; si>=0; si--){
+        var sp = sparks[si]; sp.life -= 0.05;
+        if (sp.life <= 0){ sparks.splice(si,1); continue; }
+        var rr = sp.r * (0.6 + sp.life*0.7);
+        ctx.globalAlpha = sp.life * 0.85; ctx.fillStyle = sp.c;
+        ctx.beginPath();
+        ctx.moveTo(sp.x, sp.y-rr*2); ctx.lineTo(sp.x+rr, sp.y);
+        ctx.lineTo(sp.x, sp.y+rr*2); ctx.lineTo(sp.x-rr, sp.y); ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    } else if (skin === "cyber"){
       var hover = Math.sin(t/420) * 5;
       ux += (mx - 46 - ux) * 0.045; uy += (my - 96 - uy) * 0.045;
       ufo.style.transform = "translate(" + ux + "px," + (uy + hover) + "px)";
-      for (var j=0;j<pickups.length;j++){
-        var a = pickups[j];
-        if (a.classList.contains("got-c")) continue;
-        var rr = a.getBoundingClientRect();
-        if (!rr.width) continue;
-        if (Math.hypot(rr.x+rr.width/2 - (ux+46), rr.y+rr.height/2 - (uy+40)) < 62) collect(a, "cyber");
-      }
       if (t - lastSample > 83){ pts.push({x:mx, y:my, t:t}); lastSample = t; }
       while (pts.length && t - pts[0].t > 500) pts.shift();
-      ctx.clearRect(0,0,canvas.width,canvas.height);
       for (var pass=0; pass<2; pass++){
         ctx.beginPath();
         for (var k=0;k<pts.length;k++){
@@ -678,8 +681,6 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
         ctx.lineWidth = pass ? 2.4 : 1.1;
         ctx.stroke();
       }
-    } else {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
     }
     requestAnimationFrame(frame);
   }
