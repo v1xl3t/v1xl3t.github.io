@@ -58,6 +58,7 @@ html[data-skin="cyber"] ::selection{background:#8df0c2; color:#07090c}
   transition:background .3s, color .3s;
 }
 .skinbtn:hover{ background:var(--ink); color:var(--paper) }
+.skinbtn .se{ letter-spacing:0; font-size:1.15em; vertical-align:-2px; margin-left:4px }
 .skinbtn:focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
 html[data-skin="cyber"] .skinbtn:focus-visible{ outline-color:#8df0c2 }
 .hud{
@@ -224,6 +225,8 @@ html[data-skin="cyber"] .winmodal-card{ box-shadow:0 0 42px rgba(141,240,194,.5)
 /* ================= FOLLOWERS & MINIGAMES ================= */
 .fw{ position:fixed; left:0; top:0; z-index:95; pointer-events:none; will-change:transform; display:none }
 #butterfly, #cross{ z-index:250 } /* cursor stays visible above the completion modal */
+#cross{ filter:drop-shadow(0 0 2px rgba(0,0,0,.9)) }              /* stand out on light backgrounds */
+#butterfly{ filter:drop-shadow(0 1px 1.5px rgba(90,74,106,.5)) }
 html.fx[data-skin="pastel"] #butterfly, html.fx[data-skin="pastel"] #critter{ display:block }
 html.fx[data-skin="cyber"] #cross, html.fx[data-skin="cyber"] #ufo{ display:block }
 html.mz[data-skin="pastel"] #critter, html.mz[data-skin="cyber"] #ufo{ display:block }
@@ -376,7 +379,7 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
     </g>
     <g class="stage s3">
       <path d="M14 46 q-12 4 -13 -7 q7 0 9 4 q1 3 4 3Z" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.7" stroke-linejoin="round"/>
-      <path d="M25 35 l5 -15 l6 14 M37 31 l5 -16 l6 14 M49 22 l5 -15 l6 14" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M23 36 l5 -21 l6 20 M34 33 l5 -24 l6 21 M45 27 l5 -22 l6 20" fill="#ffe3a8" stroke="#5a4a6a" stroke-width="1.5" stroke-linejoin="round"/>
       <ellipse cx="34" cy="42" rx="22" ry="17" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.8"/>
       <circle cx="56" cy="22" r="13" fill="#f5b8c4" stroke="#5a4a6a" stroke-width="1.8"/>
       <ellipse cx="27" cy="57" rx="4" ry="4.8" fill="#f5a3c7" stroke="#5a4a6a" stroke-width="1.5"/>
@@ -552,11 +555,11 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
 
   /* ---------- skin cycle ---------- */
   var SKINS = ["standard","pastel","cyber"];
-  var ICON = { standard:"Skin · Standard", pastel:"Skin · Pastel 🦋", cyber:"Skin · Cyber 🛸" };
+  var ICON = { standard:"Skin · Standard", pastel:'Skin · Pastel <span class="se">🦋</span>', cyber:'Skin · Cyber <span class="se">🛸</span>' };
   var btn = document.getElementById("skinbtn"), hud = document.getElementById("hud");
   function setSkin(s){
     html.setAttribute("data-skin", s);
-    btn.textContent = ICON[s];
+    btn.innerHTML = ICON[s];
     btn.setAttribute("aria-label", "Cycle skin, current: " + s);
     try{ localStorage.setItem("vi-skin", s); }catch(e){}
     updateHud();
