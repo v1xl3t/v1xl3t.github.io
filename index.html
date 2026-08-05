@@ -410,6 +410,20 @@ table.credits{width:100%; min-width:440px; border-collapse:collapse;
 .credits tbody tr:hover{background:rgba(157,123,255,.07)}
 @media (prefers-reduced-motion: reduce){ .credits tbody tr{transition:none} }
 .credits .c-title{color:var(--text); font-weight:600}
+/* a credit that has somewhere to go. Opens in a new tab, marked with an arrow. */
+.credits .c-title a{
+  color:var(--text); text-decoration:none;
+  border-bottom:1px solid var(--accent-dim);
+  transition:color .16s ease, border-color .16s ease;
+}
+.credits .c-title a:hover, .credits .c-title a:focus-visible{
+  color:var(--accent); border-bottom-color:var(--accent);
+}
+.credits .c-title a::after{
+  content:"\2197"; font-size:.72em; margin-left:3px;
+  color:var(--muted-2); vertical-align:baseline;
+}
+.credits .c-title a:hover::after, .credits .c-title a:focus-visible::after{ color:var(--accent) }
 .credits .c-year{font-family:var(--mono); color:var(--muted); white-space:nowrap}
 .ct-meta{display:inline-block; margin-left:7px; font-size:.74rem; color:var(--muted-2)}
 .ct-note{display:block; margin-top:3px; font-size:.74rem; font-style:italic; color:var(--muted-2)}
@@ -1041,7 +1055,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
         <div class="tags"><span class="chip lane" data-l="hardware">3D / Art</span><span class="chip">2020 · Contract</span></div>
         <h3>WangShui: Gallery Installation Prototype</h3>
         <p class="blurb">A 3D digital prototype built for contemporary artist WangShui. I modeled their sculpture concepts in Maya, then recreated the gallery in Unity as a walkable, fully simulated prototype with projection mapping, so the installation could be experienced before it was built.</p>
-        <p class="outcome">Built for the successful pitch of <i>Feast</i> (2021), WangShui's commission for the Hammer Museum's <i>No Humans Involved</i>, Los Angeles (2021 to 2022).</p>
+        <p class="outcome">Built during the development of <i>Feast</i> (2021), WangShui's commission for the Hammer Museum's <a href="https://hammer.ucla.edu/exhibitions/2021/no-humans-involved" target="_blank" rel="noopener noreferrer"><i>No Humans Involved</i></a>, Los Angeles (2021 to 2022).</p>
         <div class="stack"><span>Maya</span><span>Unity</span><span>walkable simulation</span><span>projection mapping</span></div>
         <div class="thumbs">
           <button class="thumb thumb-video" type="button" data-video="media/wangshui/wangshui-gallery.mp4" data-poster="media/wangshui/wangshui-gallery-poster.jpg" data-cap="The final piece: the three sculptures in a dark gallery with the video mapped onto their surfaces"><img src="media/wangshui/wangshui-gallery-poster.jpg" alt="The three sculptures in the gallery, final render" loading="lazy"></button>
@@ -1201,8 +1215,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
     <ul class="press-list" style="margin-top:clamp(22px,3vw,30px)">
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Treobytes, Product Development Specialist <span class="exp-meta">San Diego · Aug 2025 to Present</span></summary><p class="dl">Designed and shipped a production Claude AI agent system with RAG and an automated LLM-as-judge review that cut document turnaround from four days to five hours. Built and maintain TreoTools, the internal React platform adopted org-wide, and designed a buildable Arduino MIDI kit.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>University of Redlands, Los Angeles, Adjunct Professor, Game Art &amp; Design <span class="exp-meta">Burbank · Aug 2024 to Present</span></summary><p class="dl">Designed and teach GAME 203: Sound Design Fundamentals, taking undergraduates from DAW fundamentals to adaptive game audio in Unity and Unreal Engine 5 with Wwise and FMOD middleware.</p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Necro.World Studios, Technical Audio Designer &amp; Tools Developer <span class="exp-meta">Burbank / hybrid · Aug 2022 to Jun 2023</span></summary><p class="dl">Built an Unreal Engine 5 Blueprint tool that generates a unique soundtrack per playthrough, later showcased at GDC San Francisco 2024. Also composed the score, designed levels, and built the dialogue and audio middleware integration.</p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Odd Orca Studios, Composer-in-Residence &amp; Technical Audio Designer <span class="exp-meta">Remote · Nov 2021 to Present</span></summary><p class="dl">Compose and engineer adaptive game audio alongside collaborators working in AAA, and built an Unreal Engine Blueprint tool for runtime-adaptive scoring and voice direction.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Odd Orca Studios, Composer-in-Residence &amp; Technical Audio Designer <span class="exp-meta">Remote · Nov 2021 to Present</span></summary><p class="dl">Compose and engineer adaptive game audio for the studio founded by Cameron Williams, working alongside collaborators from AAA teams. Built an Unreal Engine Blueprint tool for runtime-adaptive scoring, and direct voice sessions.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Freelance, Full-Stack &amp; Client Engineering <span class="exp-meta">Los Angeles / remote · 2022 to Present</span></summary><p class="dl">Front-end and technical audio work for clients including AltaMed, where I contributed to a shipped English/Spanish healthcare translator tool, and indie game studios, including UE5 adaptive-audio tooling later showcased at GDC San Francisco 2024.</p></details></li>
     </ul>
   </div>
@@ -1597,6 +1610,33 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
     closeBtn.addEventListener("click", close);
     modal.addEventListener("click", function(e){ if (e.target === modal) close(); });
     document.addEventListener("keydown", function(e){ if (!modal.hidden && e.key === "Escape") close(); });
+  })();
+
+  /* ---------- credit links -------------------------------------------------
+     One link per credit, matched on the exact title text in the tables above.
+     To add a credit link later, just add a line here. Nothing else to change.
+     Anything not listed simply stays plain text, which is the intended default
+     until the re-releases are up.                                            */
+  (function(){
+    var CREDIT_LINKS = {
+      "Night Shift":   "https://necro.world",
+      "Squid FunK":    "https://www.youtube.com/watch?v=Ls8j0vaMnYY",
+      "Highway Star":  "https://www.youtube.com/watch?v=VXdD8l1IUPY",
+      "HAIKU: The Story of a Wilting Trillium":
+                       "https://indiewrapmag.com/film/explore-the-boundless-creativity-of-short-films-in-indiewraps-new-book/"
+      /* TODO (Vi): SoundCloud / streaming links once the deadname re-release lands.
+         Add as  "Exact Credit Title": "https://…",  and it becomes a link on load. */
+    };
+    Array.prototype.slice.call(document.querySelectorAll(".credits .c-title")).forEach(function(cell){
+      var title = cell.textContent.trim();
+      var href = CREDIT_LINKS[title];
+      if (!href || cell.querySelector("a")) return;
+      var a = document.createElement("a");
+      a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = title;
+      a.setAttribute("aria-label", title + " (opens in a new tab)");
+      cell.textContent = ""; cell.appendChild(a);
+    });
   })();
 
   /* ---------- autoplay-muted looping video thumbnails (click still opens the modal) ---------- */
