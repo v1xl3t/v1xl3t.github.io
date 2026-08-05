@@ -48,8 +48,35 @@ const AUDIT = () => {
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
     const fg = parse(cs.color); if (!fg) return;
-    // gradient text (background-clip:text) is painted by the background, not `color`
-    if (fg[3] === 0 || cs.webkitBackgroundClip === 'text' || cs.backgroundClip === 'text') return;
+
+    // Gradient text (background-clip:text) is painted by the background image, not
+    // `color`, so `color` is usually transparent and tells us nothing. Instead pull
+    // every colour stop out of the gradient and check the WORST one. Missing this is
+    // how a 2.53:1 headline shipped twice.
+    const clipsText = cs.webkitBackgroundClip === 'text' || cs.backgroundClip === 'text';
+    if (clipsText) {
+      const stops = (cs.backgroundImage || '').match(/rgba?\([^)]*\)/g) || [];
+      if (!stops.length) return;
+      const bg2 = effBg(el);
+      const px2 = parseFloat(cs.fontSize);
+      const large2 = px2 >= 24 || (px2 >= 18.66 && +cs.fontWeight >= 700);
+      const need2 = large2 ? 3 : 4.5;
+      let worst = Infinity, worstStop = null;
+      for (const st of stops) {
+        const c = parse(st); if (!c) continue;
+        const cc = c[3] < 1 ? over(c, bg2) : [c[0], c[1], c[2]];
+        const l1 = lum(cc), l2 = lum(bg2);
+        const r2 = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+        if (r2 < worst) { worst = r2; worstStop = st; }
+      }
+      if (worst < need2) out.push({
+        txt: txt.slice(0, 60), ratio: +worst.toFixed(2), need: need2, px: +px2.toFixed(1),
+        color: `gradient stop ${worstStop}`, tag: el.tagName.toLowerCase(),
+        cls: String(el.className || '').slice(0, 40),
+      });
+      return;
+    }
+    if (fg[3] === 0) return;
     const bg = effBg(el);
     const fgc = fg[3] < 1 ? over(fg, bg) : [fg[0], fg[1], fg[2]];
     const l1 = lum(fgc), l2 = lum(bg);
