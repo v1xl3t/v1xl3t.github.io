@@ -113,7 +113,15 @@ export function initRenderView(api) {
     return g;
   }
   const MODEL_SIZE = 100;   // normalized max-dimension for each imported model
-  const MODEL_XSCALE = 10;  // default ×10 on X (thin single-pane forms need thickness)
+  // Thin single-pane forms read as paper edge-on, so X gets a thickness boost.
+  // Override per-link with &xscale=<n> (n<=0 or missing falls back to the default).
+  const MODEL_XSCALE = (() => {
+    try {
+      const n = parseFloat(new URLSearchParams(location.search).get('xscale'));
+      if (Number.isFinite(n) && n > 0) return n;
+    } catch {}
+    return 10;
+  })();
 
   function nameFromUrl(url, i) {
     try { return decodeURIComponent(url.split('/').pop().replace(/\.[^.]+$/, '')) || ('Model ' + (i + 1)); }
