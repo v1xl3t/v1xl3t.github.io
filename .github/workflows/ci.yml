@@ -38,3 +38,14 @@ jobs:
           STATUS=$?
           kill $SRV 2>/dev/null || true
           exit $STATUS
+
+      # Legibility gate. Every text node, both themes, real composited backgrounds.
+      - name: WCAG AA contrast gate (both themes)
+        run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 2
+          node .github/scripts/contrast.mjs http://localhost:8080 / /apps/
+          STATUS=$?
+          kill $SRV 2>/dev/null || true
+          exit $STATUS
