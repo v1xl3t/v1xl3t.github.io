@@ -27,7 +27,7 @@
   --text-2:#c0cfdf;
   --accent:#3dfd7a;
   --accent-2:#9d7bff;     /* sound */
-  --accent-3:#4fc3f7;     /* hardware */
+  --accent-3:#2ee6a8;     /* hardware */
   --accent-4:#ffb454;     /* teaching */
   --accent-dim:#12512f;
   --accent-glow:rgba(61,253,122,.25);
@@ -117,7 +117,7 @@ nav{
   width:30px; height:30px; flex:none;
   display:grid; place-items:center;
   border-radius:9px;
-  background:linear-gradient(140deg, var(--accent-dim), #0e2236);
+  background:linear-gradient(140deg, var(--accent-dim), #0d2a1e);
   border:1px solid var(--border);
   color:var(--accent); font-weight:900;
   box-shadow:inset 0 0 12px rgba(61,253,122,.15);
@@ -138,7 +138,7 @@ nav{
   color:#04121d; background:var(--accent); font-weight:700;
   box-shadow:0 6px 20px -8px var(--accent-glow);
 }
-.nav-links a.cta:hover{background:#6fd0fb; color:#04121d}
+.nav-links a.cta:hover{background:#7bffb0; color:#04121d}
 
 .menu-btn{
   display:none; background:transparent; border:1px solid var(--border);
@@ -215,7 +215,7 @@ h1.hero-title{
   font-weight:800; margin:.55em 0 0; max-width:16ch;
 }
 h1.hero-title .accent{
-  background:linear-gradient(100deg, var(--accent), #8fe1ff 60%, var(--accent-2));
+  background:linear-gradient(100deg, var(--accent), #7bffc4 45%, #ff8fd0);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
 .lede{
@@ -233,7 +233,7 @@ h1.hero-title .accent{
 }
 .btn:hover{text-decoration:none; transform:translateY(-2px)}
 .btn-primary{background:var(--accent); color:#04121d; box-shadow:0 10px 30px -10px var(--accent-glow)}
-.btn-primary:hover{background:#6fd0fb; box-shadow:0 16px 38px -12px var(--accent-glow)}
+.btn-primary:hover{background:#7bffb0; box-shadow:0 16px 38px -12px var(--accent-glow)}
 .btn-ghost{background:transparent; color:var(--text); border-color:var(--border)}
 .btn-ghost:hover{border-color:var(--accent); background:rgba(61,253,122,.06)}
 @media (prefers-reduced-motion: reduce){ .btn:hover{transform:none} }
@@ -355,7 +355,7 @@ section{padding:clamp(56px,8vw,96px) 0; position:relative}
 .chip.lane{color:var(--text)}
 .chip.lane[data-l="ai"]{border-color:rgba(61,253,122,.4); color:#b6f5cd; background:rgba(61,253,122,.08)}
 .chip.lane[data-l="audio"]{border-color:rgba(157,123,255,.4); color:#d6c9ff; background:rgba(157,123,255,.08)}
-.chip.lane[data-l="hardware"]{border-color:rgba(79,195,247,.4); color:#bfe6fb; background:rgba(79,195,247,.08)}
+.chip.lane[data-l="hardware"]{border-color:rgba(46,230,168,.4); color:#b3f5dd; background:rgba(46,230,168,.08)}
 .chip.lane[data-l="teaching"]{border-color:rgba(255,180,84,.4); color:#ffe0b8; background:rgba(255,180,84,.08)}
 .chip.lane[data-l="web"]{border-color:rgba(244,114,182,.4); color:#ffc9e3; background:rgba(244,114,182,.08)}
 
@@ -363,8 +363,8 @@ section{padding:clamp(56px,8vw,96px) 0; position:relative}
 .blurb{margin:0; color:#cbd8e6; font-size:.98rem; line-height:1.55}
 .outcome{
   margin:14px 0 0; padding:12px 14px;
-  background:rgba(79,195,247,.05);
-  border:1px solid rgba(79,195,247,.18);
+  background:rgba(46,230,168,.05);
+  border:1px solid rgba(46,230,168,.18);
   border-left:3px solid var(--accent-3);
   border-radius:var(--radius-sm);
   font-size:.9rem; color:#d6e4ef; line-height:1.5;
@@ -542,10 +542,10 @@ table.credits{width:100%; min-width:440px; border-collapse:collapse;
   border-radius:9px; padding:8px 14px; box-shadow:0 6px 18px -10px var(--accent-glow);
   transition:background .18s ease, transform .15s ease;
 }
-.run-inline:hover{ background:#6fd0fb; transform:translateY(-2px) }
+.run-inline:hover{ background:#7bffb0; transform:translateY(-2px) }
 .run-inline svg{ display:block }
 html[data-theme="light"] .run-inline{ color:#fff }
-html[data-theme="light"] .run-inline:hover{ background:#bb56c4 }
+html[data-theme="light"] .run-inline:hover{ background:#a856cc }
 @media (prefers-reduced-motion: reduce){ .run-inline:hover{ transform:none } }
 
 .app-modal{
@@ -630,7 +630,7 @@ html[data-theme="light"] .run-inline:hover{ background:#bb56c4 }
 }
 .contact-links a:hover{text-decoration:none; border-color:var(--accent); transform:translateY(-2px); background:rgba(61,253,122,.06)}
 .contact-links a.primary{background:var(--accent); color:#04121d; border-color:var(--accent)}
-.contact-links a.primary:hover{background:#6fd0fb}
+.contact-links a.primary:hover{background:#7bffb0}
 @media (prefers-reduced-motion: reduce){ .contact-links a:hover{transform:none} }
 .contact-links a svg{display:block; opacity:.85}
 .note{
@@ -660,7 +660,7 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
 /* project links (real examples on the web) */
 .links{display:flex; flex-wrap:wrap; gap:9px; margin-top:16px}
 .links a{font-size:.84rem; font-weight:700; color:#04121d; background:var(--accent); border:1px solid var(--accent); border-radius:9px; padding:8px 14px; box-shadow:0 6px 18px -10px var(--accent-glow); transition:background .18s ease, transform .15s ease}
-.links a:hover{text-decoration:none; background:#6fd0fb; border-color:#6fd0fb; transform:translateY(-2px)}
+.links a:hover{text-decoration:none; background:#7bffb0; border-color:#7bffb0; transform:translateY(-2px)}
 .links a::after{content:" \2197"; font-weight:800; opacity:.85}
 @media (prefers-reduced-motion: reduce){ .links a:hover{transform:none} }
 
@@ -745,12 +745,12 @@ footer .dotsep{display:inline-flex; gap:10px; align-items:center}
    dark cyan design stays the default. Remaps the variables, then patches the
    surfaces that hardcode dark-only colors. */
 html[data-theme="light"]{
-  --bg:#fcf4fb; --bg-2:#f6eaf7;
-  --panel:#ffffff; --panel-2:#fdf3fb;
-  --border:#eed3ec; --border-soft:#f6e5f4;
+  --bg:#faf5fd; --bg-2:#f1eaf9;
+  --panel:#ffffff; --panel-2:#fbf4fd;
+  --border:#e4d5f0; --border-soft:#f0e7f8;
   --text:#3a2b46; --muted:#6b5d82; --muted-2:#6d6081; --text-2:#4a3d59;
-  --accent:#a63fae; --accent-2:#8455d9; --accent-3:#1f6f9e; --accent-4:#b5751f;
-  --accent-dim:#f7e0f4; --accent-glow:rgba(166,63,174,.28);
+  --accent:#9a3fbe; --accent-2:#7a52d6; --accent-3:#1f6f9e; --accent-4:#b5751f;
+  --accent-dim:#f0e2f9; --accent-glow:rgba(154,63,190,.28);
   --shadow:0 10px 30px -16px rgba(150,70,140,.32);
   --shadow-lift:0 22px 48px -20px rgba(150,70,140,.42);
 }
@@ -772,7 +772,7 @@ html[data-theme="light"] .links a,
 html[data-theme="light"] .skip{ color:#fff }
 html[data-theme="light"] .btn-primary:hover{ background:#8f78e8 }
 html[data-theme="light"] .nav-links a.cta:hover{ background:#8f78e8; color:#fff }
-html[data-theme="light"] .eyebrow{ background:rgba(166,63,174,.10); color:#96328f }
+html[data-theme="light"] .eyebrow{ background:rgba(154,63,190,.10); color:#87309f }
 html[data-theme="light"] .eyebrow .dot{ box-shadow:0 0 0 4px rgba(124,95,224,.18) }
 html[data-theme="light"] h1.hero-title .accent{ background:linear-gradient(100deg,#7c5fe0,#9d7bff 55%,#a78bfa); -webkit-background-clip:text; background-clip:text }
 html[data-theme="light"] .lede{ color:#5a5377 }
@@ -784,7 +784,7 @@ html[data-theme="light"] .stack span{ background:rgba(60,53,86,.04); color:var(-
 html[data-theme="light"] .recog span{ background:rgba(60,53,86,.04); color:#4a4368 }
 html[data-theme="light"] .card::after{ background:radial-gradient(440px 200px at var(--mx,50%) -10%, rgba(124,95,224,.10), transparent 70%) }
 html[data-theme="light"] .outcome{ background:rgba(59,185,143,.08); border-color:rgba(59,185,143,.28); color:#2f4a40 }
-html[data-theme="light"] .chip.lane[data-l="ai"]{ color:#8e2f96; background:rgba(166,63,174,.10); border-color:rgba(166,63,174,.35) }
+html[data-theme="light"] .chip.lane[data-l="ai"]{ color:#7f2fa6; background:rgba(154,63,190,.10); border-color:rgba(154,63,190,.35) }
 html[data-theme="light"] .chip.lane[data-l="audio"]{ color:#6d4fd0; background:rgba(157,123,255,.12); border-color:rgba(157,123,255,.4) }
 html[data-theme="light"] .chip.lane[data-l="hardware"]{ color:#1a5c85; background:rgba(47,134,197,.12); border-color:rgba(47,134,197,.4) }
 html[data-theme="light"] .chip.lane[data-l="teaching"]{ color:#8a5010; background:rgba(217,138,43,.12); border-color:rgba(217,138,43,.4) }
@@ -2041,8 +2041,8 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
 
       var grad = ctx.createLinearGradient(pad, 0, pad+usableW, 0);
       grad.addColorStop(0, "rgba(61,253,122,0.9)");
-      grad.addColorStop(0.55, "rgba(143,225,255,0.95)");
-      grad.addColorStop(1, "rgba(157,123,255,0.9)");
+      grad.addColorStop(0.55, "rgba(123,255,196,0.95)");
+      grad.addColorStop(1, "rgba(255,143,208,0.9)");
 
       function strokeWave(pts, width, glow){
         ctx.save();
