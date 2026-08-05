@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vi Ellis · Engineer · Product Developer · Composer</title>
 <meta name="description" content="Vi Ellis, applied computer scientist, hardware product developer, and award-winning composer. Production AI agents on the Claude API, full-pipeline hardware, GDC-showcased game audio." />
+<meta name="robots" content="noindex, nofollow" />
 <meta name="theme-color" content="#0a0f16" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0f16'/%3E%3Cpath d='M16 18 L32 46 L48 18' fill='none' stroke='%233dfd7a' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <style>
@@ -297,6 +298,13 @@ section{padding:clamp(56px,8vw,96px) 0; position:relative}
   border-color:var(--accent); box-shadow:0 8px 22px -10px var(--accent-glow);
 }
 .filter .count{opacity:.6; font-family:var(--mono); font-size:.8em; margin-left:6px}
+/* ?for= view indicator, doubles as the "show me everything" escape hatch */
+.filter.view-note{
+  border-style:dashed; border-color:var(--accent);
+  color:var(--accent); background:transparent;
+}
+.filter.view-note:hover{ background:var(--accent-dim); color:var(--text) }
+.filter.view-note::after{ content:" \2192"; opacity:.75 }
 .filter[aria-pressed="true"] .count{opacity:.7}
 
 .grid{
@@ -899,7 +907,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 2 -->
-      <article class="card reveal d1" data-lanes="hardware ai">
+      <article class="card reveal d1" data-lanes="hardware ai creative">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026 · Independent</span></div>
         <h3>CADence</h3>
         <p class="blurb">A browser 3D modeler that makes precise, professional-grade CAD as approachable as a toy. Every shape is stored as an editable recipe of exact parameters, which is what makes the freeform-to-precise switch possible.</p>
@@ -913,7 +921,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 3 -->
-      <article class="card reveal d2" data-lanes="hardware">
+      <article class="card reveal d2" data-lanes="hardware creative">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2026 · Treobytes</span></div>
         <h3>Arduino MIDI Keyboard</h3>
         <p class="blurb">A buildable MIDI keyboard kit that teaches students to wire real circuitry. I designed the circuit, the USB-HID firmware, the 3D-printed enclosure, and the laser-cut schematic overlay end to end, safe and simple enough for a classroom.</p>
@@ -928,7 +936,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 4 -->
-      <article class="card reveal" data-lanes="audio ai">
+      <article class="card reveal" data-lanes="audio ai creative">
         <div class="tags"><span class="chip lane" data-l="audio">Audio &amp; Engineering</span><span class="chip">2022-23 · Independent</span></div>
         <h3>Adaptive Game-Audio Tool</h3>
         <p class="blurb">An audio system that reshapes a game's musical score in real time. Composers write the stems by hand, and the engine rearranges and warps them live with player movement and action. Demoed end to end in Night Shift, my thesis game, with voice acting, UI art, and logo by Emanuel Nation.</p>
@@ -960,7 +968,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 6 -->
-      <article class="card reveal d2" data-lanes="hardware">
+      <article class="card reveal d2" data-lanes="hardware creative">
         <div class="tags"><span class="chip lane" data-l="hardware">Hardware &amp; CAD</span><span class="chip">2021 · Research</span></div>
         <h3>KUKA Robotic 3D-Printing Research</h3>
         <p class="blurb">Sole programmer on my university's first large-scale robotic 3D-printing team, turning generative algorithms into sculptures printed by a KUKA robotic arm.</p>
@@ -982,7 +990,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 7 -->
-      <article class="card reveal" data-lanes="ai">
+      <article class="card reveal" data-lanes="ai creative">
         <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip">2023 · Independent</span></div>
         <h3>Primes / L-System Visualization</h3>
         <p class="blurb">An interactive generative artwork that turns mathematical patterns into living visuals. Featured in Dezeen.</p>
@@ -1003,7 +1011,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- Musically-Represented Data -->
-      <article class="card reveal d2" data-lanes="ai audio">
+      <article class="card reveal d2" data-lanes="ai audio creative">
         <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip">2020 · Woodbury</span></div>
         <h3>Musically-Represented Data</h3>
         <p class="blurb">A data sonification that turns the rise and fall of Google search interest into music. Three search terms scroll down a piano roll, each voiced by its own instrument, so a dataset becomes something you hear as much as read.</p>
@@ -1026,7 +1034,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- Sweet Cream -->
-      <article class="card reveal" data-lanes="web audio">
+      <article class="card reveal" data-lanes="web audio creative">
         <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip">2022 · Sweet Cream</span></div>
         <h3>Sweet Cream</h3>
         <p class="blurb">A streetwear brand with cinematic drops. I scored several of its films and campaign spots and built the sweetcream.co storefront around the brand's identity.</p>
@@ -1051,7 +1059,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 9 -->
-      <article class="card reveal d2" data-lanes="hardware">
+      <article class="card reveal d2" data-lanes="hardware creative">
         <div class="tags"><span class="chip lane" data-l="hardware">3D / Art</span><span class="chip">2020 · Contract</span></div>
         <h3>WangShui: Gallery Installation Prototype</h3>
         <p class="blurb">A 3D digital prototype built for contemporary artist WangShui. I modeled their sculpture concepts in Maya, then recreated the gallery in Unity as a walkable, fully simulated prototype with projection mapping, so the installation could be experienced before it was built.</p>
@@ -1171,7 +1179,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 16 -->
-      <article class="card reveal" data-lanes="ai">
+      <article class="card reveal" data-lanes="ai creative">
         <div class="tags"><span class="chip lane" data-l="ai">Creative Code</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026</span></div>
         <h3>Layerloop</h3>
         <p class="blurb">A browser tool for layered, stated pixel animation. Draw across layers and animation states with onion-skinning, frame operations, and export.</p>
@@ -1181,7 +1189,7 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       </article>
 
       <!-- 18 -->
-      <article class="card reveal d2" data-lanes="ai">
+      <article class="card reveal d2" data-lanes="ai creative">
         <div class="tags"><span class="chip lane" data-l="ai">AI &amp; Engineering</span><span class="chip">2022 · Woodbury University</span></div>
         <h3>GAN Image Generator</h3>
         <p class="blurb">A generative adversarial network I trained from scratch to synthesize images, owning the full pipeline rather than calling a model as a black box.</p>
@@ -1361,9 +1369,11 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
 
   function applyFilter(val){
     var shown = 0;
+    // `val` is "all", one lane, or a comma list of lanes (used by the ?for= views)
+    var wanted = String(val).split(",").map(function(s){ return s.trim(); }).filter(Boolean);
     cards.forEach(function(card){
       var lanes = (card.getAttribute("data-lanes") || "").split(/\s+/);
-      var match = (val === "all") || lanes.indexOf(val) !== -1;
+      var match = (val === "all") || wanted.some(function(w){ return lanes.indexOf(w) !== -1; });
       if (match){
         card.hidden = false; shown++;
         if (!reduceMotion){
@@ -1384,8 +1394,105 @@ html[data-theme="light"] .section-sub{ color:#5a5377 }
       filters.forEach(function(b){ b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
       applyFilter(btn.getAttribute("data-filter"));
       relayoutMasonry();
+      clearView();          // touching a filter drops the targeted view
     });
   });
+
+  /* ---------- ?for= targeted views -------------------------------------------
+     One site, one set of content, several front doors. `?for=swe` (etc.) swaps
+     the hero copy and pre-selects the relevant lanes, so a link sent with an
+     application lands on a page that reads as if it were built for that role.
+     No parameter means the full generalist view, unchanged.
+     Add a role by adding one entry here. Nothing else changes.               */
+  var VIEWS = {
+    swe: {
+      label: "Applied AI and Software",
+      eyebrow: "Applied AI · Software Engineering",
+      titleLead: "I ship ", titleAccent: "production AI systems", titleTail: ", end to end.",
+      lede: 'I\'m an applied computer scientist. I shipped a production AI agent system on the Claude API, with retrieval and an automated LLM-as-judge review, that cut a <strong>four-day document process to five hours</strong>. I built and maintain the internal <strong>React, Node and PostgreSQL platform</strong> my org runs on, and I ship tools that non-engineers actually operate.',
+      lanes: "ai,web"
+    },
+    audio: {
+      label: "Audio and Music",
+      eyebrow: "Composer · Technical Sound Design",
+      titleLead: "I write ", titleAccent: "music that reacts", titleTail: ", and build the tools that make it react.",
+      lede: 'I\'m an award-winning composer and technical sound designer with <strong>31 shipped game and film credits</strong> and <strong>Silver for Best Composer at the 2022 Tokyo Film Awards</strong>. I build the implementation layer too, including an Unreal Engine Blueprint tool <strong>showcased at GDC San Francisco 2024</strong>, and I teach adaptive game audio at university level.',
+      lanes: "audio,teaching"
+    },
+    hardware: {
+      label: "Hardware and Physical Computing",
+      eyebrow: "Hardware · Firmware · CAD",
+      titleLead: "I build ", titleAccent: "hardware end to end", titleTail: ", from firmware to enclosure.",
+      lede: 'I take hardware from concept to a thing you can hold. I designed a buildable Arduino MIDI controller end to end, including its <strong>USB-HID firmware, 3D-printed enclosure and laser-cut schematic overlay</strong>, safe enough for a classroom. I also write the software around it, from <strong>CAD tooling to generative fabrication pipelines</strong> for a robotic arm.',
+      lanes: "hardware"
+    },
+    creative: {
+      label: "Creative Technology",
+      eyebrow: "Creative Technologist",
+      titleLead: "I make things that live where ", titleAccent: "code meets craft", titleTail: ".",
+      lede: 'I build the technical half of work that has to be felt, not just run. I modeled and simulated a gallery installation for a <strong>Hammer Museum commission</strong>, wrote generative fabrication pipelines for a <strong>robotic 3D-printing research team</strong>, and made computational artwork <strong>featured in Dezeen</strong>. I design and build the software, the sound, and the object.',
+      lanes: "creative"
+    }
+  };
+
+  var heroEyebrow = document.querySelector(".hero .eyebrow"),
+      heroTitle   = document.getElementById("hero-title"),
+      heroLede    = document.querySelector(".hero .lede"),
+      DEFAULTS    = null;
+
+  function snapshotDefaults(){
+    if (DEFAULTS || !heroTitle) return;
+    DEFAULTS = { eyebrow: heroEyebrow ? heroEyebrow.innerHTML : "",
+                 title: heroTitle.innerHTML,
+                 lede: heroLede ? heroLede.innerHTML : "" };
+  }
+
+  function clearView(){
+    var note = document.getElementById("viewNote");
+    if (note) note.hidden = true;
+    document.documentElement.removeAttribute("data-view");
+  }
+
+  function applyView(key){
+    var v = VIEWS[key];
+    if (!v || !heroTitle) return false;
+    snapshotDefaults();
+    if (heroEyebrow) {
+      var dot = '<span class="dot" aria-hidden="true"></span>';
+      heroEyebrow.innerHTML = dot + v.eyebrow;
+    }
+    heroTitle.innerHTML = v.titleLead + '<span class="accent">' + v.titleAccent + '</span>' + v.titleTail;
+    if (heroLede) heroLede.innerHTML = v.lede;
+    document.documentElement.setAttribute("data-view", key);
+
+    // pre-select the lanes, and let the filter row reflect it
+    filters.forEach(function(b){ b.setAttribute("aria-pressed", "false"); });
+    applyFilter(v.lanes);
+
+    // quiet escape hatch so nothing is hidden from a curious reader
+    var bar = document.querySelector(".filters") || (filters[0] && filters[0].parentNode);
+    if (bar && !document.getElementById("viewNote")){
+      var note = document.createElement("button");
+      note.id = "viewNote"; note.type = "button"; note.className = "filter view-note";
+      note.textContent = "Showing " + v.label + ". See everything";
+      note.addEventListener("click", function(){
+        heroEyebrow && (heroEyebrow.innerHTML = DEFAULTS.eyebrow);
+        heroTitle.innerHTML = DEFAULTS.title;
+        heroLede && (heroLede.innerHTML = DEFAULTS.lede);
+        filters.forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-filter") === "all" ? "true" : "false"); });
+        applyFilter("all"); relayoutMasonry(); clearView();
+      });
+      bar.appendChild(note);
+    } else if (document.getElementById("viewNote")) {
+      document.getElementById("viewNote").hidden = false;
+    }
+    return true;
+  }
+
+  try {
+    var forParam = new URLSearchParams(location.search).get("for");
+    if (forParam) applyView(forParam.toLowerCase().trim());
+  } catch (e) {}
 
   /* ---------- masonry layout for the work grid ----------
      Each visible card drops into the shortest column, so expanding one card
