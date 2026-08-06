@@ -733,3 +733,15 @@ body.render-view #tips-btn { display: none !important; }
   #sketch-bar button { padding: 6px 8px; font-size: 12px; }
   #sketch-bar .sk-read { width: 100%; order: 99; }
 }
+
+/* Three-way segmented control (extrude end types). Wraps to a column on very
+   narrow phones so the labels never truncate to nonsense. */
+.seg.seg-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.seg.seg-3 button { width: auto; margin: 0; padding: 7px 4px; font-size: 12px; }
+@media (max-width: 420px) {
+  .seg.seg-3 { grid-template-columns: 1fr; }
+}
+.sk-note.repaired {
+  color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 6px; padding: 6px 8px; margin-top: 6px; font-size: 11px; line-height: 1.4;
+}

@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { solveSketch, sketchProfile, TESS_SEGMENTS } from './sketch.js';
+import { normalizeProfile, suggestedDepth } from './profile.js';
 
 // Display labels for the two roles. Internal role values stay 'solid'/'hole'
 // forever (stable), but what the UI *calls* them lives here — so renaming is a
@@ -35,7 +36,8 @@ export const DEFAULT_PARAMS = {
   // A sketch is a closed 2D profile (points, mm) turned into a solid by a feature
   // operation: 'extrude' (straight pull up by `depth`) or 'revolve' (spin the
   // profile around the Y axis by `angle`°). Default profile = a 20mm square.
-  sketch:   { profile: [[-10, -10], [10, -10], [10, 10], [-10, 10]], op: 'extrude', depth: 20, angle: 360, segments: 48 },
+  sketch:   { profile: [[-10, -10], [10, -10], [10, 10], [-10, 10]], op: 'extrude', depth: 20,
+              endType: 'blind', depth2: 0, start: 0, angle: 360, segments: 48 },
 };
 
 // A reusable "corner radius" field for primitives that support rounding.
@@ -102,6 +104,8 @@ export const PARAM_SCHEMA = {
   // fields. The feature scalars (extrude depth, revolve angle) are dimension-editable.
   sketch: [
     { key: 'depth', label: 'Extrude (mm)', min: 0.1, step: 0.5 },
+    { key: 'depth2', label: 'Down (mm)',   min: 0,   step: 0.5 },
+    { key: 'start', label: 'Start offset', step: 0.5 },
     { key: 'angle', label: 'Revolve (°)',  min: 1,   step: 5 },
     { key: 'segments', label: 'Facets',    min: 3,   step: 1, advanced: true, integer: true },
   ],
@@ -142,6 +146,72 @@ export function resolveSketch(params) {
 /** True when this recipe is a constraint-driven sketch rather than a freehand one. */
 export function isParametricSketch(obj) {
   return obj?.kind === 'sketch' && !!obj.params?.sk;
+}
+
+// ---- extrude ----------------------------------------------------------------
+//
+// The extrude feature, in the shape people expect from a CAD package.
+//
+//   endType 'blind'      pull one way by `depth`, sitting on the sketch plane
+//   endType 'symmetric'  centre `depth` on the sketch plane, half each way
+//   endType 'twoSided'   pull `depth` up and `depth2` down, independently
+//
+// plus a `start` offset that lifts or sinks the whole extrusion off its plane.
+// Blind starting at zero is the old behaviour exactly, so existing sketches are
+// untouched.
+//
+// The profile is normalised first, which is what makes a self-crossing outline
+// (and any hole it encloses) build a real solid instead of a torn one.
+
+/** Describes what an extrude will do, for the UI, without building geometry. */
+export function extrudeSpan(params) {
+  const depth = Math.max(0.01, Number(params.depth) || 0.01);
+  const start = Number(params.start) || 0;
+  const end = params.endType || 'blind';
+  if (end === 'symmetric') return { bottom: start - depth / 2, top: start + depth / 2 };
+  if (end === 'twoSided') {
+    const d2 = Math.max(0, Number(params.depth2) || 0);
+    return { bottom: start - d2, top: start + depth };
+  }
+  return { bottom: start, top: start + depth };
+}
+
+function buildExtrude(prof, params) {
+  const { regions, repaired, reason } = normalizeProfile(prof);
+  const span = extrudeSpan(params);
+  const thickness = Math.max(0.01, span.top - span.bottom);
+
+  if (!regions.length) {
+    // Never hand back nothing: a zero-triangle mesh reads as "the app broke".
+    // A tiny marker plus the reason on the recipe keeps the object selectable
+    // and lets the inspector explain what is wrong with the outline.
+    const g = new THREE.BoxGeometry(1, 1, 1);
+    g.userData.profileError = reason;
+    return g;
+  }
+
+  // Sketch (x, y) maps to world (x, z), so build the 2D shape as (x, -y) and
+  // stand the extrusion up afterwards. Holes are inner paths on their shape.
+  const shapes = regions.map((r) => {
+    const s = new THREE.Shape();
+    r.outer.forEach((p, i) => (i === 0 ? s.moveTo(p[0], -p[1]) : s.lineTo(p[0], -p[1])));
+    s.closePath();
+    for (const h of r.holes) {
+      const path = new THREE.Path();
+      h.forEach((p, i) => (i === 0 ? path.moveTo(p[0], -p[1]) : path.lineTo(p[0], -p[1])));
+      path.closePath();
+      s.holes.push(path);
+    }
+    return s;
+  });
+
+  const geo = new THREE.ExtrudeGeometry(shapes, { depth: thickness, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2);         // extrusion runs along Z → stand it up along Y
+  geo.translate(0, span.bottom, 0);  // then place the span relative to the sketch plane
+  geo.userData.repaired = repaired;
+  geo.userData.profileReason = reason;
+  geo.userData.regions = regions.length;
+  return geo;
 }
 
 // ---- rounding helpers -------------------------------------------------------
@@ -364,17 +434,11 @@ export function buildGeometry(kind, params) {
         const pts = prof.map((p) => new THREE.Vector2(Math.max(0, p[0]), p[1]));
         const ang = clamp((params.angle ?? 360), 1, 360) * Math.PI / 180;
         geo = new THREE.LatheGeometry(pts, Math.max(3, params.segments ?? 48), 0, ang);
+        geo.computeBoundingBox();             // rest the result on the y=0 build plate
+        geo.translate(0, -geo.boundingBox.min.y, 0);
       } else {
-        // Extrude the closed profile straight up. Build the Shape in (x, -y) so the
-        // sketch plane's +y maps to world +Z, then stand the extrusion up along Y.
-        const shape = new THREE.Shape();
-        prof.forEach((p, i) => (i === 0 ? shape.moveTo(p[0], -p[1]) : shape.lineTo(p[0], -p[1])));
-        shape.closePath();
-        geo = new THREE.ExtrudeGeometry(shape, { depth: Math.max(0.1, params.depth ?? 20), bevelEnabled: false });
-        geo.rotateX(-Math.PI / 2);            // extrude runs along Z → stand up along Y
+        geo = buildExtrude(prof, params);
       }
-      geo.computeBoundingBox();               // rest the result on the y=0 build plate
-      geo.translate(0, -geo.boundingBox.min.y, 0);
       break;
     }
     default:
@@ -382,3 +446,4 @@ export function buildGeometry(kind, params) {
   }
   return geo;
 }
+export { suggestedDepth, normalizeProfile } from './profile.js';

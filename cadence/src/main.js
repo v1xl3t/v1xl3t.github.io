@@ -17,6 +17,7 @@ import {
   createSketch, addPoint, addLine, addCircle, addConstraint, addRectangle,
   solveSketch, sketchProfile, cloneSketch,
 } from './sketch.js';
+import { suggestedDepth } from './profile.js';
 import { Inspector } from './ui.js';
 import { Outliner } from './outliner.js';
 import { Timeline } from './timeline.js';
@@ -1118,18 +1119,34 @@ function finishSketch() {
   }
   if (!prof.closed) { flash(`The sketch is not a closed loop yet, so it cannot become a solid. ${prof.reason}`); return; }
 
+  // Scale the first depth to the size of the drawing. A flat 20mm default is
+  // right for a small bracket and looks like foil on a 400mm plate, which is
+  // exactly what a big first sketch produced. The number stays editable.
+  const depth = suggestedDepth(prof.profile);
+
   const obj = doc.add('sketch', {
     sk: cloneSketch(skDoc),
     profile: prof.profile,
     op: 'extrude',
-    depth: 20,
+    depth,
+    endType: 'blind',
+    depth2: 0,
+    start: 0,
     angle: 360,
     segments: 48,
   });
   doc.touch(obj);
   setSketch(false);
+
   const state = report.status === 'fully' ? 'fully constrained' : `${report.dof} degrees of freedom left`;
-  flash(`Sketch extruded into a solid, ${state}. Type exact numbers into its dimensions in the Inspector.`);
+  const repaired = obj.mesh.geometry.userData?.repaired;
+  const pieces = obj.mesh.geometry.userData?.regions ?? 1;
+  const fixNote = repaired
+    ? (pieces > 1
+        ? ` Your outline crossed itself, so it became ${pieces} separate pieces.`
+        : ' Your outline crossed itself and was repaired.')
+    : '';
+  flash(`Extruded ${depth}mm, ${state}.${fixNote} Type exact numbers in the Inspector.`);
 }
 
 // Keep the old name working for the existing Enter binding.

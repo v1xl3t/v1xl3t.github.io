@@ -3,7 +3,7 @@
 // the "TinkerCAD-easy" half. Both edit the same model, so you can drag roughly
 // then dial in an exact value — the workflow swap Vi is after, in miniature.
 
-import { PARAM_SCHEMA, ROLE_LABELS, resolveSketch } from './primitives.js';
+import { PARAM_SCHEMA, ROLE_LABELS, resolveSketch, extrudeSpan } from './primitives.js';
 import { dimensionList, constraintLabel, isDimension } from './sketch.js';
 import { unitScale, unitLabel } from './settings.js';
 import * as THREE from 'three';
@@ -45,9 +45,28 @@ export class Inspector {
 
     const isBool = obj.kind === 'boolean';
     const schema = PARAM_SCHEMA[obj.kind] || [];
+
+    // A sketch carries fields for both of its feature operations. Showing the
+    // revolve angle next to the extrude depth was always confusing, so only the
+    // fields that actually drive the current shape are rendered.
+    const isSketch = obj.kind === 'sketch';
+    const isRevolve = isSketch && obj.params.op === 'revolve';
+    const endType = obj.params.endType || 'blind';
+    const relevant = (f) => {
+      if (!isSketch) return true;
+      if (f.key === 'angle') return isRevolve;
+      if (f.key === 'depth') return !isRevolve;
+      if (f.key === 'depth2') return !isRevolve && endType === 'twoSided';
+      if (f.key === 'start') return !isRevolve;
+      return true;
+    };
+    // The depth means something slightly different per end type, so say which.
+    const DEPTH_LABEL = { blind: 'Depth (mm)', symmetric: 'Total depth (mm)', twoSided: 'Up (mm)' };
+    const labelFor = (f) => (isSketch && f.key === 'depth' ? (DEPTH_LABEL[endType] || f.label) : f.label);
+
     const dimFields = schema
-      .filter((f) => !f.advanced)
-      .map((f) => this._numRow(`dim:${f.key}`, f.label, obj.params[f.key], f.step, f.min))
+      .filter((f) => !f.advanced && relevant(f))
+      .map((f) => this._numRow(`dim:${f.key}`, labelFor(f), obj.params[f.key] ?? 0, f.step, f.min))
       .join('');
 
     const meta = isBool
@@ -111,6 +130,7 @@ export class Inspector {
 
       ${roleRow}
       ${opRow}
+      ${this._extrudeRow(obj)}
       ${this._sketchRow(obj)}
       ${dimRow}
 
@@ -128,6 +148,39 @@ export class Inspector {
     `;
 
     this._wire(obj);
+  }
+
+  // How far the extrusion goes, and which way. Three end types cover almost
+  // everything people reach for: one direction, centred on the plane, or a
+  // different distance each way. Each is one tap, which matters on a phone.
+  _extrudeRow(obj) {
+    if (obj.kind !== 'sketch' || obj.params.op === 'revolve') return '';
+    const end = obj.params.endType || 'blind';
+    const btn = (v, label, title) =>
+      `<button type="button" data-endtype="${v}" title="${title}" class="${end === v ? 'on' : ''}">${label}</button>`;
+
+    const span = extrudeSpan(obj.params);
+    const fmt = (n) => (Math.round(n * 100) / 100);
+    const reach = `Reaches ${fmt(span.bottom)} to ${fmt(span.top)} mm about the sketch plane.`;
+
+    // If the drawn outline had to be repaired, say so plainly. Silently fixing
+    // someone's geometry and never mentioning it is how trust gets lost.
+    const g = obj.mesh?.geometry?.userData || {};
+    const note = g.repaired
+      ? `<div class="sk-note repaired">Your outline crossed itself${g.regions > 1 ? `, so it became ${g.regions} separate pieces` : ' and was repaired'}. The solid is clean.</div>`
+      : (g.profileError ? `<div class="sk-warn">${esc(g.profileError)}</div>` : '');
+
+    return `
+      <div class="field">
+        <label>Extrude</label>
+        <div class="seg seg-3">
+          ${btn('blind', 'Up', 'Pull the profile one way from the sketch plane')}
+          ${btn('symmetric', 'Centred', 'Centre the depth on the sketch plane, half each way')}
+          ${btn('twoSided', 'Both', 'Pull a different distance each way')}
+        </div>
+        <div class="muted sk-note">${reach}</div>
+        ${note}
+      </div>`;
   }
 
   // The parametric block: what the sketch is constrained by, how free it still
@@ -236,6 +289,21 @@ export class Inspector {
     this.body.querySelectorAll('button[data-skdel]').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.doc.editSketchConstraint(obj.id, 'remove', { id: btn.dataset.skdel });
+        this.onChange(obj);
+        this.render();
+      });
+    });
+    this.body.querySelectorAll('button[data-endtype]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.doc.commit('Extrude end type');
+        obj.params.endType = btn.dataset.endtype;
+        // Starting a two-sided pull with nothing on the second side reads as
+        // broken, so seed it from the first side the first time.
+        if (obj.params.endType === 'twoSided' && !(obj.params.depth2 > 0)) {
+          obj.params.depth2 = Math.max(1, Math.round((obj.params.depth || 20) / 2));
+        }
+        obj.rebuild();
+        this.doc.touch(obj);
         this.onChange(obj);
         this.render();
       });
