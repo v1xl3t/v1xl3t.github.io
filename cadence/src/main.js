@@ -18,6 +18,7 @@ import {
   solveSketch, sketchProfile, cloneSketch,
 } from './sketch.js';
 import { suggestedDepth } from './profile.js';
+import { planeFromNormal, sketchToWorld, isGroundPlane } from './primitives.js';
 import { Inspector } from './ui.js';
 import { Outliner } from './outliner.js';
 import { Timeline } from './timeline.js';
@@ -419,6 +420,7 @@ window.addEventListener('keydown', (e) => {
     setSkTool({ l: 'line', r: 'rect', c: 'circle', d: 'dim' }[k]);
   }
   else if (sketchOn && k === 'g' && !e.ctrlKey && !e.metaKey) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); flash(skSnap ? 'Grid snap on, 1mm.' : 'Grid snap off.'); }
+  else if (sketchOn && k === 'p' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); resetSketchPlane(); }
   else if (k === 'l') toggleLasso();
   else if (k === 'm') toggleMeasure();
   else if (k === 's' && !e.ctrlKey && !e.metaKey) toggleSketch();
@@ -731,6 +733,10 @@ let skPending = [];                // point ids clicked so far for the active to
 let skHover = null;                // last cursor position in sketch coords
 let skSnap = 1;                    // grid snap in mm, 0 = off
 let skDimPair = null;              // the two points awaiting a typed distance
+let skPlane = null;                // null = the ground; otherwise a picked face's plane
+let skPlaneLabel = 'Ground';
+let skPlanePicked = false;         // a face has been chosen, so clicks now draw on it
+let skPlaneArmed = false;          // the user explicitly asked to pick a face next
 
 const sketchGroup = new THREE.Group();
 scene.add(sketchGroup);
@@ -759,8 +765,12 @@ function setSketch(on) {
     skTool = 'line';
     skPending = [];
     skDimPair = null;
+    skPlane = null;
+    skPlaneLabel = 'Ground';
+    skPlanePicked = false;
+    skPlaneArmed = false;
     syncSketchBar();
-    flash('Sketch on. Draw with Line, Rectangle or Circle. Enter finishes, Esc cancels.');
+    flash('Sketch on. Click a flat face to draw on it, or draw on the ground. Enter finishes, Esc cancels.');
   } else {
     skDoc = null; skPending = []; skDimPair = null;
     disposeSketchPreview();
@@ -769,19 +779,56 @@ function setSketch(on) {
 }
 function toggleSketch() { setSketch(!sketchOn); }
 
-function groundPoint(e) {
+function aimAt(e) {
   const r = renderer.domElement.getBoundingClientRect();
   ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1;
   ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1;
   ray.setFromCamera(ptr, camera);
+}
+
+// The plane the sketch is currently being drawn on, as a THREE.Plane.
+function activePlane() {
+  if (!skPlane) return GROUND;
+  const n = new THREE.Vector3().fromArray(skPlane.normal);
+  const o = new THREE.Vector3().fromArray(skPlane.origin);
+  return new THREE.Plane().setFromNormalAndCoplanarPoint(n, o);
+}
+
+function groundPoint(e) {
+  aimAt(e);
   const hit = new THREE.Vector3();
-  return ray.ray.intersectPlane(GROUND, hit) ? hit : null;
+  return ray.ray.intersectPlane(activePlane(), hit) ? hit : null;
+}
+
+// Which solid face is under the cursor, as a plane. Returns null over empty space.
+function faceUnderCursor(e) {
+  aimAt(e);
+  const meshes = doc.list.filter((o) => o.mesh.visible !== false).map((o) => o.mesh);
+  if (!meshes.length) return null;
+  const hits = ray.intersectObjects(meshes, false);
+  if (!hits.length || !hits[0].face) return null;
+  const h = hits[0];
+  const n = h.face.normal.clone()
+    .applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(h.object.matrixWorld))
+    .normalize();
+  const obj = doc.list.find((o) => o.mesh === h.object);
+  return { plane: planeFromNormal(h.point.toArray(), n.toArray()), name: obj?.name || 'face' };
 }
 
 // Sketch coordinates are the ground plane's x and z, so a sketch point maps to
 // world (x, 0, y) and back with no transform to get wrong.
-const toSketch = (v3) => ({ x: v3.x, y: v3.z });
-const toWorld = (p) => new THREE.Vector3(p.x, 0, p.y);
+const toSketch = (v3) => {
+  if (!skPlane) return { x: v3.x, y: v3.z };
+  // Project the world hit back into the plane's own 2D coordinates.
+  const o = new THREE.Vector3().fromArray(skPlane.origin);
+  const n = new THREE.Vector3().fromArray(skPlane.normal).normalize();
+  let x = new THREE.Vector3().fromArray(skPlane.xdir);
+  x = x.sub(n.clone().multiplyScalar(x.dot(n))).normalize();
+  const y = new THREE.Vector3().crossVectors(x, n);
+  const d = v3.clone().sub(o);
+  return { x: d.dot(x), y: d.dot(y) };
+};
+const toWorld = (p) => sketchToWorld(skPlane, p.x, p.y);
 const skPoint = (id) => skDoc.points.find((p) => p.id === id);
 
 function snapValue(v) { return skSnap > 0 ? Math.round(v / skSnap) * skSnap : v; }
@@ -826,8 +873,30 @@ function autoDimension(line, axis) {
 const round1 = (v) => Math.round(v * 10) / 10;
 
 function sketchClick(e) {
+  // Nothing drawn yet, and the click landed on a solid? Adopt that face as the
+  // sketch plane. This is the whole of "sketch on a face" from the user's side:
+  // click the face, then draw on it exactly as you would on the ground.
+  if (!skPlanePicked && !skDoc.entities.length && !skPending.length) {
+    const face = faceUnderCursor(e);
+    if (face) {
+      skPlane = face.plane;
+      skPlaneLabel = face.name;
+      // Latch it, otherwise every following click would land on the same solid
+      // and re-pick the plane instead of drawing on it.
+      skPlanePicked = true;
+      skPlaneArmed = false;
+      drawSketchPreview();
+      syncSketchBar();
+      flash(`Sketching on a face of ${face.name}. Now draw on it. Press P for the ground.`);
+      return;
+    }
+    // Clicking empty space settles on the ground, so a stray later click over a
+    // solid cannot silently move the plane mid-drawing.
+    skPlanePicked = true;
+  }
+
   const hit = groundPoint(e);
-  if (!hit) { flash('Aim at the ground plane to draw.'); return; }
+  if (!hit) { flash('Aim at the sketch plane to draw.'); return; }
   const raw = toSketch(hit);
   const x = snapValue(raw.x), y = snapValue(raw.y);
 
@@ -988,6 +1057,39 @@ function syncSketchBar() {
       ? `<b>${skHover.x.toFixed(1)}</b>, <b>${skHover.y.toFixed(1)}</b> mm${state ? ` · ${state.dof} free` : ''}`
       : 'Click to draw';
   }
+  const pl = bar.querySelector('[data-skplane]');
+  if (pl) {
+    // Report the plane you are actually on. 'Pick a face' only appears when you
+    // explicitly asked for it, since at open you can equally just draw.
+    pl.textContent = skPlane ? `On ${skPlaneLabel}` : (skPlaneArmed ? 'Pick a face' : 'On ground');
+    pl.classList.toggle('on', !!skPlane || skPlaneArmed);
+    // Once a curve exists the plane is locked in, since moving it would drag the
+    // drawing out from under itself.
+    pl.disabled = !!(skDoc && skDoc.entities.length);
+  }
+}
+
+// The plane control. On a face, it drops you back to the ground and KEEPS you
+// there, because a click over a solid should not silently undo the choice you
+// just made. Already on the ground, it arms face picking for the next click.
+// Both are refused once a curve exists, since moving the plane would drag the
+// drawing out from under itself.
+function resetSketchPlane() {
+  if (skDoc && skDoc.entities.length) { flash('The plane is set once you start drawing. Undo the curves to change it.'); return; }
+
+  if (skPlane) {
+    skPlane = null;
+    skPlaneLabel = 'Ground';
+    skPlanePicked = true;               // latched: clicks now draw on the ground
+    skPlaneArmed = false;
+    flash('Back on the ground plane.');
+  } else {
+    skPlanePicked = false;              // armed: the next click can choose a face
+    skPlaneArmed = true;
+    flash('Click a flat face to draw on it.');
+  }
+  drawSketchPreview();
+  syncSketchBar();
 }
 
 function setSkTool(t) {
@@ -1053,6 +1155,7 @@ function wireSketchBar() {
     if (!t) return;
     if (t.dataset.sktool) setSkTool(t.dataset.sktool);
     else if (t.dataset.sksnap !== undefined) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); }
+    else if (t.dataset.skplane !== undefined) resetSketchPlane();
     else if (t.dataset.skundo !== undefined) undoSketchStep();
     else if (t.dataset.skdone !== undefined) finishSketch();
     else if (t.dataset.skcancel !== undefined) setSketch(false);
@@ -1127,6 +1230,7 @@ function finishSketch() {
   const obj = doc.add('sketch', {
     sk: cloneSketch(skDoc),
     profile: prof.profile,
+    plane: skPlane ? JSON.parse(JSON.stringify(skPlane)) : null,
     op: 'extrude',
     depth,
     endType: 'blind',
@@ -1670,7 +1774,7 @@ setStatus();
 
 // Expose for console tinkering / debugging.
 window.cadence = {
-  doc, scene, THREE,
+  doc, scene, THREE, camera, renderer, orbit,
   // Sketcher internals, exposed so the headless harness can drive and inspect
   // the constrained sketcher the same way a person does.
   sketch: {
@@ -1679,6 +1783,9 @@ window.cadence = {
     get tool() { return skTool; },
     setTool: (t) => setSkTool(t),
     setSnap: (mm) => { skSnap = mm; syncSketchBar(); },
+    get plane() { return skPlane; },
+    get planeArmed() { return skPlaneArmed; },
+    resetPlane: () => resetSketchPlane(),
     solve: () => (skDoc ? solveSketch(skDoc) : null),
     profile: () => (skDoc ? sketchProfile(skDoc) : null),
     finish: () => finishSketch(),

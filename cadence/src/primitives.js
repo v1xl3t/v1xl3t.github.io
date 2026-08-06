@@ -37,7 +37,8 @@ export const DEFAULT_PARAMS = {
   // operation: 'extrude' (straight pull up by `depth`) or 'revolve' (spin the
   // profile around the Y axis by `angle`°). Default profile = a 20mm square.
   sketch:   { profile: [[-10, -10], [10, -10], [10, 10], [-10, 10]], op: 'extrude', depth: 20,
-              endType: 'blind', depth2: 0, start: 0, angle: 360, segments: 48 },
+              endType: 'blind', depth2: 0, start: 0, angle: 360, segments: 48,
+              plane: null },   // null = the ground plane; a face sketch stores its own
 };
 
 // A reusable "corner radius" field for primitives that support rounding.
@@ -163,6 +164,84 @@ export function isParametricSketch(obj) {
 // The profile is normalised first, which is what makes a self-crossing outline
 // (and any hole it encloses) build a real solid instead of a torn one.
 
+// ---- sketch planes ----------------------------------------------------------
+//
+// A sketch lives on a plane. Until now that plane was always the ground, so it
+// never needed saying. Sketching on the face of an existing solid is the same
+// sketch with a different frame, which is why the plane is stored on the recipe
+// and applied as a single matrix rather than special-cased through the builder.
+//
+// The frame is: local +X runs along the plane's xdir, local +Z along its ydir,
+// and local +Y along its normal, which is the direction the extrusion pulls.
+
+export const GROUND_PLANE = { origin: [0, 0, 0], normal: [0, 1, 0], xdir: [1, 0, 0] };
+
+/** True when a plane is the ground, so the transform can be skipped entirely. */
+export function isGroundPlane(plane) {
+  if (!plane) return true;
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const n = plane.normal || GROUND_PLANE.normal;
+  const x = plane.xdir || GROUND_PLANE.xdir;
+  const o = plane.origin || GROUND_PLANE.origin;
+  return near(o[0], 0) && near(o[1], 0) && near(o[2], 0) &&
+         near(n[0], 0) && near(n[1], 1) && near(n[2], 0) &&
+         near(x[0], 1) && near(x[1], 0) && near(x[2], 0);
+}
+
+/**
+ * Build a plane's frame from a normal and a point, choosing a stable xdir.
+ * The chosen xdir is the world axis least parallel to the normal, so a face
+ * that is nearly axis-aligned gets an axis-aligned sketch frame instead of an
+ * arbitrarily rotated one.
+ */
+export function planeFromNormal(origin, normal) {
+  const n = new THREE.Vector3().fromArray(normal).normalize();
+  const candidates = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)];
+  let best = candidates[0], bestDot = 1;
+  for (const c of candidates) {
+    const d = Math.abs(c.dot(n));
+    if (d < bestDot) { bestDot = d; best = c; }
+  }
+  const xdir = best.clone().sub(n.clone().multiplyScalar(best.dot(n))).normalize();
+  return { origin: [...origin], normal: n.toArray(), xdir: xdir.toArray() };
+}
+
+/** The matrix taking sketch-local space into the world, or null for the ground. */
+export function planeMatrix(plane) {
+  if (isGroundPlane(plane)) return null;
+  const n = new THREE.Vector3().fromArray(plane.normal).normalize();
+  let x = new THREE.Vector3().fromArray(plane.xdir || [1, 0, 0]);
+  // Re-orthogonalise: a stored xdir can drift, and a skewed frame would shear
+  // the solid rather than place it.
+  x = x.sub(n.clone().multiplyScalar(x.dot(n)));
+  if (x.lengthSq() < 1e-12) x = planeFromNormalAxis(n);
+  x.normalize();
+  const z = new THREE.Vector3().crossVectors(x, n);   // local +Z is the plane's ydir
+  const o = new THREE.Vector3().fromArray(plane.origin || [0, 0, 0]);
+  return new THREE.Matrix4().makeBasis(x, n, z).setPosition(o);
+}
+
+function planeFromNormalAxis(n) {
+  const alt = Math.abs(n.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+  return alt.sub(n.clone().multiplyScalar(alt.dot(n)));
+}
+
+/** Map a sketch-space point to world space on the sketch's plane. */
+export function sketchToWorld(plane, u, v) {
+  const M = planeMatrix(plane);
+  const p = new THREE.Vector3(u, 0, v);
+  return M ? p.applyMatrix4(M) : p;
+}
+
+/** Map a world point onto the sketch plane's 2D coordinates. */
+export function worldToSketch(plane, point) {
+  const M = planeMatrix(plane);
+  if (!M) return { x: point.x, y: point.z };
+  const inv = M.clone().invert();
+  const p = point.clone().applyMatrix4(inv);
+  return { x: p.x, y: p.z };
+}
+
 /** Describes what an extrude will do, for the UI, without building geometry. */
 export function extrudeSpan(params) {
   const depth = Math.max(0.01, Number(params.depth) || 0.01);
@@ -208,6 +287,14 @@ function buildExtrude(prof, params) {
   const geo = new THREE.ExtrudeGeometry(shapes, { depth: thickness, bevelEnabled: false });
   geo.rotateX(-Math.PI / 2);         // extrusion runs along Z → stand it up along Y
   geo.translate(0, span.bottom, 0);  // then place the span relative to the sketch plane
+
+  // Everything above is built in the sketch's own frame, where the profile lies
+  // flat and the pull runs up +Y. A sketch drawn on the face of another solid
+  // simply carries a different frame, so one matrix at the end is the whole of
+  // sketch-on-face as far as geometry is concerned.
+  const M = planeMatrix(params.plane);
+  if (M) geo.applyMatrix4(M);
+
   geo.userData.repaired = repaired;
   geo.userData.profileReason = reason;
   geo.userData.regions = regions.length;
