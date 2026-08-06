@@ -54,7 +54,7 @@ export class DimChips {
       chip.className = 'dimchip';
       chip.dataset.key = f.key;
       chip.innerHTML = `<span class="dc-k">${abbrev(f.label)}</span><span class="dc-v">${fmt(obj.params[f.key])}</span>`;
-      chip.title = `${f.label} — click to edit`;
+      chip.title = `${f.label}, click to edit`;
       chip.addEventListener('pointerdown', (e) => e.stopPropagation());   // don't deselect/pick
       chip.addEventListener('click', () => this.editChip(chip, f));
       this.layer.appendChild(chip);

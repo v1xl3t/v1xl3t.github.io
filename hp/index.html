@@ -680,7 +680,7 @@ footer a{color:var(--accent); text-decoration:none}
     if (m.bio){ txt = '<p>'+m.bio+'</p>'; }
     else {
       txt = PROMPTS.map(function(q){
-        return '<span class="q">'+q+'</span><p class="ph">— answer coming soon</p>';
+        return '<span class="q">'+q+'</span><p class="ph">answer coming soon</p>';
       }).join("");
     }
     document.getElementById("mmText").innerHTML = txt;

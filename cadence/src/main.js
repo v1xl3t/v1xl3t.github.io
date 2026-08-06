@@ -154,10 +154,10 @@ async function groupSelected() {
   flash('Combining bodies…');
   try {
     const grp = await doc.group(ids);
-    flash(grp ? 'Grouped into one watertight body.' : 'Only holes selected — nothing to keep.');
+    flash(grp ? 'Grouped into one watertight body.' : 'Only holes selected, nothing to keep.');
   } catch (err) {
     console.error('[CADence] boolean kernel error:', err);
-    flash('Boolean kernel failed to load/run — see console.');
+    flash('Boolean kernel failed to load or run. See console.');
   }
 }
 
@@ -175,7 +175,7 @@ async function intersectSelected() {
     flash(grp ? 'Kept the shared volume.' : 'No overlapping volume to intersect.');
   } catch (err) {
     console.error('[CADence] intersect error:', err);
-    flash('Intersect failed — see console.');
+    flash('Intersect failed. See console.');
   }
 }
 
@@ -316,11 +316,11 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'undo':      doc.undo(); break;
     case 'export-stl':
       if (exportSTL(doc.list, undefined, displayUnit)) flash(`Exported STL (${unitLabel(displayUnit)} units).`);
-      else flash('Nothing printable to export — add a solid first.');
+      else flash('Nothing printable to export. Add a solid first.');
       break;
     case 'export-3mf':
       if (export3MF(doc.list, undefined, displayUnit)) flash(`Exported 3MF (${unitLabel(displayUnit)} units).`);
-      else flash('Nothing printable to export — add a solid first.');
+      else flash('Nothing printable to export. Add a solid first.');
       break;
     case 'drop-floor':   dropToFloor(); break;
     case 'sketch':       toggleSketch(); break;
@@ -338,7 +338,7 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'load-project': document.getElementById('file-input').click(); break;
     case 'share-link':
       buildShareLink(doc).then(url => {
-        if (!url) { flash('Nothing to share yet — add a solid first.'); return; }
+        if (!url) { flash('Nothing to share yet. Add a solid first.'); return; }
         navigator.clipboard.writeText(url)
           .then(() => flash('Share link copied. Anyone who opens it sees this design.'))
           .catch(() => { prompt('Copy this share link:', url); });
@@ -356,7 +356,7 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
     flash(`Loaded ${file.name}.`);
   } catch (err) {
     console.error('[CADence] load error:', err);
-    flash('Could not load that file — see console.');
+    flash('Could not load that file. See console.');
   }
   e.target.value = '';   // allow re-loading the same file
 });
@@ -369,10 +369,10 @@ async function runSelfTest() {
     console.group(`%cCADence kernel self-test — ${pass}/${results.length} passed`, 'font-weight:bold');
     results.forEach((r) => console.log(`${r.pass ? '✅' : '❌'} ${r.name}${r.detail ? ` — ${r.detail}` : ''}`));
     console.groupEnd();
-    flash(`Kernel self-test: ${pass}/${results.length} passed — details in console (F12).`);
+    flash(`Kernel self-test ${pass}/${results.length} passed. Details in console (F12).`);
   } catch (err) {
     console.error('[CADence] self-test error:', err);
-    flash('Self-test errored — see console.');
+    flash('Self-test errored. See console.');
   }
 }
 
@@ -451,9 +451,9 @@ function setStatus() {
   const n = doc.selection.size;
   let left;
   if (measureOn) left = 'Measure: click two points on objects to read the distance. Esc/M to exit.';
-  else if (n > 1) left = `<b>${n}</b> objects selected — Group (Ctrl+G) to combine`;
+  else if (n > 1) left = `<b>${n}</b> objects selected. Group (Ctrl+G) to combine`;
   else if (sel) left = `<b>${sel.name}</b> · ${sel.kind}${sel.role === 'hole' ? ` · <span style="color:#ff8a8a">${ROLE_LABELS.hole}</span>` : ''} · pos (${fmt(sel.mesh.position)}) mm`;
-  else left = `${doc.list.length} object${doc.list.length === 1 ? '' : 's'} — click to select · Shift-click adds`;
+  else left = `${doc.list.length} object${doc.list.length === 1 ? '' : 's'}. Click to select · Shift-click adds`;
   statusbar.innerHTML = `<span>${left}</span><span class="units">units: mm</span>`;
 }
 const fmt = (v) => [v.x, v.y, v.z].map((n) => n.toFixed(1)).join(', ');
@@ -626,7 +626,7 @@ function setMeasure(on) {
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('measure-btn')?.classList.toggle('active', on);
   if (!on) clearMeasure();
-  flash(on ? 'Measure on — click two points (snaps to nearby corners). Esc or M to exit.' : 'Measure off.');
+  flash(on ? 'Measure on. Click two points (snaps to nearby corners). Esc or M to exit.' : 'Measure off.');
 }
 function toggleMeasure() { setMeasure(!measureOn); }
 
@@ -669,7 +669,7 @@ function measureClick(e) {
     const [a, b] = measurePts;
     measureText = `Distance: <b>${a.distanceTo(b).toFixed(2)}</b> mm &nbsp;(Δ ${Math.abs(b.x - a.x).toFixed(2)}, ${Math.abs(b.y - a.y).toFixed(2)}, ${Math.abs(b.z - a.z).toFixed(2)})`;
   } else {
-    measureText = 'First point set — click a second point.';
+    measureText = 'First point set. Click a second point.';
   }
   setStatus();
 }
@@ -710,7 +710,7 @@ function setSketch(on) {
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('sketch-btn')?.classList.toggle('active', on);
   if (!on) { sketchPts = []; disposeSketchPreview(); }
-  flash(on ? 'Sketch on — click points on the ground; Enter (or click the first point) to finish. Esc cancels.' : 'Sketch off.');
+  flash(on ? 'Sketch on. Click points on the ground. Enter (or click the first point) to finish. Esc cancels.' : 'Sketch off.');
 }
 function toggleSketch() { setSketch(!sketchOn); }
 
@@ -788,7 +788,7 @@ const SHOT_VIEWS = {
 };
 
 function exportOrbitShots() {
-  if (!doc.list.length) { flash('Nothing to shoot — add a solid first.'); return; }
+  if (!doc.list.length) { flash('Nothing to shoot. Add a solid first.'); return; }
   const box = new THREE.Box3();
   for (const o of doc.list) { o.mesh.updateWorldMatrix(true, false); box.expandByObject(o.mesh); }
   if (box.isEmpty()) { flash('Nothing visible to shoot.'); return; }
@@ -1139,7 +1139,7 @@ function setupEmptyState() {
 const ONBOARD_KEY = 'cadence.onboarded.v2';
 function tourSteps() {
   return COARSE_POINTER ? [
-    { sel: '[data-drawer="toolbar"]',   text: 'Tap Tools to create primitives — box, cylinder, sphere, and more.' },
+    { sel: '[data-drawer="toolbar"]',   text: 'Tap Tools to create primitives like box, cylinder, sphere, and more.' },
     { sel: '[data-drawer="inspector"]', text: 'Tap Inspect to type exact sizes and positions for the selected shape.' },
     { sel: '[data-drawer="outliner"]',  text: 'Tap Objects for everything in your scene. Hit Multi to select several at once.' },
     { sel: null, text: 'Your work auto-saves as you go. Reopen CADence, even in a new browser tab, and it picks up right where you left off.' },

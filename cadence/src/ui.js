@@ -94,7 +94,7 @@ export class Inspector {
       <div class="field">
         <label>Dimensions (mm)</label>
         ${dimFields}
-      </div>` : (partsRow || `<div class="meta">A group's shape comes from its parts — <b>Ungroup</b> to edit them, then regroup.</div>`);
+      </div>` : (partsRow || `<div class="meta">A group's shape comes from its parts. <b>Ungroup</b> to edit them, then regroup.</div>`);
 
     this.body.innerHTML = `
       <div class="meta">${meta}</div>
