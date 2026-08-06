@@ -23,6 +23,14 @@ jobs:
           fi
           echo "Dash check passed."
 
+      # Patterns are salted hashes, never plaintext, because this repo is public
+      # and a gate that names what it is looking for defeats itself. Hits print a
+      # file and line only, so the CI log stays clean too.
+      - name: Deadname scan (tracked files and filenames)
+        env:
+          DEADNAME_PATTERNS: ${{ secrets.DEADNAME_PATTERNS }}
+        run: node .github/scripts/deadname-scan.mjs .
+
       - name: Install Playwright (Chromium)
         run: |
           npm init -y >/dev/null 2>&1
@@ -59,6 +67,18 @@ jobs:
           SRV=$!
           sleep 2
           node .github/scripts/lightbox-contrast.mjs http://localhost:8080
+          STATUS=$?
+          kill $SRV 2>/dev/null || true
+          exit $STATUS
+
+      # Phone width and Vi's vertical desktop monitor. Nothing may need zooming
+      # or sideways scrolling on a vertical viewport.
+      - name: Vertical viewport gate (no horizontal scroll)
+        run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 2
+          node .github/scripts/viewport.mjs http://localhost:8080 / /apps/
           STATUS=$?
           kill $SRV 2>/dev/null || true
           exit $STATUS

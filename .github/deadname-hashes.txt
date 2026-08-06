@@ -1,0 +1,9 @@
+# Deadname gate patterns, stored as salted hashes so this public repo never
+# contains the words themselves. See .github/scripts/deadname-scan.mjs.
+#
+# To add one:  node .github/scripts/deadname-hash.mjs   then paste the line here.
+# Matching is whole-word, so ordinary words that merely contain a pattern as a
+# substring (the classic false positive) are correctly ignored.
+#
+# salt: 6e4d93d612a7a7b4a2f8a47e4022e13c
+6bbf47b79b6f08a222aef58cb1bd42223840039ef878f921303e1a2d3118d2ce
