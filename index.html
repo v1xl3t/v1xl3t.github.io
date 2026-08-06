@@ -1361,7 +1361,7 @@ html[data-theme="light"] .media-note{
   <div class="modal-stage">
     <div class="modal-frame">
       <img class="modal-img" id="modalImg" alt="" draggable="false">
-      <video class="modal-video" id="modalVideo" controls playsinline preload="metadata" hidden></video>
+      <video class="modal-video" id="modalVideo" controls loop playsinline preload="metadata" hidden></video>
     </div>
     <div class="modal-bar">
       <span class="modal-cap" id="modalCap"></span>
@@ -1839,6 +1839,12 @@ html[data-theme="light"] .media-note{
         imgEl.hidden = true; videoEl.hidden = false;
         if (item.poster) videoEl.poster = item.poster; else videoEl.removeAttribute("poster");
         videoEl.src = item.src; videoEl.load();
+        // Autoplay it the way the thumbnail does. Opening the modal is a user
+        // gesture so sound is normally allowed; if a browser still refuses,
+        // fall back to a muted play rather than leaving a dead frame.
+        videoEl.muted = false;
+        var pr = videoEl.play();
+        if (pr && pr.catch) pr.catch(function(){ videoEl.muted = true; videoEl.play().catch(function(){}); });
         if (hintEl) hintEl.style.display = "none";
       } else {
         videoEl.hidden = true; imgEl.hidden = false;
