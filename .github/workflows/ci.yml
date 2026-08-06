@@ -49,3 +49,16 @@ jobs:
           STATUS=$?
           kill $SRV 2>/dev/null || true
           exit $STATUS
+
+      # The gate above only measures text that is actually rendered, and the
+      # media modal stays hidden until a thumbnail is clicked. That blind spot is
+      # how the caption once shipped dark-on-dark in light mode.
+      - name: Lightbox contrast gate (both themes)
+        run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 2
+          node .github/scripts/lightbox-contrast.mjs http://localhost:8080
+          STATUS=$?
+          kill $SRV 2>/dev/null || true
+          exit $STATUS
