@@ -13,6 +13,10 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { initRenderView } from './renderview.js';
 
 import { CadDocument } from './model.js';
+import {
+  createSketch, addPoint, addLine, addCircle, addConstraint, addRectangle,
+  solveSketch, sketchProfile, cloneSketch,
+} from './sketch.js';
 import { Inspector } from './ui.js';
 import { Outliner } from './outliner.js';
 import { Timeline } from './timeline.js';
@@ -200,8 +204,13 @@ function frameSelection() {
 // re-expresses the Inspector size readout and scales exported files. Seeded from
 // saved settings so a reload keeps the user's choice.
 let displayUnit = loadSettings().units || 'mm';
-const inspector = new Inspector(doc, { onChange: () => setStatus(), units: () => displayUnit });
+const inspector = new Inspector(doc, {
+  onChange: () => setStatus(),
+  units: () => displayUnit,
+  onNotice: (msg) => flash(msg),      // a refused dimension explains itself
+});
 const outliner = new Outliner(doc);
+wireSketchBar();
 
 // Recipe Timeline — the multiverse history strip. Clicking a tile time-travels;
 // acting from a past tile forks a new branch (5D-chess style).
@@ -235,6 +244,8 @@ let downAt = null;
 renderer.domElement.addEventListener('pointerdown', (e) => {
   downAt = { x: e.clientX, y: e.clientY };
 });
+// The sketcher's rubber band and coordinate readout follow the cursor.
+renderer.domElement.addEventListener('pointermove', (e) => { if (sketchOn) sketchMove(e); });
 // Lasso begins on a window capture-phase listener so it runs BEFORE OrbitControls
 // and TransformControls (whose listeners are on the canvas) and can't be swallowed
 // by them — and stopPropagation keeps them from also acting on the same press.
@@ -400,10 +411,18 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
   else if (k === 'f') frameSelection();
   else if (k === 't') timeline.toggle();
+  // While the sketcher is open its tool letters win, so L is Line rather than
+  // Lasso. Outside sketch mode nothing changes.
+  else if (sketchOn && ['l', 'r', 'c', 'd'].includes(k) && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    setSkTool({ l: 'line', r: 'rect', c: 'circle', d: 'dim' }[k]);
+  }
+  else if (sketchOn && k === 'g' && !e.ctrlKey && !e.metaKey) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); flash(skSnap ? 'Grid snap on, 1mm.' : 'Grid snap off.'); }
   else if (k === 'l') toggleLasso();
   else if (k === 'm') toggleMeasure();
   else if (k === 's' && !e.ctrlKey && !e.metaKey) toggleSketch();
   else if (k === 'enter' && sketchOn) { e.preventDefault(); closeSketch(); }
+  else if (k === 'backspace' && sketchOn) { e.preventDefault(); undoSketchStep(); }
   else if (k === '?') toggleShortcuts();
   else if (k.startsWith('arrow') && doc.selection.size) { e.preventDefault(); nudgeSelection(k, e.shiftKey, e.repeat); }
   else if (k === 'escape') {
@@ -689,28 +708,63 @@ function drawMeasure() {
 }
 
 // ---------------------------------------------------------------- sketch tool
-// A mode (toolbar / S): click points on the ground plane to lay down a closed 2D
-// profile, then Enter (or click back on the first point) to turn it into a solid
-// via the sketch feature — extrude by default. The result is a parametric sketch
-// object (profile + op + depth), so it's editable and lands on the Recipe Timeline.
+//
+// The constrained sketcher. A mode (toolbar / S) where you draw on the ground
+// plane with line, rectangle and circle tools. What you draw is not a frozen
+// outline: every curve carries constraints, and the shape you see is the
+// solver's answer to those rules.
+//
+// The workflow this is built around is draw rough, then dimension exact. Drawing
+// a rectangle roughly square gets you exact right angles immediately (auto
+// horizontal and vertical) plus width and height dimensions you then type real
+// numbers into. That is the same loop OnShape trains people on, and it is why
+// the tools auto-dimension instead of waiting for you to add every rule by hand.
+//
+// The first point you place is the anchor: it is fixed, so growing a dimension
+// grows the shape away from it rather than sliding the whole sketch around.
+
 let sketchOn = false;
-let sketchPts = [];                 // world-space ground points (THREE.Vector3)
+let skDoc = null;                  // the sketch document being built
+let skTool = 'line';               // line | rect | circle | dim
+let skPending = [];                // point ids clicked so far for the active tool
+let skHover = null;                // last cursor position in sketch coords
+let skSnap = 1;                    // grid snap in mm, 0 = off
+let skDimPair = null;              // the two points awaiting a typed distance
+
 const sketchGroup = new THREE.Group();
 scene.add(sketchGroup);
 const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const SKETCH_COLOR = 0x4fd0ff;
+const ANCHOR_COLOR = 0xffc857;
+const PENDING_COLOR = 0x9aa6b2;
+const SNAP_PICK_MM = 2.5;          // click within this of a point to reuse it
+const AXIS_TOL_DEG = 4;            // snap a near-axis segment to exactly axis-aligned
 
 function disposeSketchPreview() {
   for (const c of [...sketchGroup.children]) { c.geometry?.dispose(); c.material?.dispose(); sketchGroup.remove(c); }
 }
+
 function setSketch(on) {
   sketchOn = on;
   if (on) { if (lassoOn) setLasso(false); if (measureOn) setMeasure(false); }
   gizmo.enabled = !on;                          // don't let the gizmo eat sketch clicks
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('sketch-btn')?.classList.toggle('active', on);
-  if (!on) { sketchPts = []; disposeSketchPreview(); }
-  flash(on ? 'Sketch on. Click points on the ground. Enter (or click the first point) to finish. Esc cancels.' : 'Sketch off.');
+  const bar = document.getElementById('sketch-bar');
+  if (bar) bar.hidden = !on;
+
+  if (on) {
+    skDoc = createSketch('XZ');
+    skTool = 'line';
+    skPending = [];
+    skDimPair = null;
+    syncSketchBar();
+    flash('Sketch on. Draw with Line, Rectangle or Circle. Enter finishes, Esc cancels.');
+  } else {
+    skDoc = null; skPending = []; skDimPair = null;
+    disposeSketchPreview();
+    flash('Sketch off.');
+  }
 }
 function toggleSketch() { setSketch(!sketchOn); }
 
@@ -723,43 +777,363 @@ function groundPoint(e) {
   return ray.ray.intersectPlane(GROUND, hit) ? hit : null;
 }
 
+// Sketch coordinates are the ground plane's x and z, so a sketch point maps to
+// world (x, 0, y) and back with no transform to get wrong.
+const toSketch = (v3) => ({ x: v3.x, y: v3.z });
+const toWorld = (p) => new THREE.Vector3(p.x, 0, p.y);
+const skPoint = (id) => skDoc.points.find((p) => p.id === id);
+
+function snapValue(v) { return skSnap > 0 ? Math.round(v / skSnap) * skSnap : v; }
+
+// Reuse an existing point when the click lands on one. Sharing the id is what
+// welds two curves together, which is stronger and cheaper than adding a
+// coincident constraint after the fact.
+function pointAt(x, y, { allowReuse = true } = {}) {
+  if (allowReuse) {
+    for (const p of skDoc.points) {
+      if (p.id === 'origin' && !skDoc.entities.length) continue;
+      if (Math.hypot(p.x - x, p.y - y) <= SNAP_PICK_MM) return p;
+    }
+  }
+  const first = skDoc.points.length <= 1;      // only the origin exists so far
+  return addPoint(skDoc, snapValue(x), snapValue(y), first);
+}
+
+// A segment drawn near an axis was meant to be on it. Promoting that to a real
+// constraint is what stops a sketch from being 89.6 degrees forever.
+function autoAxisConstraint(line) {
+  const a = skPoint(line.p1), b = skPoint(line.p2);
+  const dx = Math.abs(b.x - a.x), dy = Math.abs(b.y - a.y);
+  const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  if (ang <= AXIS_TOL_DEG) { addConstraint(skDoc, { type: 'horizontal', e: line.id, auto: true }); return 'horizontal'; }
+  if (ang >= 90 - AXIS_TOL_DEG) { addConstraint(skDoc, { type: 'vertical', e: line.id, auto: true }); return 'vertical'; }
+  return null;
+}
+
+// Auto-dimension what was just drawn so there is always a number to type into.
+function autoDimension(line, axis) {
+  const a = skPoint(line.p1), b = skPoint(line.p2);
+  if (axis === 'horizontal') {
+    addConstraint(skDoc, { type: 'distanceX', a: line.p1, b: line.p2, value: round1(b.x - a.x), auto: true });
+  } else if (axis === 'vertical') {
+    addConstraint(skDoc, { type: 'distanceY', a: line.p1, b: line.p2, value: round1(b.y - a.y), auto: true });
+  } else {
+    addConstraint(skDoc, { type: 'distance', a: line.p1, b: line.p2, value: round1(Math.hypot(b.x - a.x, b.y - a.y)), auto: true });
+  }
+}
+
+const round1 = (v) => Math.round(v * 10) / 10;
+
 function sketchClick(e) {
-  const p = groundPoint(e);
-  if (!p) { flash('Aim at the ground plane to drop a sketch point.'); return; }
-  // Click near the first point to close the loop.
-  if (sketchPts.length >= 3 && p.distanceTo(sketchPts[0]) < 3) { closeSketch(); return; }
-  sketchPts.push(p.clone());
+  const hit = groundPoint(e);
+  if (!hit) { flash('Aim at the ground plane to draw.'); return; }
+  const raw = toSketch(hit);
+  const x = snapValue(raw.x), y = snapValue(raw.y);
+
+  if (skTool === 'line') {
+    const p = pointAt(x, y);
+    if (skPending.length) {
+      const prev = skPending[skPending.length - 1];
+      if (prev === p.id) return;                       // ignore a double click in place
+      const line = addLine(skDoc, prev, p.id);
+      const axis = autoAxisConstraint(line);
+      autoDimension(line, axis);
+      // Closing back onto the chain's start finishes the loop.
+      if (p.id === skPending[0] && skPending.length >= 2) { skPending = []; solveAndDraw(); finishSketch(); return; }
+    }
+    skPending.push(p.id);
+  }
+
+  else if (skTool === 'rect') {
+    if (!skPending.length) { skPending.push({ x, y }); }
+    else {
+      const a = skPending.pop();
+      if (Math.abs(a.x - x) < 0.5 || Math.abs(a.y - y) < 0.5) { flash('That rectangle has no area. Click a second corner further out.'); return; }
+      const rect = addRectangle(skDoc, a.x, a.y, x, y);
+      if (skDoc.points.length === 5) rect.points[0].fixed = true;   // first geometry anchors
+      addConstraint(skDoc, { type: 'distanceX', a: rect.points[0].id, b: rect.points[1].id, value: round1(x - a.x), auto: true });
+      addConstraint(skDoc, { type: 'distanceY', a: rect.points[1].id, b: rect.points[2].id, value: round1(y - a.y), auto: true });
+      skPending = [];
+    }
+  }
+
+  else if (skTool === 'circle') {
+    if (!skPending.length) { skPending.push({ x, y }); }
+    else {
+      const c = skPending.pop();
+      const r = Math.hypot(x - c.x, y - c.y);
+      if (r < 0.5) { flash('That circle has no radius. Click further from the centre.'); return; }
+      const cp = addPoint(skDoc, c.x, c.y, skDoc.points.length <= 1);
+      const circ = addCircle(skDoc, cp.id, round1(r));
+      addConstraint(skDoc, { type: 'radius', e: circ.id, value: round1(r), auto: true });
+      skPending = [];
+    }
+  }
+
+  else if (skTool === 'dim') {
+    const p = pointAt(x, y, { allowReuse: true });
+    skPending.push(p.id);
+    if (skPending.length === 2) {
+      const [a, b] = skPending;
+      skPending = [];
+      if (a === b) { flash('Pick two different points to dimension.'); return; }
+      const pa = skPoint(a), pb = skPoint(b);
+      skDimPair = { a, b, measured: round1(Math.hypot(pb.x - pa.x, pb.y - pa.y)) };
+      openDimInput();
+      return;
+    }
+  }
+
+  solveAndDraw();
+  syncSketchBar();
+}
+
+function sketchMove(e) {
+  if (!sketchOn || !skDoc) return;
+  const hit = groundPoint(e);
+  if (!hit) return;
+  const raw = toSketch(hit);
+  skHover = { x: snapValue(raw.x), y: snapValue(raw.y) };
+  syncSketchBar();
+  if (skPending.length) drawSketchPreview();     // rubber band follows the cursor
+}
+
+// Solve, then redraw. The preview shows the SOLVED shape, not the raw clicks, so
+// what you see on the ground is what the constraints actually produced.
+function solveAndDraw() {
+  if (!skDoc) return null;
+  const report = solveSketch(skDoc);
   drawSketchPreview();
+  return report;
+}
+
+function addSeg(pts, color, width = 1) {
+  const line = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color, depthTest: false, linewidth: width })
+  );
+  line.renderOrder = 999;
+  sketchGroup.add(line);
 }
 
 function drawSketchPreview() {
   disposeSketchPreview();
-  for (const p of sketchPts) {
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 8), new THREE.MeshBasicMaterial({ color: SKETCH_COLOR, depthTest: false }));
-    dot.position.copy(p); dot.renderOrder = 999;
+  if (!skDoc) return;
+
+  for (const e of skDoc.entities) {
+    if (e.type === 'line') {
+      addSeg([toWorld(skPoint(e.p1)), toWorld(skPoint(e.p2))], SKETCH_COLOR);
+    } else if (e.type === 'circle') {
+      const c = skPoint(e.c);
+      const pts = [];
+      for (let i = 0; i <= 64; i++) {
+        const t = (i / 64) * Math.PI * 2;
+        pts.push(new THREE.Vector3(c.x + e.r * Math.cos(t), 0, c.y + e.r * Math.sin(t)));
+      }
+      addSeg(pts, SKETCH_COLOR);
+    }
+  }
+
+  for (const p of skDoc.points) {
+    if (p.id === 'origin' && !skDoc.entities.length) continue;
+    const dot = new THREE.Mesh(
+      new THREE.SphereGeometry(p.fixed ? 0.9 : 0.7, 12, 8),
+      new THREE.MeshBasicMaterial({ color: p.fixed ? ANCHOR_COLOR : SKETCH_COLOR, depthTest: false })
+    );
+    dot.position.copy(toWorld(p));
+    dot.renderOrder = 999;
     sketchGroup.add(dot);
   }
-  if (sketchPts.length >= 2) {
-    const loop = sketchPts.length >= 3 ? [...sketchPts, sketchPts[0]] : sketchPts;
-    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(loop), new THREE.LineBasicMaterial({ color: SKETCH_COLOR, depthTest: false }));
-    line.renderOrder = 999;
-    sketchGroup.add(line);
+
+  // Rubber band from the last placed point to the cursor.
+  if (skHover && skPending.length) {
+    const last = skPending[skPending.length - 1];
+    const from = typeof last === 'string' ? skPoint(last) : last;
+    if (from) {
+      if (skTool === 'rect') {
+        const c = [
+          new THREE.Vector3(from.x, 0, from.y), new THREE.Vector3(skHover.x, 0, from.y),
+          new THREE.Vector3(skHover.x, 0, skHover.y), new THREE.Vector3(from.x, 0, skHover.y),
+          new THREE.Vector3(from.x, 0, from.y),
+        ];
+        addSeg(c, PENDING_COLOR);
+      } else if (skTool === 'circle') {
+        const r = Math.hypot(skHover.x - from.x, skHover.y - from.y);
+        const pts = [];
+        for (let i = 0; i <= 48; i++) {
+          const t = (i / 48) * Math.PI * 2;
+          pts.push(new THREE.Vector3(from.x + r * Math.cos(t), 0, from.y + r * Math.sin(t)));
+        }
+        addSeg(pts, PENDING_COLOR);
+      } else {
+        addSeg([toWorld(from), toWorld(skHover)], PENDING_COLOR);
+      }
+    }
   }
 }
 
-function closeSketch() {
-  if (sketchPts.length < 3) { flash('Need at least 3 points to close a sketch.'); return; }
-  // Center the profile on its centroid, place the object there — keeps the recipe
-  // tidy and the geometry local.
-  const cx = sketchPts.reduce((s, p) => s + p.x, 0) / sketchPts.length;
-  const cz = sketchPts.reduce((s, p) => s + p.z, 0) / sketchPts.length;
-  const profile = sketchPts.map((p) => [p.x - cx, p.z - cz]);
-  const obj = doc.add('sketch', { profile, op: 'extrude', depth: 20 });
-  obj.mesh.position.set(cx, 0, cz);
+// ---- the sketch toolbar -----------------------------------------------------
+
+function syncSketchBar() {
+  const bar = document.getElementById('sketch-bar');
+  if (!bar || bar.hidden) return;
+  bar.querySelectorAll('button[data-sktool]').forEach((b) => b.classList.toggle('on', b.dataset.sktool === skTool));
+  const snapBtn = bar.querySelector('[data-sksnap]');
+  if (snapBtn) { snapBtn.classList.toggle('on', skSnap > 0); snapBtn.textContent = skSnap > 0 ? `Snap ${skSnap}mm` : 'Snap off'; }
+  const read = bar.querySelector('.sk-read');
+  if (read) {
+    const state = skDoc && skDoc.entities.length ? solveSketch(skDoc) : null;
+    read.innerHTML = skHover
+      ? `<b>${skHover.x.toFixed(1)}</b>, <b>${skHover.y.toFixed(1)}</b> mm${state ? ` · ${state.dof} free` : ''}`
+      : 'Click to draw';
+  }
+}
+
+function setSkTool(t) {
+  skTool = t;
+  skPending = [];
+  closeDimInput();
+  drawSketchPreview();
+  syncSketchBar();
+  const HINT = {
+    line: 'Line: click a chain of points. Click the first point again to close it.',
+    rect: 'Rectangle: click two opposite corners. Right angles and both dimensions come for free.',
+    circle: 'Circle: click the centre, then a point on the rim.',
+    dim: 'Dimension: click two points, then type the distance you want.',
+  };
+  flash(HINT[t] || '');
+}
+
+// The dimension entry: a number field that appears in the sketch bar rather than
+// a browser prompt, so it stays inside the app and on a phone.
+function openDimInput() {
+  const bar = document.getElementById('sketch-bar');
+  if (!bar || !skDimPair) return;
+  closeDimInput();
+  const wrap = document.createElement('span');
+  wrap.id = 'sk-dim-entry';
+  wrap.innerHTML = `<input type="number" step="0.5" value="${skDimPair.measured}" style="width:82px" aria-label="Distance in millimetres" /><button type="button" data-skapply>Set</button>`;
+  bar.appendChild(wrap);
+  const input = wrap.querySelector('input');
+  input.focus(); input.select();
+  const apply = () => {
+    const v = parseFloat(input.value);
+    closeDimInput();
+    if (!Number.isFinite(v) || v <= 0 || !skDimPair) { skDimPair = null; return; }
+    const con = addConstraint(skDoc, { type: 'distance', a: skDimPair.a, b: skDimPair.b, value: v });
+    skDimPair = null;
+    const report = solveAndDraw();
+    if (!report.ok) {
+      skDoc.constraints = skDoc.constraints.filter((c) => c.id !== con.id);
+      solveAndDraw();
+      flash('That dimension conflicts with the rules already on the sketch, so it was not added.');
+    } else {
+      flash(`Dimension set to ${v}mm.`);
+    }
+    syncSketchBar();
+  };
+  input.addEventListener('keydown', (ev) => {
+    ev.stopPropagation();
+    if (ev.key === 'Enter') { ev.preventDefault(); apply(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); closeDimInput(); skDimPair = null; }
+  });
+  wrap.querySelector('[data-skapply]').addEventListener('click', apply);
+}
+
+function closeDimInput() {
+  document.getElementById('sk-dim-entry')?.remove();
+}
+
+function wireSketchBar() {
+  const bar = document.getElementById('sketch-bar');
+  if (!bar) return;
+  bar.addEventListener('click', (e) => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.sktool) setSkTool(t.dataset.sktool);
+    else if (t.dataset.sksnap !== undefined) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); }
+    else if (t.dataset.skundo !== undefined) undoSketchStep();
+    else if (t.dataset.skdone !== undefined) finishSketch();
+    else if (t.dataset.skcancel !== undefined) setSketch(false);
+  });
+}
+
+// Undo inside the sketcher drops the last curve and anything that only existed
+// to describe it, rather than reaching into the document's history.
+function undoSketchStep() {
+  if (!skDoc) return;
+
+  // A half-placed rectangle, circle or dimension has no curve yet, so undo just
+  // abandons the click that started it.
+  if (skPending.length && skTool !== 'line') { skPending = []; skDimPair = null; closeDimInput(); drawSketchPreview(); return; }
+
+  const last = skDoc.entities.pop();
+  if (!last) {
+    // Nothing drawn, but a line chain may still have its first point down.
+    if (skPending.length) { skPending = []; drawSketchPreview(); return; }
+    flash('Nothing left to undo in this sketch.');
+    return;
+  }
+  // Mid-chain, stepping back a segment also steps the chain's head back, so the
+  // next click continues from where the removed segment started.
+  if (skTool === 'line' && skPending.length > 1) skPending.pop();
+  const ids = new Set([last.id]);
+  skDoc.constraints = skDoc.constraints.filter((c) => !(ids.has(c.e) || ids.has(c.a) || ids.has(c.b) || ids.has(c.c)));
+  // Drop points no remaining curve references.
+  const used = new Set();
+  for (const e of skDoc.entities) { for (const k of ['p1', 'p2', 'c']) if (e[k]) used.add(e[k]); }
+  skDoc.points = skDoc.points.filter((p) => p.id === 'origin' || used.has(p.id));
+  skDoc.constraints = skDoc.constraints.filter((c) =>
+    [c.a, c.b, c.p].every((id) => id == null || id === 'origin' || skDoc.points.some((p) => p.id === id)));
+  // The chain cannot keep pointing at a point that was just swept away.
+  skPending = skPending.filter((id) => typeof id !== 'string' || skDoc.points.some((p) => p.id === id));
+  solveAndDraw();
+  syncSketchBar();
+}
+
+// A chain of lines with two loose ends is one segment short of a profile.
+// Finishing should close it rather than refuse, which is what the old freehand
+// tool did and what people expect from clicking points and pressing Enter.
+function autoCloseChain() {
+  const deg = new Map();
+  for (const e of skDoc.entities) {
+    if (e.type !== 'line') return false;                 // circles and arcs, leave it alone
+    for (const k of ['p1', 'p2']) deg.set(e[k], (deg.get(e[k]) || 0) + 1);
+  }
+  const ends = [...deg.entries()].filter(([, n]) => n === 1).map(([id]) => id);
+  if (ends.length !== 2 || skDoc.entities.length < 2) return false;
+  const line = addLine(skDoc, ends[0], ends[1]);
+  autoAxisConstraint(line);
+  return true;
+}
+
+function finishSketch() {
+  if (!skDoc || !skDoc.entities.length) { flash('Draw something before finishing the sketch.'); return; }
+  skPending = [];
+  let report = solveSketch(skDoc);
+  let prof = sketchProfile(skDoc);
+  if (!prof.closed && autoCloseChain()) {
+    report = solveSketch(skDoc);
+    prof = sketchProfile(skDoc);
+  }
+  if (!prof.closed) { flash(`The sketch is not a closed loop yet, so it cannot become a solid. ${prof.reason}`); return; }
+
+  const obj = doc.add('sketch', {
+    sk: cloneSketch(skDoc),
+    profile: prof.profile,
+    op: 'extrude',
+    depth: 20,
+    angle: 360,
+    segments: 48,
+  });
   doc.touch(obj);
   setSketch(false);
-  flash('Sketch extruded into a solid. Edit its profile, extrude, or switch to revolve in the Inspector.');
+  const state = report.status === 'fully' ? 'fully constrained' : `${report.dof} degrees of freedom left`;
+  flash(`Sketch extruded into a solid, ${state}. Type exact numbers into its dimensions in the Inspector.`);
 }
+
+// Keep the old name working for the existing Enter binding.
+const closeSketch = finishSketch;
 
 // ---------------------------------------------------------------- image export
 function dataURLToU8(url) {
@@ -1278,4 +1652,19 @@ else if (!restoreAutosave(doc)) doc.add('box');
 setStatus();
 
 // Expose for console tinkering / debugging.
-window.cadence = { doc, scene, THREE };
+window.cadence = {
+  doc, scene, THREE,
+  // Sketcher internals, exposed so the headless harness can drive and inspect
+  // the constrained sketcher the same way a person does.
+  sketch: {
+    get on() { return sketchOn; },
+    get doc() { return skDoc; },
+    get tool() { return skTool; },
+    setTool: (t) => setSkTool(t),
+    setSnap: (mm) => { skSnap = mm; syncSketchBar(); },
+    solve: () => (skDoc ? solveSketch(skDoc) : null),
+    profile: () => (skDoc ? sketchProfile(skDoc) : null),
+    finish: () => finishSketch(),
+    cancel: () => setSketch(false),
+  },
+};

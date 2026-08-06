@@ -14,6 +14,7 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { solveSketch, sketchProfile, TESS_SEGMENTS } from './sketch.js';
 
 // Display labels for the two roles. Internal role values stay 'solid'/'hole'
 // forever (stable), but what the UI *calls* them lives here — so renaming is a
@@ -105,6 +106,43 @@ export const PARAM_SCHEMA = {
     { key: 'segments', label: 'Facets',    min: 3,   step: 1, advanced: true, integer: true },
   ],
 };
+
+// ---- parametric sketch ------------------------------------------------------
+//
+// A sketch recipe can carry a full constrained sketch document in `params.sk`.
+// When it does, `params.profile` stops being the source of truth and becomes a
+// derived cache: solve the constraints, walk the closed loop, and write the
+// resulting points back. Geometry building itself stays fast and pure, reading
+// only the cached profile, so this runs on edit rather than on every frame.
+//
+// A sketch without `sk` is the older freehand kind and still works untouched.
+
+/**
+ * Re-solve a sketch recipe and refresh its cached profile, in place.
+ * @returns {{ok:boolean, status:string, dof:number, closed:boolean, reason:string}}
+ */
+export function resolveSketch(params) {
+  if (!params || !params.sk) {
+    return { ok: true, status: 'none', dof: 0, closed: true, reason: 'freehand profile, no constraints' };
+  }
+  const report = solveSketch(params.sk);
+  const prof = sketchProfile(params.sk, params.segments ?? TESS_SEGMENTS);
+  // Only adopt a profile that actually closed. A half-drawn sketch keeps its
+  // last good solid rather than collapsing to nothing under the user.
+  if (prof.closed && prof.profile) params.profile = prof.profile;
+  return {
+    ok: report.ok && prof.closed,
+    status: report.status,
+    dof: report.dof,
+    closed: prof.closed,
+    reason: prof.closed ? report.reason : prof.reason,
+  };
+}
+
+/** True when this recipe is a constraint-driven sketch rather than a freehand one. */
+export function isParametricSketch(obj) {
+  return obj?.kind === 'sketch' && !!obj.params?.sk;
+}
 
 // ---- rounding helpers -------------------------------------------------------
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));

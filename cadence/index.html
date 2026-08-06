@@ -28,6 +28,23 @@
   <div id="app">
     <canvas id="viewport"></canvas>
 
+    <!-- The sketcher's own toolbar. Only visible while the sketch mode is on, so
+         it never competes with the main toolbar for space on a phone. -->
+    <div id="sketch-bar" role="toolbar" aria-label="Sketch tools" hidden>
+      <button type="button" data-sktool="line" class="on" title="Draw a chain of lines (L)">Line</button>
+      <button type="button" data-sktool="rect" title="Draw a rectangle with square corners (R)">Rect</button>
+      <button type="button" data-sktool="circle" title="Draw a circle from centre and rim (C)">Circle</button>
+      <button type="button" data-sktool="dim" title="Set the distance between two points (D)">Dimension</button>
+      <span class="sk-sep"></span>
+      <button type="button" data-sksnap title="Toggle 1mm grid snap (G)">Snap 1mm</button>
+      <button type="button" data-skundo title="Undo the last curve (Backspace)">Undo</button>
+      <span class="sk-sep"></span>
+      <span class="sk-read">Click to draw</span>
+      <span class="sk-sep"></span>
+      <button type="button" data-skdone title="Turn the closed profile into a solid (Enter)">Finish</button>
+      <button type="button" data-skcancel title="Leave the sketch without building anything (Esc)">Cancel</button>
+    </div>
+
     <!-- Mini, transparent quick-access top bar: proxies clicks to the real toolbar
          buttons (data-proxy = the selector of the source button). Icons only; the
          name shows on hover (desktop) or press (touch) via the data-label tooltip. -->
@@ -74,7 +91,7 @@
       <div class="group">
         <div class="group-label">Construct <span class="hint">(blended forms)</span></div>
         <button data-add="loft" title="Loft: a solid blended between a bottom and top profile, with taper, twist, and corner radius">Loft</button>
-        <button data-action="sketch" id="sketch-btn" class="tool" title="Sketch: click points on the ground plane to draw a closed 2D profile, then Enter to extrude/revolve it into a parametric solid">Sketch <span class="hint">(S)</span></button>
+        <button data-action="sketch" id="sketch-btn" class="tool" title="Sketch: draw lines, rectangles and circles on the ground plane with real constraints, then type exact dimensions and the shape obeys them">Sketch <span class="hint">(S)</span></button>
       </div>
 
       <div class="group">
@@ -231,9 +248,16 @@
             <div><kbd>Shift</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> Nudge up / down</div>
             <div class="sc-sec">Select &amp; view</div>
             <div><kbd>L</kbd> Lasso · <kbd>M</kbd> Measure</div>
+            <div><kbd>S</kbd> Sketch mode</div>
             <div><kbd>F</kbd> Frame selection</div>
             <div><kbd>Ctrl</kbd>+<kbd>A</kbd> Select all</div>
             <div><kbd>Esc</kbd> Deselect / exit mode</div>
+            <div class="sc-sec">In sketch mode</div>
+            <div><kbd>L</kbd> Line · <kbd>R</kbd> Rectangle</div>
+            <div><kbd>C</kbd> Circle · <kbd>D</kbd> Dimension</div>
+            <div><kbd>G</kbd> Grid snap on / off</div>
+            <div><kbd>Backspace</kbd> Undo last curve</div>
+            <div><kbd>Enter</kbd> Finish · <kbd>Esc</kbd> Cancel</div>
           </div>
           <div class="sc-col">
             <div class="sc-sec">Edit</div>

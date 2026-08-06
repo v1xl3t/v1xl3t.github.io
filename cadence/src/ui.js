@@ -3,7 +3,8 @@
 // the "TinkerCAD-easy" half. Both edit the same model, so you can drag roughly
 // then dial in an exact value — the workflow swap Vi is after, in miniature.
 
-import { PARAM_SCHEMA, ROLE_LABELS } from './primitives.js';
+import { PARAM_SCHEMA, ROLE_LABELS, resolveSketch } from './primitives.js';
+import { dimensionList, constraintLabel, isDimension } from './sketch.js';
 import { unitScale, unitLabel } from './settings.js';
 import * as THREE from 'three';
 
@@ -14,9 +15,12 @@ const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export class Inspector {
-  constructor(doc, { onChange, units } = {}) {
+  constructor(doc, { onChange, units, onNotice } = {}) {
     this.doc = doc;
     this.onChange = onChange || (() => {});
+    // How the inspector tells the user something without a dialog, e.g. a
+    // dimension the sketch's constraints will not allow.
+    this.onNotice = onNotice || (() => {});
     // Getter for the active display unit id (mm/cm/inch); modeling stays in mm.
     this.units = units || (() => 'mm');
     this.empty = document.getElementById('inspector-empty');
@@ -107,6 +111,7 @@ export class Inspector {
 
       ${roleRow}
       ${opRow}
+      ${this._sketchRow(obj)}
       ${dimRow}
 
       ${this._vecRow('position', 'Position (mm)', obj.mesh.position, 0.5)}
@@ -123,6 +128,47 @@ export class Inspector {
     `;
 
     this._wire(obj);
+  }
+
+  // The parametric block: what the sketch is constrained by, how free it still
+  // is, and the driving numbers you can type into. This is the part that makes a
+  // sketch a rule set rather than a frozen outline.
+  _sketchRow(obj) {
+    if (obj.kind !== 'sketch' || !obj.params.sk) return '';
+    const sk = obj.params.sk;
+    const report = resolveSketch(obj.params);
+    const dims = dimensionList(sk);
+
+    const STATE = {
+      fully: ['ok', 'Fully constrained'],
+      under: ['warn', `Under-constrained · ${report.dof} free`],
+      over: ['warn', 'Over-constrained · redundant rules'],
+      conflict: ['bad', 'Conflicting constraints'],
+    };
+    const [cls, text] = STATE[report.status] || ['warn', report.status];
+    const openWarn = report.closed ? '' :
+      `<div class="sk-warn">The profile is not closed yet. ${esc(report.reason)}</div>`;
+
+    const dimRows = dims.length ? dims.map((d) => `
+      <div class="axis">
+        <span>${esc(d.label.replace(/ [-\d.]+°?$/, ''))}</span>
+        <input type="number" data-skdim="${d.id}" value="${round(d.value)}" step="0.5" />
+      </div>`).join('') : '<div class="muted">No driving dimensions yet.</div>';
+
+    const cons = sk.constraints.filter((c) => !isDimension(c));
+    const conChips = cons.length ? cons.map((c) => `
+      <button type="button" class="sk-chip" data-skdel="${c.id}"
+              title="Remove this constraint">${esc(constraintLabel(c))} <span>×</span></button>`).join('') : '';
+
+    return `
+      <div class="field sketch-field">
+        <label>Parametric sketch <span class="sk-state ${cls}">${esc(text)}</span></label>
+        ${openWarn}
+        <div class="sk-sub">Driving dimensions</div>
+        ${dimRows}
+        ${conChips ? `<div class="sk-sub">Constraints</div><div class="sk-chips">${conChips}</div>` : ''}
+        <div class="muted sk-note">${sk.entities.length} curves · ${sk.points.length} points. Press <b>S</b> to edit the sketch on the canvas.</div>
+      </div>`;
   }
 
   _numRow(bind, label, value, step, min) {
@@ -166,6 +212,33 @@ export class Inspector {
     this.body.querySelectorAll('input[data-bind]').forEach((input) => {
       const evt = input.type === 'color' || input.type === 'text' ? 'input' : 'change';
       input.addEventListener(evt, () => this._apply(obj, input));
+    });
+
+    // Typing a driving dimension re-solves the sketch and rebuilds the solid.
+    this.body.querySelectorAll('input[data-skdim]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        const report = this.doc.setSketchDimension(obj.id, input.dataset.skdim, v);
+        if (!report) return;
+        if (!report.ok) {
+          // Put the old number back rather than leaving a value the geometry
+          // never actually took.
+          this.render();
+          this.onNotice?.(`The sketch cannot reach that value. ${report.reason}`);
+          return;
+        }
+        this.onChange(obj);
+        this.render();
+      });
+    });
+
+    this.body.querySelectorAll('button[data-skdel]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.doc.editSketchConstraint(obj.id, 'remove', { id: btn.dataset.skdel });
+        this.onChange(obj);
+        this.render();
+      });
     });
     this.body.querySelectorAll('button[data-role]').forEach((btn) => {
       btn.addEventListener('click', () => {

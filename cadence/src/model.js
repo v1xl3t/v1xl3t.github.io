@@ -14,7 +14,8 @@
 // parametric parts from their stored recipes. That cycle *is* the Stage-1
 // bidirectional spike — parametric -> mesh -> boolean -> parametric, proven.
 
-import { buildGeometry, DEFAULT_PARAMS } from './primitives.js';
+import { buildGeometry, DEFAULT_PARAMS, resolveSketch } from './primitives.js';
+import { cloneSketch, addConstraint, removeConstraint } from './sketch.js';
 import { booleanCombine, booleanIntersect } from './kernel.js';
 import { History } from './history.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -85,7 +86,7 @@ export class CadObject {
     const { position, rotation, scale } = this.mesh;
     const s = {
       id: this.id, kind: this.kind, role: this.role, name: this.name, color: this.color,
-      params: { ...this.params },
+      params: deepParams(this.params),
       position: position.toArray(),
       rotation: [rotation.x, rotation.y, rotation.z],
       scale: scale.toArray(),
@@ -105,7 +106,7 @@ export class CadObject {
     this.mesh.position.fromArray(s.position);
     this.mesh.rotation.set(...s.rotation);
     this.mesh.scale.fromArray(s.scale);
-    if (this.kind !== 'boolean') { this.params = { ...s.params }; this.rebuild(); }
+    if (this.kind !== 'boolean') { this.params = deepParams(s.params); this.rebuild(); }
   }
 }
 
@@ -156,6 +157,77 @@ export class CadDocument extends EventTarget {
     this._emit('add', obj);
     this.select(obj.id);
     return obj;
+  }
+
+  // ---- parametric sketch -----------------------------------------------------
+  //
+  // Editing a driving dimension is the whole point of a parametric sketch: the
+  // number changes, the solver moves the geometry to obey every constraint
+  // again, and the solid rebuilds from the new profile. Each edit is one
+  // history step, so it time-travels like any other operation.
+
+  /**
+   * Change a driving dimension on a sketch object and rebuild it.
+   * @returns {{ok:boolean, status:string, dof:number, reason:string}|null}
+   */
+  setSketchDimension(objId, constraintId, value) {
+    const obj = this.objects.get(objId);
+    if (!obj || obj.kind !== 'sketch' || !obj.params.sk) return null;
+    if (!Number.isFinite(value)) return null;
+
+    const con = obj.params.sk.constraints.find((c) => c.id === constraintId);
+    if (!con) return null;
+
+    this.commit(`Dimension ${con.type}`);
+    const before = cloneSketch(obj.params.sk);
+    con.value = value;
+    const report = resolveSketch(obj.params);
+
+    if (!report.ok) {
+      // An unreachable value would leave the sketch mangled, so put it back and
+      // tell the caller why rather than silently keeping bad geometry.
+      obj.params.sk = before;
+      resolveSketch(obj.params);
+      return { ...report, ok: false };
+    }
+
+    obj.rebuild();
+    this._emit('change', obj);
+    return report;
+  }
+
+  /** Replace a sketch object's whole sketch document (used by the sketcher). */
+  setSketchDoc(objId, sk, label = 'Edit sketch') {
+    const obj = this.objects.get(objId);
+    if (!obj || obj.kind !== 'sketch') return null;
+    this.commit(label);
+    obj.params.sk = sk;
+    const report = resolveSketch(obj.params);
+    if (report.closed) obj.rebuild();
+    this._emit('change', obj);
+    return report;
+  }
+
+  /** Add or remove a constraint on an existing sketch, then re-solve. */
+  editSketchConstraint(objId, op, payload) {
+    const obj = this.objects.get(objId);
+    if (!obj || obj.kind !== 'sketch' || !obj.params.sk) return null;
+    const sk = obj.params.sk;
+    const before = cloneSketch(sk);
+
+    this.commit(op === 'add' ? `Add ${payload.type}` : 'Remove constraint');
+    if (op === 'add') addConstraint(sk, payload);
+    else removeConstraint(sk, payload.id);
+
+    const report = resolveSketch(obj.params);
+    if (!report.ok && op === 'add') {
+      obj.params.sk = before;                 // a constraint that cannot hold is refused
+      resolveSketch(obj.params);
+      return { ...report, ok: false };
+    }
+    obj.rebuild();
+    this._emit('change', obj);
+    return report;
   }
 
   // Register a pre-built object (e.g. an imported mesh wrapped as a CadObject).
@@ -464,12 +536,36 @@ export class CadDocument extends EventTarget {
   }
 
   // Ctrl+Z = step to the parent node (non-destructive: the children remain, so
-  // you can branch back into them). Redo is "click a child in the timeline".
+  // you can branch back into them).
   undo() {
     this._flush();
     const cur = this.history.current;
     if (!cur || cur.parentId == null) return;
     this.goToHistory(cur.parentId);
+    this._redoHint = cur.id;          // remember which branch we stepped out of
+  }
+
+  // Ctrl+Y / Ctrl+Shift+Z = step forward again.
+  //
+  // In a branching history "forward" is ambiguous the moment a node has more
+  // than one child, so undo leaves a breadcrumb and redo follows it. That makes
+  // undo then redo land you exactly where you were, which is the only behaviour
+  // people actually expect. With no breadcrumb we take the newest child, since
+  // that is the branch the user was most recently working in.
+  redo() {
+    this._flush();
+    const cur = this.history.current;
+    if (!cur || !cur.children.length) return;
+    const hinted = this._redoHint && cur.children.includes(this._redoHint) ? this._redoHint : null;
+    const next = hinted || cur.children[cur.children.length - 1];
+    this._redoHint = null;
+    this.goToHistory(next);
+  }
+
+  /** True when there is a step forward to take. Lets the UI disable the button. */
+  get canRedo() {
+    const cur = this.history.current;
+    return !!(cur && cur.children.length);
   }
 
   // Jump the scene to any node in the tree. Acting after this forks a branch.
@@ -477,6 +573,7 @@ export class CadDocument extends EventTarget {
     const node = this.history.get(id);
     if (!node) return;
     this._flush();
+    this._redoHint = null;            // any deliberate jump retires the breadcrumb
     this.history.goto(id);
     this._restoreSnapshot(node.snapshot);
     this._emit('history');
@@ -551,7 +648,7 @@ function arraysToGeo(d) {
 function serializeChild(s) {
   const c = {
     id: s.id, kind: s.kind, role: s.role, name: s.name, color: s.color,
-    params: { ...s.params }, position: [...s.position], rotation: [...s.rotation], scale: [...s.scale],
+    params: deepParams(s.params), position: [...s.position], rotation: [...s.rotation], scale: [...s.scale],
   };
   if (s.kind === 'boolean') {
     c.baseMatrix = s.baseMatrix || null;                       // already an array from snapshot()
@@ -564,7 +661,7 @@ function serializeChild(s) {
 function reviveChild(c) {
   const s = {
     id: c.id, kind: c.kind, role: c.role, name: c.name, color: c.color,
-    params: { ...c.params }, position: [...c.position], rotation: [...c.rotation], scale: [...c.scale],
+    params: deepParams(c.params), position: [...c.position], rotation: [...c.rotation], scale: [...c.scale],
   };
   if (c.kind === 'boolean') {
     s.baseMatrix = c.baseMatrix || null;
@@ -574,10 +671,23 @@ function reviveChild(c) {
   return s;
 }
 
+// Params are flat numbers for every primitive except a constrained sketch, whose
+// `sk` document and `profile` array are nested. Clone those so snapshots really
+// are snapshots.
+function deepParams(p) {
+  const out = { ...p };
+  if (out.sk) out.sk = cloneSketch(out.sk);
+  if (Array.isArray(out.profile)) out.profile = out.profile.map((pt) => [...pt]);
+  return out;
+}
+
 function serializeObject(o) {
   const d = {
     id: o.id, kind: o.kind, role: o.role, name: o.name, color: o.color,
-    params: { ...o.params },
+    // Deep, not shallow: a sketch document is a nested object, and a shallow
+    // copy would let a later dimension edit reach back and rewrite the history
+    // snapshots that were supposed to have frozen it.
+    params: deepParams(o.params),
     position: o.mesh.position.toArray(),
     rotation: [o.mesh.rotation.x, o.mesh.rotation.y, o.mesh.rotation.z],
     scale: o.mesh.scale.toArray(),
@@ -601,7 +711,7 @@ function deserializeObject(d) {
       baseMatrix: d.baseMatrix ? new THREE.Matrix4().fromArray(d.baseMatrix) : null,
     });
   } else {
-    obj = new CadObject({ kind: d.kind, params: d.params, name: d.name, role: d.role });
+    obj = new CadObject({ kind: d.kind, params: deepParams(d.params), name: d.name, role: d.role });
   }
   obj.id = d.id;
   obj.mesh.userData.cadId = d.id;

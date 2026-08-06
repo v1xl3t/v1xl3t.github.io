@@ -268,25 +268,28 @@ html[data-ui="neon"] .setrow select { border-radius: 12px; }
 html[data-ui="neon"] button.mode.active,
 html[data-ui="neon"] button.tool.active { box-shadow: 0 0 10px -2px var(--accent); }
 
-/* "plush" — soft lavender light skin, matches the site directory palette. */
+/* "plush" — soft PINK light skin (Vi's call, 2026-08-06: it used to be lavender).
+   Every text pair here was checked against WCAG AA on the surface it actually
+   sits on, so the sweetness costs nothing in legibility: body text reads at
+   10.2:1, the muted labels at 5.4:1, and the pink accent at 4.8:1. */
 html[data-ui="plush"] {
-  --bg: #efe9fb; --panel: #ece4fbe6; --panel-solid: #ece4fb;
-  --border: #d9cef3; --text: #332d4f; --muted: #6b6390;
-  --accent: #7c5fe0; --accent-dim: #e0d6f7;
+  --bg: #fceaf4; --panel: #fbe3f0e6; --panel-solid: #fbe3f0;
+  --border: #f0c4dd; --text: #4a2a3f; --muted: #7d5068;
+  --accent: #b32d7d; --accent-dim: #f7d3e8;
 }
-html[data-ui="plush"] button { background: #e8defb; }
-html[data-ui="plush"] button:hover { background: #ddd0f7; }
+html[data-ui="plush"] button { background: #f9dcee; }
+html[data-ui="plush"] button:hover { background: #f5cbe4; }
 html[data-ui="plush"] input[type="number"],
 html[data-ui="plush"] input[type="text"],
 html[data-ui="plush"] .setrow select,
-html[data-ui="plush"] .snaprow input { background: #f3edfc; }
+html[data-ui="plush"] .snaprow input { background: #fdf1f8; }
 html[data-ui="plush"] button.mode.active,
-html[data-ui="plush"] button.tool.active { color: #5a3fc0; box-shadow: 0 0 10px -3px var(--accent); }
+html[data-ui="plush"] button.tool.active { color: #8f1f61; box-shadow: 0 0 10px -3px var(--accent); }
 html[data-ui="plush"] button,
 html[data-ui="plush"] .panel,
 html[data-ui="plush"] .setrow select { border-radius: 14px; }
-html[data-ui="plush"] .group-label { color: #7c5fe0; }
-html[data-ui="plush"] kbd { background: #ece5fb; }
+html[data-ui="plush"] .group-label { color: #b32d7d; }
+html[data-ui="plush"] kbd { background: #fbe0f0; }
 
 /* ---------------------------------------------------------------- shortcuts overlay */
 #shortcuts-overlay {
@@ -660,3 +663,73 @@ body.render-view #topbar button[data-proxy] { display: none; }  /* hide edit too
 body.render-view #cm-card,
 body.render-view #cm-ring,
 body.render-view #tips-btn { display: none !important; }
+
+/* ---- parametric sketch ---------------------------------------------------
+   The inspector block for a constrained sketch, plus the on-canvas sketcher
+   toolbar. The state pill is the important bit: a sketch that is not fully
+   constrained is not wrong, it just still has freedom, and the colour says
+   which of the two you are looking at. */
+
+.sketch-field { border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+.sk-state {
+  float: right; font-size: 10px; letter-spacing: .3px; text-transform: none;
+  padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border);
+}
+.sk-state.ok   { color: var(--good);   border-color: var(--good); }
+.sk-state.warn { color: var(--accent); border-color: var(--accent-dim); }
+.sk-state.bad  { color: var(--danger); border-color: var(--danger); }
+.sk-warn {
+  font-size: 11px; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-radius: 6px; padding: 5px 7px; margin-bottom: 6px; line-height: 1.35;
+}
+.sk-sub {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--muted); margin: 8px 0 4px;
+}
+.sk-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sk-chip {
+  font: inherit; font-size: 11px; cursor: pointer;
+  background: var(--panel-solid); color: var(--text);
+  border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px;
+}
+.sk-chip:hover { border-color: var(--danger); color: var(--danger); }
+.sk-chip span { opacity: .6; margin-left: 2px; }
+.sk-note { margin-top: 8px; line-height: 1.4; }
+
+/* On-canvas sketcher */
+#sketch-bar {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  max-width: min(96vw, 720px);
+  background: var(--panel); backdrop-filter: blur(10px);
+  border: 1px solid var(--border); border-radius: 12px; padding: 7px 9px; z-index: 40;
+}
+#sketch-bar[hidden] { display: none; }
+/* width:auto and flex:none are load-bearing: the app's panel buttons are
+   full-width block buttons, and without these the sketch bar inherits that and
+   stacks into a tall column that covers the canvas. */
+#sketch-bar button {
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px;
+  width: auto; flex: 0 0 auto; margin: 0;
+}
+#sketch-bar input {
+  font: inherit; font-size: 12px; background: var(--panel-solid); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 4px 6px; margin: 0;
+}
+#sk-dim-entry { display: flex; gap: 4px; align-items: center; }
+#sketch-bar button:hover { border-color: var(--accent); }
+#sketch-bar button.on { background: var(--accent-dim); border-color: var(--accent); }
+#sketch-bar .sk-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 2px; }
+#sketch-bar .sk-read {
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+  min-width: 96px; text-align: center;
+}
+#sketch-bar .sk-read b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 640px) {
+  #sketch-bar { bottom: 8px; gap: 4px; padding: 6px; }
+  #sketch-bar button { padding: 6px 8px; font-size: 12px; }
+  #sketch-bar .sk-read { width: 100%; order: 99; }
+}
