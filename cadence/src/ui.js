@@ -58,6 +58,7 @@ export class Inspector {
       if (f.key === 'depth') return !isRevolve;
       if (f.key === 'depth2') return !isRevolve && endType === 'twoSided';
       if (f.key === 'start') return !isRevolve;
+      if (f.key === 'draft') return !isRevolve;
       return true;
     };
     // The depth means something slightly different per end type, so say which.
@@ -170,6 +171,12 @@ export class Inspector {
       ? `<div class="sk-note repaired">Your outline crossed itself${g.regions > 1 ? `, so it became ${g.regions} separate pieces` : ' and was repaired'}. The solid is clean.</div>`
       : (g.profileError ? `<div class="sk-warn">${esc(g.profileError)}</div>` : '');
 
+    // A draft the shape cannot take falls back to straight walls. Say so, or the
+    // number in the field would claim something the solid does not show.
+    const draftNote = g.draftRefused
+      ? `<div class="sk-warn">${esc(g.draftRefused)}. The walls are straight instead, so lower the angle or pull a shorter depth.</div>`
+      : '';
+
     return `
       <div class="field">
         <label>Extrude</label>
@@ -180,6 +187,7 @@ export class Inspector {
         </div>
         <div class="muted sk-note">${reach}</div>
         ${note}
+        ${draftNote}
       </div>`;
   }
 

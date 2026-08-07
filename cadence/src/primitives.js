@@ -15,7 +15,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { solveSketch, sketchProfile, TESS_SEGMENTS } from './sketch.js';
-import { normalizeProfile, suggestedDepth } from './profile.js';
+import { normalizeProfile, suggestedDepth, offsetRegion } from './profile.js';
 
 // Display labels for the two roles. Internal role values stay 'solid'/'hole'
 // forever (stable), but what the UI *calls* them lives here — so renaming is a
@@ -37,7 +37,7 @@ export const DEFAULT_PARAMS = {
   // operation: 'extrude' (straight pull up by `depth`) or 'revolve' (spin the
   // profile around the Y axis by `angle`°). Default profile = a 20mm square.
   sketch:   { profile: [[-10, -10], [10, -10], [10, 10], [-10, 10]], op: 'extrude', depth: 20,
-              endType: 'blind', depth2: 0, start: 0, angle: 360, segments: 48,
+              endType: 'blind', depth2: 0, start: 0, draft: 0, angle: 360, segments: 48,
               plane: null },   // null = the ground plane; a face sketch stores its own
 };
 
@@ -107,6 +107,7 @@ export const PARAM_SCHEMA = {
     { key: 'depth', label: 'Extrude (mm)', min: 0.1, step: 0.5 },
     { key: 'depth2', label: 'Down (mm)',   min: 0,   step: 0.5 },
     { key: 'start', label: 'Start offset', step: 0.5 },
+    { key: 'draft', label: 'Draft (°)', min: -45, max: 45, step: 1 },
     { key: 'angle', label: 'Revolve (°)',  min: 1,   step: 5 },
     { key: 'segments', label: 'Facets',    min: 3,   step: 1, advanced: true, integer: true },
   ],
@@ -255,6 +256,80 @@ export function extrudeSpan(params) {
   return { bottom: start, top: start + depth };
 }
 
+// A tapered extrusion, built by hand because ExtrudeGeometry only makes straight
+// walls. The top is the profile offset inward by rise * tan(draft), and because
+// the offset preserves the vertex count, the side walls are a simple ribbon of
+// quads between corresponding points.
+function buildDraftedExtrude(regions, span, draftDeg) {
+  const rise = span.top - span.bottom;
+  const d = rise * Math.tan((draftDeg * Math.PI) / 180);
+
+  const pairs = [];
+  for (const region of regions) {
+    const top = offsetRegion(region, d);
+    // Refusing beats guessing. A taper this steep has no honest answer, and a
+    // silently un-drafted or folded solid is worse than being told why.
+    if (!top) return { geo: null, reason: `a ${draftDeg}° draft is too steep for this profile over ${Math.round(rise)}mm` };
+    pairs.push({ bottom: region, top });
+  }
+
+  const positions = [];
+  const indices = [];
+
+  for (const { bottom, top } of pairs) {
+    const bRings = [bottom.outer, ...bottom.holes];
+    const tRings = [top.outer, ...top.holes];
+
+    // One triangulation serves both caps: the rings correspond point for point.
+    const contour = bottom.outer.map((p) => new THREE.Vector2(p[0], p[1]));
+    const holes = bottom.holes.map((h) => h.map((p) => new THREE.Vector2(p[0], p[1])));
+    const faces = THREE.ShapeUtils.triangulateShape(contour, holes);
+
+    const flatB = bRings.flat();
+    const flatT = tRings.flat();
+
+    const bStart = positions.length / 3;
+    for (const p of flatB) positions.push(p[0], span.bottom, p[1]);
+    const tStart = positions.length / 3;
+    for (const p of flatT) positions.push(p[0], span.top, p[1]);
+
+    // Sketch (u, v) maps to world (x, z) with Y up, which flips handedness: a
+    // counter-clockwise ring in sketch space is clockwise seen from above. So the
+    // triangulator's winding has to be reversed here, or the whole solid ends up
+    // inside out (caught by a signed-volume check, not by looking at it).
+    // Sketch (u, v) maps to world (x, z) with Y up, which flips handedness: a
+    // ring wound counter-clockwise in sketch space reads clockwise from above.
+    // So the triangulator's native order already faces DOWN, which is what the
+    // bottom cap wants, and the top cap takes the reverse. The side walls need
+    // the opposite convention, which is why they look "backwards" below. Getting
+    // these two groups consistent is what a signed-volume check catches and the
+    // naked eye does not.
+    for (const f of faces) {
+      indices.push(bStart + f[0], bStart + f[1], bStart + f[2]);   // bottom, faces down
+      indices.push(tStart + f[0], tStart + f[2], tStart + f[1]);   // top, faces up
+    }
+
+    let off = 0;
+    for (let r = 0; r < bRings.length; r++) {
+      const n = bRings[r].length;
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        const b0 = bStart + off + i, b1 = bStart + off + j;
+        const t0 = tStart + off + i, t1 = tStart + off + j;
+        indices.push(b0, t1, b1);
+        indices.push(b0, t0, t1);
+      }
+      off += n;
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return { geo, reason: `drafted ${draftDeg}°` };
+}
+
 function buildExtrude(prof, params) {
   const { regions, repaired, reason } = normalizeProfile(prof);
   const span = extrudeSpan(params);
@@ -284,9 +359,23 @@ function buildExtrude(prof, params) {
     return s;
   });
 
-  const geo = new THREE.ExtrudeGeometry(shapes, { depth: thickness, bevelEnabled: false });
-  geo.rotateX(-Math.PI / 2);         // extrusion runs along Z → stand it up along Y
-  geo.translate(0, span.bottom, 0);  // then place the span relative to the sketch plane
+  const draft = Number(params.draft) || 0;
+  let geo;
+  let draftNote = null;
+  if (draft !== 0) {
+    const res = buildDraftedExtrude(regions, span, draft);
+    if (res.geo) {
+      geo = res.geo;                 // already in place, no rotate or translate
+    } else {
+      // Fall back to a straight wall and say why, rather than refusing to build.
+      draftNote = res.reason;
+    }
+  }
+  if (!geo) {
+    geo = new THREE.ExtrudeGeometry(shapes, { depth: thickness, bevelEnabled: false });
+    geo.rotateX(-Math.PI / 2);       // extrusion runs along Z → stand it up along Y
+    geo.translate(0, span.bottom, 0);// then place the span relative to the sketch plane
+  }
 
   // Everything above is built in the sketch's own frame, where the profile lies
   // flat and the pull runs up +Y. A sketch drawn on the face of another solid
@@ -298,6 +387,7 @@ function buildExtrude(prof, params) {
   geo.userData.repaired = repaired;
   geo.userData.profileReason = reason;
   geo.userData.regions = regions.length;
+  geo.userData.draftRefused = draftNote;
   return geo;
 }
 
