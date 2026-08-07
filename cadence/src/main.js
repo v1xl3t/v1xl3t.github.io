@@ -2709,6 +2709,18 @@ function experimentalOn() { return !!settings.experimental; }
  */
 function applyExperimental(on) {
   document.body.classList.toggle('no-experimental', !on);
+
+  // A toolbar group whose every control is gated would otherwise be left as a
+  // heading with nothing under it, which reads as a broken section rather than
+  // a hidden one. Worked out from the DOM rather than hardcoded, so it stays
+  // right as controls move between groups.
+  for (const g of document.querySelectorAll('#toolbar .group')) {
+    const controls = g.querySelectorAll('button, input, select');
+    if (!controls.length) continue;
+    const allGated = [...controls].every((c) => c.closest('[data-experimental]'));
+    g.hidden = allGated && !on;
+  }
+
   if (!on) {
     // Leave any gated mode that happens to be open, otherwise its state would
     // linger with no way to see or exit it.
