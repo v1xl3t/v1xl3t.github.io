@@ -47,6 +47,23 @@
       <button type="button" data-skcancel title="Leave the sketch without building anything (Esc)">Cancel</button>
     </div>
 
+    <!-- Orientation cube. Turns with the model so you can always tell which way
+         you are looking, and every face is a real button that snaps the camera
+         to that view. Keyboard reachable, and big enough to hit with a thumb. -->
+    <div id="viewcube-wrap">
+      <div id="viewcube" role="group" aria-label="Camera orientation">
+        <div class="vc-cube">
+          <button class="vc-face vc-top"    data-view="top"    aria-label="Top view">TOP</button>
+          <button class="vc-face vc-bottom" data-view="bottom" aria-label="Bottom view">BTM</button>
+          <button class="vc-face vc-front"  data-view="front"  aria-label="Front view">FRONT</button>
+          <button class="vc-face vc-back"   data-view="back"   aria-label="Back view">BACK</button>
+          <button class="vc-face vc-right"  data-view="right"  aria-label="Right view">RIGHT</button>
+          <button class="vc-face vc-left"   data-view="left"   aria-label="Left view">LEFT</button>
+        </div>
+      </div>
+      <button id="vc-home" data-view="iso" title="Back to the 3/4 view (Home)" aria-label="Isometric view">Iso</button>
+    </div>
+
     <!-- The extrude stage. Opens the moment a profile closes, so the solid is
          something you shape and confirm rather than something that silently
          appears at a guessed depth. -->
@@ -60,7 +77,7 @@
       <button type="button" data-exflip title="Extrude the other way (X)">Flip</button>
       <button type="button" data-exsym title="Grow both ways from the sketch (S)" aria-pressed="false">Symmetric</button>
       <span class="sk-sep"></span>
-      <span class="ex-hint">Drag in the view to shape it</span>
+      <span class="ex-hint">Drag to shape</span>
       <span class="sk-sep"></span>
       <button type="button" data-exok class="primary" title="Keep this solid (Enter)">Done</button>
       <button type="button" data-excancel title="Throw it away and go back to the sketch (Esc)">Cancel</button>
@@ -278,10 +295,21 @@
             <div><kbd>C</kbd> Circle · <kbd>D</kbd> Dimension</div>
             <div><kbd>G</kbd> Grid snap on / off</div>
             <div><kbd>P</kbd> Back to the ground plane</div>
+            <div><kbd>F</kbd> Look straight at the plane</div>
             <div><kbd>Backspace</kbd> Undo last curve</div>
-            <div><kbd>Enter</kbd> Finish · <kbd>Esc</kbd> Cancel</div>
+            <div><kbd>Enter</kbd> Extrude · <kbd>Esc</kbd> Cancel</div>
           </div>
           <div class="sc-col">
+            <div class="sc-sec">Extruding</div>
+            <div><kbd>Drag</kbd> in the view to set depth</div>
+            <div><kbd>Shift</kbd>+drag for finer control</div>
+            <div><kbd>X</kbd> Flip · <kbd>S</kbd> Symmetric</div>
+            <div><kbd>Enter</kbd> Done · <kbd>Esc</kbd> Cancel</div>
+            <div class="sc-sec">Views</div>
+            <div><kbd>1</kbd><kbd>2</kbd> Front / Back</div>
+            <div><kbd>3</kbd><kbd>4</kbd> Left / Right</div>
+            <div><kbd>5</kbd><kbd>6</kbd> Top / Bottom</div>
+            <div><kbd>Home</kbd> Isometric</div>
             <div class="sc-sec">Edit</div>
             <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> Redo</div>
             <div><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> Copy / Paste</div>

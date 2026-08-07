@@ -727,14 +727,102 @@ body.render-view #tips-btn { display: none !important; }
   min-width: 96px; text-align: center;
 }
 #sketch-bar .sk-read b { color: var(--text); font-weight: 600; }
+/* The snap name, so what the next click will land on is readable at a glance. */
+#sketch-bar .sk-read .sk-snap {
+  font-style: normal; font-weight: 600; color: var(--accent);
+  padding: 1px 5px; margin-right: 3px; border-radius: 5px;
+  background: var(--accent-dim);
+}
+#sketch-bar .sk-read { min-width: 168px; }
+
+/* ---------------------------------------------------------------- view cube
+   A real cube rather than a row of buttons, because the point is to show which
+   way you are already facing, not only to offer somewhere to go. The faces are
+   buttons, so it is keyboard and screen reader reachable too. */
+/* Top left of the canvas, just clear of the toolbar. The bottom of the screen
+   belongs to the sketch and extrude bars, and both side gutters are panels, so
+   this is the one corner that stays free at every width. Tracks the toolbar's
+   resize variable so dragging the panel wider pushes the cube along. */
+/* top:40 not 12: a cube rotated to a corner-on view pokes roughly 28px past the
+   edges of its own 76px box, and at top:12 that overflow was clipped off. */
+#viewcube-wrap {
+  position: absolute; top: 40px; left: calc(var(--toolbar-w, 200px) + 40px); z-index: 39;
+  /* The gap clears the cube's 3D overflow, so Iso is never tucked under a face. */
+  display: flex; flex-direction: column; align-items: center; gap: 26px;
+  /* Never swallow an orbit drag aimed at the scene behind it. */
+  pointer-events: none;
+}
+/* Only the faces and the Iso button are clickable. Every wrapper above them
+   stays transparent to the pointer, so neither the perspective box nor the cube
+   can intercept a click meant for a face, and a drag over the corner of the
+   widget still orbits the scene behind it. */
+#viewcube {
+  width: 76px; height: 76px; perspective: 340px; pointer-events: none;
+}
+.vc-cube {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  /* JS writes the matrix each frame from the camera. */
+  /* The container is a flat 76px square sitting in front of its own rotated
+     faces, so leaving it clickable means it eats every click before a face
+     sees one. Only the faces take pointer events. */
+  pointer-events: none;
+}
+.vc-face { pointer-events: auto; }
+.vc-face {
+  position: absolute; inset: 0; margin: 0; padding: 0; width: 100%; height: 100%;
+  display: grid; place-items: center;
+  font: inherit; font-size: 9px; font-weight: 700; letter-spacing: .6px;
+  color: var(--text); cursor: pointer;
+  /* Solid rather than translucent: at .82 the face labels washed out against a
+     light skin, and this is a label you read at a glance or not at all. */
+  background: var(--panel-solid); opacity: .95;
+  border: 1px solid var(--border); border-radius: 5px;
+  backface-visibility: hidden;
+}
+.vc-face:hover { background: var(--accent-dim); border-color: var(--accent); opacity: 1; }
+.vc-face:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; }
+/* 38px is half the cube, so each face sits on its own side. */
+.vc-top    { transform: rotateX(90deg)  translateZ(38px); }
+.vc-bottom { transform: rotateX(-90deg) translateZ(38px); }
+.vc-front  { transform: translateZ(38px); }
+.vc-back   { transform: rotateY(180deg) translateZ(38px); }
+.vc-right  { transform: rotateY(90deg)  translateZ(38px); }
+.vc-left   { transform: rotateY(-90deg) translateZ(38px); }
+#vc-home {
+  pointer-events: auto; width: auto; margin: 0; flex: 0 0 auto;
+  font: inherit; font-size: 11px; cursor: pointer;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 3px 10px;
+}
+#vc-home:hover { border-color: var(--accent); }
+/* On a phone the sketch bar owns the bottom of the screen, so the cube moves up
+   out of its way and shrinks. */
+@media (max-width: 640px) {
+  #viewcube-wrap { top: 52px; left: 10px; }
+  #viewcube { width: 56px; height: 56px; perspective: 250px; }
+  .vc-face { font-size: 7px; }
+  .vc-top    { transform: rotateX(90deg)  translateZ(28px); }
+  .vc-bottom { transform: rotateX(-90deg) translateZ(28px); }
+  .vc-front  { transform: translateZ(28px); }
+  .vc-back   { transform: rotateY(180deg) translateZ(28px); }
+  .vc-right  { transform: rotateY(90deg)  translateZ(28px); }
+  .vc-left   { transform: rotateY(-90deg) translateZ(28px); }
+}
+/* The render view is for looking, so the chrome steps out. */
+body.render-view #viewcube-wrap { display: none; }
 
 /* ---------------------------------------------------------------- extrude stage
    Sits where the sketch bar sits and borrows its chrome, so finishing a sketch
    reads as the same task continuing rather than a new place to learn. */
+/* nowrap on desktop: shrink-to-fit sizing lands a few pixels under what the row
+   actually needs, so the last button wrapped to a second line and sat half off
+   the bottom of the screen. The row is ~590px wide and only wraps once the
+   viewport is genuinely too narrow for it. */
 #extrude-bar {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px;
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
-  max-width: min(96vw, 720px);
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; justify-content: center;
+  max-width: min(96vw, 800px);
   background: var(--panel); backdrop-filter: blur(10px);
   border: 1px solid var(--accent); border-radius: 12px; padding: 7px 9px; z-index: 41;
 }
@@ -759,8 +847,12 @@ body.render-view #tips-btn { display: none !important; }
 #extrude-bar .ex-field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 #extrude-bar .ex-unit { color: var(--muted); }
 #extrude-bar .ex-hint { font-size: 11px; color: var(--muted); }
-/* On a phone the hint is the first thing worth losing. */
-@media (max-width: 640px) { #extrude-bar .ex-hint { display: none; } }
+/* Narrow enough that the row genuinely will not fit, so let it stack again and
+   drop the hint, which is the first thing worth losing. */
+@media (max-width: 700px) {
+  #extrude-bar { flex-wrap: wrap; }
+  #extrude-bar .ex-hint, #extrude-bar .sk-sep { display: none; }
+}
 
 @media (max-width: 640px) {
   #sketch-bar { bottom: 8px; gap: 4px; padding: 6px; }

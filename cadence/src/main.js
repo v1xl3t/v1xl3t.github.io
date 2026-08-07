@@ -438,6 +438,13 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
   else if (k === 'f') frameSelection();
   else if (k === 't') timeline.toggle();
+  // Standard views on the number row, the way most CAD packages bind them, plus
+  // Home for the 3/4 view you started in.
+  else if (!e.ctrlKey && !e.metaKey && ['1', '2', '3', '4', '5', '6'].includes(k)) {
+    e.preventDefault();
+    snapToView({ 1: 'front', 2: 'back', 3: 'left', 4: 'right', 5: 'top', 6: 'bottom' }[k]);
+  }
+  else if (k === 'home') { e.preventDefault(); snapToView('iso'); }
   // While the sketcher is open its tool letters win, so L is Line rather than
   // Lasso. Outside sketch mode nothing changes.
   else if (sketchOn && ['l', 'r', 'c', 'd'].includes(k) && !e.ctrlKey && !e.metaKey) {
@@ -757,6 +764,7 @@ let skDoc = null;                  // the sketch document being built
 let skTool = 'line';               // line | rect | circle | dim
 let skPending = [];                // point ids clicked so far for the active tool
 let skHover = null;                // last cursor position in sketch coords
+let skSnapHint = null;             // the inference under the cursor, null when on the grid
 let skSnap = 1;                    // grid snap in mm, 0 = off
 let skDimPair = null;              // the two points awaiting a typed distance
 let skPlane = null;                // null = the ground; otherwise a picked face's plane
@@ -771,6 +779,7 @@ const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const SKETCH_COLOR = 0x4fd0ff;
 const ANCHOR_COLOR = 0xffc857;
 const PENDING_COLOR = 0x9aa6b2;
+const SNAP_COLOR = 0x7bffb0;       // reads clearly on every skin's viewport
 const SNAP_PICK_MM = 2.5;          // click within this of a point to reuse it
 const AXIS_TOL_DEG = 4;            // snap a near-axis segment to exactly axis-aligned
 
@@ -995,6 +1004,93 @@ function pointAt(x, y, { allowReuse = true } = {}) {
   return addPoint(skDoc, snapValue(x), snapValue(y), first);
 }
 
+// ------------------------------------------------------------ snap inference
+//
+// Grid snap alone rounds to the nearest millimetre, which is precise but not
+// meaningful: it cannot land you exactly on the corner you are aiming at, only
+// near it. Real sketchers infer what you meant from the geometry already there,
+// and say so, so you can trust the click before you make it. That is the whole
+// difference between "drawing" and "drafting".
+//
+// Candidates are ranked, strongest first, because the ones that carry real
+// design intent should beat the ones that are merely close.
+
+const SNAP_PX = 12;                 // catch radius, in screen pixels
+
+/** Snap tolerance in sketch mm that stays the same size on screen at any zoom. */
+function snapTolMm() {
+  const dist = camera.position.distanceTo(orbit.target);
+  const mmPerPx = (2 * dist * Math.tan((camera.fov * Math.PI / 180) / 2)) / renderer.domElement.clientHeight;
+  return SNAP_PX * mmPerPx;
+}
+
+const dist2 = (ax, ay, bx, by) => (ax - bx) ** 2 + (ay - by) ** 2;
+
+/**
+ * Work out what the cursor is really pointing at.
+ * Returns { x, y, kind, label } and never null: with nothing nearby it falls
+ * back to the grid, which is the old behaviour.
+ */
+function inferSnap(x, y, { anchor = null } = {}) {
+  const tol = snapTolMm();
+  const tol2 = tol * tol;
+  const best = { rank: -1, x, y, kind: 'grid', label: '', ref: null };
+  const offer = (rank, px, py, kind, label, ref = null) => {
+    if (dist2(x, y, px, py) > tol2) return;
+    if (rank > best.rank) Object.assign(best, { rank, x: px, y: py, kind, label, ref });
+  };
+
+  // 5, existing points. Landing on one welds the curves together by sharing the
+  // id, which is stronger than any constraint added afterwards.
+  for (const p of skDoc.points) {
+    if (p.id === 'origin' && !skDoc.entities.length) continue;
+    offer(5, p.x, p.y, p.id === 'origin' ? 'origin' : 'endpoint', p.id === 'origin' ? 'Origin' : 'Endpoint');
+  }
+
+  // 4, circle centres.
+  for (const e of skDoc.entities) {
+    if (e.type !== 'circle') continue;
+    const c = skPoint(e.c);
+    if (c) offer(4, c.x, c.y, 'centre', 'Centre');
+  }
+
+  // 3, line midpoints.
+  for (const e of skDoc.entities) {
+    if (e.type !== 'line') continue;
+    const a = skPoint(e.p1), b = skPoint(e.p2);
+    if (a && b) offer(3, (a.x + b.x) / 2, (a.y + b.y) / 2, 'midpoint', 'Midpoint');
+  }
+
+  // 2, lined up with the point we are drawing from. These are the guides that
+  // let you square a shape off without typing a number.
+  if (anchor) {
+    if (Math.abs(y - anchor.y) <= tol) offer(2, x, anchor.y, 'axisH', 'Horizontal');
+    if (Math.abs(x - anchor.x) <= tol) offer(2, anchor.x, y, 'axisV', 'Vertical');
+  }
+
+  // 1, anywhere along an existing line.
+  for (const e of skDoc.entities) {
+    if (e.type !== 'line') continue;
+    const a = skPoint(e.p1), b = skPoint(e.p2);
+    if (!a || !b) continue;
+    const vx = b.x - a.x, vy = b.y - a.y;
+    const len2 = vx * vx + vy * vy;
+    if (len2 < 1e-9) continue;
+    const t = Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / len2));
+    offer(1, a.x + vx * t, a.y + vy * t, 'onLine', 'On edge', e.id);
+  }
+
+  if (best.rank >= 0) return best;
+  return { x: snapValue(x), y: snapValue(y), kind: 'grid', label: skSnap > 0 ? 'Grid' : '' };
+}
+
+/** The point the current tool is drawing from, for alignment guides. */
+function snapAnchor() {
+  if (!skPending.length) return null;
+  const last = skPending[skPending.length - 1];
+  return typeof last === 'string' ? skPoint(last) : last;
+}
+
 // A segment drawn near an axis was meant to be on it. Promoting that to a real
 // constraint is what stops a sketch from being 89.6 degrees forever.
 function autoAxisConstraint(line) {
@@ -1061,10 +1157,19 @@ function sketchClick(e) {
   const hit = groundPoint(e);
   if (!hit) { flash('Aim at the sketch plane to draw.'); return; }
   const raw = toSketch(hit);
-  const x = snapValue(raw.x), y = snapValue(raw.y);
+  // Inference first, grid second. Landing exactly on a corner or a midpoint is
+  // what makes the next constraint mean something.
+  const snap = inferSnap(raw.x, raw.y, { anchor: snapAnchor() });
+  const x = snap.x, y = snap.y;
 
   if (skTool === 'line') {
     const p = pointAt(x, y);
+    // A point put on an edge should STAY on that edge when the sketch is later
+    // re-dimensioned, so record the inference as a constraint rather than
+    // leaving it as a position that happens to line up today.
+    if (snap.kind === 'onLine' && snap.ref && !skDoc.points.some((q) => q.id === p.id && q.fixed)) {
+      addConstraint(skDoc, { type: 'pointOnLine', p: p.id, e: snap.ref, auto: true });
+    }
     if (skPending.length) {
       const prev = skPending[skPending.length - 1];
       if (prev === p.id) return;                       // ignore a double click in place
@@ -1126,9 +1231,13 @@ function sketchMove(e) {
   const hit = groundPoint(e);
   if (!hit) return;
   const raw = toSketch(hit);
-  skHover = { x: snapValue(raw.x), y: snapValue(raw.y) };
+  const snap = inferSnap(raw.x, raw.y, { anchor: snapAnchor() });
+  skHover = { x: snap.x, y: snap.y };
+  skSnapHint = snap.kind === 'grid' ? null : snap;
   syncSketchBar();
-  if (skPending.length) drawSketchPreview();     // rubber band follows the cursor
+  // The snap marker and its guide have to redraw on every move, not only while
+  // a curve is in progress, otherwise you cannot see what a first click will do.
+  drawSketchPreview();
 }
 
 // Solve, then redraw. The preview shows the SOLVED shape, not the raw clicks, so
@@ -1161,7 +1270,9 @@ function drawSketchPreview() {
       const pts = [];
       for (let i = 0; i <= 64; i++) {
         const t = (i / 64) * Math.PI * 2;
-        pts.push(new THREE.Vector3(c.x + e.r * Math.cos(t), 0, c.y + e.r * Math.sin(t)));
+        // Via toWorld, not a raw (x, 0, y): on a face sketch the preview would
+        // otherwise be drawn flat on the ground while the solid built on the face.
+        pts.push(toWorld({ x: c.x + e.r * Math.cos(t), y: c.y + e.r * Math.sin(t) }));
       }
       addSeg(pts, SKETCH_COLOR);
     }
@@ -1185,17 +1296,17 @@ function drawSketchPreview() {
     if (from) {
       if (skTool === 'rect') {
         const c = [
-          new THREE.Vector3(from.x, 0, from.y), new THREE.Vector3(skHover.x, 0, from.y),
-          new THREE.Vector3(skHover.x, 0, skHover.y), new THREE.Vector3(from.x, 0, skHover.y),
-          new THREE.Vector3(from.x, 0, from.y),
-        ];
+          { x: from.x, y: from.y }, { x: skHover.x, y: from.y },
+          { x: skHover.x, y: skHover.y }, { x: from.x, y: skHover.y },
+          { x: from.x, y: from.y },
+        ].map(toWorld);
         addSeg(c, PENDING_COLOR);
       } else if (skTool === 'circle') {
         const r = Math.hypot(skHover.x - from.x, skHover.y - from.y);
         const pts = [];
         for (let i = 0; i <= 48; i++) {
           const t = (i / 48) * Math.PI * 2;
-          pts.push(new THREE.Vector3(from.x + r * Math.cos(t), 0, from.y + r * Math.sin(t)));
+          pts.push(toWorld({ x: from.x + r * Math.cos(t), y: from.y + r * Math.sin(t) }));
         }
         addSeg(pts, PENDING_COLOR);
       } else {
@@ -1203,6 +1314,38 @@ function drawSketchPreview() {
       }
     }
   }
+
+  drawSnapHint();
+}
+
+// The snap marker, and the guide line that explains an alignment snap. Without
+// these the inference is invisible and you are back to trusting your aim.
+function drawSnapHint() {
+  if (!skSnapHint || !skHover) return;
+  const h = skSnapHint;
+  const r = Math.max(0.6, snapTolMm() * 0.34);   // constant size on screen
+
+  if (h.kind === 'axisH' || h.kind === 'axisV') {
+    // Dashed guide back to the point being drawn from, so the alignment reads
+    // as a relationship rather than a coincidence.
+    const a = snapAnchor();
+    if (a) {
+      const g = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([toWorld(a), toWorld(h)]),
+        new THREE.LineDashedMaterial({ color: SNAP_COLOR, dashSize: r * 1.6, gapSize: r * 1.2, depthTest: false })
+      );
+      g.computeLineDistances();
+      g.renderOrder = 998;
+      sketchGroup.add(g);
+    }
+  }
+
+  // A square for a point you can land exactly on, a diamond for everything else.
+  const square = h.kind === 'endpoint' || h.kind === 'origin' || h.kind === 'centre' || h.kind === 'midpoint';
+  const pts = square
+    ? [[-r, -r], [r, -r], [r, r], [-r, r], [-r, -r]]
+    : [[0, -r * 1.3], [r * 1.3, 0], [0, r * 1.3], [-r * 1.3, 0], [0, -r * 1.3]];
+  addSeg(pts.map(([dx, dy]) => toWorld({ x: h.x + dx, y: h.y + dy })), SNAP_COLOR, 2);
 }
 
 // ---- the sketch toolbar -----------------------------------------------------
@@ -1216,8 +1359,11 @@ function syncSketchBar() {
   const read = bar.querySelector('.sk-read');
   if (read) {
     const state = skDoc && skDoc.entities.length ? solveSketch(skDoc) : null;
+    // Naming the snap is the point of having one. "Midpoint" tells you the next
+    // click means something; a pair of coordinates does not.
+    const hint = skSnapHint ? `<i class="sk-snap">${skSnapHint.label}</i> ` : '';
     read.innerHTML = skHover
-      ? `<b>${skHover.x.toFixed(1)}</b>, <b>${skHover.y.toFixed(1)}</b> mm${state ? ` · ${state.dof} free` : ''}`
+      ? `${hint}<b>${skHover.x.toFixed(1)}</b>, <b>${skHover.y.toFixed(1)}</b> mm${state ? ` · ${state.dof} free` : ''}`
       : 'Click to draw';
   }
   const pl = bar.querySelector('[data-skplane]');
@@ -1618,6 +1764,71 @@ function wireExtrudeBar() {
 
 // Keep the old name working for the existing Enter binding.
 const closeSketch = finishSketch;
+
+// ------------------------------------------------------------------ view cube
+//
+// Vi's note was "it's super hard to angle the camera appropriately and I wish
+// it would snap for me". Squaring up to the sketch plane covers the sketching
+// half of that. This covers the rest: a cube that turns with the model, so you
+// can always read which way you are facing, and whose every face is a button
+// that flies the camera to that view.
+
+// Which way the camera sits for each named view, as a direction from the target.
+const VIEW_DIRS = {
+  top:    [0, 1, 0],
+  bottom: [0, -1, 0],
+  front:  [0, 0, 1],
+  back:   [0, 0, -1],
+  right:  [1, 0, 0],
+  left:   [-1, 0, 0],
+  iso:    [0.62, 0.53, 0.80],
+};
+
+function snapToView(name) {
+  const d = VIEW_DIRS[name];
+  if (!d) return;
+  const dir = new THREE.Vector3().fromArray(d).normalize();
+  const target = orbit.target.clone();
+  // Keep the distance the user already framed, so snapping turns the model
+  // without also zooming somewhere unexpected.
+  const dist = camera.position.distanceTo(target) || 160;
+  // Straight up and straight down have no natural roll, so pick one that keeps
+  // the model the right way up instead of letting lookAt spin it arbitrarily.
+  const up = Math.abs(dir.y) > 0.999 ? new THREE.Vector3(0, 0, dir.y > 0 ? -1 : 1) : new THREE.Vector3(0, 1, 0);
+  animateCamera(target.clone().add(dir.multiplyScalar(dist)), target, up);
+}
+
+// CSS 3D uses Y down and the DOM's own handedness, three.js uses Y up, so the
+// rotation is conjugated by diag(1, -1, 1) on the way across. Without that the
+// cube turns the wrong way vertically and reads as broken.
+const vcEls = { cube: null, wrap: null };
+let vcLast = '';
+
+function syncViewCube() {
+  if (!vcEls.cube) return;
+  const m = new THREE.Matrix4().extractRotation(camera.matrixWorldInverse);
+  const e = m.elements;                       // column-major, e[col * 4 + row]
+  const s = [1, -1, 1];
+  const v = [];
+  for (let col = 0; col < 3; col++) {
+    for (let row = 0; row < 3; row++) v.push(s[row] * e[col * 4 + row] * s[col]);
+  }
+  const css = `matrix3d(${v[0]},${v[1]},${v[2]},0,${v[3]},${v[4]},${v[5]},0,${v[6]},${v[7]},${v[8]},0,0,0,0,1)`;
+  if (css !== vcLast) { vcEls.cube.style.transform = css; vcLast = css; }
+}
+
+function wireViewCube() {
+  vcEls.wrap = document.getElementById('viewcube-wrap');
+  vcEls.cube = document.querySelector('#viewcube .vc-cube');
+  if (!vcEls.wrap) return;
+  vcEls.wrap.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    snapToView(b.dataset.view);
+    flash(`${b.dataset.view === 'iso' ? 'Isometric' : b.dataset.view[0].toUpperCase() + b.dataset.view.slice(1)} view.`);
+  });
+  syncViewCube();
+}
 
 // ---------------------------------------------------------------- image export
 function dataURLToU8(url) {
@@ -2118,12 +2329,14 @@ function tick() {
   orbit.update();
   renderer.render(scene, camera);
   dimchips.update();
+  syncViewCube();
 }
 tick();
 
 // Wired down here rather than beside wireSketchBar because the stage's helpers
 // are const arrows, so an early call would land in their temporal dead zone.
 wireExtrudeBar();
+wireViewCube();
 
 // Pre-warm the boolean kernel in the background so the first Group is snappy.
 warmKernel();
