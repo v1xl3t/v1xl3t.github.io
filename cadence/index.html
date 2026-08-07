@@ -37,13 +37,33 @@
       <button type="button" data-sktool="dim" title="Set the distance between two points (D)">Dimension</button>
       <span class="sk-sep"></span>
       <button type="button" data-skplane title="The plane you are drawing on. Click a flat face to move it, or press P for the ground">On ground</button>
+      <button type="button" data-skface title="Look straight at the sketch plane again (F). Orbiting away from square-on makes drawing imprecise">Face on</button>
       <button type="button" data-sksnap title="Toggle 1mm grid snap (G)">Snap 1mm</button>
       <button type="button" data-skundo title="Undo the last curve (Backspace)">Undo</button>
       <span class="sk-sep"></span>
       <span class="sk-read">Click to draw</span>
       <span class="sk-sep"></span>
-      <button type="button" data-skdone title="Turn the closed profile into a solid (Enter)">Finish</button>
+      <button type="button" data-skdone title="Turn the closed profile into a solid (Enter)">Extrude</button>
       <button type="button" data-skcancel title="Leave the sketch without building anything (Esc)">Cancel</button>
+    </div>
+
+    <!-- The extrude stage. Opens the moment a profile closes, so the solid is
+         something you shape and confirm rather than something that silently
+         appears at a guessed depth. -->
+    <div id="extrude-bar" role="toolbar" aria-label="Extrude" hidden>
+      <span class="ex-title">Extrude</span>
+      <label class="ex-field">
+        <span>Depth</span>
+        <input type="number" id="ex-depth" step="1" min="0.1" inputmode="decimal" aria-label="Extrude depth in millimetres">
+        <span class="ex-unit">mm</span>
+      </label>
+      <button type="button" data-exflip title="Extrude the other way (X)">Flip</button>
+      <button type="button" data-exsym title="Grow both ways from the sketch (S)" aria-pressed="false">Symmetric</button>
+      <span class="sk-sep"></span>
+      <span class="ex-hint">Drag in the view to shape it</span>
+      <span class="sk-sep"></span>
+      <button type="button" data-exok class="primary" title="Keep this solid (Enter)">Done</button>
+      <button type="button" data-excancel title="Throw it away and go back to the sketch (Esc)">Cancel</button>
     </div>
 
     <!-- Mini, transparent quick-access top bar: proxies clicks to the real toolbar

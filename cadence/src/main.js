@@ -70,9 +70,16 @@ scene.add(sun);
 
 // Build plate + grid (units = mm). Grid is 1000mm wide, 10mm divisions —
 // generous working area; building beyond it is fine, it's just visual reference.
-const grid = new THREE.GridHelper(1000, 100, 0x3a4654, 0x232b34);
-grid.position.y = 0;
-scene.add(grid);
+// GridHelper bakes its colours into vertex colours, so a skin change has to
+// rebuild it rather than tint a material. Cheap: it happens on skin swap only.
+let grid = null;
+function setGrid(major, minor) {
+  if (grid) { scene.remove(grid); grid.geometry.dispose(); grid.material.dispose(); }
+  grid = new THREE.GridHelper(1000, 100, major, minor);
+  grid.position.y = 0;
+  scene.add(grid);
+}
+setGrid(0x3a4654, 0x232b34);
 
 const plate = new THREE.Mesh(
   new THREE.PlaneGeometry(1000, 1000),
@@ -247,21 +254,29 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
   downAt = { x: e.clientX, y: e.clientY };
 });
 // The sketcher's rubber band and coordinate readout follow the cursor.
-renderer.domElement.addEventListener('pointermove', (e) => { if (sketchOn) sketchMove(e); });
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (exObj) { extrudeDragMove(e); return; }     // the stage owns the pointer
+  if (sketchOn) sketchMove(e);
+});
 // Lasso begins on a window capture-phase listener so it runs BEFORE OrbitControls
 // and TransformControls (whose listeners are on the canvas) and can't be swallowed
 // by them — and stopPropagation keeps them from also acting on the same press.
 window.addEventListener('pointerdown', (e) => {
-  if (!lassoOn || e.button !== 0) return;
-  if (e.target !== renderer.domElement) return;   // ignore clicks on panels/buttons
+  if (e.button !== 0 || e.target !== renderer.domElement) return;
+  // The extrude stage claims the drag before OrbitControls can read it as an
+  // orbit, same trick the lasso uses.
+  if (exObj) { e.stopPropagation(); extrudeDragStart(e); return; }
+  if (!lassoOn) return;
   e.stopPropagation();
   lassoStart(e);
 }, true);
+window.addEventListener('pointerup', () => { if (exDragging) extrudeDragEnd(); }, true);
 renderer.domElement.addEventListener('pointerup', (e) => {
   if (lassoActive) return;            // lasso runs its own window-level drag
   if (gizmo.dragging || !downAt) return;
   // Treat as a click only if the pointer barely moved (otherwise it was an orbit).
   if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) return;
+  if (exObj) return;                  // a click in the view means nothing mid-extrude
   if (sketchOn) { sketchClick(e); return; }
   if (measureOn) { measureClick(e); return; }
   pickAt(e);
@@ -399,6 +414,16 @@ window.addEventListener('keydown', (e) => {
   if (e.target.matches('input, textarea')) return;     // don't hijack typing in fields
   const k = e.key.toLowerCase();
 
+  // The extrude stage is modal: while it is open its keys win outright, so a
+  // stray R cannot switch to the scale gizmo mid-operation.
+  if (exObj) {
+    if (k === 'enter') { e.preventDefault(); commitExtrude(); }
+    else if (k === 'escape') { e.preventDefault(); cancelExtrude(); }
+    else if (k === 'x') { e.preventDefault(); flipExtrude(); }
+    else if (k === 's') { e.preventDefault(); toggleExtrudeSymmetric(); }
+    return;
+  }
+
   if (k === 'w') setMode('translate');
   else if (k === 'e') setMode('rotate');
   else if (k === 'r') setMode('scale');
@@ -421,6 +446,7 @@ window.addEventListener('keydown', (e) => {
   }
   else if (sketchOn && k === 'g' && !e.ctrlKey && !e.metaKey) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); flash(skSnap ? 'Grid snap on, 1mm.' : 'Grid snap off.'); }
   else if (sketchOn && k === 'p' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); resetSketchPlane(); }
+  else if (sketchOn && k === 'f' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); faceOnView(); }
   else if (k === 'l') toggleLasso();
   else if (k === 'm') toggleMeasure();
   else if (k === 's' && !e.ctrlKey && !e.metaKey) toggleSketch();
@@ -737,6 +763,7 @@ let skPlane = null;                // null = the ground; otherwise a picked face
 let skPlaneLabel = 'Ground';
 let skPlanePicked = false;         // a face has been chosen, so clicks now draw on it
 let skPlaneArmed = false;          // the user explicitly asked to pick a face next
+let skNeedsPlanePick = false;      // solids on screen, so the first click chooses the plane
 
 const sketchGroup = new THREE.Group();
 scene.add(sketchGroup);
@@ -769,11 +796,28 @@ function setSketch(on) {
     skPlaneLabel = 'Ground';
     skPlanePicked = false;
     skPlaneArmed = false;
+    // Square the view up with the plane before the first click lands, so what
+    // gets drawn is what was meant. See viewPlaneNormal for why this matters.
+    //
+    // With solids on screen the plane has to be chosen first, because you cannot
+    // click the face you want while already staring down at the ground. That is
+    // the same order OnShape uses: pick the plane, then the view squares up and
+    // the sketch opens. With an empty scene there is nothing to pick, so skip
+    // straight to the ground and start drawing.
+    saveCameraForSketch();
+    skNeedsPlanePick = doc.list.some((o) => o.mesh.visible !== false);
+    if (skNeedsPlanePick) {
+      flash('Pick the plane first, click a flat face to sketch on it, or click empty space for the ground.');
+    } else {
+      skPlanePicked = true;
+      viewPlaneNormal(null);
+      flash('Sketching on the ground, looking straight at it. Enter finishes, Esc cancels.');
+    }
     syncSketchBar();
-    flash('Sketch on. Click a flat face to draw on it, or draw on the ground. Enter finishes, Esc cancels.');
   } else {
     skDoc = null; skPending = []; skDimPair = null;
     disposeSketchPreview();
+    restoreCameraAfterSketch();
     flash('Sketch off.');
   }
 }
@@ -784,6 +828,110 @@ function aimAt(e) {
   ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1;
   ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1;
   ray.setFromCamera(ptr, camera);
+}
+
+// ------------------------------------------------------- sketch plane camera
+//
+// Why this exists. The sketcher used to draw on whatever plane you picked while
+// the camera stayed at its 3/4 view, about 28 degrees above the ground. On that
+// view the sketch plane is foreshortened roughly 4:1 and rotated relative to the
+// screen, so a 300x300 pixel square drawn dead centre came out as a 29 x 7 mm
+// sliver. That is not a precision bug you can polish away, it is the geometry of
+// drawing on a surface you are looking at edge-on, and it is why sketching felt
+// imprecise and why the resulting extrude never looked like what was drawn.
+//
+// Every real CAD package answers this the same way: when you open a sketch, the
+// view rotates to look straight down the plane's normal. Then one pixel is one
+// predictable distance in both axes and what you draw is what you get.
+
+/** The plane's orthonormal frame: origin, normal, and the u/v axes. */
+function planeFrame(plane) {
+  if (!plane || isGroundPlane(plane)) {
+    return {
+      origin: new THREE.Vector3(0, 0, 0),
+      normal: new THREE.Vector3(0, 1, 0),
+      xdir: new THREE.Vector3(1, 0, 0),
+      ydir: new THREE.Vector3(0, 0, 1),
+    };
+  }
+  const n = new THREE.Vector3().fromArray(plane.normal).normalize();
+  let x = new THREE.Vector3().fromArray(plane.xdir || [1, 0, 0]);
+  x.sub(n.clone().multiplyScalar(x.dot(n)));
+  if (x.lengthSq() < 1e-12) {
+    // xdir was parallel to the normal, so pick any perpendicular axis instead.
+    const seed = Math.abs(n.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    x = seed.sub(n.clone().multiplyScalar(seed.dot(n)));
+  }
+  x.normalize();
+  // Matches planeMatrix: local +Z (the sketch's v axis) is xdir cross normal.
+  const y = new THREE.Vector3().crossVectors(x, n);
+  return { origin: new THREE.Vector3().fromArray(plane.origin || [0, 0, 0]), normal: n, xdir: x, ydir: y };
+}
+
+// A camera move in flight. Stepped by tick() so it never fights OrbitControls.
+let camAnim = null;
+const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function animateCamera(pos, target, up, ms = 420) {
+  if (ms <= 0 || reduceMotion()) {
+    camera.position.copy(pos); camera.up.copy(up); orbit.target.copy(target);
+    camera.lookAt(target); orbit.update();
+    camAnim = null;
+    return;
+  }
+  camAnim = {
+    t0: performance.now(), ms,
+    p0: camera.position.clone(), p1: pos.clone(),
+    u0: camera.up.clone(), u1: up.clone(),
+    g0: orbit.target.clone(), g1: target.clone(),
+  };
+}
+
+function stepCameraAnim() {
+  if (!camAnim) return;
+  const k = Math.min(1, (performance.now() - camAnim.t0) / camAnim.ms);
+  const e = k < 0.5 ? 2 * k * k : 1 - ((-2 * k + 2) ** 2) / 2;   // easeInOutQuad
+  camera.position.lerpVectors(camAnim.p0, camAnim.p1, e);
+  orbit.target.lerpVectors(camAnim.g0, camAnim.g1, e);
+  camera.up.copy(camAnim.u0).lerp(camAnim.u1, e).normalize();
+  if (k >= 1) camAnim = null;
+}
+
+/**
+ * Look straight down a plane's normal.
+ * `up` is -ydir so that u runs right and v runs down the screen, which makes a
+ * natural down-and-right drag produce a positive width and a positive height
+ * rather than the negative numbers the old 3/4 view produced.
+ */
+function viewPlaneNormal(plane, { ms = 420, span = 160 } = {}) {
+  const f = planeFrame(plane);
+  // Frame roughly `span` mm of the plane, so there is room to draw before the
+  // first dimension is typed. Keeps a sensible distance on tiny faces too.
+  const dist = (span * 0.5) / Math.tan((camera.fov * Math.PI / 180) / 2);
+  const target = f.origin.clone();
+  const pos = target.clone().add(f.normal.clone().multiplyScalar(dist));
+  animateCamera(pos, target, f.ydir.clone().negate(), ms);
+}
+
+// Where the camera was before the sketch opened, so finishing puts the model
+// back the way the user had it rather than leaving them staring straight down.
+let camBeforeSketch = null;
+function saveCameraForSketch() {
+  camBeforeSketch = { pos: camera.position.clone(), target: orbit.target.clone(), up: camera.up.clone() };
+}
+function restoreCameraAfterSketch({ ms = 420 } = {}) {
+  if (!camBeforeSketch) return;
+  const c = camBeforeSketch;
+  camBeforeSketch = null;
+  animateCamera(c.pos, c.target, c.up, ms);
+}
+
+// True when the camera is (near enough) looking straight down the sketch plane.
+// Drives the "Face on" button's active state.
+function isNormalToSketchPlane() {
+  const f = planeFrame(skPlane);
+  const view = camera.position.clone().sub(orbit.target).normalize();
+  return view.dot(f.normal) > 0.999;
 }
 
 // The plane the sketch is currently being drawn on, as a THREE.Plane.
@@ -885,14 +1033,29 @@ function sketchClick(e) {
       // and re-pick the plane instead of drawing on it.
       skPlanePicked = true;
       skPlaneArmed = false;
+      skNeedsPlanePick = false;
+      // Square up to the face. This is the whole of "sketch on a face" from the
+      // user's side, and without it the face is drawn on edge-on and unusably
+      // foreshortened, which is exactly what made it feel fiddly.
+      viewPlaneNormal(face.plane);
       drawSketchPreview();
       syncSketchBar();
-      flash(`Sketching on a face of ${face.name}. Now draw on it. Press P for the ground.`);
+      flash(`Sketching on a face of ${face.name}, squared up to it. Press P for the ground.`);
       return;
     }
     // Clicking empty space settles on the ground, so a stray later click over a
     // solid cannot silently move the plane mid-drawing.
     skPlanePicked = true;
+    // When the plane was still being chosen, this click only chose it. Squaring
+    // up moves the view under the cursor, so drawing from the pre-move position
+    // would drop the point somewhere the user did not aim at.
+    if (skNeedsPlanePick) {
+      skNeedsPlanePick = false;
+      viewPlaneNormal(null);
+      syncSketchBar();
+      flash('Sketching on the ground, squared up to it. Now draw.');
+      return;
+    }
   }
 
   const hit = groundPoint(e);
@@ -1074,6 +1237,18 @@ function syncSketchBar() {
 // just made. Already on the ground, it arms face picking for the next click.
 // Both are refused once a curve exists, since moving the plane would drag the
 // drawing out from under itself.
+// Re-square the view with the sketch plane. Orbiting mid-sketch is allowed, and
+// sometimes useful for seeing where a profile sits on a solid, but drawing while
+// off-square is what produced the old imprecision, so getting back is one click.
+function faceOnView() {
+  if (!sketchOn) return;
+  // Keep whatever the user has framed rather than yanking back to a fixed span.
+  const span = Math.max(20, camera.position.distanceTo(orbit.target)
+    * 2 * Math.tan((camera.fov * Math.PI / 180) / 2));
+  viewPlaneNormal(skPlane, { span });
+  flash('Squared up to the sketch plane.');
+}
+
 function resetSketchPlane() {
   if (skDoc && skDoc.entities.length) { flash('The plane is set once you start drawing. Undo the curves to change it.'); return; }
 
@@ -1082,10 +1257,19 @@ function resetSketchPlane() {
     skPlaneLabel = 'Ground';
     skPlanePicked = true;               // latched: clicks now draw on the ground
     skPlaneArmed = false;
-    flash('Back on the ground plane.');
+    skNeedsPlanePick = false;
+    viewPlaneNormal(null);
+    flash('Back on the ground plane, squared up to it.');
   } else {
     skPlanePicked = false;              // armed: the next click can choose a face
     skPlaneArmed = true;
+    skNeedsPlanePick = true;
+    // Drop back to the saved 3/4 view, otherwise there is no face to aim at
+    // from straight overhead.
+    if (camBeforeSketch) {
+      const c = camBeforeSketch;
+      animateCamera(c.pos.clone(), c.target.clone(), c.up.clone());
+    }
     flash('Click a flat face to draw on it.');
   }
   drawSketchPreview();
@@ -1156,6 +1340,7 @@ function wireSketchBar() {
     if (t.dataset.sktool) setSkTool(t.dataset.sktool);
     else if (t.dataset.sksnap !== undefined) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); }
     else if (t.dataset.skplane !== undefined) resetSketchPlane();
+    else if (t.dataset.skface !== undefined) faceOnView();
     else if (t.dataset.skundo !== undefined) undoSketchStep();
     else if (t.dataset.skdone !== undefined) finishSketch();
     else if (t.dataset.skcancel !== undefined) setSketch(false);
@@ -1240,6 +1425,12 @@ function finishSketch() {
     segments: 48,
   });
   doc.touch(obj);
+  // Stash the profile before leaving the sketcher, so Cancel can put you back
+  // in the sketch you just drew rather than an empty scene.
+  const stash = { sk: cloneSketch(skDoc), plane: skPlane ? JSON.parse(JSON.stringify(skPlane)) : null, label: skPlaneLabel };
+  // Leaving sketch mode also swings the camera back off square-on, which is
+  // what makes the extrude visible at all: from straight down the plane the
+  // solid grows directly at the camera and the depth reads as no change.
   setSketch(false);
 
   const state = report.status === 'fully' ? 'fully constrained' : `${report.dof} degrees of freedom left`;
@@ -1250,7 +1441,179 @@ function finishSketch() {
         ? ` Your outline crossed itself, so it became ${pieces} separate pieces.`
         : ' Your outline crossed itself and was repaired.')
     : '';
-  flash(`Extruded ${depth}mm, ${state}.${fixNote} Type exact numbers in the Inspector.`);
+  // Hand straight over to the extrude stage rather than declaring victory. The
+  // solid exists, but the depth is still a guess until the user says otherwise.
+  openExtrudeStage(obj, { note: `Profile closed, ${state}.${fixNote}`, stash });
+}
+
+// ------------------------------------------------------------- extrude stage
+//
+// Closing a profile used to build a solid at a guessed depth and drop you back
+// in the scene with a one-line flash. Nothing was called "extrude", nothing was
+// previewed, and the number was only findable in the Inspector afterwards. So
+// the flagship operation was invisible: you could do it without ever knowing
+// you had, and you could not tell it apart from "the sketch turned into a
+// thing". This stage makes the depth the thing you are looking at and holds the
+// operation open until you accept it.
+
+let exObj = null;                  // the solid being shaped, null when closed
+let exSymmetric = false;
+let exDragging = null;
+let exStash = null;                // the sketch that made it, so Cancel can go back
+
+const exBar = () => document.getElementById('extrude-bar');
+const exInput = () => document.getElementById('ex-depth');
+
+function openExtrudeStage(obj, { note = '', stash = null } = {}) {
+  exObj = obj;
+  exStash = stash;
+  exSymmetric = false;
+  doc.select?.(obj.id);
+  const bar = exBar();
+  if (bar) bar.hidden = false;
+  const inp = exInput();
+  if (inp) {
+    inp.value = round1(obj.params.depth);
+    // Select the number so typing a real one replaces it immediately. This is
+    // the single most common next action.
+    inp.focus({ preventScroll: true });
+    inp.select();
+  }
+  syncExtrudeBar();
+  flash(`${note} Set the depth, then press Done.`.trim());
+}
+
+function closeExtrudeStage() {
+  exObj = null; exDragging = null; exStash = null;
+  const bar = exBar();
+  if (bar) bar.hidden = true;
+}
+
+function syncExtrudeBar() {
+  const sym = document.querySelector('[data-exsym]');
+  if (sym) sym.setAttribute('aria-pressed', String(exSymmetric));
+}
+
+/** Apply a depth to the in-flight solid and rebuild it live. */
+function setExtrudeDepth(mm, { fromInput = false } = {}) {
+  if (!exObj) return;
+  const d = Math.max(0.1, Math.abs(mm));
+  const sign = mm < 0 ? -1 : 1;
+  exObj.params.depth = d;
+  // "Symmetric" grows the same total depth either side of the sketch plane, so
+  // the number in the box stays the number you get overall.
+  exObj.params.start = exSymmetric ? -d / 2 * sign : (sign < 0 ? -d : 0);
+  exObj.rebuild();
+  doc.touch(exObj);
+  const inp = exInput();
+  if (inp && !fromInput) inp.value = round1(d);
+}
+
+function flipExtrude() {
+  if (!exObj) return;
+  const cur = exObj.params.start < 0 && !exSymmetric ? 1 : -1;
+  setExtrudeDepth(exObj.params.depth * cur);
+  flash('Flipped the extrude direction.');
+}
+
+function toggleExtrudeSymmetric() {
+  if (!exObj) return;
+  exSymmetric = !exSymmetric;
+  syncExtrudeBar();
+  setExtrudeDepth(exObj.params.depth);
+  flash(exSymmetric ? 'Growing both ways from the sketch plane.' : 'Growing one way from the sketch plane.');
+}
+
+function commitExtrude() {
+  if (!exObj) return;
+  const d = round1(exObj.params.depth);
+  closeExtrudeStage();
+  flash(`Extruded ${d}mm. Change it any time in the Inspector.`);
+}
+
+function cancelExtrude() {
+  if (!exObj) return;
+  const id = exObj.id;
+  const stash = exStash;
+  closeExtrudeStage();
+  doc.remove(id);
+  // Back into the sketch that made it, so a profile that was nearly right can
+  // be fixed rather than redrawn from nothing.
+  if (stash) {
+    setSketch(true);
+    skDoc = stash.sk;
+    skPlane = stash.plane;
+    skPlaneLabel = stash.label;
+    skPlanePicked = true;
+    skNeedsPlanePick = false;
+    viewPlaneNormal(skPlane);
+    syncSketchBar();
+    solveAndDraw();
+    flash('Extrude cancelled, back in the sketch.');
+  } else {
+    flash('Extrude cancelled.');
+  }
+}
+
+// Dragging in the view sets the depth. Vertical drag, because the extrusion
+// grows along the plane normal and "pull it up out of the sketch" is the mental
+// model. The scale follows the camera distance so the solid tracks the finger
+// at roughly the rate it appears to move, near or far.
+function extrudeMmPerPixel() {
+  const dist = camera.position.distanceTo(orbit.target);
+  const worldPerPixel = (2 * dist * Math.tan((camera.fov * Math.PI / 180) / 2)) / renderer.domElement.clientHeight;
+  return worldPerPixel;
+}
+
+function extrudeDragStart(e) {
+  exDragging = { y: e.clientY, depth: exObj.params.depth, moved: false };
+  renderer.domElement.setPointerCapture?.(e.pointerId);
+}
+
+function extrudeDragMove(e) {
+  if (!exDragging) return;
+  const dy = exDragging.y - e.clientY;         // up = thicker
+  if (Math.abs(dy) > 2) exDragging.moved = true;
+  let d = exDragging.depth + dy * extrudeMmPerPixel();
+  // Snap to whole millimetres unless a fine drag is asked for, so the number
+  // lands somewhere a person would have typed.
+  if (!e.shiftKey) d = Math.round(d);
+  setExtrudeDepth(Math.max(0.1, d));
+}
+
+function extrudeDragEnd() {
+  if (exDragging?.moved) flash(`Depth ${round1(exObj.params.depth)}mm. Hold Shift while dragging for finer control.`);
+  exDragging = null;
+}
+
+function wireExtrudeBar() {
+  const bar = exBar();
+  if (!bar) return;
+  // The stage holds a reference to one object. Anything that can take that
+  // object away underneath it — New scene, undo, a time-travel jump, a delete —
+  // has to close the stage too, otherwise its bar sits there swallowing keys
+  // while pointing at a solid that no longer exists.
+  const dropIfGone = () => {
+    if (exObj && !doc.list.some((o) => o.id === exObj.id)) closeExtrudeStage();
+  };
+  for (const ev of ['remove', 'undo', 'regroup', 'history']) doc.addEventListener(ev, dropIfGone);
+  bar.addEventListener('click', (e) => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.exflip !== undefined) flipExtrude();
+    else if (t.dataset.exsym !== undefined) toggleExtrudeSymmetric();
+    else if (t.dataset.exok !== undefined) commitExtrude();
+    else if (t.dataset.excancel !== undefined) cancelExtrude();
+  });
+  const inp = exInput();
+  inp?.addEventListener('input', () => {
+    const v = parseFloat(inp.value);
+    if (Number.isFinite(v) && v > 0) setExtrudeDepth(v, { fromInput: true });
+  });
+  inp?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitExtrude(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelExtrude(); }
+  });
 }
 
 // Keep the old name working for the existing Enter binding.
@@ -1442,11 +1805,25 @@ function fillSelect(id, items, current) {
   sel.value = current;
 }
 
+// Each skin owns three colours in the viewport: the background, and the grid's
+// major and minor lines. The grid used to be blue-grey for every skin, which is
+// why the pink skin still read as cold and blue (Vi, 2026-08-07).
+const SKIN_VIEWPORT = {
+  paper:     { bg: 0xdfe3e8, major: 0x9aa4b0, minor: 0xc3cad2 },
+  plush:     { bg: 0xfceaf4, major: 0xe07cb6, minor: 0xf2c2dd },
+  blueprint: { bg: 0x0a1622, major: 0x2d5a86, minor: 0x16334f },
+  neon:      { bg: 0x0d0a18, major: 0x4b3a7a, minor: 0x261d40 },
+  graphite:  { bg: 0x0b0d10, major: 0x333a42, minor: 0x1e2329 },
+};
+const SKIN_DEFAULT = { bg: 0x0e1116, major: 0x3a4654, minor: 0x232b34 };
+
 function applyUiStyle(id) {
   document.documentElement.dataset.ui = id;
-  // Tie the viewport background to the palette so panel + scene feel cohesive.
-  const bg = { paper: 0xdfe3e8, plush: 0xece4fb, blueprint: 0x0a1622, neon: 0x0d0a18, graphite: 0x0b0d10 }[id] ?? 0x0e1116;
-  scene.background = new THREE.Color(bg);
+  // Tie the viewport background AND the grid to the palette, so the scene reads
+  // as the same colour family as the panels rather than a cold hole in them.
+  const skin = SKIN_VIEWPORT[id] ?? SKIN_DEFAULT;
+  scene.background = new THREE.Color(skin.bg);
+  setGrid(skin.major, skin.minor);
 }
 
 // --- controls: built-in presets + per-button custom + saveable user presets ---
@@ -1737,11 +2114,16 @@ resize();
 
 function tick() {
   requestAnimationFrame(tick);
+  stepCameraAnim();
   orbit.update();
   renderer.render(scene, camera);
   dimchips.update();
 }
 tick();
+
+// Wired down here rather than beside wireSketchBar because the stage's helpers
+// are const arrows, so an early call would land in their temporal dead zone.
+wireExtrudeBar();
 
 // Pre-warm the boolean kernel in the background so the first Group is snappy.
 warmKernel();
