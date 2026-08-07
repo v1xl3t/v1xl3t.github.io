@@ -395,6 +395,41 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
   background: var(--bg); border: 1px solid var(--accent); border-radius: 4px; color: #fff;
 }
 
+/* ------------------------------------------------- sketch dimensions
+   One chip per driving dimension, parked on the curve it drives. Unlike the
+   part chips these are absolutely positioned individually, because a dimension
+   belongs to a specific edge and a cluster in the corner would not say which. */
+/* The experimental gate. One class on <body> hides every opted-out feature at
+   once. !important because several of these elements are also shown and hidden
+   by their own logic, and the gate has to win over that. */
+body.no-experimental [data-experimental] { display: none !important; }
+
+#sk-dims { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+#sk-dims[hidden] { display: none; }
+#sk-dims .skdim {
+  position: absolute; transform: translate(-50%, -50%);
+  pointer-events: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 6px; font-size: 11px; line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  background: var(--panel-solid); border: 1px solid var(--border);
+  border-radius: 999px; color: var(--text); cursor: pointer;
+  box-shadow: 0 2px 6px #0006; white-space: nowrap;
+}
+#sk-dims .skdim:hover { border-color: var(--accent); }
+/* An auto dimension is one CADence added for you when you drew the curve. It is
+   just as editable, but muted so the ones you set yourself stand out. */
+#sk-dims .skdim.auto { opacity: 0.72; }
+#sk-dims .skdim.auto:hover { opacity: 1; }
+#sk-dims .skdim .sd-k { color: var(--accent); font-weight: 600; }
+#sk-dims .skdim .sd-in {
+  width: 54px; padding: 0 2px; font-size: 11px; font-variant-numeric: tabular-nums;
+  background: var(--bg); border: 1px solid var(--accent); border-radius: 4px; color: var(--text);
+}
+/* Rejected edits flash rather than silently reverting, so a value the sketch
+   cannot reach is visibly refused instead of appearing to do nothing. */
+#sk-dims .skdim.bad { border-color: var(--danger); }
+
 /* Group "Parts" editor in the Inspector (parametric re-bake) */
 .part { border: 1px solid var(--border); border-radius: 6px; padding: 6px 7px; margin-bottom: 6px; }
 .part-nm { font-size: 12px; color: var(--text); margin-bottom: 4px; }
@@ -734,6 +769,47 @@ body.render-view #tips-btn { display: none !important; }
   background: var(--accent-dim);
 }
 #sketch-bar .sk-read { min-width: 168px; }
+
+/* ------------------------------------------------- live dimension input (HUD)
+   Rides the cursor while a curve is in progress. Two jobs: show what you are
+   drawing as a number, and let you overwrite that number to get an exact one.
+   Deliberately small and low-contrast until a field is focused, so it informs
+   without fighting the geometry underneath it. */
+/* Opaque, and text-coloured rather than muted. Both are contrast decisions: the
+   translucent panel puts whatever is behind it under the text, and --muted over
+   --panel drops below 4.5:1 in the graphite skin. Hierarchy comes from size and
+   weight here instead of from colour. */
+#sk-hud {
+  position: absolute; z-index: 45; pointer-events: none;
+  display: flex; align-items: center; gap: 4px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border); border-radius: 9px; padding: 4px 5px;
+  font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text);
+  white-space: nowrap;
+}
+#sk-hud[hidden] { display: none; }
+/* Fields accept input only once the user starts typing, so the HUD never steals
+   a click meant for the canvas. */
+#sk-hud.typing { pointer-events: auto; }
+#sk-hud .hud-f { display: flex; align-items: center; gap: 3px; }
+#sk-hud .hud-k { font-weight: 600; color: var(--text); }
+#sk-hud .hud-v {
+  font: inherit; font-variant-numeric: tabular-nums;
+  background: transparent; color: var(--text); font-weight: 600;
+  border: 1px solid transparent; border-radius: 5px;
+  padding: 1px 3px; margin: 0; width: 52px; text-align: right;
+  -moz-appearance: textfield;
+}
+#sk-hud .hud-v::-webkit-outer-spin-button,
+#sk-hud .hud-v::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#sk-hud .hud-v:focus { outline: none; background: var(--panel-solid); border-color: var(--accent); color: var(--text); }
+/* A locked field is one the user typed into: it holds its value while the mouse
+   keeps moving, which is what makes "type the length, aim the angle" work. */
+#sk-hud .hud-f.locked .hud-v { border-color: var(--accent); color: var(--accent); }
+#sk-hud .hud-u { color: var(--text); }
+/* Supplementary, but still held to the same contrast floor: it is set apart by
+   being lighter in weight, not lighter in colour. */
+#sk-hud .hud-tip { color: var(--text); font-weight: 400; margin-left: 4px; }
 
 /* ---------------------------------------------------------------- view cube
    A real cube rather than a row of buttons, because the point is to show which

@@ -363,6 +363,183 @@ export function setDimension(sk, constraintId, value) {
   return report;
 }
 
+// ---------------------------------------------------------------- fillet / chamfer
+
+/**
+ * Round or bevel the corner where exactly two lines meet.
+ *
+ * This is the sketch-level fillet, and it is deliberately not a solid-edge one.
+ * CADence's kernel is a mesh CSG engine, which can union and subtract but cannot
+ * roll a true constant-radius blend along an arbitrary edge of an existing body;
+ * that needs a B-rep kernel. Filleting the PROFILE instead is exact, stays
+ * parametric, and extrudes into the same rounded part you were after.
+ *
+ * The corner point is consumed and replaced by two tangent points plus the arc
+ * (or bevel line) between them. Constraints that referenced the old corner are
+ * re-pointed at whichever replacement sits on their line, and any dimension
+ * among them is re-measured, because the edge genuinely did get shorter.
+ *
+ * The whole thing is attempted on a copy: if the result will not solve, nothing
+ * is changed at all.
+ *
+ * @param {object} sk        the sketch, modified in place on success
+ * @param {string} pointId   the corner to work on
+ * @param {number} size      fillet radius, or chamfer setback distance, in mm
+ * @param {{mode?: 'fillet'|'chamfer'}} opts
+ * @returns {{ok:boolean, reason:string, entity?:string, dimension?:string}}
+ */
+export function filletCorner(sk, pointId, size, { mode = 'fillet' } = {}) {
+  if (!(size > 0)) return { ok: false, reason: 'the size must be greater than zero' };
+
+  const P = sk.points.find((p) => p.id === pointId);
+  if (!P) return { ok: false, reason: 'that corner is not in the sketch' };
+
+  const touching = sk.entities.filter((e) => e.type === 'line' && (e.p1 === pointId || e.p2 === pointId));
+  if (touching.length !== 2) {
+    return { ok: false, reason: touching.length < 2 ? 'a corner needs two lines meeting at it' : 'more than two lines meet there' };
+  }
+
+  const [l1, l2] = touching;
+  const farId = (e) => (e.p1 === pointId ? e.p2 : e.p1);
+  const A = sk.points.find((p) => p.id === farId(l1));
+  const B = sk.points.find((p) => p.id === farId(l2));
+  if (!A || !B) return { ok: false, reason: 'one of the lines is missing an endpoint' };
+
+  const v1 = { x: A.x - P.x, y: A.y - P.y };
+  const v2 = { x: B.x - P.x, y: B.y - P.y };
+  const d1 = len(v1), d2 = len(v2);
+  if (d1 < 1e-6 || d2 < 1e-6) return { ok: false, reason: 'one of the lines has no length' };
+  const u1 = { x: v1.x / d1, y: v1.y / d1 };
+  const u2 = { x: v2.x / d2, y: v2.y / d2 };
+
+  // Interior angle at the corner.
+  const cosT = Math.max(-1, Math.min(1, dot(u1, u2)));
+  const theta = Math.acos(cosT);
+  if (theta < 1e-3 || Math.PI - theta < 1e-3) {
+    return { ok: false, reason: 'those two lines are straight through, so there is no corner to round' };
+  }
+
+  // How far back along each edge the corner has to be cut.
+  const setback = mode === 'chamfer' ? size : size / Math.tan(theta / 2);
+  // Leave a sliver of the original edge, otherwise the neighbouring corner has
+  // nothing left to attach to.
+  const room = Math.min(d1, d2) * 0.98;
+  if (setback > room) {
+    return {
+      ok: false,
+      reason: mode === 'chamfer'
+        ? `a ${fmt(size)}mm chamfer needs ${fmt(setback)}mm of edge and only ${fmt(room)}mm is free`
+        : `a ${fmt(size)}mm radius needs ${fmt(setback)}mm of edge and only ${fmt(room)}mm is free`,
+    };
+  }
+
+  const backup = cloneSketch(sk);
+
+  const T1 = addPoint(sk, P.x + u1.x * setback, P.y + u1.y * setback);
+  const T2 = addPoint(sk, P.x + u2.x * setback, P.y + u2.y * setback);
+
+  // Re-point the two lines onto the new tangent points.
+  if (l1.p1 === pointId) l1.p1 = T1.id; else l1.p2 = T1.id;
+  if (l2.p1 === pointId) l2.p1 = T2.id; else l2.p2 = T2.id;
+
+  let entity, dimension;
+  if (mode === 'chamfer') {
+    entity = addLine(sk, T1.id, T2.id);
+    dimension = addConstraint(sk, {
+      type: 'distance', a: T1.id, b: T2.id,
+      value: Math.hypot(T2.x - T1.x, T2.y - T1.y), auto: false,
+    });
+  } else {
+    // Centre sits along the bisector, at r / sin(θ/2) from the corner. That is
+    // the one point equidistant from both edges by exactly r.
+    const bis = { x: u1.x + u2.x, y: u1.y + u2.y };
+    const bl = len(bis);
+    if (bl < 1e-9) { restoreSketch(sk, backup); return { ok: false, reason: 'the corner is too shallow to round' }; }
+    const away = size / Math.sin(theta / 2);
+    const C = addPoint(sk, P.x + (bis.x / bl) * away, P.y + (bis.y / bl) * away);
+    // Sweep direction follows the corner's handedness, so the arc bulges across
+    // the corner rather than the long way round the circle.
+    const ccw = cross({ x: T1.x - C.x, y: T1.y - C.y }, { x: T2.x - C.x, y: T2.y - C.y }) > 0;
+    entity = addArc(sk, C.id, T1.id, T2.id, ccw);
+    // Tangency is what keeps it a fillet when the sketch is re-dimensioned
+    // later, rather than an arc that merely looks right today.
+    addConstraint(sk, { type: 'tangent', e: l1.id, c: entity.id, auto: true });
+    addConstraint(sk, { type: 'tangent', e: l2.id, c: entity.id, auto: true });
+    dimension = addConstraint(sk, { type: 'radius', e: entity.id, value: size, auto: false });
+  }
+
+  repointConstraints(sk, pointId, T1.id, T2.id, l1, l2);
+
+  // The corner itself is gone.
+  const pi = sk.points.findIndex((p) => p.id === pointId);
+  if (pi >= 0) sk.points.splice(pi, 1);
+
+  const report = solveSketch(sk);
+  if (!report.ok) {
+    restoreSketch(sk, backup);
+    return { ok: false, reason: `the sketch could not be re-solved with that ${mode} (${report.reason})` };
+  }
+
+  return { ok: true, reason: mode, entity: entity.id, dimension: dimension?.id };
+}
+
+/** Copy a snapshot back over a sketch, keeping the same object identity. */
+function restoreSketch(sk, snap) {
+  sk.plane = snap.plane;
+  sk.points = snap.points;
+  sk.entities = snap.entities;
+  sk.constraints = snap.constraints;
+}
+
+/**
+ * Move every constraint that named the consumed corner onto its replacement.
+ *
+ * Which replacement depends on which edge the constraint's other end lives on,
+ * so a width dimension that ran to the corner keeps running along the same edge.
+ * Dimensions are re-measured because that edge really is shorter now; leaving
+ * the old number would make the sketch unsolvable for a reason the user did
+ * nothing to cause.
+ */
+function repointConstraints(sk, oldId, t1Id, t2Id, l1, l2) {
+  const pts = new Map(sk.points.map((p) => [p.id, p]));
+  const onLine = (id, line) => line.p1 === id || line.p2 === id;
+  // Which tangent point continues the edge that this other endpoint sits on.
+  const pick = (otherId) => {
+    if (otherId && onLine(otherId, l1)) return t1Id;
+    if (otherId && onLine(otherId, l2)) return t2Id;
+    return t1Id;
+  };
+
+  for (const c of sk.constraints) {
+    if (c.a === oldId) c.a = pick(c.b);
+    else if (c.b === oldId) c.b = pick(c.a);
+    if (c.p === oldId) c.p = t1Id;
+
+    if (c.type === 'fix' && c.p === t1Id) {
+      const p = pts.get(t1Id);
+      if (p) { c.x = p.x; c.y = p.y; }
+    }
+    // Re-measure any dimension that now spans different points.
+    if (isDimension(c) && (c.a === t1Id || c.a === t2Id || c.b === t1Id || c.b === t2Id)) {
+      const a = pts.get(c.a), b = pts.get(c.b);
+      if (!a || !b) continue;
+      if (c.type === 'distance') c.value = Math.hypot(b.x - a.x, b.y - a.y);
+      else if (c.type === 'distanceX') c.value = b.x - a.x;
+      else if (c.type === 'distanceY') c.value = b.y - a.y;
+    }
+  }
+}
+
+/** Corners a fillet or chamfer could actually be applied to. */
+export function filletableCorners(sk) {
+  const out = [];
+  for (const p of sk.points) {
+    const touching = sk.entities.filter((e) => e.type === 'line' && (e.p1 === p.id || e.p2 === p.id));
+    if (touching.length === 2) out.push(p.id);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- profile
 
 // Points that a constraint (or sheer proximity after solving) has welded

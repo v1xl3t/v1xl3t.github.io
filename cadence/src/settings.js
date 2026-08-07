@@ -52,11 +52,26 @@ export const NAV_VERBS = [
   { id: 'NONE',   label: '—' },
 ];
 
+// Everything the parametric half of CADence puts on screen. These are gated
+// behind one opt-in switch because they are still being built and debugged, and
+// a half-finished feature in the default toolbar makes the whole app feel
+// unfinished. Off by default: what remains is the stable modeller.
+//
+// Each id is matched by a data-experimental="<id>" attribute in the markup, so
+// adding a feature to the gate is a markup change, not a code change.
+export const EXPERIMENTAL_FEATURES = [
+  { id: 'sketch',   label: 'Sketch and Extrude', note: 'constrained 2D sketching, fillet and chamfer, extrude' },
+  { id: 'loft',     label: 'Loft',               note: 'blended solids between two profiles' },
+  { id: 'timeline', label: 'Recipe Timeline',    note: 'branching modeling history' },
+  { id: 'dimchips', label: 'Dimension chips',    note: 'editable dimensions floating on the selected part' },
+];
+
 const KEY = 'cadence.settings.v1';
 const DEFAULTS = {
   ui: 'midnight', render: 'shaded', controls: 'cadence', units: 'mm',
   map: null,          // active {LEFT,MIDDLE,RIGHT} verb map; null = derive from `controls`
   userPresets: [],    // [{ id, label, map }] saved by the user
+  experimental: false, // opt in to the parametric features still under construction
 };
 
 export function loadSettings() {

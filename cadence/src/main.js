@@ -16,6 +16,8 @@ import { CadDocument } from './model.js';
 import {
   createSketch, addPoint, addLine, addCircle, addConstraint, addRectangle,
   solveSketch, sketchProfile, cloneSketch,
+  isDimension, constraintLabel, setDimension,
+  filletCorner, filletableCorners,
 } from './sketch.js';
 import { suggestedDepth } from './profile.js';
 import { planeFromNormal, sketchToWorld, isGroundPlane } from './primitives.js';
@@ -320,7 +322,14 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
   if (!btn) return;
 
-  if (btn.dataset.add) { doc.add(btn.dataset.add); if (COARSE_POINTER) closeDrawers(); }  // on touch, reveal the new shape
+  if (btn.dataset.add) {
+    if (btn.dataset.add === 'loft' && !experimentalOn()) {
+      flash('Loft is an experimental feature. Turn it on in Settings.');
+      return;
+    }
+    doc.add(btn.dataset.add);
+    if (COARSE_POINTER) closeDrawers();   // on touch, reveal the new shape
+  }
   if (btn.dataset.align) align(btn.dataset.align, btn.dataset.alignMode || 'center');
   if (btn.dataset.distribute) distribute(btn.dataset.distribute);
 
@@ -352,7 +361,10 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
       break;
     case 'drop-floor':   dropToFloor(); break;
     case 'sketch':       toggleSketch(); break;
-    case 'timeline':     timeline.toggle(); break;
+    case 'timeline':
+      if (!experimentalOn()) flash('The Recipe Timeline is an experimental feature. Turn it on in Settings.');
+      else timeline.toggle();
+      break;
     case 'shortcuts':    toggleShortcuts(); break;
     case 'new-project':
       doc.newScene();
@@ -424,6 +436,16 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Typing a number while a curve is in progress means you want that dimension,
+  // not the view shortcut that digit is normally bound to. Route it to the live
+  // field before any other binding gets a look at it.
+  if (sketchOn && !e.ctrlKey && !e.metaKey && !e.altKey &&
+      (/^[0-9]$/.test(e.key) || e.key === '.' || e.key === '-') &&
+      hudBeginTyping(e.key)) {
+    e.preventDefault();
+    return;
+  }
+
   if (k === 'w') setMode('translate');
   else if (k === 'e') setMode('rotate');
   else if (k === 'r') setMode('scale');
@@ -437,7 +459,10 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'g') { e.preventDefault(); e.shiftKey ? ungroupSelected() : groupSelected(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
   else if (k === 'f') frameSelection();
-  else if (k === 't') timeline.toggle();
+  else if (k === 't') {
+    if (!experimentalOn()) flash('The Recipe Timeline is an experimental feature. Turn it on in Settings.');
+    else timeline.toggle();
+  }
   // Standard views on the number row, the way most CAD packages bind them, plus
   // Home for the 3/4 view you started in.
   else if (!e.ctrlKey && !e.metaKey && ['1', '2', '3', '4', '5', '6'].includes(k)) {
@@ -447,9 +472,9 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'home') { e.preventDefault(); snapToView('iso'); }
   // While the sketcher is open its tool letters win, so L is Line rather than
   // Lasso. Outside sketch mode nothing changes.
-  else if (sketchOn && ['l', 'r', 'c', 'd'].includes(k) && !e.ctrlKey && !e.metaKey) {
+  else if (sketchOn && ['l', 'r', 'c', 'd', 'o', 'b'].includes(k) && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
-    setSkTool({ l: 'line', r: 'rect', c: 'circle', d: 'dim' }[k]);
+    setSkTool({ l: 'line', r: 'rect', c: 'circle', d: 'dim', o: 'fillet', b: 'chamfer' }[k]);
   }
   else if (sketchOn && k === 'g' && !e.ctrlKey && !e.metaKey) { skSnap = skSnap > 0 ? 0 : 1; syncSketchBar(); flash(skSnap ? 'Grid snap on, 1mm.' : 'Grid snap off.'); }
   else if (sketchOn && k === 'p' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); resetSketchPlane(); }
@@ -463,6 +488,15 @@ window.addEventListener('keydown', (e) => {
   else if (k.startsWith('arrow') && doc.selection.size) { e.preventDefault(); nudgeSelection(k, e.shiftKey, e.repeat); }
   else if (k === 'escape') {
     if (!document.getElementById('shortcuts-overlay').hidden) toggleShortcuts(false);
+    // In a sketch, the first Escape ends the curve you are drawing and the
+    // second leaves the sketch. Throwing the whole sketch away on the keystroke
+    // people use to mean "stop this line" loses work they meant to keep.
+    else if (sketchOn && skPending.length) {
+      skPending = [];
+      drawSketchPreview();
+      syncSketchBar();
+      flash('Curve ended. Escape again to leave the sketch.');
+    }
     else if (sketchOn) setSketch(false);
     else if (lassoOn) setLasso(false);
     else if (measureOn) setMeasure(false);
@@ -512,9 +546,14 @@ function setStatus() {
   statusbar.innerHTML = `<span>${left}</span><span class="units">units: mm</span>`;
 }
 const fmt = (v) => [v.x, v.y, v.z].map((n) => n.toFixed(1)).join(', ');
+let flashTimer = null;
 function flash(msg) {
   statusbar.innerHTML = `<span>${msg}</span><span class="units">units: mm</span>`;
-  setTimeout(setStatus, 2500);
+  // Cancel the previous message's timer. Without this an earlier flash's expiry
+  // wipes a later message that is still fresh, which is how a refusal can vanish
+  // before it has been read.
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(setStatus, 2500);
 }
 
 // ---------------------------------------------------------------- render modes
@@ -782,6 +821,7 @@ const PENDING_COLOR = 0x9aa6b2;
 const SNAP_COLOR = 0x7bffb0;       // reads clearly on every skin's viewport
 const SNAP_PICK_MM = 2.5;          // click within this of a point to reuse it
 const AXIS_TOL_DEG = 4;            // snap a near-axis segment to exactly axis-aligned
+let skCornerSize = 3;              // fillet radius / chamfer setback, in mm
 
 function disposeSketchPreview() {
   for (const c of [...sketchGroup.children]) { c.geometry?.dispose(); c.material?.dispose(); sketchGroup.remove(c); }
@@ -789,6 +829,9 @@ function disposeSketchPreview() {
 
 function setSketch(on) {
   sketchOn = on;
+  // The empty-scene prompt sits dead centre, which is where the drawing goes.
+  // It only refreshes on document events, so entering a sketch has to say so.
+  updateEmptyState();
   if (on) { if (lassoOn) setLasso(false); if (measureOn) setMeasure(false); }
   gizmo.enabled = !on;                          // don't let the gizmo eat sketch clicks
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
@@ -801,6 +844,10 @@ function setSketch(on) {
     skTool = 'line';
     skPending = [];
     skDimPair = null;
+    skHover = null;
+    skHudPx = null;
+    skHudKeys = '';
+    skHudLock = {};
     skPlane = null;
     skPlaneLabel = 'Ground';
     skPlanePicked = false;
@@ -824,13 +871,23 @@ function setSketch(on) {
     }
     syncSketchBar();
   } else {
-    skDoc = null; skPending = []; skDimPair = null;
+    skDoc = null; skPending = []; skDimPair = null; skHover = null;
+    clearHudTyping();
+    skHudPx = null; skHudKeys = '';
+    const hud = document.getElementById('sk-hud');
+    if (hud) hud.hidden = true;
+    rebuildSketchDims({ force: true });
     disposeSketchPreview();
     restoreCameraAfterSketch();
     flash('Sketch off.');
   }
 }
-function toggleSketch() { setSketch(!sketchOn); }
+function toggleSketch() {
+  // Guarded here rather than only on the button, so the S shortcut and the
+  // proxied top bar cannot start a gated feature either.
+  if (!experimentalOn()) { flash('Sketching is an experimental feature. Turn it on in Settings.'); return; }
+  setSketch(!sketchOn);
+}
 
 function aimAt(e) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -993,16 +1050,34 @@ function snapValue(v) { return skSnap > 0 ? Math.round(v / skSnap) * skSnap : v;
 // Reuse an existing point when the click lands on one. Sharing the id is what
 // welds two curves together, which is stronger and cheaper than adding a
 // coincident constraint after the fact.
-function pointAt(x, y, { allowReuse = true } = {}) {
+//
+// Takes the resolved snap, not raw coordinates, and that matters. inferSnap has
+// already decided where this click goes and the toolbar has already promised it
+// to the user. Re-deriving anything here (rounding to the grid, re-testing a
+// separate reuse radius) can only disagree with that promise, and a click that
+// lands somewhere other than the readout said is the whole "points land wrong"
+// complaint. So: honour the snap exactly, and never round it a second time.
+function pointAt(snap, { allowReuse = true } = {}) {
+  // The snap already identified a specific existing point. Reuse that one, not
+  // whatever happens to be nearest in millimetres.
+  if (allowReuse && snap.ref && POINT_SNAPS.has(snap.kind)) {
+    const p = skPoint(snap.ref);
+    if (p) return p;
+  }
   if (allowReuse) {
     for (const p of skDoc.points) {
       if (p.id === 'origin' && !skDoc.entities.length) continue;
-      if (Math.hypot(p.x - x, p.y - y) <= SNAP_PICK_MM) return p;
+      if (Math.hypot(p.x - snap.x, p.y - snap.y) <= SNAP_PICK_MM) return p;
     }
   }
   const first = skDoc.points.length <= 1;      // only the origin exists so far
-  return addPoint(skDoc, snapValue(x), snapValue(y), first);
+  // snap.x / snap.y are final. inferSnap applied the grid itself when nothing
+  // better was under the cursor.
+  return addPoint(skDoc, snap.x, snap.y, first);
 }
+
+// Snap kinds that name an existing point rather than a position in space.
+const POINT_SNAPS = new Set(['endpoint', 'origin', 'centre']);
 
 // ------------------------------------------------------------ snap inference
 //
@@ -1044,14 +1119,14 @@ function inferSnap(x, y, { anchor = null } = {}) {
   // id, which is stronger than any constraint added afterwards.
   for (const p of skDoc.points) {
     if (p.id === 'origin' && !skDoc.entities.length) continue;
-    offer(5, p.x, p.y, p.id === 'origin' ? 'origin' : 'endpoint', p.id === 'origin' ? 'Origin' : 'Endpoint');
+    offer(5, p.x, p.y, p.id === 'origin' ? 'origin' : 'endpoint', p.id === 'origin' ? 'Origin' : 'Endpoint', p.id);
   }
 
   // 4, circle centres.
   for (const e of skDoc.entities) {
     if (e.type !== 'circle') continue;
     const c = skPoint(e.c);
-    if (c) offer(4, c.x, c.y, 'centre', 'Centre');
+    if (c) offer(4, c.x, c.y, 'centre', 'Centre', c.id);
   }
 
   // 3, line midpoints.
@@ -1160,10 +1235,22 @@ function sketchClick(e) {
   // Inference first, grid second. Landing exactly on a corner or a midpoint is
   // what makes the next constraint mean something.
   const snap = inferSnap(raw.x, raw.y, { anchor: snapAnchor() });
+  placeSketchPoint(snap);
+}
+
+/**
+ * Build geometry at an already-resolved position.
+ *
+ * Split out from sketchClick so a click and a typed dimension take the exact
+ * same path. Anything that resolves a position, the cursor or the number you
+ * typed into the heads-up field, hands a snap to this function and gets
+ * identical geometry and identical constraints.
+ */
+function placeSketchPoint(snap) {
   const x = snap.x, y = snap.y;
 
   if (skTool === 'line') {
-    const p = pointAt(x, y);
+    const p = pointAt(snap);
     // A point put on an edge should STAY on that edge when the sketch is later
     // re-dimensioned, so record the inference as a constraint rather than
     // leaving it as a position that happens to line up today.
@@ -1183,7 +1270,7 @@ function sketchClick(e) {
   }
 
   else if (skTool === 'rect') {
-    if (!skPending.length) { skPending.push({ x, y }); }
+    if (!skPending.length) { skPending.push({ ...snap }); }
     else {
       const a = skPending.pop();
       if (Math.abs(a.x - x) < 0.5 || Math.abs(a.y - y) < 0.5) { flash('That rectangle has no area. Click a second corner further out.'); return; }
@@ -1196,20 +1283,28 @@ function sketchClick(e) {
   }
 
   else if (skTool === 'circle') {
-    if (!skPending.length) { skPending.push({ x, y }); }
+    // Keep the whole snap, not just its coordinates, so a centre placed on an
+    // existing corner reuses that corner's point instead of stacking a second
+    // one on top of it.
+    if (!skPending.length) { skPending.push({ ...snap }); }
     else {
       const c = skPending.pop();
       const r = Math.hypot(x - c.x, y - c.y);
       if (r < 0.5) { flash('That circle has no radius. Click further from the centre.'); return; }
-      const cp = addPoint(skDoc, c.x, c.y, skDoc.points.length <= 1);
+      const cp = pointAt(c);
       const circ = addCircle(skDoc, cp.id, round1(r));
       addConstraint(skDoc, { type: 'radius', e: circ.id, value: round1(r), auto: true });
       skPending = [];
     }
   }
 
+  else if (skTool === 'fillet' || skTool === 'chamfer') {
+    applyCornerTool(snap);
+    return;
+  }
+
   else if (skTool === 'dim') {
-    const p = pointAt(x, y, { allowReuse: true });
+    const p = pointAt(snap, { allowReuse: true });
     skPending.push(p.id);
     if (skPending.length === 2) {
       const [a, b] = skPending;
@@ -1223,6 +1318,10 @@ function sketchClick(e) {
   }
 
   solveAndDraw();
+  // The curve just changed, so any dimension the user had typed belongs to the
+  // segment that is now finished, not the next one.
+  skHudLock = {};
+  updateHud();
   syncSketchBar();
 }
 
@@ -1234,10 +1333,450 @@ function sketchMove(e) {
   const snap = inferSnap(raw.x, raw.y, { anchor: snapAnchor() });
   skHover = { x: snap.x, y: snap.y };
   skSnapHint = snap.kind === 'grid' ? null : snap;
+  skHudPx = { x: e.clientX, y: e.clientY };
+  updateHud();
   syncSketchBar();
   // The snap marker and its guide have to redraw on every move, not only while
   // a curve is in progress, otherwise you cannot see what a first click will do.
   drawSketchPreview();
+}
+
+// ------------------------------------------------------------- corner tools
+//
+// Fillet rounds a corner, chamfer bevels it. Both work on the SKETCH rather than
+// on a finished solid, because CADence's kernel is a mesh CSG engine: it can
+// union and subtract, but rolling a constant-radius blend along an arbitrary
+// edge of an existing body is a B-rep operation it does not have. Rounding the
+// profile before the extrude reaches the same part, stays exact, and leaves the
+// radius as a dimension you can retype afterwards.
+
+/** The filletable corner nearest a click, or null when the click missed them all. */
+function cornerNear(x, y) {
+  const tol = Math.max(snapTolMm() * 2, 3);
+  let best = null, bestD = Infinity;
+  for (const id of filletableCorners(skDoc)) {
+    const p = skPoint(id);
+    if (!p) continue;
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d < bestD && d <= tol) { best = id; bestD = d; }
+  }
+  return best;
+}
+
+function applyCornerTool(snap) {
+  const mode = skTool === 'chamfer' ? 'chamfer' : 'fillet';
+  // A size typed into the cursor field counts even without Enter, so typing the
+  // number and clicking the corner works as one gesture.
+  const typed = skHudLock[mode];
+  if (Number.isFinite(typed) && typed > 0) skCornerSize = typed;
+
+  const id = snap.ref && POINT_SNAPS.has(snap.kind) ? snap.ref : cornerNear(snap.x, snap.y);
+  if (!id) { flash(`Click a corner where two lines meet to ${mode} it.`); return; }
+
+  const res = filletCorner(skDoc, id, skCornerSize, { mode });
+  if (!res.ok) {
+    // filletCorner restores the sketch itself on failure, so there is nothing to
+    // undo here, only to explain.
+    flash(`No ${mode}: ${res.reason}`);
+    return;
+  }
+  drawSketchPreview();
+  rebuildSketchDims({ force: true });
+  syncSketchBar();
+  flash(mode === 'fillet'
+    ? `Corner rounded to ${round1(skCornerSize)}mm. Click the radius to change it.`
+    : `Corner bevelled by ${round1(skCornerSize)}mm.`);
+}
+
+// ------------------------------------------------- editable sketch dimensions
+//
+// Every curve you draw already carries a driving dimension, added automatically
+// so there is always a number to change. Until now those numbers lived only in
+// the solver, which made the sketch parametric on paper and frozen in practice.
+// These chips put each one on the curve it drives: click, retype, and the solver
+// moves the geometry to obey. That round trip is the entire parametric promise.
+
+const skDimsEl = () => document.getElementById('sk-dims');
+
+/**
+ * Where a dimension should sit, in sketch coordinates, and how to label it.
+ *
+ * Also returns `along`, the direction of the thing being measured. The chip is
+ * pushed off the geometry perpendicular to that, which is what every drafting
+ * convention does and, more practically, is what stops the chip from covering
+ * the midpoint of the very edge you are trying to snap to.
+ */
+function dimAnchor(c) {
+  const P = (id) => skPoint(id);
+  if (c.type === 'distance' || c.type === 'distanceX' || c.type === 'distanceY') {
+    const a = P(c.a), b = P(c.b);
+    if (!a || !b) return null;
+    const key = c.type === 'distanceX' ? 'W' : c.type === 'distanceY' ? 'H' : 'L';
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, key, unit: 'mm', along: { x: b.x - a.x, y: b.y - a.y } };
+  }
+  if (c.type === 'radius' || c.type === 'diameter') {
+    const e = skDoc.entities.find((k) => k.id === c.e);
+    const ctr = e && P(e.c);
+    if (!ctr) return null;
+    // Park it on the rim rather than the centre, so two concentric circles do
+    // not stack their dimensions on top of each other.
+    const r = e.type === 'circle' ? e.r : 0;
+    return {
+      x: ctr.x + r * 0.707, y: ctr.y + r * 0.707,
+      key: c.type === 'radius' ? 'R' : '⌀', unit: 'mm',
+      along: { x: -0.707, y: 0.707 },        // tangent at that point on the rim
+    };
+  }
+  if (c.type === 'angle') {
+    const a = skDoc.entities.find((k) => k.id === c.a);
+    const p1 = a && P(a.p1), p2 = a && P(a.p2);
+    if (!p1 || !p2) return null;
+    return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2, key: '∡', unit: '°', along: { x: p2.x - p1.x, y: p2.y - p1.y } };
+  }
+  return null;
+}
+
+// How far off the geometry a dimension chip sits, in screen pixels. Big enough
+// that the chip never covers the edge's own snap targets.
+const DIM_OFFSET_PX = 26;
+
+/** Project a sketch point to client pixels, so a chip can sit on the geometry. */
+function sketchToScreen(p) {
+  const w = toWorld(p);
+  const v = new THREE.Vector3(w.x, w.y, w.z).project(camera);
+  if (v.z > 1) return null;                            // behind the camera
+  const r = renderer.domElement.getBoundingClientRect();
+  return { x: (v.x * 0.5 + 0.5) * r.width + r.left, y: (-v.y * 0.5 + 0.5) * r.height + r.top };
+}
+
+let skDimSig = '';           // which dimensions are on screen, to avoid needless rebuilds
+
+/**
+ * Rebuild the chip set.
+ *
+ * This is called from the redraw path, which runs on every mouse move, so it
+ * has to be cheap and it must never yank the DOM out from under someone who is
+ * mid-edit. Both are handled by rebuilding only when the set of dimensions
+ * actually changed. Positions are updated separately, every frame.
+ */
+function rebuildSketchDims({ force = false } = {}) {
+  const layer = skDimsEl();
+  if (!layer) return;
+  // Never rebuild while a value is being typed; that would destroy the field.
+  if (!force && layer.contains(document.activeElement)) return;
+
+  if (!sketchOn || !skDoc) { layer.innerHTML = ''; layer.hidden = true; skDimSig = ''; return; }
+
+  const dims = skDoc.constraints.filter(isDimension);
+  const sig = dims.map((c) => `${c.id}:${c.type}:${c.auto ? 'a' : 'm'}`).join('|');
+  if (!force && sig === skDimSig) return;
+  skDimSig = sig;
+
+  layer.innerHTML = '';
+  if (!dims.length) { layer.hidden = true; return; }
+  layer.hidden = false;
+
+  for (const c of dims) {
+    const a = dimAnchor(c);
+    if (!a) continue;
+    const chip = document.createElement('div');
+    chip.className = 'skdim' + (c.auto ? ' auto' : '');
+    chip.dataset.cid = c.id;
+    chip.innerHTML = `<span class="sd-k">${a.key}</span><span class="sd-v">${round1(c.value)}</span>`;
+    chip.title = `${constraintLabel(c)}, click to change it`;
+    // The canvas treats a pointerdown as the start of an orbit or a sketch
+    // click, so the chip has to claim its own presses.
+    chip.addEventListener('pointerdown', (e) => e.stopPropagation());
+    chip.addEventListener('click', (e) => { e.stopPropagation(); editSketchDim(chip, c.id); });
+    layer.appendChild(chip);
+  }
+  positionSketchDims();
+}
+
+/** Reposition existing chips. Cheap enough to run every frame. */
+function positionSketchDims() {
+  const layer = skDimsEl();
+  if (!layer || layer.hidden || !skDoc) return;
+  // While a curve is being drawn, every click belongs to the drawing. Chips go
+  // click-through so a dimension can never intercept a point you are placing.
+  layer.style.pointerEvents = skPending.length ? 'none' : '';
+  for (const chip of layer.children) {
+    const c = skDoc.constraints.find((k) => k.id === chip.dataset.cid);
+    const a = c && dimAnchor(c);
+    const s = a && sketchToScreen(a);
+    if (!s) { chip.style.display = 'none'; continue; }
+    chip.style.display = '';
+    // Push the chip off the edge, perpendicular to it, measured on screen so the
+    // clearance is the same at any zoom.
+    let ox = 0, oy = 0;
+    if (a.along) {
+      const tip = sketchToScreen({ x: a.x + a.along.x, y: a.y + a.along.y });
+      if (tip) {
+        const dx = tip.x - s.x, dy = tip.y - s.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 1e-6) { ox = (-dy / d) * DIM_OFFSET_PX; oy = (dx / d) * DIM_OFFSET_PX; }
+      }
+    }
+    chip.style.left = `${s.x + ox}px`;
+    chip.style.top = `${s.y + oy}px`;
+    // Keep the displayed number honest while the solver moves things around.
+    const v = chip.querySelector('.sd-v');
+    if (v && !chip.querySelector('input')) v.textContent = round1(c.value);
+  }
+}
+
+function editSketchDim(chip, cid) {
+  if (chip.querySelector('input')) return;
+  const c = skDoc.constraints.find((k) => k.id === cid);
+  if (!c) return;
+  const key = chip.querySelector('.sd-k')?.textContent || '';
+  chip.innerHTML = `<span class="sd-k">${key}</span><input class="sd-in" type="number" step="any" value="${round1(c.value)}" aria-label="${constraintLabel(c)}" />`;
+  const inp = chip.querySelector('input');
+  inp.focus(); inp.select();
+  inp.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+  const commit = () => {
+    const v = parseFloat(inp.value);
+    if (!Number.isFinite(v)) { rebuildSketchDims({ force: true }); return; }
+    const report = setDimension(skDoc, cid, v);
+    // setDimension puts the old value back itself when the sketch cannot reach
+    // the new one, so the geometry is already safe. All that is left is saying so.
+    if (!report || !report.ok) {
+      flash('The sketch cannot reach that value with the rules already on it, so it was left alone.');
+      rebuildSketchDims({ force: true });
+      const again = skDimsEl()?.querySelector(`[data-cid="${cid}"]`);
+      if (again) { again.classList.add('bad'); setTimeout(() => again.classList.remove('bad'), 900); }
+      return;
+    }
+    // A hand-set dimension is no longer one CADence guessed for you, so it stops
+    // being muted and starts being protected from later auto-dimensioning.
+    c.auto = false;
+    drawSketchPreview();
+    rebuildSketchDims({ force: true });
+    syncSketchBar();
+    flash(`Set to ${round1(v)}. ${report.dof} free.`);
+  };
+
+  inp.addEventListener('keydown', (e) => {
+    e.stopPropagation();                       // never let app shortcuts fire mid-typing
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    else if (e.key === 'Escape') { e.preventDefault(); inp.value = ''; rebuildSketchDims({ force: true }); }
+  });
+  inp.addEventListener('blur', commit, { once: true });
+}
+
+// -------------------------------------------------- live dimension input (HUD)
+//
+// Why this exists. Drawing with a mouse can only ever be approximate, so every
+// real CAD package pairs the cursor with a number you can overwrite. Without it
+// the only way to get a 40mm line is to draw roughly 40 and correct it after,
+// which is the "I can't tell what the numbers are" complaint exactly.
+//
+// The rule: the HUD always shows what you are making right now, and any field
+// you type into is LOCKED, holding that value while the mouse keeps steering
+// whatever you did not type. Type a length and aim the angle, or type both and
+// press Enter without aiming at all.
+
+let skHudPx = null;              // last cursor position, in client pixels
+let skHudLock = {};              // field key -> typed value the mouse must not override
+let skHudKeys = '';              // which fields are on screen, to avoid needless rebuilds
+
+const hudEl = () => document.getElementById('sk-hud');
+
+/**
+ * The measurements that describe the curve in progress.
+ * With no curve started yet the useful numbers are the position itself, which
+ * is also how you place a first point exactly on a coordinate.
+ */
+function liveFields() {
+  if (!skDoc || !skHover) return [];
+
+  // The corner tools have no anchor and no rubber band. Their one number is the
+  // size that the next corner you click will be cut by, so the field carries
+  // that rather than a measurement of anything on screen.
+  if (skTool === 'fillet') return [{ key: 'fillet', label: 'R', unit: 'mm', value: skCornerSize, setting: true }];
+  if (skTool === 'chamfer') return [{ key: 'chamfer', label: 'C', unit: 'mm', value: skCornerSize, setting: true }];
+
+  const a = snapAnchor();
+
+  if (!a) {
+    return [
+      { key: 'x', label: 'X', unit: 'mm', value: skHover.x },
+      { key: 'y', label: 'Y', unit: 'mm', value: skHover.y },
+    ];
+  }
+
+  const dx = skHover.x - a.x, dy = skHover.y - a.y;
+
+  if (skTool === 'line') {
+    let ang = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (ang < 0) ang += 360;
+    return [
+      { key: 'len', label: 'L', unit: 'mm', value: Math.hypot(dx, dy) },
+      { key: 'ang', label: 'A', unit: '°', value: ang },
+    ];
+  }
+  if (skTool === 'rect') {
+    return [
+      { key: 'w', label: 'W', unit: 'mm', value: Math.abs(dx) },
+      { key: 'h', label: 'H', unit: 'mm', value: Math.abs(dy) },
+    ];
+  }
+  if (skTool === 'circle') {
+    return [{ key: 'r', label: 'R', unit: 'mm', value: Math.hypot(dx, dy) }];
+  }
+  if (skTool === 'dim') {
+    return [{ key: 'len', label: 'D', unit: 'mm', value: Math.hypot(dx, dy) }];
+  }
+  return [];
+}
+
+/**
+ * Turn the field values (mouse-driven, or typed and locked) back into the
+ * sketch position they describe. This is what lets a typed number and a click
+ * produce the same geometry through the same code path.
+ */
+function hudTarget(fields) {
+  const a = snapAnchor();
+  const val = (k, fallback) => (k in skHudLock ? skHudLock[k] : fallback);
+  const get = (k) => fields.find((f) => f.key === k)?.value ?? 0;
+
+  if (!a) return { x: val('x', get('x')), y: val('y', get('y')) };
+
+  const dx = skHover.x - a.x, dy = skHover.y - a.y;
+
+  if (skTool === 'rect') {
+    // Keep the quadrant the mouse is in; a typed width means 40mm to the side
+    // you are already pulling towards, not 40mm to the right regardless.
+    const sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1;
+    return { x: a.x + sx * val('w', Math.abs(dx)), y: a.y + sy * val('h', Math.abs(dy)) };
+  }
+  if (skTool === 'circle') {
+    const d = Math.hypot(dx, dy) || 1;
+    const r = val('r', d);
+    return { x: a.x + (dx / d) * r, y: a.y + (dy / d) * r };
+  }
+  // line and dim: polar, so length and angle are independently typeable.
+  let ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  if (ang < 0) ang += 360;
+  const L = val('len', Math.hypot(dx, dy));
+  const A = val('ang', ang) * Math.PI / 180;
+  return { x: a.x + L * Math.cos(A), y: a.y + L * Math.sin(A) };
+}
+
+function updateHud() {
+  const el = hudEl();
+  if (!el) return;
+  const fields = liveFields();
+  if (!sketchOn || !fields.length || !skHudPx) { el.hidden = true; skHudKeys = ''; return; }
+
+  const keys = fields.map((f) => f.key).join(',');
+  if (keys !== skHudKeys) {
+    // The field set changed (different tool, or the first point just landed), so
+    // rebuild. Locks belong to the old set and would be meaningless here.
+    skHudKeys = keys;
+    skHudLock = {};
+    el.classList.remove('typing');
+    el.innerHTML = fields.map((f) => `
+      <span class="hud-f" data-k="${f.key}">
+        <span class="hud-k">${f.label}</span>
+        <input class="hud-v" type="number" step="any" inputmode="decimal"
+               aria-label="${f.label} in ${f.unit === '°' ? 'degrees' : 'millimetres'}" />
+        <span class="hud-u">${f.unit}</span>
+      </span>`).join('') + `<span class="hud-tip">type to set · Enter</span>`;
+    for (const input of el.querySelectorAll('.hud-v')) wireHudField(input);
+  }
+
+  for (const f of fields) {
+    const input = el.querySelector(`.hud-f[data-k="${f.key}"] .hud-v`);
+    const wrap = input?.closest('.hud-f');
+    if (!input || !wrap) continue;
+    const locked = f.key in skHudLock;
+    wrap.classList.toggle('locked', locked);
+    // Never overwrite a field the user is typing into, or one they locked.
+    if (!locked && document.activeElement !== input) input.value = round1(f.value).toFixed(1);
+  }
+
+  el.hidden = false;
+  // Offset below-right of the cursor, flipped near the edges so it never leaves
+  // the window or sits under the pointer.
+  const r = el.getBoundingClientRect();
+  const pad = 14;
+  let x = skHudPx.x + pad, y = skHudPx.y + pad;
+  if (x + r.width > window.innerWidth - 8) x = skHudPx.x - r.width - pad;
+  if (y + r.height > window.innerHeight - 8) y = skHudPx.y - r.height - pad;
+  el.style.left = `${Math.max(8, x)}px`;
+  el.style.top = `${Math.max(8, y)}px`;
+}
+
+function wireHudField(input) {
+  const key = input.closest('.hud-f').dataset.k;
+  const lock = () => {
+    const v = parseFloat(input.value);
+    if (Number.isFinite(v)) skHudLock[key] = v; else delete skHudLock[key];
+    input.closest('.hud-f').classList.toggle('locked', key in skHudLock);
+  };
+  input.addEventListener('input', lock);
+  input.addEventListener('keydown', (ev) => {
+    ev.stopPropagation();                      // the app's shortcuts must not fire
+    if (ev.key === 'Enter') { ev.preventDefault(); lock(); commitHud(); }
+    else if (ev.key === 'Tab') {
+      // Tab moves to the next field and locks this one, so "40 Tab 90 Enter"
+      // draws an exact 40mm vertical line without touching the mouse.
+      lock();
+      const all = [...hudEl().querySelectorAll('.hud-v')];
+      const next = all[(all.indexOf(input) + 1) % all.length];
+      if (all.length > 1) { ev.preventDefault(); next.focus(); next.select(); }
+    }
+    else if (ev.key === 'Escape') { ev.preventDefault(); clearHudTyping(); }
+  });
+}
+
+/** Build the curve at the typed numbers, exactly as a click at that spot would. */
+function commitHud() {
+  const fields = liveFields();
+  if (!fields.length) return;
+
+  // A settings field builds nothing. Enter just accepts the size and hands the
+  // pointer back, so the next corner you click uses it.
+  if (fields[0].setting) {
+    const v = skHudLock[fields[0].key];
+    if (Number.isFinite(v) && v > 0) {
+      skCornerSize = v;
+      flash(`${skTool === 'chamfer' ? 'Chamfer' : 'Fillet'} set to ${round1(v)}mm. Now click a corner.`);
+    }
+    clearHudTyping();
+    updateHud();
+    return;
+  }
+
+  const t = hudTarget(fields);
+  clearHudTyping();
+  // Typed positions are exact by definition, so they skip inference entirely.
+  placeSketchPoint({ x: t.x, y: t.y, kind: 'typed', label: 'Typed', ref: null });
+}
+
+function clearHudTyping() {
+  skHudLock = {};
+  const el = hudEl();
+  if (!el) return;
+  el.classList.remove('typing');
+  el.querySelectorAll('.hud-f').forEach((f) => f.classList.remove('locked'));
+  if (el.contains(document.activeElement)) document.activeElement.blur();
+  renderer.domElement.focus?.();
+}
+
+/** A digit typed over the canvas means "set this dimension", so route it in. */
+function hudBeginTyping(ch) {
+  const el = hudEl();
+  if (!el || el.hidden) return false;
+  const first = el.querySelector('.hud-v');
+  if (!first) return false;
+  el.classList.add('typing');
+  first.focus();
+  first.value = ch;
+  first.dispatchEvent(new Event('input'));
+  return true;
 }
 
 // Solve, then redraw. The preview shows the SOLVED shape, not the raw clicks, so
@@ -1273,6 +1812,27 @@ function drawSketchPreview() {
         // Via toWorld, not a raw (x, 0, y): on a face sketch the preview would
         // otherwise be drawn flat on the ground while the solid built on the face.
         pts.push(toWorld({ x: c.x + e.r * Math.cos(t), y: c.y + e.r * Math.sin(t) }));
+      }
+      addSeg(pts, SKETCH_COLOR);
+    } else if (e.type === 'arc') {
+      // Fillets are arcs. Without this the rounded corner is drawn as a gap
+      // between two edges that no longer meet, which looks like the fillet
+      // broke the profile even though the solid comes out correct.
+      const c = skPoint(e.c), a = skPoint(e.p1), b = skPoint(e.p2);
+      if (!c || !a || !b) continue;
+      const r = Math.hypot(a.x - c.x, a.y - c.y);
+      const a0 = Math.atan2(a.y - c.y, a.x - c.x);
+      const a1 = Math.atan2(b.y - c.y, b.x - c.x);
+      let sweep = a1 - a0;
+      // Match the winding the profile walker uses, so what is drawn is what
+      // gets built.
+      if (e.ccw) { while (sweep <= 0) sweep += Math.PI * 2; }
+      else { while (sweep >= 0) sweep -= Math.PI * 2; }
+      const n = Math.max(4, Math.ceil((Math.abs(sweep) / (Math.PI * 2)) * 64));
+      const pts = [];
+      for (let i = 0; i <= n; i++) {
+        const t = a0 + (sweep * i) / n;
+        pts.push(toWorld({ x: c.x + r * Math.cos(t), y: c.y + r * Math.sin(t) }));
       }
       addSeg(pts, SKETCH_COLOR);
     }
@@ -1316,6 +1876,9 @@ function drawSketchPreview() {
   }
 
   drawSnapHint();
+  // Keep the editable dimensions in step with the geometry they drive. Cheap:
+  // it returns immediately unless the set of dimensions actually changed.
+  rebuildSketchDims();
 }
 
 // The snap marker, and the guide line that explains an alignment snap. Without
@@ -1433,6 +1996,8 @@ function setSkTool(t) {
     rect: 'Rectangle: click two opposite corners. Right angles and both dimensions come for free.',
     circle: 'Circle: click the centre, then a point on the rim.',
     dim: 'Dimension: click two points, then type the distance you want.',
+    fillet: 'Fillet: type the radius at the cursor, then click a corner to round it.',
+    chamfer: 'Chamfer: type the setback at the cursor, then click a corner to bevel it.',
   };
   flash(HINT[t] || '');
 }
@@ -1959,11 +2524,24 @@ function makeCollapsible(panelId, headSelector) {
   const panel = document.getElementById(panelId);
   const head = panel?.querySelector(headSelector);
   if (!head) return;
+  // The glyph is a dash, which tells a screen reader nothing and does not say
+  // which panel it belongs to. Name it after the panel, and keep the name and
+  // the pressed state honest as it toggles.
+  const label = panelId.charAt(0).toUpperCase() + panelId.slice(1);
   const btn = document.createElement('button');
   btn.className = 'collapse-btn';
+  btn.type = 'button';
   btn.title = 'Collapse / expand this panel';
   btn.textContent = '–';
-  btn.addEventListener('click', () => { btn.textContent = panel.classList.toggle('collapsed') ? '+' : '–'; });
+  const name = (collapsed) => `${collapsed ? 'Expand' : 'Collapse'} the ${label} panel`;
+  btn.setAttribute('aria-label', name(false));
+  btn.setAttribute('aria-expanded', 'true');
+  btn.addEventListener('click', () => {
+    const collapsed = panel.classList.toggle('collapsed');
+    btn.textContent = collapsed ? '+' : '–';
+    btn.setAttribute('aria-label', name(collapsed));
+    btn.setAttribute('aria-expanded', String(!collapsed));
+  });
   head.appendChild(btn);
 }
 
@@ -2114,6 +2692,33 @@ function initControls() {
   }
 }
 
+/** True when the still-under-construction parametric features are opted in. */
+function experimentalOn() { return !!settings.experimental; }
+
+/**
+ * Show or hide everything behind the experimental gate.
+ *
+ * Hiding is done with a body class rather than by setting `hidden` on each
+ * element, because several of these already use `hidden` for their own open and
+ * closed state; writing to it here would fight that and leave, say, the sketch
+ * bar visible the next time a sketch opened.
+ *
+ * Hiding a button is not enough on its own. Anything reachable another way, a
+ * keyboard shortcut or the proxied top bar, is guarded at its entry point too,
+ * so a gated feature cannot be started at all while the switch is off.
+ */
+function applyExperimental(on) {
+  document.body.classList.toggle('no-experimental', !on);
+  if (!on) {
+    // Leave any gated mode that happens to be open, otherwise its state would
+    // linger with no way to see or exit it.
+    if (sketchOn) setSketch(false);
+    if (exObj) cancelExtrude();
+    timeline?.toggle?.(false);
+  }
+  dimchips?.setEnabled?.(on);
+}
+
 function initSettings() {
   fillSelect('set-ui', UI_STYLES, settings.ui);
   fillSelect('set-render', RENDER_MODES, settings.render);
@@ -2130,6 +2735,20 @@ function initSettings() {
   bind('set-ui', 'ui', applyUiStyle);
   bind('set-render', 'render', applyRenderMode);
   bind('set-units', 'units', applyUnits);
+
+  const expBox = document.getElementById('set-experimental');
+  if (expBox) {
+    expBox.checked = !!settings.experimental;
+    expBox.addEventListener('change', () => {
+      settings.experimental = expBox.checked;
+      applyExperimental(settings.experimental);
+      saveSettings(settings);
+      flash(settings.experimental
+        ? 'Experimental features on. Sketch, extrude, fillet, chamfer, loft and the timeline are now in the toolbar.'
+        : 'Experimental features off. The toolbar is back to the finished tools.');
+    });
+  }
+  applyExperimental(settings.experimental);
 
   makeCollapsible('toolbar', '.brand');
   makeCollapsible('inspector', '.group-label');
@@ -2207,7 +2826,10 @@ emptyState.innerHTML =
   `<div class="es-title">Add a shape to begin</div>`
   + `<div class="es-sub">Pick a primitive from the toolbar, then drag the gizmo or type exact sizes in the Inspector.</div>`
   + `<button class="es-add">Add a box</button>`;
-function updateEmptyState() { emptyState.hidden = doc.list.length > 0; }
+// Hidden once anything exists, and also while a sketch is open: the scene is
+// still technically empty then, but the middle of the canvas is exactly where
+// the drawing and its dimensions are, so the prompt would cover the work.
+function updateEmptyState() { emptyState.hidden = doc.list.length > 0 || sketchOn; }
 function setupEmptyState() {
   document.getElementById('app').appendChild(emptyState);
   emptyState.querySelector('.es-add').addEventListener('click', () => doc.add('box'));
@@ -2329,6 +2951,7 @@ function tick() {
   orbit.update();
   renderer.render(scene, camera);
   dimchips.update();
+  positionSketchDims();
   syncViewCube();
 }
 tick();
@@ -2380,6 +3003,11 @@ window.cadence = {
     setSnap: (mm) => { skSnap = mm; syncSketchBar(); },
     get plane() { return skPlane; },
     get planeArmed() { return skPlaneArmed; },
+    // What the cursor is currently promising: the snapped position and the kind
+    // of snap. The harness asserts that a click lands exactly here, which is the
+    // only way to catch the readout and the geometry disagreeing.
+    get hover() { return skHover; },
+    get snapHint() { return skSnapHint; },
     resetPlane: () => resetSketchPlane(),
     solve: () => (skDoc ? solveSketch(skDoc) : null),
     profile: () => (skDoc ? sketchProfile(skDoc) : null),

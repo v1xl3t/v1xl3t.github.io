@@ -30,11 +30,13 @@
 
     <!-- The sketcher's own toolbar. Only visible while the sketch mode is on, so
          it never competes with the main toolbar for space on a phone. -->
-    <div id="sketch-bar" role="toolbar" aria-label="Sketch tools" hidden>
+    <div id="sketch-bar" data-experimental="sketch" role="toolbar" aria-label="Sketch tools" hidden>
       <button type="button" data-sktool="line" class="on" title="Draw a chain of lines (L)">Line</button>
       <button type="button" data-sktool="rect" title="Draw a rectangle with square corners (R)">Rect</button>
       <button type="button" data-sktool="circle" title="Draw a circle from centre and rim (C)">Circle</button>
       <button type="button" data-sktool="dim" title="Set the distance between two points (D)">Dimension</button>
+      <button type="button" data-sktool="fillet" title="Round a corner (O). Set the radius in the field at the cursor, then click the corner">Fillet</button>
+      <button type="button" data-sktool="chamfer" title="Bevel a corner (B). Set the setback in the field at the cursor, then click the corner">Chamfer</button>
       <span class="sk-sep"></span>
       <button type="button" data-skplane title="The plane you are drawing on. Click a flat face to move it, or press P for the ground">On ground</button>
       <button type="button" data-skface title="Look straight at the sketch plane again (F). Orbiting away from square-on makes drawing imprecise">Face on</button>
@@ -67,7 +69,7 @@
     <!-- The extrude stage. Opens the moment a profile closes, so the solid is
          something you shape and confirm rather than something that silently
          appears at a guessed depth. -->
-    <div id="extrude-bar" role="toolbar" aria-label="Extrude" hidden>
+    <div id="extrude-bar" data-experimental="sketch" role="toolbar" aria-label="Extrude" hidden>
       <span class="ex-title">Extrude</span>
       <label class="ex-field">
         <span>Depth</span>
@@ -107,8 +109,21 @@
       </button>
     </div>
 
+    <!-- Live dimension input. Rides the cursor while a curve is being drawn and
+         shows what you are actually making, in millimetres and degrees, instead
+         of making you judge it by eye. Type into a field and the curve is built
+         at exactly that number, which is how every desktop CAD package works and
+         the only way a mouse can produce an exact part. -->
+    <div id="sk-hud" data-experimental="sketch" hidden aria-live="polite"></div>
+
+    <!-- Editable dimensions for the sketch itself. Every curve you draw carries a
+         driving dimension; these are those dimensions, sitting on the geometry
+         where you can click one and retype it. Changing a number here re-solves
+         the sketch, which is the difference between a drawing and a model. -->
+    <div id="sk-dims" data-experimental="sketch" hidden></div>
+
     <!-- Floating, editable dimension chips that ride on the selected part -->
-    <div id="dimchips"></div>
+    <div id="dimchips" data-experimental="dimchips"></div>
 
     <!-- Left: creation + transform tools (the TinkerCAD-easy half) -->
     <aside id="toolbar" class="panel">
@@ -128,8 +143,8 @@
 
       <div class="group">
         <div class="group-label">Construct <span class="hint">(blended forms)</span></div>
-        <button data-add="loft" title="Loft: a solid blended between a bottom and top profile, with taper, twist, and corner radius">Loft</button>
-        <button data-action="sketch" id="sketch-btn" class="tool" title="Sketch: draw lines, rectangles and circles on the ground plane with real constraints, then type exact dimensions and the shape obeys them">Sketch <span class="hint">(S)</span></button>
+        <button data-add="loft" data-experimental="loft" title="Loft: a solid blended between a bottom and top profile, with taper, twist, and corner radius">Loft</button>
+        <button data-action="sketch" id="sketch-btn" data-experimental="sketch" class="tool" title="Sketch: draw lines, rectangles and circles on the ground plane with real constraints, then type exact dimensions and the shape obeys them">Sketch <span class="hint">(S)</span></button>
       </div>
 
       <div class="group">
@@ -155,27 +170,27 @@
         <div class="group-label">Arrange <span class="hint">(multi-select first)</span></div>
         <div class="arrange-row">
           <span class="arrange-lbl" title="Align the low faces of the selected objects flush on an axis (their minimum edge)">Align min</span>
-          <button data-align="x" data-align-mode="min" class="mini" title="Align low faces on X">X</button>
-          <button data-align="y" data-align-mode="min" class="mini" title="Align low faces on Y (bottoms)">Y</button>
-          <button data-align="z" data-align-mode="min" class="mini" title="Align low faces on Z">Z</button>
+          <button data-align="x" data-align-mode="min" class="mini" aria-label="Align low faces on X" title="Align low faces on X">X</button>
+          <button data-align="y" data-align-mode="min" class="mini" aria-label="Align low faces on Y" title="Align low faces on Y">Y</button>
+          <button data-align="z" data-align-mode="min" class="mini" aria-label="Align low faces on Z" title="Align low faces on Z">Z</button>
         </div>
         <div class="arrange-row">
           <span class="arrange-lbl" title="Align the centers of the selected objects on an axis">Align ctr</span>
-          <button data-align="x" data-align-mode="center" class="mini" title="Align centers on X">X</button>
-          <button data-align="y" data-align-mode="center" class="mini" title="Align centers on Y (height)">Y</button>
-          <button data-align="z" data-align-mode="center" class="mini" title="Align centers on Z">Z</button>
+          <button data-align="x" data-align-mode="center" class="mini" aria-label="Align centres on X" title="Align centres on X">X</button>
+          <button data-align="y" data-align-mode="center" class="mini" aria-label="Align centres on Y" title="Align centres on Y">Y</button>
+          <button data-align="z" data-align-mode="center" class="mini" aria-label="Align centres on Z" title="Align centres on Z">Z</button>
         </div>
         <div class="arrange-row">
           <span class="arrange-lbl" title="Align the high faces of the selected objects flush on an axis (their maximum edge)">Align max</span>
-          <button data-align="x" data-align-mode="max" class="mini" title="Align high faces on X">X</button>
-          <button data-align="y" data-align-mode="max" class="mini" title="Align high faces on Y (tops)">Y</button>
-          <button data-align="z" data-align-mode="max" class="mini" title="Align high faces on Z">Z</button>
+          <button data-align="x" data-align-mode="max" class="mini" aria-label="Align high faces on X" title="Align high faces on X">X</button>
+          <button data-align="y" data-align-mode="max" class="mini" aria-label="Align high faces on Y" title="Align high faces on Y">Y</button>
+          <button data-align="z" data-align-mode="max" class="mini" aria-label="Align high faces on Z" title="Align high faces on Z">Z</button>
         </div>
         <div class="arrange-row">
           <span class="arrange-lbl" title="Space 3+ objects evenly between the outermost two on an axis">Distribute</span>
-          <button data-distribute="x" class="mini" title="Distribute evenly on X">X</button>
-          <button data-distribute="y" class="mini" title="Distribute evenly on Y">Y</button>
-          <button data-distribute="z" class="mini" title="Distribute evenly on Z">Z</button>
+          <button data-distribute="x" class="mini" aria-label="Distribute evenly on X" title="Distribute evenly on X">X</button>
+          <button data-distribute="y" class="mini" aria-label="Distribute evenly on Y" title="Distribute evenly on Y">Y</button>
+          <button data-distribute="z" class="mini" aria-label="Distribute evenly on Z" title="Distribute evenly on Z">Z</button>
         </div>
         <button data-action="drop-floor" title="Drop each selected object so its bottom sits on the Y=0 ground plane, handy before exporting to print">Drop to floor</button>
       </div>
@@ -185,7 +200,7 @@
         <button data-action="frame" title="Re-center & fit the selection (whole scene if nothing is selected)">Frame <span class="hint">(F)</span></button>
         <button data-action="lasso" id="lasso-btn" class="tool" title="Box select: drag a rectangle to select every object inside it">Box select <span class="hint">(L)</span></button>
         <button data-action="measure" id="measure-btn" class="tool" title="Measure tool: click two points on objects to read the distance between them">Measure <span class="hint">(M)</span></button>
-        <button data-action="timeline" id="timeline-btn" class="tool" title="Recipe Timeline: scrub your modeling history; click any step to time-travel, and acting from the past forks a new branch (5D-chess style)">Timeline <span class="hint">(T)</span></button>
+        <button data-action="timeline" id="timeline-btn" data-experimental="timeline" class="tool" title="Recipe Timeline: scrub your modeling history; click any step to time-travel, and acting from the past forks a new branch (5D-chess style)">Timeline <span class="hint">(T)</span></button>
         <button data-action="shortcuts" title="Show the keyboard shortcut cheat-sheet">Shortcuts <span class="hint">(?)</span></button>
       </div>
 
@@ -241,6 +256,20 @@
         </div>
         <button data-action="save-preset" title="Save the current button mapping as a named preset you can reuse">Save controls preset…</button>
       </div>
+
+      <!-- The opt-in for everything still under construction. Off by default so
+           the toolbar you land on is only the parts that are finished. -->
+      <div class="group">
+        <div class="group-label">Experimental</div>
+        <label class="check">
+          <input type="checkbox" id="set-experimental" />
+          Enable experimental features
+        </label>
+        <div class="hint" id="experimental-note">
+          Sketch, extrude, fillet and chamfer, loft, and the recipe timeline. Under
+          active development, so expect rough edges.
+        </div>
+      </div>
     </aside>
 
     <!-- Right: numeric precision (the OnShape-precise half) -->
@@ -260,7 +289,7 @@
     </aside>
 
     <!-- Recipe Timeline: the multiverse history strip (toggled by Timeline / T) -->
-    <aside id="timeline" class="panel" hidden>
+    <aside id="timeline" class="panel" data-experimental="timeline" hidden>
       <div class="tl-head">
         <span class="group-label">Timeline</span>
         <span class="tl-hint">click a step to time-travel · acting from the past forks a branch</span>
@@ -293,6 +322,8 @@
             <div class="sc-sec">In sketch mode</div>
             <div><kbd>L</kbd> Line · <kbd>R</kbd> Rectangle</div>
             <div><kbd>C</kbd> Circle · <kbd>D</kbd> Dimension</div>
+            <div><kbd>O</kbd> Fillet · <kbd>B</kbd> Chamfer</div>
+            <div>Type a number to set any dimension</div>
             <div><kbd>G</kbd> Grid snap on / off</div>
             <div><kbd>P</kbd> Back to the ground plane</div>
             <div><kbd>F</kbd> Look straight at the plane</div>
