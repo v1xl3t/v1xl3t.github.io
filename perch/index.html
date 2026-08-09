@@ -983,7 +983,7 @@ function openFinance(rerender){
 /* ---------- contan queue ---------- */
 function openContan(rerender){
   const q = state.items.filter(i=>i.contan && !i.archived && !isDone(i));
-  const md = [`## ${aName()} task queue — `+dayKeyOf(), ...q.map(i=>`- [ ] ${i.title} (${i.lane}${i.notes? "; "+i.notes:""})`)].join("\n");
+  const md = [`## ${aName()} task queue, `+dayKeyOf(), ...q.map(i=>`- [ ] ${i.title} (${i.lane}${i.notes? ", "+i.notes:""})`)].join("\n");
   openModal(`<h2>🤖 ${esc(aName())} queue ${xBtn}</h2>
     ${q.length? q.map(i=>`<div class="item-row"><div class="t">${esc(i.title)}<span class="tag">${i.lane}</span>${i.notes?`<span class="sub">${esc(i.notes)}</span>`:""}</div><span class="pts">+${i.points} 🎟</span></div>`).join("")
       : `<div class="note">No items flagged 🤖 right now. Flag any goal as "my assistant can automate this" in its editor and it shows up here.</div>`}

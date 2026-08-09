@@ -7,7 +7,7 @@ function save(c){localStorage.setItem(K,JSON.stringify(c));render();}
 function money(n){return '$'+n.toFixed(2)}
 function init(){if(q('#sc-drawer'))return;
  var d=document.createElement('div');
- d.innerHTML='<div id="sc-back"></div><aside id="sc-drawer" aria-label="Cart"><div class="hd"><b>CART</b><button aria-label="Close">&times;</button></div><div class="rows"></div><div class="ft"><div class="sub"><span>Subtotal</span><b class="tot">$0.00</b></div><button class="co">CHECKOUT</button></div></aside><div id="sc-toast">SWEET CREAM archive &mdash; the store is no longer active</div>';
+ d.innerHTML='<div id="sc-back"></div><aside id="sc-drawer" aria-label="Cart"><div class="hd"><b>CART</b><button aria-label="Close">&times;</button></div><div class="rows"></div><div class="ft"><div class="sub"><span>Subtotal</span><b class="tot">$0.00</b></div><button class="co">CHECKOUT</button></div></aside><div id="sc-toast">SWEET CREAM archive, the store is no longer active</div>';
  while(d.firstChild)document.body.appendChild(d.firstChild);
  q('#sc-back').onclick=close; q('#sc-drawer .hd button').onclick=close;
  q('#sc-drawer .co').onclick=toast;
