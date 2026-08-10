@@ -1,0 +1,399 @@
+{
+  "note": "Accepted HP contrast failures. Regenerate with: bun hp-contrast-gate.mjs <url> --update-baseline. Everything in here is a deliberate acceptance, not a pass.",
+  "recorded": "2026-08-10",
+  "url": "http://localhost:5185",
+  "accepted": {
+    "a.btn|Apply to join": {
+      "ratio": 2.59,
+      "need": 4.5,
+      "px": 16,
+      "depth": 0.9,
+      "txt": "Apply to join",
+      "color": "rgb(21, 16, 42)"
+    },
+    "a.src|Browse the sets on SoundCloud": {
+      "ratio": 1.26,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.7,
+      "txt": "Browse the sets on SoundCloud",
+      "color": "rgb(26, 143, 69)"
+    },
+    "div.mk|descending": {
+      "ratio": 2.84,
+      "need": 4.5,
+      "px": 14.4,
+      "depth": 0.7,
+      "txt": "descending",
+      "color": "rgb(109, 40, 217)"
+    },
+    "h3.|Audio Design": {
+      "ratio": 1.5,
+      "need": 4.5,
+      "px": 18.4,
+      "depth": 0.7,
+      "txt": "Audio Design",
+      "color": "rgb(115, 109, 134)"
+    },
+    "h3.|Film and TV Scoring": {
+      "ratio": 1.5,
+      "need": 4.5,
+      "px": 18.4,
+      "depth": 0.7,
+      "txt": "Film and TV Scoring",
+      "color": "rgb(115, 109, 134)"
+    },
+    "h3.|Game Audio": {
+      "ratio": 1.5,
+      "need": 4.5,
+      "px": 18.4,
+      "depth": 0.7,
+      "txt": "Game Audio",
+      "color": "rgb(115, 109, 134)"
+    },
+    "h3.|Visual and Graphic Design": {
+      "ratio": 1.5,
+      "need": 4.5,
+      "px": 18.4,
+      "depth": 0.7,
+      "txt": "Visual and Graphic Design",
+      "color": "rgb(115, 109, 134)"
+    },
+    "p.bk-d|Adaptive music and sound for games, incl": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 14.7,
+      "depth": 0.7,
+      "txt": "Adaptive music and sound for games, including tools for",
+      "color": "rgb(90, 83, 119)"
+    },
+    "p.bk-d|Cover art, graphics, and visual identity": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 14.7,
+      "depth": 0.7,
+      "txt": "Cover art, graphics, and visual identity for releases a",
+      "color": "rgb(90, 83, 119)"
+    },
+    "p.bk-d|Original scoring for film and television": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 14.7,
+      "depth": 0.7,
+      "txt": "Original scoring for film and television.",
+      "color": "rgb(90, 83, 119)"
+    },
+    "p.bk-d|Sound design, mixing, and audio post for": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 14.7,
+      "depth": 0.7,
+      "txt": "Sound design, mixing, and audio post for media projects",
+      "color": "rgb(90, 83, 119)"
+    },
+    "p.note.r.in|A living list. New collaborators and pro": {
+      "ratio": 2.21,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.7,
+      "txt": "A living list. New collaborators and project sets are s",
+      "color": "rgb(90, 83, 119)"
+    },
+    "span.bk-n|02": {
+      "ratio": 1.26,
+      "need": 4.5,
+      "px": 12.8,
+      "depth": 0.7,
+      "txt": "02",
+      "color": "rgb(26, 143, 69)"
+    },
+    "span.bk-n|03": {
+      "ratio": 1.26,
+      "need": 4.5,
+      "px": 12.8,
+      "depth": 0.7,
+      "txt": "03",
+      "color": "rgb(26, 143, 69)"
+    },
+    "span.bk-n|04": {
+      "ratio": 1.26,
+      "need": 4.5,
+      "px": 12.8,
+      "depth": 0.7,
+      "txt": "04",
+      "color": "rgb(26, 143, 69)"
+    },
+    "span.bk-n|05": {
+      "ratio": 1.26,
+      "need": 4.5,
+      "px": 12.8,
+      "depth": 0.7,
+      "txt": "05",
+      "color": "rgb(26, 143, 69)"
+    },
+    "span.chip|Killa K": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "Killa K",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|PULSE": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "PULSE",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|Redda Darko": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "Redda Darko",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|Surf": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "Surf",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|Wayne": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "Wayne",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|Yung Grif": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "Yung Grif",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|am3n++": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "am3n++",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|ava blank": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "ava blank",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|axel": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "axel",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|bbyazul": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "bbyazul",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|frdm": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "frdm",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|jvcxb": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "jvcxb",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|k1dosiris": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "k1dosiris",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|lunchbox": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "lunchbox",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|malcoozy": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "malcoozy",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|mayh3mp": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "mayh3mp",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|pavelhancar": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "pavelhancar",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|prxpvne": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "prxpvne",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|quisworldwide": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "quisworldwide",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|qwentcrazy": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "qwentcrazy",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|raiden": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "raiden",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|safeguard": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "safeguard",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|shadycholo": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "shadycholo",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|shinigami": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "shinigami",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|snowee": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "snowee",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|starboyrob": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "starboyrob",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|t3rps": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "t3rps",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|toshii": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "toshii",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|whatswrongchase": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "whatswrongchase",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.chip|xoyard": {
+      "ratio": 3.83,
+      "need": 4.5,
+      "px": 11.5,
+      "depth": 0.69,
+      "txt": "xoyard",
+      "color": "rgb(236, 231, 251)"
+    },
+    "span.count|70 artists and groups, and counting.": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 11.2,
+      "depth": 0.7,
+      "txt": "70 artists and groups, and counting.",
+      "color": "rgb(90, 83, 119)"
+    },
+    "span.count|More artists are joining from our SoundC": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 11.2,
+      "depth": 0.7,
+      "txt": "More artists are joining from our SoundCloud annual pla",
+      "color": "rgb(90, 83, 119)"
+    },
+    "span.count|Project credits drop in from hp_assets.": {
+      "ratio": 2.17,
+      "need": 4.5,
+      "px": 11.2,
+      "depth": 0.7,
+      "txt": "Project credits drop in from hp_assets.",
+      "color": "rgb(90, 83, 119)"
+    }
+  }
+}

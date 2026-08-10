@@ -71,6 +71,35 @@ jobs:
           kill $SRV 2>/dev/null || true
           exit $STATUS
 
+      # /hp/ cannot be measured by the gate above. It animates its palette from
+      # scroll depth, so one sample is one arbitrary moment, and six runs against
+      # an unchanged page once reported 28, 62, 92, 94, 109 and 146 failures.
+      # This gate sweeps a fixed ladder of scroll depths instead, runs the whole
+      # sweep twice and refuses to grade if the two disagree, and compares against
+      # a recorded baseline of accepted failures. HP is therefore a ratchet: it
+      # may improve, it may not regress. Re-record with --update-baseline after a
+      # deliberate change.
+      #
+      # OBSERVATION MODE (continue-on-error) until one green run here proves the
+      # baseline survives the trip. The baseline was recorded on a WSL renderer,
+      # and the sweep only scores text that is on screen at each depth, so a
+      # different font stack on the runner could move an element in or out of the
+      # viewport and read as a new failure. If this step is green on CI, delete
+      # continue-on-error and it becomes a real blocker. If it is red with a short
+      # list of key differences, re-record on CI's numbers first. Leaving it
+      # blocking on a guess would have made the first push after this one red for
+      # a reason that has nothing to do with the change in it.
+      - name: HP contrast ratchet (scroll-depth sweep)
+        continue-on-error: true
+        run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 2
+          node .github/scripts/hp-contrast-gate.mjs http://localhost:8080
+          STATUS=$?
+          kill $SRV 2>/dev/null || true
+          exit $STATUS
+
       # Phone width and Vi's vertical desktop monitor. Nothing may need zooming
       # or sideways scrolling on a vertical viewport.
       - name: Vertical viewport gate (no horizontal scroll)
