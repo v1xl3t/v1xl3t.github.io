@@ -55,14 +55,20 @@ export class Inspector {
     const relevant = (f) => {
       if (!isSketch) return true;
       if (f.key === 'angle') return isRevolve;
-      if (f.key === 'depth') return !isRevolve;
+      // 'upTo' works out its own distance, so a depth field would be a number
+      // you can type that changes nothing. 'through' keeps it, because it is
+      // still the fallback when there is nothing in the way.
+      if (f.key === 'depth') return !isRevolve && endType !== 'upTo';
       if (f.key === 'depth2') return !isRevolve && endType === 'twoSided';
       if (f.key === 'start') return !isRevolve;
       if (f.key === 'draft') return !isRevolve;
       return true;
     };
     // The depth means something slightly different per end type, so say which.
-    const DEPTH_LABEL = { blind: 'Depth (mm)', symmetric: 'Total depth (mm)', twoSided: 'Up (mm)' };
+    const DEPTH_LABEL = {
+      blind: 'Depth (mm)', symmetric: 'Total depth (mm)', twoSided: 'Up (mm)',
+      through: 'Depth if nothing is in the way (mm)',
+    };
     const labelFor = (f) => (isSketch && f.key === 'depth' ? (DEPTH_LABEL[endType] || f.label) : f.label);
 
     const dimFields = schema
@@ -157,6 +163,10 @@ export class Inspector {
   _extrudeRow(obj) {
     if (obj.kind !== 'sketch' || obj.params.op === 'revolve') return '';
     const end = obj.params.endType || 'blind';
+    // The reach is a cache of a question about the scene, and the scene may have
+    // moved since it was last written. Re-resolve on render so the number under
+    // the buttons is never stale. It is a no-op for the other end types.
+    this.doc.resolveExtrudeReach(obj);
     const btn = (v, label, title) =>
       `<button type="button" data-endtype="${v}" title="${title}" class="${end === v ? 'on' : ''}">${label}</button>`;
 
@@ -177,6 +187,25 @@ export class Inspector {
       ? `<div class="sk-warn">${esc(g.draftRefused)}. The walls are straight instead, so lower the angle or pull a shorter depth.</div>`
       : '';
 
+    // The two scene-aware types get their own row. They are a different KIND of
+    // choice: the first three are distances you type, these two are answers the
+    // model works out for you, and mixing them into one strip of five made the
+    // depth field look as though it still applied.
+    const scene = `
+        <div class="seg seg-2">
+          ${btn('through', 'Through all', 'Pull far enough to pass through every other body in the way')}
+          ${btn('upTo', 'Up to face', 'Pull until the first body ahead of the sketch, and stop there')}
+        </div>`;
+
+    // When a scene-aware pull has nothing to bite on, say so where the reach
+    // normally goes. Otherwise the number would silently be the blind fallback
+    // and look like a bug in the shape rather than an empty scene.
+    const sceneNote = (end === 'through' || end === 'upTo') && span.unresolved
+      ? `<div class="sk-warn">${end === 'through'
+          ? 'Nothing to pass through yet, so this is pulling the plain depth. Add a body in the way.'
+          : 'No body ahead of this sketch to stop at, so this is pulling the plain depth.'}</div>`
+      : '';
+
     return `
       <div class="field">
         <label>Extrude</label>
@@ -185,7 +214,9 @@ export class Inspector {
           ${btn('symmetric', 'Centred', 'Centre the depth on the sketch plane, half each way')}
           ${btn('twoSided', 'Both', 'Pull a different distance each way')}
         </div>
+        ${scene}
         <div class="muted sk-note">${reach}</div>
+        ${sceneNote}
         ${note}
         ${draftNote}
       </div>`;
@@ -310,6 +341,9 @@ export class Inspector {
         if (obj.params.endType === 'twoSided' && !(obj.params.depth2 > 0)) {
           obj.params.depth2 = Math.max(1, Math.round((obj.params.depth || 20) / 2));
         }
+        // Answer the scene question before building, or the first click would
+        // draw the blind fallback and only come right on the next render.
+        this.doc.resolveExtrudeReach(obj);
         obj.rebuild();
         this.doc.touch(obj);
         this.onChange(obj);

@@ -948,8 +948,13 @@ body.render-view #viewcube-wrap { display: none; }
    narrow phones so the labels never truncate to nonsense. */
 .seg.seg-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .seg.seg-3 button { width: auto; margin: 0; padding: 7px 4px; font-size: 12px; }
+/* The scene-aware pair (through all, up to face) sits under the three distance
+   types as its own row, because it is a different kind of choice: those are
+   numbers you type, these are answers the model works out. */
+.seg.seg-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 4px; }
+.seg.seg-2 button { width: auto; margin: 0; padding: 7px 4px; font-size: 12px; }
 @media (max-width: 420px) {
-  .seg.seg-3 { grid-template-columns: 1fr; }
+  .seg.seg-3, .seg.seg-2 { grid-template-columns: 1fr; }
 }
 .sk-note.repaired {
   color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent);
