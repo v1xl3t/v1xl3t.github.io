@@ -7,7 +7,12 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟</text></svg>">
 <style>
 :root{
-  --bg:#f6efe3; --panel:#fffaf1; --panel2:#f3e9d8; --ink:#4a3f35; --ink2:#8a7a68;
+  /* --ink2 was #8a7a68, which is warm and pretty and reads 3.63:1 on --bg and
+     3.45:1 on --panel2, under the 4.5:1 floor. It carries the reset countdowns,
+     the tags, the sub-lines and the scene hint, so it is a lot of small text.
+     #736450 keeps the same warm brown and clears 4.76:1 on the worst surface.
+     The dark theme's --ink2 already passed, so it is untouched. */
+  --bg:#f6efe3; --panel:#fffaf1; --panel2:#f3e9d8; --ink:#4a3f35; --ink2:#736450;
   --line:#e2d5c0; --accent:#e07a5f; --sage:#81b29a; --lav:#b8a1d9; --peach:#f2cc8f;
   --ticket:#e63946; --good:#5a9367; --shadow:0 4px 14px rgba(74,63,53,.12);
   --r:14px;
@@ -1597,6 +1602,49 @@ function showShareBanner(ts){
     </span>`;
   document.body.prepend(bar);
 }
+
+/* ---------- rollover watcher (tasks auto-refresh) ----------
+   Perch decides what is done by comparing against the CURRENT period key, so a
+   board left open past midnight kept showing yesterday's ticks and a "resets in
+   1h" that had long since expired. Nothing was wrong in the data, only on the
+   screen, which is the worst kind of wrong for a self-care tracker: you look at
+   it, believe the day is already handled, and skip it.
+
+   So watch the keys rather than the clock. A minute ticker plus a check on every
+   return-to-tab covers both cases that matter, an app left open overnight and a
+   laptop that was asleep at midnight and woke at 9am (timers do not fire while
+   suspended, so the ticker alone would miss that one).
+
+   The daily rollover gets a toast, because a list quietly emptying itself is
+   startling. Weekly and monthly do not, they are already implied by the daily. */
+let periodKeys = { daily: periodKey("daily"), weekly: periodKey("weekly"), monthly: periodKey("monthly") };
+function checkRollover(){
+  const now = { daily: periodKey("daily"), weekly: periodKey("weekly"), monthly: periodKey("monthly") };
+  const rolled = LANES.filter(l => now[l] !== periodKeys[l]);
+  if(!rolled.length){
+    // No rollover, but "resets in 5h" ages every minute even when nothing else
+    // does. Retarget just those labels. A full re-render here would rebuild the
+    // open modal once a minute and yank a half-typed form out from under you.
+    document.querySelectorAll(".lane-card[data-lane]").forEach(card => {
+      const el = card.querySelector(".reset");
+      if(el) el.textContent = resetsIn(card.dataset.lane);
+    });
+    if(modalKind && modalKind.kind === "lane"){
+      const el = $("#modal").querySelector(".reset");
+      if(el) el.textContent = resetsIn(modalKind.lane);
+    }
+    return;
+  }
+  periodKeys = now;
+  // One-shot items that were finished in the period just ended retire here, and
+  // link items ("check off a weekly") need their own state recomputed against
+  // the new period before anything is drawn.
+  syncAutoItems(); save(); renderAll();
+  if(rolled.includes("daily")) toast("🌅 A new day. Your daily list is fresh again.");
+}
+setInterval(checkRollover, 60000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkRollover(); });
+window.addEventListener("focus", checkRollover);
 
 /* ---------- init ---------- */
 let rszTimer = null;
