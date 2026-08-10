@@ -107,6 +107,12 @@
       <button data-proxy='#toolbar [data-action="lasso"]' data-label="Box select" aria-label="Box select" id="topbar-lasso">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5" stroke-dasharray="3 2.4"/></svg>
       </button>
+      <!-- Multi-select. Lives up here because it changes what a tap in the
+           VIEWPORT does, and on a phone the only other way to reach it was to
+           open the Objects drawer, flip it, and close the drawer again. -->
+      <button data-proxy='#multi-btn' data-label="Multi-select" aria-label="Multi-select" id="topbar-multi">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7.5" width="10" height="10" rx="2"/><rect x="11.5" y="4.5" width="10" height="10" rx="2"/><path d="M6 12.5l1.8 1.8L11 11"/></svg>
+      </button>
     </div>
 
     <!-- Live dimension input. Rides the cursor while a curve is being drawn and

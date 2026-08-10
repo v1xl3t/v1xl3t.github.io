@@ -273,9 +273,17 @@ export class SliceView {
           <div class="sl-stats" id="sl-stats"></div>
 
           <div class="sl-sec">Preview</div>
-          <label class="sl-range">Layer <b id="sl-layer-val">0</b>
-            <input type="range" id="sl-scrub" min="0" max="0" step="1" value="0" title="Which layer to show. PgUp and PgDn step one at a time.">
-          </label>
+          <label class="sl-range">Layer <b id="sl-layer-val">0</b></label>
+          <!-- A slider alone cannot pick a layer. On a 400-layer part at phone
+               width the whole stack is 390 pixels, so one layer is less than a
+               pixel and there is no way to land on a chosen one. The steppers
+               are the precise path, and they are the only path on touch, where
+               PgUp and PgDn do not exist. -->
+          <div class="sl-step">
+            <button type="button" data-layerstep="-1" aria-label="Previous layer" title="Down one layer (PgDn)">−</button>
+            <input type="range" id="sl-scrub" min="0" max="0" step="1" value="0" title="Drag for the rough height, then step with the buttons for an exact layer.">
+            <button type="button" data-layerstep="1" aria-label="Next layer" title="Up one layer (PgUp)">+</button>
+          </div>
           <label class="sl-range">Within layer <b id="sl-move-val">all</b>
             <input type="range" id="sl-moves" min="0" max="100" step="1" value="100" title="How far through the current layer to draw, so you can watch the order the nozzle takes">
           </label>
@@ -329,6 +337,9 @@ export class SliceView {
     }
 
     $('sl-scrub').addEventListener('input', (e) => this.setLayer(+e.target.value));
+    this.el.querySelectorAll('[data-layerstep]').forEach((b) => {
+      b.addEventListener('click', () => this.setLayer(this.layerIndex + (+b.dataset.layerstep)));
+    });
     $('sl-moves').addEventListener('input', (e) => this.setMoveFrac(+e.target.value / 100));
     $('sl-travel').addEventListener('change', (e) => {
       this.showTravel = e.target.checked;

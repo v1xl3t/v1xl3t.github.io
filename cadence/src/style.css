@@ -919,15 +919,19 @@ body.render-view #tips-btn { display: none !important; }
 /* On a phone the sketch bar owns the bottom of the screen, so the cube moves up
    out of its way and shrinks. */
 @media (max-width: 640px) {
+  /* The cube used to shrink here to make room, which is backwards: a face of a
+     56px cube is under 30px of thumb target, and the faces sit edge to edge so
+     a near miss picks the WRONG view rather than none. 72px puts every face
+     back over 36px without taking meaningfully more of the screen. */
   #viewcube-wrap { top: 52px; left: 10px; }
-  #viewcube { width: 56px; height: 56px; perspective: 250px; }
-  .vc-face { font-size: 7px; }
-  .vc-top    { transform: rotateX(90deg)  translateZ(28px); }
-  .vc-bottom { transform: rotateX(-90deg) translateZ(28px); }
-  .vc-front  { transform: translateZ(28px); }
-  .vc-back   { transform: rotateY(180deg) translateZ(28px); }
-  .vc-right  { transform: rotateY(90deg)  translateZ(28px); }
-  .vc-left   { transform: rotateY(-90deg) translateZ(28px); }
+  #viewcube { width: 72px; height: 72px; perspective: 300px; }
+  .vc-face { font-size: 8px; }
+  .vc-top    { transform: rotateX(90deg)  translateZ(36px); }
+  .vc-bottom { transform: rotateX(-90deg) translateZ(36px); }
+  .vc-front  { transform: translateZ(36px); }
+  .vc-back   { transform: rotateY(180deg) translateZ(36px); }
+  .vc-right  { transform: rotateY(90deg)  translateZ(36px); }
+  .vc-left   { transform: rotateY(-90deg) translateZ(36px); }
 }
 /* The render view is for looking, so the chrome steps out. */
 body.render-view #viewcube-wrap { display: none; }
@@ -1160,3 +1164,63 @@ button.wants-attention {
 .exp-list li { margin: 0 0 5px; line-height: 1.4; }
 .exp-list b { color: var(--text); font-weight: 600; }
 .exp-list .exp-caution { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+
+/* ---- touch sizing --------------------------------------------------------
+   Everything below applies only to a coarse pointer, so the desktop layout is
+   untouched. The number is 44 CSS pixels, which is what both platform
+   guidelines settle on as the smallest thing a fingertip hits reliably, and the
+   audit found roughly sixty controls under it: a 13px snap checkbox, 24px
+   dimension chips, 16px sliders, and every form field in the app at 38px.
+
+   Height is raised rather than font size, so nothing reflows and the panels do
+   not suddenly need more horizontal room. */
+@media (pointer: coarse) {
+  :root { --touch: 44px; }
+
+  #toolbar button, #inspector button, #outliner button, #slicer button,
+  #sketch-bar button, #extrude-bar button {
+    min-height: var(--touch);
+  }
+  .setrow select, .btnmap select, .sl-grid input, .snaprow input,
+  input[type="number"], input[type="text"], #slicer select {
+    min-height: var(--touch);
+  }
+  /* A range track you cannot land on is a range you cannot set. The track stays
+     visually thin; the reachable box around it grows. */
+  input[type="range"] { height: var(--touch); }
+  input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; }
+  input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; }
+
+  /* A 13px checkbox is a dare. Scaling keeps the tick crisp where a width/height
+     override would just stretch the browser's own glyph. */
+  .check input[type="checkbox"] { width: 22px; height: 22px; }
+  .check { min-height: var(--touch); }
+
+  /* The visibility eye was 19px wide inside a 44px row. */
+  .eye { min-width: var(--touch); min-height: var(--touch); }
+  .orow { min-height: var(--touch); }
+
+  /* Dimension chips are editable values, so they are targets, not labels. */
+  .dimchip { padding: 8px 12px; font-size: 13px; }
+
+  /* The orientation cube and its Iso button. */
+  #vc-home { min-height: 40px; min-width: 52px; padding: 8px 14px; }
+  #slicer .sl-head button { min-width: var(--touch); }
+  .dimchip { min-height: 44px; }
+  #tips-btn { min-height: var(--touch); }
+  .multi-toggle { min-height: 38px; }
+
+  /* The quick-tools bar is the most-used control on a phone. */
+  #topbar button { width: var(--touch); height: var(--touch); }
+}
+
+/* Layer stepper: a slider for the sweep, buttons for the exact layer. */
+.sl-step { display: flex; align-items: center; gap: 6px; }
+.sl-step input[type="range"] { flex: 1; min-width: 0; margin: 0; }
+.sl-step button {
+  flex: 0 0 auto; width: 30px; min-width: 30px; margin: 0; padding: 0;
+  font-size: 15px; line-height: 1;
+}
+@media (pointer: coarse) {
+  .sl-step button { width: var(--touch); min-width: var(--touch); }
+}

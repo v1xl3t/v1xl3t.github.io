@@ -277,8 +277,24 @@ const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 let downAt = null;
 
+/**
+ * How far a pointer may travel between press and release and still count as a
+ * click rather than an orbit.
+ *
+ * A mouse lands exactly where it was put, so a few pixels is generous. A
+ * fingertip does not: it rolls as it lifts, and a perfectly ordinary tap drifts
+ * three to eight pixels. Judging both by the same four pixels meant that on a
+ * phone a tap that missed by a hair did not select anything, it quietly span
+ * the camera instead, and the object you meant to pick stayed unselected with
+ * no explanation. That one number is the difference between the viewport
+ * feeling broken on touch and feeling normal.
+ *
+ * 12px matches the slop the platform toolkits allow for a tap.
+ */
+const tapSlop = (type) => (type === 'touch' || type === 'pen' ? 12 : 4);
+
 renderer.domElement.addEventListener('pointerdown', (e) => {
-  downAt = { x: e.clientX, y: e.clientY };
+  downAt = { x: e.clientX, y: e.clientY, type: e.pointerType };
 });
 // The sketcher's rubber band and coordinate readout follow the cursor.
 renderer.domElement.addEventListener('pointermove', (e) => {
@@ -302,7 +318,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   if (lassoActive) return;            // lasso runs its own window-level drag
   if (gizmo.dragging || !downAt) return;
   // Treat as a click only if the pointer barely moved (otherwise it was an orbit).
-  if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4) return;
+  if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > tapSlop(downAt.type)) return;
   if (exObj) return;                  // a click in the view means nothing mid-extrude
   if (sketchOn) { sketchClick(e); return; }
   if (measureOn) { measureClick(e); return; }
@@ -317,7 +333,13 @@ function pickAt(e) {
   ray.setFromCamera(ptr, camera);
   const meshes = doc.list.map((o) => o.mesh);
   const hit = ray.intersectObjects(meshes, false)[0];
-  doc.select(hit ? hit.object.userData.cadId : null, e.shiftKey); // Shift = add to selection
+  // Shift adds on a keyboard; the Objects panel's Multi toggle is the same idea
+  // for a device that has no Shift key. Without this the toggle only worked on
+  // the list, so on a phone you could not select two objects in the VIEWPORT at
+  // all, which is precisely what Group and Intersect need. The headline feature
+  // of the app was unreachable by touch.
+  const additive = e.shiftKey || outliner.multi;
+  doc.select(hit ? hit.object.userData.cadId : null, additive);
 }
 
 // -------------------------------------------------- mini top quick-tools bar
@@ -332,12 +354,15 @@ function pickAt(e) {
     const real = document.querySelector(b.dataset.proxy);
     if (real) real.click();
   });
-  // mirror the Box-select toggle state onto its top-bar icon
-  const realLasso = document.getElementById('lasso-btn');
-  const topLasso = document.getElementById('topbar-lasso');
-  if (realLasso && topLasso) {
-    const sync = () => topLasso.classList.toggle('active', realLasso.classList.contains('active'));
-    new MutationObserver(sync).observe(realLasso, { attributes: true, attributeFilter: ['class'] });
+  // Mirror every toggle's state onto its top-bar icon. A mode button that does
+  // not show whether it is on is worse than no button, because the next tap
+  // does something different from the last one for no visible reason.
+  for (const [realId, topId] of [['lasso-btn', 'topbar-lasso'], ['multi-btn', 'topbar-multi']]) {
+    const real = document.getElementById(realId);
+    const proxy = document.getElementById(topId);
+    if (!real || !proxy) continue;
+    const sync = () => proxy.classList.toggle('active', real.classList.contains('active'));
+    new MutationObserver(sync).observe(real, { attributes: true, attributeFilter: ['class'] });
     sync();
   }
 })();
