@@ -67,7 +67,13 @@ canvas#scene{display:block; width:100%; image-rendering:pixelated; background:#1
   position:absolute; transform:translate(-50%,0); pointer-events:none;
   font-family:ui-monospace,monospace; font-size:clamp(8px,1.3vw,12px); font-weight:700;
   color:#fff8ec; text-shadow:0 1px 0 #000a, 0 0 6px #0008; letter-spacing:.08em; white-space:nowrap;
+  transition:opacity .35s ease;
 }
+/* The machine labels are DOM sitting over the canvas, so the spotlight cannot
+   darken them the way it darkens everything it is painted on. Without this the
+   room goes black and four bright signs stay floating in it. */
+body.showtime .scene-label{ opacity:.16 }
+@media (prefers-reduced-motion: reduce){ .scene-label{ transition:none } }
 #bubble{
   position:absolute; transform:translate(-50%,-100%); pointer-events:none; display:none;
   background:#fff8ec; color:#4a3f35; border-radius:8px; padding:3px 8px;
@@ -994,7 +1000,22 @@ function redeem(id){
   const p = state.prizes.find(x=>x.id===id);
   if(!p || state.wallet < p.cost) return;
   addLedger(-p.cost, `🏆 ${p.name}`);
-  save(); sfx("fanfare"); confetti(); toast(`🏆 ${p.name}, enjoy it, you earned it!`); birdHop();
+  save();
+  // The prize is already yours at this point. The show is celebration, not a
+  // gate, so nothing about it can fail in a way that costs tickets.
+  const canShow = state.settings.mode === "hub" && !document.hidden;
+  closeModal();
+  if(canShow){
+    startShow(p);
+    // The ta-da lands with the reveal, not with the click.
+    setTimeout(()=>{
+      if(!SHOW.active) return;
+      sfx("fanfare"); confetti(); birdHop();
+      toast(`🏆 ${p.name}, enjoy it, you earned it!`);
+    }, SHOW.reduced ? 120 : SHOW_CHASE + SHOW_CATCH);
+  }else{
+    sfx("fanfare"); confetti(); toast(`🏆 ${p.name}, enjoy it, you earned it!`); birdHop();
+  }
   renderAll();
 }
 function openPrizeEditor(id){
@@ -1475,6 +1496,43 @@ function flutter(){ // soft wing flutter: tremolo-shaped filtered noise
     src.start(t0);
   }catch(e){}
 }
+// Snare roll for the prize show: filtered noise pulsed at an accelerating rate,
+// then a crack on the catch. Same recipe as flutter, different rhythm, so it
+// sits in the same little world rather than sounding like a stock sample.
+function drumroll(dur){
+  if(!state.settings.sounds || document.hidden) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    const t0 = actx.currentTime;
+    const buf = actx.createBuffer(1, Math.ceil(actx.sampleRate*dur), actx.sampleRate);
+    const d = buf.getChannelData(0);
+    let phase = 0;
+    for(let i=0;i<d.length;i++){
+      const t = i/actx.sampleRate, k = t/dur;
+      const hz = 13 + k*k*26;              // hits speed up as the tension builds
+      phase += hz/actx.sampleRate;
+      const hit = Math.exp(-28 * (phase % 1));
+      d[i] = (Math.random()*2-1) * hit * (0.35 + k*0.65);
+    }
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const bp = actx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1800; bp.Q.value=.7;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(.05, t0);
+    g.gain.linearRampToValueAtTime(.12, t0+dur);
+    src.connect(bp).connect(g).connect(actx.destination);
+    src.start(t0);
+    // the crack, right on the catch
+    const cb = actx.createBuffer(1, Math.ceil(actx.sampleRate*.18), actx.sampleRate);
+    const cd = cb.getChannelData(0);
+    for(let i=0;i<cd.length;i++) cd[i] = (Math.random()*2-1) * Math.exp(-22*(i/actx.sampleRate));
+    const cs = actx.createBufferSource(); cs.buffer = cb;
+    const chp = actx.createBiquadFilter(); chp.type="highpass"; chp.frequency.value=900;
+    const cg = actx.createGain(); cg.gain.value = .14;
+    cs.connect(chp).connect(cg).connect(actx.destination);
+    cs.start(t0+dur);
+  }catch(e){}
+}
 setInterval(()=>{ if(Math.random()<.5){ flutter(); birdHop(); } }, 24000); // every 24 to 48s or so
 function sfx(kind){
   if(!state.settings.sounds) return;
@@ -1618,6 +1676,120 @@ function drawScene(now){
       ctx.fillRect(bx+cc, Math.round(byBase+yoff)+r, 1, 1);
     }
   }
+  drawShow(now, bx, byBase + yoff);
+}
+
+/* =====================================================
+   PRIZE UNLOCK SHOW
+   Redeeming used to be a toast and some confetti, which is a receipt, not a
+   moment. Vi asked for the arcade version: the room dims, a shaky spotlight
+   hunts the bird while you dash around under it, a drumroll builds, then it
+   catches her and the room bursts open on the prize.
+
+   Three phases on one clock. The chase is playable, movement is not locked, so
+   the run is yours and the catch still always happens: the spotlight closes in
+   on a curve that guarantees it. Losing was never the point.
+===================================================== */
+const SHOW = { active:false, t0:0, prize:null, sx:0, sy:0, phase:"", skipHint:false };
+const SHOW_CHASE = 2600, SHOW_CATCH = 500, SHOW_REVEAL = 2600;
+const SHOW_TOTAL = SHOW_CHASE + SHOW_CATCH + SHOW_REVEAL;
+
+function startShow(prize){
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  SHOW.prize = prize;
+  SHOW.active = true;
+  SHOW.t0 = performance.now();
+  // Reduced motion gets the same beat without the hunt: straight to the reveal,
+  // no shake, no chase. It is still a celebration, it just does not move much.
+  SHOW.reduced = reduce;
+  if(reduce) SHOW.t0 -= SHOW_CHASE + SHOW_CATCH;
+  // Start the light off in a corner so it has somewhere to come from.
+  SHOW.sx = player.x < COLS*T/2 ? COLS*T-24 : 24;
+  SHOW.sy = 24;
+  document.body.classList.add("showtime");
+  if(!reduce) drumroll(SHOW_CHASE/1000);
+}
+function endShow(){
+  if(!SHOW.active) return;
+  SHOW.active = false;
+  SHOW.prize = null;
+  document.body.classList.remove("showtime");
+  renderAll();
+}
+function drawShow(now, birdX, birdY){
+  if(!SHOW.active) return;
+  const t = now - SHOW.t0;
+  if(t >= SHOW_TOTAL){ endShow(); return; }
+  const W = COLS*T, H = ROWS*T;
+  const cx = birdX + 5, cy = birdY + 4;   // middle of the bird sprite
+
+  if(t < SHOW_CHASE){
+    SHOW.phase = "chase";
+    const k = t / SHOW_CHASE;
+    // Ease toward the bird, faster as the drumroll tightens, so the catch is
+    // inevitable without ever feeling like it teleported.
+    const pull = 0.04 + k * k * 0.22;
+    SHOW.sx += (cx - SHOW.sx) * pull;
+    SHOW.sy += (cy - SHOW.sy) * pull;
+    // The shake is the whole character of it: a hand-held follow spot.
+    const shake = (1 - k) * 9 + 1.5;
+    const jx = Math.sin(now / 47) * shake + Math.sin(now / 23) * shake * 0.4;
+    const jy = Math.cos(now / 39) * shake + Math.cos(now / 19) * shake * 0.4;
+    const r = 46 - 22 * k;
+    spotlight(SHOW.sx + jx, SHOW.sy + jy, r, 0.82);
+  } else if(t < SHOW_CHASE + SHOW_CATCH){
+    SHOW.phase = "catch";
+    // Caught. The light snaps onto her and holds dead still, which after two
+    // and a half seconds of shake is the loudest thing the frame can do.
+    const k = (t - SHOW_CHASE) / SHOW_CATCH;
+    SHOW.sx = cx; SHOW.sy = cy;
+    spotlight(cx, cy, 24 - 6 * k, 0.9);
+  } else {
+    // The lights come back up with the reveal, not when the show tears down,
+    // so the room brightening and the prize appearing are the same beat.
+    if(SHOW.phase !== "reveal") document.body.classList.remove("showtime");
+    SHOW.phase = "reveal";
+    const k = (t - SHOW_CHASE - SHOW_CATCH) / SHOW_REVEAL;
+    // Bloom out of the spotlight into a lit room, then hold on the prize.
+    const grow = Math.min(1, k * 3.2);
+    const dim = 0.9 * (1 - grow);
+    if(dim > 0.01) spotlight(cx, cy, 24 + grow * 260, dim);
+    const p = SHOW.prize;
+    if(p){
+      const rise = Math.min(1, k * 4);
+      // Sits over the rug, below the machine labels. Those labels are DOM, not
+      // canvas, so they are always drawn on top and the prize name would read
+      // as though it were part of MONTHLY.
+      const y = H * 0.54 - (1 - rise) * 10;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, k * 5) * (k > 0.86 ? (1 - k) / 0.14 : 1);
+      ctx.textAlign = "center";
+      ctx.font = "28px system-ui, sans-serif";
+      ctx.fillText(p.emoji || "🏆", W / 2, y);
+      ctx.font = "700 11px system-ui, sans-serif";
+      ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.55)";
+      ctx.strokeText(p.name, W / 2, y + 16);
+      ctx.fillStyle = "#fff8ec";
+      ctx.fillText(p.name, W / 2, y + 16);
+      ctx.restore();
+    }
+  }
+}
+// A dark wash over the room with a soft hole punched in it.
+function spotlight(x, y, r, dim){
+  const W = COLS*T, H = ROWS*T;
+  const g = ctx.createRadialGradient(x, y, Math.max(1, r * 0.45), x, y, r);
+  g.addColorStop(0, `rgba(8,4,16,0)`);
+  g.addColorStop(0.7, `rgba(8,4,16,${dim * 0.55})`);
+  g.addColorStop(1, `rgba(8,4,16,${dim})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // A faint warm pool inside the light, so it reads as a lamp and not a hole.
+  const w = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, r * 0.8));
+  w.addColorStop(0, "rgba(255,236,190,.20)");
+  w.addColorStop(1, "rgba(255,236,190,0)");
+  ctx.fillStyle = w;
+  ctx.fillRect(0, 0, W, H);
 }
 
 /* movement */
@@ -1633,6 +1805,13 @@ document.addEventListener("keydown", e=>{
     player.path=[]; player.openOnArrive=null; player.peepOnArrive=false;
     tryStep(DIRS[k][0], DIRS[k][1]); // step on tap; holding continues via the loop
   }
+  // During the prize show you can still run, that is the game, but you cannot
+  // walk into a machine. Escape cuts the show short for anyone who does not
+  // want the theatre.
+  if(SHOW.active){
+    if(e.key==="Escape"){ e.preventDefault(); endShow(); }
+    return;
+  }
   if((e.key==="e" || e.key==="E" || e.key===" " || e.key==="Enter")){
     const o = adjacentObj(player.tx, player.ty);
     if(o){ e.preventDefault(); openObj(o); }
@@ -1641,7 +1820,9 @@ document.addEventListener("keydown", e=>{
 document.addEventListener("keyup", e=>{
   const k = e.key.length===1 ? e.key.toLowerCase() : e.key; held.delete(k);
 });
-function openObj(o){ o.id==="shop" ? openShop() : openLane(o.id); }
+// Tap-to-move is how you dash on a phone, so the walking stays live during the
+// show. Arriving at a machine must not open it mid-celebration though.
+function openObj(o){ if(SHOW.active) return; o.id==="shop" ? openShop() : openLane(o.id); }
 function tryStep(dx,dy){
   if(player.moving) return;
   if(dx) player.face = dx;
@@ -1728,7 +1909,7 @@ function loop(now){
   // interact bubble
   const o = adjacentObj(player.tx, player.ty);
   const bub = $("#bubble");
-  if(o && !$("#overlay").classList.contains("open") && state.settings.mode==="hub"){
+  if(o && !SHOW.active && !$("#overlay").classList.contains("open") && state.settings.mode==="hub"){
     bub.style.display = "block";
     bub.textContent = (matchMedia("(pointer:coarse)").matches ? "tap: " : "E: ") + o.label;
     bub.style.left = ((player.x+8)/(COLS*T)*100)+"%";
