@@ -225,9 +225,13 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
    the palette (and a few button traits) so the whole app re-skins.
    "midnight" is the base defined in :root above.
    ============================================================ */
+/* --muted was #767b84, which read 4.22:1 on the panel. It cleared AA against the
+   darker --bg and failed against every panel, which is where muted labels
+   actually live. Lightened to 4.78:1 on the panel, still well below --text so
+   the hierarchy is unchanged. */
 html[data-ui="graphite"] {
   --bg: #0b0d10; --panel: #14171ccc; --panel-solid: #14171c;
-  --border: #2c2f36; --text: #d4d7dc; --muted: #767b84;
+  --border: #2c2f36; --text: #d4d7dc; --muted: #7f848d;
   --accent: #9aa0aa; --accent-dim: #3a3f47;
 }
 html[data-ui="graphite"] button,
@@ -243,10 +247,14 @@ html[data-ui="blueprint"] button,
 html[data-ui="blueprint"] .setrow select { border-radius: 3px; }
 html[data-ui="blueprint"] .group-label { color: #4fc3f7; }
 
+/* The light twin of the graphite problem, found by the same gate. --accent was
+   #2f6df6, which scraped 4.53:1 on pure white and then fell to 3.96:1 on the
+   grey --bg, so accent-coloured labels failed anywhere off a panel. Darkened to
+   5.18:1 on --bg. */
 html[data-ui="paper"] {
   --bg: #eef0f3; --panel: #ffffffe6; --panel-solid: #ffffff;
   --border: #d3d8e0; --text: #1b2230; --muted: #5d6675;
-  --accent: #2f6df6; --accent-dim: #bcd2ff;
+  --accent: #255ada; --accent-dim: #bcd2ff;
 }
 html[data-ui="paper"] button { background: #f3f5f8; }
 html[data-ui="paper"] button:hover { background: #e9edf3; }
