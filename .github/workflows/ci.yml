@@ -80,17 +80,13 @@ jobs:
       # may improve, it may not regress. Re-record with --update-baseline after a
       # deliberate change.
       #
-      # OBSERVATION MODE (continue-on-error) until one green run here proves the
-      # baseline survives the trip. The baseline was recorded on a WSL renderer,
-      # and the sweep only scores text that is on screen at each depth, so a
-      # different font stack on the runner could move an element in or out of the
-      # viewport and read as a new failure. If this step is green on CI, delete
-      # continue-on-error and it becomes a real blocker. If it is red with a short
-      # list of key differences, re-record on CI's numbers first. Leaving it
-      # blocking on a guess would have made the first push after this one red for
-      # a reason that has nothing to do with the change in it.
+      # This shipped in observation mode for one run, because the baseline was
+      # recorded on a WSL renderer and the sweep only scores text that is on
+      # screen at each depth, so a different font stack here could have moved an
+      # element in or out of a viewport and read as a false regression. Run
+      # 31352899603 came back with the identical 49 keys, so the baseline
+      # travels and this is a real blocker now.
       - name: HP contrast ratchet (scroll-depth sweep)
-        continue-on-error: true
         run: |
           python3 -m http.server 8080 >/dev/null 2>&1 &
           SRV=$!
