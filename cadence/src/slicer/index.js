@@ -309,15 +309,40 @@ export function sliceModel(positions, settings, onProgress = () => {}) {
 
   // ---- emit ---------------------------------------------------------------
   onProgress({ stage: 'writing G-code', frac: 0.9 });
-  const plan = { layers: planLayers, bounds: sliced.bounds, placement: placed };
+  // The support REGIONS, not their toolpaths, ride along with the plan so the
+  // app can rebuild them as an editable solid. Toolpaths are hatching and would
+  // reconstruct into a comb; the regions are the actual footprint per layer.
+  // Cheap to carry: outlines only, and empty unless supports were asked for.
+  const supportShape = s.supportEnable
+    ? layers.map((l, i) => ({ z: l.z, height: l.height, polys: sup.regions[i] || [] }))
+      .filter((l) => l.polys.length)
+    : [];
+  const plan = { layers: planLayers, bounds: sliced.bounds, placement: placed, supportShape };
   const { gcode, stats } = emitGcode(plan, s, { name: s.modelName });
 
   if (!placed.fits) warnings.push('this will not fit the printer, so the file is for inspection only');
   const slowed = planLayers.filter((l) => l.speedFactor < 0.999).length;
   if (slowed) notes.push(`${slowed} layer${slowed === 1 ? ' was' : 's were'} slowed down so the plastic has time to set`);
+  // Supports get their own line in the result panel rather than only a note,
+  // because "did my supports actually apply" is a yes/no question and a note
+  // buried among the settings is not a visible answer to it. Always populated,
+  // including when they are off, so the row never silently disappears.
+  const supLayers = planLayers.filter(
+    (l) => l.paths.some((p) => p.type === 'support' || p.type === 'support-interface'),
+  ).length;
+  const supGrams = Math.round(
+    (((stats.gramsByType || {}).support || 0) + ((stats.gramsByType || {})['support-interface'] || 0)) * 100,
+  ) / 100;
+  stats.supports = {
+    enabled: !!s.supportEnable,
+    type: s.supportEnable ? s.supportType : 'off',
+    layers: supLayers,
+    grams: supGrams,
+  };
   if (s.supportEnable) {
-    const supLayers = planLayers.filter((l) => l.paths.some((p) => p.type === 'support' || p.type === 'support-interface')).length;
-    notes.push(supLayers ? `${s.supportType} supports on ${supLayers} layers` : 'nothing on this model needed supporting');
+    notes.push(supLayers
+      ? `${s.supportType} supports on ${supLayers} layers, about ${supGrams}g of filament`
+      : 'nothing on this model needed supporting, so none were added');
   }
 
   onProgress({ stage: 'done', frac: 1 });

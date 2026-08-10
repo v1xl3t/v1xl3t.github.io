@@ -601,6 +601,12 @@ export class CadDocument extends EventTarget {
     return !!(cur && cur.children.length);
   }
 
+  /** True when there is a step back to take. The root has no parent. */
+  get canUndo() {
+    const cur = this.history.current;
+    return !!(cur && cur.parentId != null);
+  }
+
   // Jump the scene to any node in the tree. Acting after this forks a branch.
   goToHistory(id) {
     const node = this.history.get(id);

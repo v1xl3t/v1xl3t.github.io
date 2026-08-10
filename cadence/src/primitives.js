@@ -14,6 +14,7 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { solveSketch, sketchProfile, TESS_SEGMENTS } from './sketch.js';
 import { normalizeProfile, suggestedDepth, offsetRegion } from './profile.js';
 
@@ -39,6 +40,11 @@ export const DEFAULT_PARAMS = {
   sketch:   { profile: [[-10, -10], [10, -10], [10, 10], [-10, 10]], op: 'extrude', depth: 20,
               endType: 'blind', depth2: 0, start: 0, draft: 0, angle: 360, segments: 48,
               plane: null },   // null = the ground plane; a face sketch stores its own
+  // Slicer supports handed back as a real solid. A stack of slabs, each one a
+  // set of rings in the XZ plane lifted to `y` and pulled up by `h`. Parametric
+  // like everything else, so it saves, reloads, undoes and booleans normally
+  // instead of being an opaque imported mesh.
+  supports: { slabs: [], grow: 0 },
 };
 
 // A reusable "corner radius" field for primitives that support rounding.
@@ -110,6 +116,12 @@ export const PARAM_SCHEMA = {
     { key: 'draft', label: 'Draft (°)', min: -45, max: 45, step: 1 },
     { key: 'angle', label: 'Revolve (°)',  min: 1,   step: 5 },
     { key: 'segments', label: 'Facets',    min: 3,   step: 1, advanced: true, integer: true },
+  ],
+  // The slab stack itself comes from the slicer and is not hand-editable, but
+  // `grow` is: thickening supports is the single most common thing anyone wants
+  // to change about them, and it is one number.
+  supports: [
+    { key: 'grow', label: 'Thicken (mm)', min: -2, max: 5, step: 0.1 },
   ],
 };
 
@@ -619,6 +631,101 @@ function buildLoft(params) {
   return geo;
 }
 
+/** Signed area of a ring of [x, z] pairs. Positive = outer, negative = a hole. */
+function ringArea2(ring) {
+  let a = 0;
+  for (let i = 0, n = ring.length; i < n; i++) {
+    const p = ring[i], q = ring[(i + 1) % n];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return a / 2;
+}
+
+/** Even-odd point-in-ring, used only to decide which outer owns which hole. */
+function pointInRing(pt, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > pt[1]) !== (yj > pt[1]) &&
+        pt[0] < ((xj - xi) * (pt[1] - yi)) / ((yj - yi) || 1e-12) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Slicer supports, rebuilt as a solid.
+ *
+ * Each slab is a set of rings in the XZ plane, lifted to `y` and pulled up by
+ * `h`. Rings come straight from the support regions the slicer already computed
+ * — the footprint, not the hatching, because extruding the toolpaths would give
+ * you a comb rather than a support.
+ *
+ * Consecutive layers with identical footprints are already collapsed into one
+ * tall slab by the caller, so a 200-layer tower is usually a handful of boxes
+ * rather than 200 of them.
+ */
+function buildSupportStack(params) {
+  const slabs = Array.isArray(params.slabs) ? params.slabs : [];
+  const grow = Number(params.grow) || 0;
+  const parts = [];
+
+  for (const slab of slabs) {
+    const h = Number(slab.h) || 0;
+    const rings = Array.isArray(slab.rings) ? slab.rings.filter((r) => r && r.length >= 3) : [];
+    if (h <= 0 || !rings.length) continue;
+
+    const outers = [], holes = [];
+    for (const r of rings) (ringArea2(r) >= 0 ? outers : holes).push(r);
+    if (!outers.length) continue;
+
+    for (const outer of outers) {
+      const shape = new THREE.Shape();
+      outer.forEach((p, i) => (i === 0 ? shape.moveTo(p[0], p[1]) : shape.lineTo(p[0], p[1])));
+      shape.closePath();
+      // A hole belongs to whichever outer contains it. One containment test per
+      // hole is plenty here; support regions are simple and rarely nested.
+      for (const hole of holes) {
+        if (!pointInRing(hole[0], outer)) continue;
+        const path = new THREE.Path();
+        hole.forEach((p, i) => (i === 0 ? path.moveTo(p[0], p[1]) : path.lineTo(p[0], p[1])));
+        path.closePath();
+        shape.holes.push(path);
+      }
+      let g;
+      try {
+        g = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
+      } catch { continue; }             // a degenerate ring should not kill the stack
+      // Extrusion runs along +Z in the shape's own frame; stand it up along +Y,
+      // then lift it to where its layer sat. Same convention as buildExtrude.
+      g.rotateX(-Math.PI / 2);
+      g.translate(0, Number(slab.y) || 0, 0);
+      parts.push(g);
+    }
+  }
+
+  if (!parts.length) {
+    // Nothing to build is not an error — it is a model that needed no support.
+    const g = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+    g.userData.emptySupports = true;
+    return g;
+  }
+  const merged = parts.length === 1 ? parts[0] : mergeGeometries(parts, false);
+  for (const p of parts) if (p !== merged) p.dispose();
+  // `grow` thickens the whole stack in place. Scaling about the bounding-box
+  // centre is a crude dilation, but supports are scaffolding and this is the
+  // one knob people actually reach for.
+  if (grow && merged) {
+    merged.computeBoundingBox();
+    const b = merged.boundingBox;
+    const sx = (b.max.x - b.min.x) || 1, sz = (b.max.z - b.min.z) || 1;
+    const cx = (b.max.x + b.min.x) / 2, cz = (b.max.z + b.min.z) / 2;
+    merged.translate(-cx, 0, -cz);
+    merged.scale((sx + grow * 2) / sx, 1, (sz + grow * 2) / sz);
+    merged.translate(cx, 0, cz);
+  }
+  return merged;
+}
+
 export function buildGeometry(kind, params) {
   let geo;
   // Back-compat: the old standalone "Rounded Box" is now Box + a `round` param.
@@ -702,6 +809,9 @@ export function buildGeometry(kind, params) {
       break;
     case 'loft':
       geo = buildLoft(params);
+      break;
+    case 'supports':
+      geo = buildSupportStack(params);
       break;
     case 'sketch': {
       const prof = (params.profile && params.profile.length >= 3) ? params.profile : DEFAULT_PARAMS.sketch.profile;

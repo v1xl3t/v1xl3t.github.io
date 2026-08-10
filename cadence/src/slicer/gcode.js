@@ -76,6 +76,12 @@ export function emitGcode(plan, s, meta = {}) {
   // Accumulators for the estimate.
   let time = 0, extrudeLen = 0, travelLen = 0, retractions = 0;
   const timeByType = {};
+  // Filament per path type, in mm of feedstock. Supports are the reason this
+  // exists: "supports are on" is not an answer to "what are they costing me",
+  // and the honest answer is grams. Tracked at the same place e is advanced, so
+  // it cannot drift from the real total.
+  const filamentByType = {};
+  let curType = null;
 
   const emit = (line) => out.push(line);
 
@@ -137,7 +143,9 @@ export function emitGcode(plan, s, meta = {}) {
     if (L < 1e-9) return;
     unretract();
     const volume = L * width * height;
-    e += (volume / eArea) * flow;
+    const de = (volume / eArea) * flow;
+    e += de;
+    if (curType) filamentByType[curType] = (filamentByType[curType] || 0) + de;
     const F = Math.round(speed * 60);
     emit(`G1${F !== f ? ` F${F}` : ''} X${fmt(px)} Y${fmt(py)} E${fmtE(e)}`);
     f = F;
@@ -197,10 +205,12 @@ export function emitGcode(plan, s, meta = {}) {
       emit(`;TYPE:${gcodeType(path.type)}`);
       const t0 = time;
       let runLength = 0;
+      curType = path.type;
       for (let i = 1; i < pts.length; i++) {
         extrudeTo(pts[i][0], pts[i][1], path.width, layer.height, speed);
         runLength += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
       }
+      curType = null;
       // One trapezoid for the whole continuous run, not one per segment.
       time += moveTime(runLength, speed, s.accelerationXY, s.jerkXY);
       timeByType[path.type] = (timeByType[path.type] || 0) + (time - t0);
@@ -227,6 +237,12 @@ export function emitGcode(plan, s, meta = {}) {
     travelLengthMm: Math.round(travelLen),
     retractions,
     timeByType,
+    filamentByType,
+    // Plain numbers, not a helper function: stats is structured-cloned back from
+    // the slicing worker, and a function on it throws DataCloneError.
+    gramsByType: Object.fromEntries(Object.entries(filamentByType).map(
+      ([k, mm]) => [k, Math.round(((mm * eArea) / 1000) * (s.density ?? 1.24) * 100) / 100],
+    )),
   };
 
   // Slicers put these near the top so a printer's LCD and a human both see them

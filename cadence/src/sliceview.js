@@ -143,15 +143,46 @@ export class SliceView {
     results.classList.toggle('stale', this.stale);
     banner.hidden = !this.stale;
     this.el.querySelector('#sl-run').classList.toggle('wants-attention', this.stale);
+    // The stale banner and the Slice button both live in the scrolling body, so
+    // a collapsed panel would hide the warning AND the way to act on it. Going
+    // stale is exactly when you need them, so expand.
+    if (this.stale && this.collapsed) this.setCollapsed(false);
   }
 
   get visible() { return !this.el.hidden; }
+
+  /**
+   * Collapse the panel to just its dock: the layer readout, the steppers, the
+   * scrub slider and Stack / One layer.
+   *
+   * This exists because of a plain contradiction on a phone. The sheet is
+   * capped at 72vh above a 52px bar, so with it open the model is behind the
+   * panel — and the whole point of scrubbing layers is to WATCH the model.
+   * Reading a layer preview you cannot see is not a preview. Collapsed, the
+   * dock is about 120px and the viewport is yours again.
+   *
+   * It also answers "overwhelming": collapsed, the slicer is four controls.
+   */
+  setCollapsed(on) {
+    this.collapsed = !!on;
+    this.el.classList.toggle('sl-collapsed', this.collapsed);
+    const btn = this.el.querySelector('#sl-min');
+    if (btn) {
+      btn.textContent = this.collapsed ? 'Show settings' : 'Hide settings';
+      btn.title = this.collapsed
+        ? 'Bring the slicer settings back'
+        : 'Collapse to just the layer controls so you can see the model';
+    }
+  }
 
   toggle(force) {
     const open = force != null ? force : this.el.hidden;
     this.el.hidden = !open;
     // Other panels lay themselves out around this one.
     document.body.classList.toggle('slicer-open', open);
+    // Reopening always shows the settings, otherwise the panel comes back as a
+    // stub with no visible way to explain itself.
+    if (open) this.setCollapsed(false);
     // A stale plan keeps its numbers on screen, marked as stale, but its
     // toolpaths stay off: a picture of the wrong model is worse than no picture.
     this.group.visible = open && !!this.plan && !this.stale;
@@ -216,7 +247,13 @@ export class SliceView {
     this.el.innerHTML = `
       <div class="sl-head">
         <span class="group-label">Slice</span>
-        <button id="sl-close" title="Close the slicer (K)">✕</button>
+        <span class="sl-head-actions">
+          <!-- Collapsing is the difference between a preview you can read and one
+               you cannot. The sheet covers most of a phone screen, so scrubbing
+               layers while the model is behind the panel is useless. -->
+          <button id="sl-min" title="Collapse to just the layer controls so you can see the model">Hide settings</button>
+          <button id="sl-close" title="Close the slicer (K)">✕</button>
+        </span>
       </div>
 
       <div class="sl-scroll">
@@ -273,31 +310,39 @@ export class SliceView {
           <div class="sl-stats" id="sl-stats"></div>
 
           <div class="sl-sec">Preview</div>
-          <label class="sl-range">Layer <b id="sl-layer-val">0</b></label>
-          <!-- A slider alone cannot pick a layer. On a 400-layer part at phone
-               width the whole stack is 390 pixels, so one layer is less than a
-               pixel and there is no way to land on a chosen one. The steppers
-               are the precise path, and they are the only path on touch, where
-               PgUp and PgDn do not exist. -->
-          <div class="sl-step">
-            <button type="button" data-layerstep="-1" aria-label="Previous layer" title="Down one layer (PgDn)">−</button>
-            <input type="range" id="sl-scrub" min="0" max="0" step="1" value="0" title="Drag for the rough height, then step with the buttons for an exact layer.">
-            <button type="button" data-layerstep="1" aria-label="Next layer" title="Up one layer (PgUp)">+</button>
-          </div>
+          <div class="hint">Layer controls are docked at the bottom of this panel so they stay put while you scroll.</div>
           <label class="sl-range">Within layer <b id="sl-move-val">all</b>
             <input type="range" id="sl-moves" min="0" max="100" step="1" value="100" title="How far through the current layer to draw, so you can watch the order the nozzle takes">
           </label>
-          <div class="seg sl-seg">
-            <button data-slmode="stack" class="on" title="Show every layer up to the one you have scrubbed to, building the part up as it prints">Stack</button>
-            <button data-slmode="single" title="Show only the layer you have scrubbed to, which is how you read what a single pass actually does">One layer</button>
-          </div>
           <label class="check"><input type="checkbox" id="sl-travel" title="Draw the moves where nothing is extruded. Lots of them means the nozzle is spending its time getting places rather than printing."> Show travel moves</label>
           <div class="sl-legend">${LEGEND.map(([k, label]) => `<span><i style="background:#${COLORS[k].toString(16).padStart(6, '0')}"></i>${label}</span>`).join('')}</div>
 
           <div class="sl-sec">Output</div>
+          <button id="sl-sup-obj" title="Rebuild the generated supports as an ordinary solid in the scene, so you can move, cut, boolean or delete parts of them like anything else">Supports → object</button>
           <button id="sl-save" title="Download the .gcode file, ready for an SD card">Save G-code</button>
           <button id="sl-print" title="Send this job straight to the printer over its USB cable. Chrome or Edge on a desktop only. It asks before it starts anything.">Print over USB…</button>
           <div id="sl-printer" class="sl-printer"></div>
+        </div>
+      </div>
+
+      <!-- The dock. Outside .sl-scroll on purpose: these are the controls you
+           use while WATCHING the model, so they must not scroll away, and they
+           are the only thing left on screen when the panel is collapsed. -->
+      <div id="sl-dock" hidden>
+        <label class="sl-range sl-dock-read">Layer <b id="sl-layer-val">0</b></label>
+        <!-- A slider alone cannot pick a layer. On a 400-layer part at phone
+             width the whole stack is 390 pixels, so one layer is less than a
+             pixel and there is no way to land on a chosen one. The steppers
+             are the precise path, and they are the only path on touch, where
+             PgUp and PgDn do not exist. -->
+        <div class="sl-step">
+          <button type="button" data-layerstep="-1" aria-label="Previous layer" title="Down one layer (PgDn)">−</button>
+          <input type="range" id="sl-scrub" min="0" max="0" step="1" value="0" title="Drag for the rough height, then step with the buttons for an exact layer.">
+          <button type="button" data-layerstep="1" aria-label="Next layer" title="Up one layer (PgUp)">+</button>
+        </div>
+        <div class="seg sl-seg">
+          <button data-slmode="stack" class="on" title="Show every layer up to the one you have scrubbed to, building the part up as it prints">Stack</button>
+          <button data-slmode="single" title="Show only the layer you have scrubbed to, which is how you read what a single pass actually does">One layer</button>
         </div>
       </div>
     `;
@@ -308,8 +353,10 @@ export class SliceView {
   wire() {
     const $ = (id) => this.el.querySelector('#' + id);
     $('sl-close').addEventListener('click', () => this.toggle(false));
+    $('sl-min').addEventListener('click', () => this.setCollapsed(!this.collapsed));
     $('sl-run').addEventListener('click', () => this.run());
     $('sl-save').addEventListener('click', () => this.saveGcode());
+    $('sl-sup-obj').addEventListener('click', () => this.supportsToObject());
     $('sl-print').addEventListener('click', () => this.startPrint());
 
     $('sl-density').addEventListener('input', (e) => { $('sl-density-val').textContent = `${e.target.value}%`; });
@@ -551,6 +598,7 @@ export class SliceView {
       <div><span>Layers</span><b>${st.layers}</b></div>
       <div><span>Size</span><b>${fmtSize(data.placement?.size)}</b></div>
       <div><span>Retractions</span><b>${st.retractions}</b></div>
+      <div class="sl-stat-wide"><span>Supports</span><b>${supportSummary(st.supports)}</b></div>
     `;
 
     const msgs = [];
@@ -564,6 +612,68 @@ export class SliceView {
     scrub.value = String(Math.max(0, layers - 1));
     this.layerIndex = Math.max(0, layers - 1);
     this.el.querySelector('#sl-layer-val').textContent = String(this.layerIndex + 1);
+
+    // The dock only means anything once there are layers to scrub.
+    this.el.querySelector('#sl-dock').hidden = false;
+    // On a phone the sheet is most of the screen, so a slice that finishes with
+    // the panel still expanded hands you a preview you cannot see. Collapse to
+    // the dock automatically, which is the state you want anyway.
+    if (window.matchMedia('(max-width: 640px)').matches) this.setCollapsed(true);
+  }
+
+  /**
+   * Hand the generated supports back as an ordinary solid.
+   *
+   * Generated supports are normally a black box: the slicer decides, you accept.
+   * Turning them into a real object means the usual tools apply — move them,
+   * cut a doorway with a boolean, delete the branch fouling a feature, keep the
+   * rest. It also makes them inspectable, which is most of why you would want
+   * this in a modeller rather than a slicer.
+   *
+   * It becomes a `supports` primitive, not an imported mesh, so it saves,
+   * reloads, undoes and re-edits like everything else in the scene.
+   */
+  supportsToObject() {
+    const shape = this.plan?.supportShape;
+    if (!this.plan) { this.flash('Slice something first.'); return; }
+    if (!shape || !shape.length) {
+      this.flash('No supports in this slice. Turn them on under Supports, then slice again.');
+      return;
+    }
+
+    // Printer space is Z-up with the model shifted onto the bed; the scene is
+    // Y-up about the origin. Same inverse the preview uses.
+    const [dx, dy, dz] = this.placement?.offset || [0, 0, 0];
+    // Negating one axis mirrors the plane, which REVERSES every ring's winding.
+    // Outers would come back as holes and the whole stack would build empty, so
+    // the point order is reversed to put the orientation back.
+    const toXZ = (ring) => ring.map((p) => [p[0] - dx, -(p[1] - dy)]).reverse();
+
+    // Collapse runs of identical footprints into single tall slabs. Supports
+    // hold their shape for many layers at a time, so this usually turns
+    // hundreds of prisms into a handful without changing the solid.
+    const slabs = [];
+    let key = null;
+    for (const layer of shape) {
+      const rings = layer.polys.map(toXZ).filter((r) => r.length >= 3);
+      if (!rings.length) { key = null; continue; }
+      const k = JSON.stringify(rings);
+      const bottom = layer.z - layer.height / 2 - dz;
+      const last = slabs[slabs.length - 1];
+      // Only extend when this layer sits exactly on top of the previous slab;
+      // a gap means two separate towers and merging them would invent material.
+      if (k === key && last && Math.abs(last.y + last.h - bottom) < 1e-6) {
+        last.h += layer.height;
+      } else {
+        slabs.push({ y: bottom, h: layer.height, rings });
+        key = k;
+      }
+    }
+
+    if (!slabs.length) { this.flash('Those supports had no usable outline.'); return; }
+    // `add` names it from the kind ("Supports") and uniquifies it already.
+    this.doc.add('supports', { slabs, grow: 0 });
+    this.flash(`Supports added as an object, ${slabs.length} slab${slabs.length === 1 ? '' : 's'}. Edit or delete it like any solid.`);
   }
 
   // -------------------------------------------------------------- preview
@@ -771,6 +881,21 @@ function makeLines(pos, col, opacity) {
 }
 
 const fmtSize = (s) => (s ? `${s.w.toFixed(1)} × ${s.d.toFixed(1)} × ${s.h.toFixed(1)}mm` : '—');
+
+/**
+ * Answer "did my supports actually happen" in one line.
+ *
+ * Three outcomes, and they are genuinely different: you never asked for any,
+ * you asked and the model did not need them, or you asked and here is what they
+ * cost. The old panel only ever whispered the middle one into a note, so
+ * turning supports on and seeing no change was indistinguishable from a bug.
+ */
+function supportSummary(sup) {
+  if (!sup || !sup.enabled) return 'Off';
+  if (!sup.layers) return 'None needed';
+  const kind = sup.type === 'tree' ? 'Tree' : 'Columns';
+  return `${kind} · ${sup.layers} layers · ${sup.grams}g`;
+}
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]

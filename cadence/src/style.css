@@ -544,17 +544,39 @@ body.no-experimental [data-experimental] { display: none !important; }
 #cm-card .cm-btns .cm-next:hover { color: #0c1108; filter: brightness(1.08); }
 /* Bottom-center, clear of the toolbar (left), inspector (top-right) and outliner
    (bottom-right). Sits just above the status bar. */
-#tips-btn {
+/* Undo, Tips, Redo travel together as one centred strip. Undo is a reflex, so
+   it belongs in the spot a thumb already rests, not behind a panel. */
+#tips-row {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 38px; z-index: 80;
-  width: max-content; max-width: calc(100% - 32px);
+  display: flex; align-items: center; gap: 6px;
+  max-width: calc(100% - 32px);
+}
+#tips-btn {
+  width: max-content;
   font-size: 11px; padding: 6px 12px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer;
   opacity: .55; transition: opacity .2s ease, color .2s ease;
 }
 #tips-btn:hover { opacity: 1; color: var(--text); border-color: var(--accent); }
-@media (pointer: coarse) { #tips-btn { padding: 9px 14px; font-size: 12px; bottom: 78px; } }
-/* a drawer slides up over the bottom on mobile, so hide the Tips button while one is open */
-body.drawer-active #tips-btn { opacity: 0; pointer-events: none; }
+.tips-side {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; padding: 0; border-radius: 999px;
+  font-size: 15px; line-height: 1;
+  border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer;
+  opacity: .72; transition: opacity .2s ease, color .2s ease, border-color .2s ease;
+}
+.tips-side:hover:not(:disabled) { opacity: 1; border-color: var(--accent); }
+/* Disabled, not hidden: a control that disappears teaches nothing, while a dim
+   one says plainly that there is nothing left to take back. */
+.tips-side:disabled { opacity: .25; cursor: default; }
+@media (pointer: coarse) {
+  #tips-row { bottom: 78px; gap: 10px; }
+  #tips-btn { padding: 9px 14px; font-size: 12px; }
+  /* The 44px floor that the rest of the touch pass established. */
+  .tips-side { width: var(--touch, 44px); height: var(--touch, 44px); font-size: 19px; opacity: .85; }
+}
+/* a drawer slides up over the bottom on mobile, so hide the strip while one is open */
+body.drawer-active #tips-row { opacity: 0; pointer-events: none; }
 
 /* ============================================================
    Mini transparent quick-tools bar, top-center. Icon-only; the
@@ -741,7 +763,7 @@ body.render-view #topbar button[data-proxy] { display: none; }  /* hide edit too
 /* hide onboarding/tour + tips in render view (belt-and-suspenders to the JS guard) */
 body.render-view #cm-card,
 body.render-view #cm-ring,
-body.render-view #tips-btn { display: none !important; }
+body.render-view #tips-row { display: none !important; }
 
 /* ---- parametric sketch ---------------------------------------------------
    The inspector block for a constrained sketch, plus the on-canvas sketcher
@@ -902,6 +924,12 @@ body.render-view #tips-btn { display: none !important; }
 }
 .vc-face:hover { background: var(--accent-dim); border-color: var(--accent); opacity: 1; }
 .vc-face:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; }
+/* The cube is draggable, so the browser must not claim the gesture as a scroll
+   or a pinch first. Without this a swipe on a phone scrolls the page instead of
+   turning the model, which is most of why the widget felt stuck. */
+.vc-face { touch-action: none; }
+#viewcube-wrap.vc-dragging .vc-face { cursor: grabbing; background: var(--accent-dim); }
+#viewcube-wrap.vc-dragging { cursor: grabbing; }
 /* 38px is half the cube, so each face sits on its own side. */
 .vc-top    { transform: rotateX(90deg)  translateZ(38px); }
 .vc-bottom { transform: rotateX(-90deg) translateZ(38px); }
@@ -1033,6 +1061,29 @@ body.render-view #viewcube-wrap { display: none; }
 }
 #slicer .sl-head button:hover { color: var(--text); }
 #slicer .sl-scroll { overflow-y: auto; overflow-x: hidden; flex: 1 1 auto; padding-right: 2px; }
+#slicer .sl-head-actions { display: flex; align-items: center; gap: 2px; }
+
+/* ---- the layer dock ------------------------------------------------------
+   Outside the scrolling body so the controls you use while WATCHING the model
+   never scroll away, and so there is something left to drive when the panel is
+   collapsed. */
+#slicer #sl-dock[hidden] { display: none; }
+#slicer #sl-dock {
+  flex: 0 0 auto; margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+#slicer #sl-dock .sl-dock-read { margin: 0; }
+
+/* Collapsed: head + dock only. The point is the viewport behind it, which on a
+   phone the expanded sheet covers almost entirely — and a layer preview you
+   cannot see is not a preview. */
+#slicer.sl-collapsed .sl-scroll { display: none; }
+#slicer.sl-collapsed { max-height: none; height: auto; bottom: auto; }
+#slicer.sl-collapsed #sl-dock { margin-top: 0; border-top: none; }
+
+/* Supports get a full-width row: it is a sentence, not a number. */
+.sl-stats .sl-stat-wide { grid-column: 1 / -1; }
 
 .sl-sec {
   font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
@@ -1132,6 +1183,10 @@ button:disabled { opacity: .5; cursor: default; }
     border-radius: 16px 16px 0 0;
     backdrop-filter: blur(12px);
   }
+  /* Collapsed still hugs the bottom bar. The desktop rule zeroes `bottom` so the
+     panel shrinks upward from its top anchor; here the anchor is the bottom, so
+     zeroing it would tear the sheet off the bar it is supposed to sit above. */
+  #slicer.sl-collapsed { bottom: 52px; top: auto; }
   /* The strip has nowhere to go on a phone once the sheet is up. */
   body.slicer-open #timeline { display: none; }
 }

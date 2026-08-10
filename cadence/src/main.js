@@ -2469,16 +2469,89 @@ function syncViewCube() {
   if (css !== vcLast) { vcEls.cube.style.transform = css; vcLast = css; }
 }
 
+/**
+ * Orbit the camera by a pixel delta, the way dragging the cube should feel.
+ *
+ * Spherical around orbit.target so the framing distance is untouched — the cube
+ * turns the model, it never zooms. Phi is clamped just short of the poles
+ * because straight up has no defined azimuth and the view snaps sideways if you
+ * cross it.
+ */
+function orbitByPixels(dx, dy, span) {
+  const offset = camera.position.clone().sub(orbit.target);
+  const sph = new THREE.Spherical().setFromVector3(offset);
+  // A drag across the cube's own width is half a turn. Tying it to the widget
+  // rather than the canvas is what makes a 72px target feel like a control
+  // instead of a stuck nub.
+  const k = Math.PI / Math.max(span, 1);
+  sph.theta -= dx * k;
+  sph.phi = Math.max(1e-4, Math.min(Math.PI - 1e-4, sph.phi - dy * k));
+  camera.position.copy(orbit.target).add(new THREE.Vector3().setFromSpherical(sph));
+  camera.up.set(0, 1, 0);
+  camera.lookAt(orbit.target);
+  orbit.update();
+  syncViewCube();
+}
+
+/**
+ * The cube is both a readout and a control.
+ *
+ * It used to be click-only, which read as broken: tapping a face snaps the
+ * camera flat onto it, and from dead-on the other five faces are edge-on
+ * slivers far too thin for a fingertip. So the second tap landed on the face
+ * you were already looking at, nothing moved, and the widget felt stuck. There
+ * was no way back out except the Iso button.
+ *
+ * Now a drag turns the model and a tap still snaps, separated by the same
+ * pointer-aware slop that fixed picking in the viewport. Fingers get 12px
+ * because they roll on lift; a mouse gets 4.
+ */
 function wireViewCube() {
   vcEls.wrap = document.getElementById('viewcube-wrap');
   vcEls.cube = document.querySelector('#viewcube .vc-cube');
   if (!vcEls.wrap) return;
-  vcEls.wrap.addEventListener('click', (e) => {
+
+  let drag = null;
+
+  vcEls.wrap.addEventListener('pointerdown', (e) => {
     const b = e.target.closest('[data-view]');
-    if (!b) return;
-    snapToView(b.dataset.view);
-    flash(`${b.dataset.view === 'iso' ? 'Isometric' : b.dataset.view[0].toUpperCase() + b.dataset.view.slice(1)} view.`);
+    if (!b || e.button !== 0) return;
+    // Iso is an ordinary button, not part of the cube's drag surface.
+    const draggable = b.classList.contains('vc-face');
+    e.preventDefault();
+    e.stopPropagation();                       // never let OrbitControls see it too
+    drag = {
+      id: e.pointerId, view: b.dataset.view, draggable,
+      x: e.clientX, y: e.clientY,
+      moved: 0, slop: tapSlop(e.pointerType),
+      span: vcEls.wrap.querySelector('#viewcube')?.getBoundingClientRect().width || 76,
+    };
+    try { b.setPointerCapture(e.pointerId); } catch { /* capture is a nicety */ }
   });
+
+  vcEls.wrap.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.moved = Math.max(drag.moved, Math.hypot(e.clientX - drag.x, e.clientY - drag.y));
+    if (!drag.draggable || drag.moved <= drag.slop) return;
+    orbitByPixels(dx, dy, drag.span);
+    drag.x = e.clientX; drag.y = e.clientY;    // relative, so the drag never runs away
+    vcEls.wrap.classList.add('vc-dragging');
+  });
+
+  const end = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const wasTap = drag.moved <= drag.slop;
+    const view = drag.view;
+    drag = null;
+    vcEls.wrap.classList.remove('vc-dragging');
+    if (!wasTap) { flash('Camera turned. Tap a face to snap to it.'); return; }
+    snapToView(view);
+    flash(`${view === 'iso' ? 'Isometric' : view[0].toUpperCase() + view.slice(1)} view.`);
+  };
+  vcEls.wrap.addEventListener('pointerup', end);
+  vcEls.wrap.addEventListener('pointercancel', end);
+
   syncViewCube();
 }
 
@@ -3037,11 +3110,47 @@ function positionTourCard(rect) {
   top  = Math.min(vh - ch - pad, Math.max(pad, top));
   card.style.left = left + 'px'; card.style.top = top + 'px'; card.style.visibility = 'visible';
 }
+/**
+ * Undo and redo, either side of Tips, in the one strip that is always on screen.
+ *
+ * Both actions already existed but only on a keyboard, which a phone does not
+ * have, so on touch the app was effectively undo-less: the only way back was the
+ * timeline panel, and you had to know it was there. This is the reflex control,
+ * so it sits low and central where a thumb already is.
+ */
+function setupUndoRedo(row, tips) {
+  const mk = (id, label, glyph, title, fn) => {
+    const b = document.createElement('button');
+    b.id = id; b.className = 'tips-side'; b.title = title;
+    b.setAttribute('aria-label', label);
+    b.innerHTML = `<span aria-hidden="true">${glyph}</span>`;
+    b.addEventListener('click', () => { fn(); syncUndoRedo(); });
+    return b;
+  };
+  const undoBtn = mk('undo-btn', 'Undo', '↶', 'Undo the last step (Ctrl+Z)', () => doc.undo());
+  const redoBtn = mk('redo-btn', 'Redo', '↷', 'Redo the step you undid (Ctrl+Y)', () => doc.redo());
+  row.append(undoBtn, tips, redoBtn);
+
+  // Greyed out rather than hidden: a control that vanishes teaches nothing, and
+  // the disabled state is what tells you there is nothing left to take back.
+  syncUndoRedo = () => {
+    undoBtn.disabled = !doc.canUndo;
+    redoBtn.disabled = !doc.canRedo;
+  };
+  for (const ev of ['history', 'undo', 'add', 'remove', 'regroup', 'change'])
+    doc.addEventListener(ev, () => syncUndoRedo());
+  syncUndoRedo();
+}
+let syncUndoRedo = () => {};
+
 function setupOnboarding() {
   const tips = document.createElement('button');
   tips.id = 'tips-btn'; tips.textContent = 'Tips'; tips.title = 'Replay the quick tour';
   tips.addEventListener('click', startTour);
-  document.getElementById('app').appendChild(tips);
+  const row = document.createElement('div');
+  row.id = 'tips-row';
+  document.getElementById('app').appendChild(row);
+  setupUndoRedo(row, tips);
   let seen = false;
   try { seen = !!localStorage.getItem(ONBOARD_KEY); } catch {}
   // Don't run onboarding when launched as a read-only portfolio viewer.
