@@ -9,6 +9,16 @@
 // Nothing here uploads anything. The file becomes an object URL in this tab and
 // that is as far as it ever travels.
 
+/**
+ * Events that mean the element is usable, earliest first.
+ *
+ * `canplaythrough` is deliberately NOT the one we wait on. It means "the whole
+ * file could play without stalling", which a phone will not promise for a file
+ * it has decided not to preload, so on mobile it frequently never fires at all.
+ * `loadedmetadata` is enough to know duration and to seek.
+ */
+const EL_READY_EVENTS = ['loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough'];
+
 /** Encode an AudioBuffer as a 16 bit WAV blob, so the demo groove takes the same path as a dropped file. */
 export function bufferToWav(buffer) {
   const chans = buffer.numberOfChannels;
@@ -58,6 +68,22 @@ export class Player {
 
   /**
    * Point the player at a blob and decode a copy for analysis.
+   *
+   * This used to `await` the media element reaching `canplaythrough` before it
+   * returned, and that hung the whole app on a phone. Mobile browsers
+   * deliberately do NOT preload a media file to completion without a user
+   * gesture, so `canplaythrough` often never fires, there was no timeout, and
+   * the promise simply never settled. The user picked a file and nothing
+   * happened, forever, with the status stuck on "Reading the file".
+   *
+   * The deeper mistake was the ordering. **Analysis does not need the media
+   * element at all** — `decodeAudioData` above has already produced the
+   * AudioBuffer that every stage downstream reads. Waiting on the element
+   * blocked work that had no dependency on it.
+   *
+   * So: decode, return, and let the element warm up on its own. `whenPlayable`
+   * is there for anything that genuinely needs it.
+   *
    * @returns {Promise<AudioBuffer>}
    */
   async load(blob) {
@@ -71,21 +97,43 @@ export class Player {
     this.url = URL.createObjectURL(blob);
     if (!this.el) {
       this.el = new Audio();
-      this.el.preload = 'auto';
-      this.el.crossOrigin = 'anonymous';
+      // 'metadata' not 'auto': on mobile the full preload is ignored anyway, and
+      // asking for it is what made canplaythrough look reachable when it is not.
+      this.el.preload = 'metadata';
+      // No crossOrigin. The source is always a same-origin blob: URL, and
+      // setting it invites a tainted-media failure for nothing.
     }
     this.el.src = this.url;
-    await new Promise((res, rej) => {
-      const done = () => { cleanup(); res(); };
-      const fail = () => { cleanup(); rej(new Error('The browser could not play that file.')); };
-      const cleanup = () => { this.el.removeEventListener('canplaythrough', done); this.el.removeEventListener('error', fail); };
-      this.el.addEventListener('canplaythrough', done, { once: true });
-      this.el.addEventListener('error', fail, { once: true });
-      this.el.load();
+
+    // Never rejects and never hangs. Playback readiness is a nice-to-have, the
+    // decoded buffer is the thing that matters, and `play()` will fetch whatever
+    // it still needs on demand.
+    this.ready = new Promise((res) => {
+      let settled = false;
+      const finish = (how) => {
+        if (settled) return;
+        settled = true;
+        this.readyVia = how;
+        for (const t of EL_READY_EVENTS) this.el.removeEventListener(t, onReady);
+        this.el.removeEventListener('error', onError);
+        clearTimeout(timer);
+        res(how);
+      };
+      const onReady = (e) => finish(e.type);
+      const onError = () => finish('error');
+      for (const t of EL_READY_EVENTS) this.el.addEventListener(t, onReady, { once: true });
+      this.el.addEventListener('error', onError, { once: true });
+      // A phone that never fires any of them still has to reach a usable app.
+      const timer = setTimeout(() => finish('timeout'), 4000);
+      try { this.el.load(); } catch { finish('error'); }
     });
+
     this._buildGraph();
     return this.buffer;
   }
+
+  /** Resolves once the element is playable, or the wait gave up. Never rejects. */
+  whenPlayable() { return this.ready || Promise.resolve('no-element'); }
 
   /**
    * Source, then an optional centre cut, then out.
@@ -148,10 +196,19 @@ export class Player {
   get playing() { return !!this.el && !this.el.paused; }
 
   async play() {
-    this.ensureCtx();
+    const ctx = this.ensureCtx();
     if (!this.el) return;
+    // A phone starts its AudioContext suspended and only lets you resume inside
+    // a real user gesture. Once createMediaElementSource has claimed the
+    // element, ALL of its audio goes through the graph, so a context left
+    // suspended means silence rather than quiet. Awaiting the resume here, on
+    // the tap that started playback, is the one moment it is guaranteed to work.
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { /* reported below */ } }
     await this.el.play();
   }
+
+  /** True when the browser is still refusing to make sound. Lets the UI say so. */
+  get blocked() { return !!this.ctx && this.ctx.state === 'suspended'; }
 
   pause() { if (this.el) this.el.pause(); }
 

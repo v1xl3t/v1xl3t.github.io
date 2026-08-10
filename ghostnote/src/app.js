@@ -93,13 +93,22 @@ export async function loadBlob(blob, name = 'track') {
   try {
     buffer = await player.load(blob);
   } catch (err) {
-    setStatus('That file could not be decoded. Try a WAV or an MP3.', 'bad');
+    // Say what actually went wrong. "Nothing happened" is the worst outcome
+    // there is, so every failure below has to reach the user as words.
+    const why = err && err.message ? ` (${err.message})` : '';
+    setStatus(`That file could not be decoded${why}. Try a WAV or an MP3.`, 'bad');
     return null;
   }
   state.lastBuffer = buffer;
   setStatus('Finding the drum hits.', 'busy');
   await new Promise((r) => setTimeout(r, 0));
-  const a = await runAnalysis(monoOf(buffer), buffer.sampleRate, { sensitivity: state.sensitivity });
+  let a;
+  try {
+    a = await runAnalysis(monoOf(buffer), buffer.sampleRate, { sensitivity: state.sensitivity });
+  } catch (err) {
+    setStatus(`The analyser failed on that track${err && err.message ? ` (${err.message})` : ''}. Please tell Vi what the file was.`, 'bad');
+    return null;
+  }
   applyAnalysis(a);
   setStatus(`Ready. ${state.chart.notes.length} hits found in ${name}.`);
   return state.chart;
@@ -322,7 +331,15 @@ function wire() {
   $('pick').addEventListener('click', () => $('file').click());
   $('file').addEventListener('change', (ev) => {
     const f = ev.target.files && ev.target.files[0];
-    if (f) loadBlob(f, f.name);
+    // A phone can hand back an empty selection, and silently doing nothing is
+    // indistinguishable from the app being broken.
+    if (!f) { setStatus('No file came back from the picker. Try again, or use Try a demo groove.', 'bad'); return; }
+    // Same input twice in a row fires no change event unless the value is
+    // cleared, which reads as "I picked it and nothing happened".
+    ev.target.value = '';
+    loadBlob(f, f.name).catch((err) => {
+      setStatus(`Something went wrong loading that file${err && err.message ? ` (${err.message})` : ''}.`, 'bad');
+    });
   });
 
   $('demo').addEventListener('click', async () => {
@@ -341,7 +358,16 @@ function wire() {
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { stop(e); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (e) => {
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) loadBlob(f, f.name);
+    if (!f) { setStatus('Nothing usable was dropped. Try the Choose a file button.', 'bad'); return; }
+    loadBlob(f, f.name).catch((err) => {
+      setStatus(`Something went wrong loading that file${err && err.message ? ` (${err.message})` : ''}.`, 'bad');
+    });
+  });
+  // A whole-page tap target for the drop zone: on a phone there is no drag and
+  // drop, so the dashed box has to be the button it looks like.
+  drop.addEventListener('click', (e) => {
+    if (e.target.closest('button, input, label')) return;
+    $('file').click();
   });
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('drop', (e) => e.preventDefault());
