@@ -24,6 +24,7 @@ import { planeFromNormal, sketchToWorld, isGroundPlane } from './primitives.js';
 import { Inspector } from './ui.js';
 import { Outliner } from './outliner.js';
 import { Timeline } from './timeline.js';
+import { SliceView } from './sliceview.js';
 import { DimChips } from './dimchips.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
 import { scheduleAutosave, restoreAutosave, clearAutosave } from './autosave.js';
@@ -201,7 +202,12 @@ function frameSelection() {
   if (!objs.length) return;
   const box = new THREE.Box3();
   for (const o of objs) { o.mesh.updateWorldMatrix(true, false); box.expandByObject(o.mesh); }
-  if (box.isEmpty()) return;
+  frameBox(box);
+}
+
+/** Fit the camera to a box, keeping the direction it is already looking from. */
+function frameBox(box) {
+  if (!box || box.isEmpty()) return;
   const center = box.getCenter(new THREE.Vector3());
   const diag = box.getSize(new THREE.Vector3()).length() || 40;
   const fit = (diag * 0.5) / Math.tan((camera.fov * Math.PI / 180) / 2) * 1.4;
@@ -226,6 +232,18 @@ wireSketchBar();
 // Recipe Timeline — the multiverse history strip. Clicking a tile time-travels;
 // acting from a past tile forks a new branch (5D-chess style).
 const timeline = new Timeline(doc, { onGoto: (id) => doc.goToHistory(id) });
+// The slicer owns its own preview group in the scene and its own panel. It is
+// handed `flash` rather than reaching for the status bar itself, so every
+// message in the app still goes through one place.
+const sliceView = new SliceView(scene, doc, {
+  flash: (m) => flash(m),
+  onOpen: () => { if (COARSE_POINTER) closeDrawers(); },
+  // A finished slice is a new thing to look at, and the toolpaths of a small
+  // part are a few millimetres of thin line in a viewport scaled for modelling.
+  // Framing them is the difference between seeing the preview and being told it
+  // is there.
+  onSliced: (group) => frameBox(new THREE.Box3().setFromObject(group)),
+});
 // Each history step gets a small snapshot of the viewport for its tile.
 doc.setThumbnailProvider(() => {
   try {
@@ -384,6 +402,13 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
           .catch(() => { prompt('Copy this share link:', url); });
       });
       break;
+    case 'slice':
+      if (!experimentalOn()) flash('The slicer is an experimental feature. Turn it on in Settings.');
+      else {
+        sliceView.toggle();
+        document.getElementById('slice-btn')?.classList.toggle('active', sliceView.visible);
+      }
+      break;
     case 'selftest':  runSelfTest(); break;
   }
 });
@@ -459,6 +484,20 @@ window.addEventListener('keydown', (e) => {
   else if ((e.ctrlKey || e.metaKey) && k === 'g') { e.preventDefault(); e.shiftKey ? ungroupSelected() : groupSelected(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'i') { e.preventDefault(); intersectSelected(); }
   else if (k === 'f') frameSelection();
+  else if (k === 'k') {
+    if (!experimentalOn()) flash('The slicer is an experimental feature. Turn it on in Settings.');
+    else {
+      sliceView.toggle();
+      document.getElementById('slice-btn')?.classList.toggle('active', sliceView.visible);
+    }
+  }
+  // The layer scrub is on the arrow keys while the slicer is open, because
+  // stepping a layer at a time is the whole point of a layer preview and
+  // dragging a slider one notch is a poor substitute for it.
+  else if (sliceView.visible && (k === 'pageup' || k === 'pagedown')) {
+    e.preventDefault();
+    sliceView.setLayer(sliceView.layerIndex + (k === 'pageup' ? 1 : -1));
+  }
   else if (k === 't') {
     if (!experimentalOn()) flash('The Recipe Timeline is an experimental feature. Turn it on in Settings.');
     else timeline.toggle();
@@ -2727,6 +2766,11 @@ function applyExperimental(on) {
     if (sketchOn) setSketch(false);
     if (exObj) cancelExtrude();
     timeline?.toggle?.(false);
+    // Closing the slicer also puts the model back on screen, which matters more
+    // than the panel does: it hides every mesh while it is open, and leaving
+    // that behind would look like the scene had been emptied.
+    sliceView?.toggle?.(false);
+    document.getElementById('slice-btn')?.classList.remove('active');
   }
   dimchips?.setEnabled?.(on);
 }
@@ -2756,7 +2800,7 @@ function initSettings() {
       applyExperimental(settings.experimental);
       saveSettings(settings);
       flash(settings.experimental
-        ? 'Experimental features on. Sketch, extrude, fillet, chamfer, loft and the timeline are now in the toolbar.'
+        ? 'Experimental features on. Sketch, extrude, fillet, chamfer, loft, the timeline and the slicer are now in the toolbar.'
         : 'Experimental features off. The toolbar is back to the finished tools.');
     });
   }
@@ -3005,6 +3049,9 @@ setStatus();
 // Expose for console tinkering / debugging.
 window.cadence = {
   doc, scene, THREE, camera, renderer, orbit,
+  // The slicer, exposed so the headless harness can drive it and read back the
+  // plan rather than screenshot-diffing a pile of coloured lines.
+  slicer: sliceView,
   // Sketcher internals, exposed so the headless harness can drive and inspect
   // the constrained sketcher the same way a person does.
   sketch: {

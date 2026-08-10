@@ -64,6 +64,7 @@ export const EXPERIMENTAL_FEATURES = [
   { id: 'loft',     label: 'Loft',               note: 'blended solids between two profiles' },
   { id: 'timeline', label: 'Recipe Timeline',    note: 'branching modeling history' },
   { id: 'dimchips', label: 'Dimension chips',    note: 'editable dimensions floating on the selected part' },
+  { id: 'slicer',   label: 'Slicer',              note: 'model to G-code, layer preview, printing over USB' },
 ];
 
 const KEY = 'cadence.settings.v1';

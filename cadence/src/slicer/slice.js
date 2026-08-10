@@ -1,0 +1,325 @@
+// slice.js — a triangle soup becomes a stack of closed outlines.
+//
+// This is the one step where a 3D model stops being a 3D model. Everything
+// after it is 2D: walls, skins, infill and supports are all polygon algebra on
+// what comes out of here. So the two properties this file owes the rest of the
+// slicer are non-negotiable:
+//
+//   1. Every contour CLOSES. An open outline is not a boundary, and a wall
+//      generated from one leaks plastic into space.
+//   2. Winding is meaningful. Counter-clockwise is material, clockwise is void.
+//      Every offset downstream depends on that being true, because that is the
+//      only thing that tells a bore from a boss.
+//
+// Two decisions carry most of the robustness here, both learned from how these
+// things fail in practice:
+//
+//   Canonical edge evaluation. Two triangles sharing an edge list its vertices
+//   in opposite order. Interpolating the crossing point from (a, b) and from
+//   (b, a) gives answers that differ in the last float bit, and then the two
+//   segments do not stitch and the contour has a hairline gap. Sorting the two
+//   vertices into a fixed order before interpolating makes both triangles
+//   compute bit-identical points, so stitching is exact rather than tolerant.
+//
+//   Nudging the plane, not the geometry. A vertex sitting exactly on the slice
+//   plane is the classic source of doubled or dropped segments. Rather than
+//   enumerate the degenerate cases, an on-plane vertex is consistently treated
+//   as being just above the plane. Consistency is what matters: every triangle
+//   touching that vertex makes the same call, so the contour stays closed.
+//
+// Input is a Z-up, millimetre triangle soup, which is exactly what the printer
+// coordinate system wants. No THREE, no DOM.
+
+import { normalize, ringArea, area } from './clip.js';
+
+// Points are snapped to this grid (mm) before stitching. A tenth of a micron is
+// two orders of magnitude below anything a printer resolves, and snapping means
+// the stitch map can use exact key equality instead of a nearest search.
+const SNAP = 1e-4;
+const key = (x, y) => `${Math.round(x / SNAP)},${Math.round(y / SNAP)}`;
+
+/**
+ * Where each layer gets cut, and how thick it is.
+ *
+ * The plane sits at the MIDDLE of the layer, not its top or bottom. Cutting at
+ * the boundary means every flat face in the model is exactly coplanar with a
+ * slice plane, which is the worst case for robustness and also the wrong
+ * answer: a layer should represent the material through its own thickness, and
+ * the middle is the honest single sample of that.
+ *
+ * A model's height is almost never a whole number of layers. The leftover at
+ * the top is handled rather than ignored: if it is thick enough to extrude it
+ * becomes a genuinely thinner final layer, and the G-code scales that layer's
+ * extrusion to match, so the part comes out its modelled height. If it is
+ * thinner than the extruder can meaningfully meter, it is dropped, because
+ * truncating by a few microns is invisible and squeezing out a 5-micron layer
+ * is not. Letting the last layer run past the top of the model instead would
+ * overstate its volume, and every filament and time estimate downstream would
+ * inherit the error.
+ *
+ * @param {number} zMin bottom of the model, mm (normally 0, sitting on the bed)
+ * @param {number} zMax top of the model, mm
+ * @param {{layerHeight:number, firstLayerHeight:number}} cfg
+ * @returns {{index:number, z:number, height:number, bottom:number, top:number}[]}
+ */
+export function layerPlan(zMin, zMax, cfg) {
+  const lh = cfg.layerHeight;
+  const flh = cfg.firstLayerHeight ?? lh;
+  const height = zMax - zMin;
+  if (!(height > 0) || !(lh > 0)) return [];
+
+  // Below this, a final sliver is not worth printing.
+  const minSliver = Math.max(0.04, lh * 0.2);
+
+  const layers = [];
+  let bottom = zMin;
+  let i = 0;
+  while (bottom < zMax - 1e-9) {
+    const nominal = i === 0 ? flh : lh;
+    const remaining = zMax - bottom;
+    if (remaining < nominal - 1e-9) {
+      // The top of the model lands inside this layer.
+      if (remaining < minSliver) break;
+      layers.push({ index: i, bottom, top: zMax, height: remaining, z: bottom + remaining / 2 });
+      break;
+    }
+    const top = bottom + nominal;
+    layers.push({ index: i, bottom, top, height: nominal, z: bottom + nominal / 2 });
+    bottom = top;
+    i++;
+    if (i > 100000) break;    // a runaway guard; 100k layers is 20m of print
+  }
+  return layers;
+}
+
+/** Z extent of a triangle soup, plus its XY footprint. */
+export function meshBounds(positions) {
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (let i = 0; i < positions.length; i += 3) {
+    const x = positions[i], y = positions[i + 1], z = positions[i + 2];
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+  }
+  return Number.isFinite(minZ) ? { minX, minY, minZ, maxX, maxY, maxZ } : null;
+}
+
+// Lexicographic order on a vertex, used only to pick a fixed evaluation
+// direction for a shared edge. Which vertex wins is irrelevant; that both
+// triangles agree is the whole point.
+function firstIsLower(ax, ay, az, bx, by, bz) {
+  if (az !== bz) return az < bz;
+  if (ax !== bx) return ax < bx;
+  return ay < by;
+}
+
+/**
+ * Cut one triangle with a horizontal plane.
+ *
+ * @returns {[number,number,number,number]|null} [x0, y0, x1, y1], directed so
+ *          that material lies to the LEFT of travel. That single convention is
+ *          what makes the stitched loops come out counter-clockwise for solid
+ *          and clockwise for holes, with no post-hoc orientation guessing.
+ */
+function cutTriangle(p, t, z) {
+  const ax = p[t], ay = p[t + 1], az = p[t + 2];
+  const bx = p[t + 3], by = p[t + 4], bz = p[t + 5];
+  const cx = p[t + 6], cy = p[t + 7], cz = p[t + 8];
+
+  // A vertex exactly on the plane counts as above it. Applied identically to
+  // every triangle, so shared vertices never disagree.
+  const da = az >= z ? 1 : -1;
+  const db = bz >= z ? 1 : -1;
+  const dc = cz >= z ? 1 : -1;
+  if (da === db && db === dc) return null;
+
+  // Interpolate along one edge, always from its canonically-lower end.
+  const cross = (x0, y0, z0, x1, y1, z1) => {
+    let X0 = x0, Y0 = y0, Z0 = z0, X1 = x1, Y1 = y1, Z1 = z1;
+    if (!firstIsLower(x0, y0, z0, x1, y1, z1)) {
+      X0 = x1; Y0 = y1; Z0 = z1; X1 = x0; Y1 = y0; Z1 = z0;
+    }
+    const dz = Z1 - Z0;
+    const s = Math.abs(dz) < 1e-12 ? 0 : (z - Z0) / dz;
+    return [X0 + (X1 - X0) * s, Y0 + (Y1 - Y0) * s];
+  };
+
+  // Exactly two of the three edges change sign.
+  const hits = [];
+  if (da !== db) hits.push(cross(ax, ay, az, bx, by, bz));
+  if (db !== dc) hits.push(cross(bx, by, bz, cx, cy, cz));
+  if (dc !== da) hits.push(cross(cx, cy, cz, ax, ay, az));
+  if (hits.length !== 2) return null;
+
+  const [p0, p1] = hits;
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  if (dx * dx + dy * dy < 1e-18) return null;      // a vertex-only touch
+
+  // The triangle's outward normal, projected to the plane. Rotating the travel
+  // direction 90 degrees clockwise must give the outward normal, so the travel
+  // direction is the normal rotated 90 degrees counter-clockwise.
+  const nx = (by - ay) * (cz - az) - (bz - az) * (cy - ay);
+  const ny = (bz - az) * (cx - ax) - (bx - ax) * (cz - az);
+  const wantX = -ny, wantY = nx;
+  if (dx * wantX + dy * wantY < 0) return [p1[0], p1[1], p0[0], p0[1]];
+  return [p0[0], p0[1], p1[0], p1[1]];
+}
+
+/**
+ * Join a bag of directed segments into closed rings.
+ *
+ * Walking start-to-end through a hash of endpoints is O(n). The interesting
+ * part is what happens when the walk dead-ends, which means the mesh was not
+ * watertight at this height. Rather than throw the layer away we close the gap
+ * if it is small enough to be float noise or a hairline crack, and report it,
+ * because a slicer that silently drops a contour prints a part with a missing
+ * wall and no warning.
+ */
+function stitch(segments, gapTolerance) {
+  const starts = new Map();
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i];
+    const k = key(s[0], s[1]);
+    let list = starts.get(k);
+    if (!list) starts.set(k, (list = []));
+    list.push(i);
+  }
+
+  const used = new Uint8Array(segments.length);
+  const rings = [];
+  let repairs = 0, dropped = 0;
+
+  for (let i = 0; i < segments.length; i++) {
+    if (used[i]) continue;
+    used[i] = 1;
+    const first = segments[i];
+    const ring = [[first[0], first[1]]];
+    let cx = first[2], cy = first[3];
+    const startKey = key(first[0], first[1]);
+
+    for (let guard = 0; guard < segments.length + 2; guard++) {
+      ring.push([cx, cy]);
+      if (key(cx, cy) === startKey) break;
+
+      const list = starts.get(key(cx, cy));
+      let next = -1;
+      if (list) for (const j of list) if (!used[j]) { next = j; break; }
+      if (next < 0) {
+        // Dead end. Close it if the hole is small, otherwise this piece of the
+        // outline is genuinely missing from the mesh.
+        const gap = Math.hypot(cx - first[0], cy - first[1]);
+        if (gap <= gapTolerance) repairs++;
+        else { dropped++; ring.length = 0; }
+        break;
+      }
+      used[next] = 1;
+      cx = segments[next][2]; cy = segments[next][3];
+    }
+
+    if (ring.length >= 4) {
+      ring.pop();                                   // drop the repeated closing point
+      if (ring.length >= 3) rings.push(ring);
+    }
+  }
+  return { rings, repairs, dropped };
+}
+
+/**
+ * Slice a Z-up triangle soup into per-layer regions.
+ *
+ * @param {Float32Array|number[]} positions  9 floats per triangle, mm, Z up
+ * @param {object} cfg  { layerHeight, firstLayerHeight }
+ * @param {(frac:number)=>void} [onProgress]
+ * @returns {{layers:{index,z,height,bottom,top,polys}[], bounds, warnings:string[]}}
+ */
+export function sliceMesh(positions, cfg, onProgress) {
+  const warnings = [];
+  const bnds = meshBounds(positions);
+  if (!bnds) return { layers: [], bounds: null, warnings: ['the model has no geometry'] };
+
+  const plan = layerPlan(bnds.minZ, bnds.maxZ, cfg);
+  if (!plan.length) return { layers: [], bounds: bnds, warnings: ['the model has no height to slice'] };
+
+  // Bucket triangles by the layers they span, so each plane only tests the
+  // triangles that can possibly cross it. Without this, slicing is O(layers x
+  // triangles) and a 200k-triangle model takes minutes instead of seconds.
+  const buckets = Array.from({ length: plan.length }, () => []);
+  const planeZ = plan.map((l) => l.z);
+  const lo = planeZ[0], hi = planeZ[planeZ.length - 1];
+  const span = planeZ.length > 1 ? (hi - lo) / (planeZ.length - 1) : 1;
+
+  const indexFor = (z) => {
+    // Uniform after the first layer, so a direct guess plus a short walk beats
+    // a binary search and stays correct when the first layer is a different
+    // thickness from the rest.
+    let i = Math.round((z - lo) / span);
+    if (i < 0) i = 0;
+    if (i >= planeZ.length) i = planeZ.length - 1;
+    while (i > 0 && planeZ[i] > z) i--;
+    while (i < planeZ.length - 1 && planeZ[i] < z) i++;
+    return i;
+  };
+
+  let degenerate = 0;
+  for (let t = 0; t + 8 < positions.length; t += 9) {
+    const z0 = positions[t + 2], z1 = positions[t + 5], z2 = positions[t + 8];
+    if (!Number.isFinite(z0) || !Number.isFinite(z1) || !Number.isFinite(z2)) { degenerate++; continue; }
+    const tMin = Math.min(z0, z1, z2), tMax = Math.max(z0, z1, z2);
+    if (tMax - tMin < 1e-12) continue;              // horizontal, crosses no plane
+    let a = indexFor(tMin), b = indexFor(tMax);
+    while (a > 0 && planeZ[a] > tMin) a--;
+    while (b < planeZ.length - 1 && planeZ[b] < tMax) b++;
+    for (let i = a; i <= b; i++) {
+      if (planeZ[i] >= tMin && planeZ[i] < tMax) buckets[i].push(t);
+    }
+  }
+  if (degenerate) warnings.push(`${degenerate} triangle${degenerate === 1 ? '' : 's'} had non-finite coordinates and were skipped`);
+
+  // A crack narrower than a fifth of a layer is float noise or a modelling
+  // hairline, and closing it is right. Anything wider is a real hole.
+  const gapTolerance = Math.max(cfg.layerHeight * 0.2, 0.05);
+
+  const layers = [];
+  let totalRepairs = 0, totalDropped = 0;
+  for (let i = 0; i < plan.length; i++) {
+    const segments = [];
+    for (const t of buckets[i]) {
+      const seg = cutTriangle(positions, t, plan[i].z);
+      if (seg) segments.push(seg);
+    }
+    const { rings, repairs, dropped } = stitch(segments, gapTolerance);
+    totalRepairs += repairs; totalDropped += dropped;
+
+    // Clipper resolves anything the stitcher left ambiguous: rings that cross
+    // themselves, two bodies that overlap, a ring traced twice.
+    const polys = rings.length ? normalize(rings) : [];
+    layers.push({ ...plan[i], polys });
+    if (onProgress && (i % 16 === 0 || i === plan.length - 1)) onProgress((i + 1) / plan.length);
+  }
+
+  if (totalRepairs) warnings.push(`closed ${totalRepairs} hairline gap${totalRepairs === 1 ? '' : 's'} in the mesh`);
+  if (totalDropped) warnings.push(`${totalDropped} outline${totalDropped === 1 ? '' : 's'} could not be closed and were dropped, so the model is probably not watertight`);
+
+  const empty = layers.filter((l) => !l.polys.length).length;
+  if (empty === layers.length) warnings.push('nothing intersected any slice plane');
+
+  return { layers, bounds: bnds, warnings };
+}
+
+/** Total solid cross-section area of a slice stack, mm^2 per layer. Handy for
+ *  tests: multiplied by layer height it must recover the model's volume. */
+export function layerAreas(layers) {
+  return layers.map((l) => area(l.polys));
+}
+
+/** Approximate model volume from the slices, mm^3. A cube sliced correctly
+ *  reproduces its own volume to within one layer of quantisation, which makes
+ *  this the single best end-to-end check that slicing is not lying. */
+export function slicedVolume(layers) {
+  let v = 0;
+  for (const l of layers) v += area(l.polys) * l.height;
+  return v;
+}
+
+export { ringArea };

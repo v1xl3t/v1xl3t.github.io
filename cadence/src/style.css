@@ -960,3 +960,126 @@ body.render-view #viewcube-wrap { display: none; }
   color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: 6px; padding: 6px 8px; margin-top: 6px; font-size: 11px; line-height: 1.4;
 }
+
+/* ---- the slicer ----------------------------------------------------------
+   A wide right-hand panel, because slicing is a settings-heavy task and
+   squeezing it into the Inspector's width would mean two columns of truncated
+   labels. On a phone it becomes a bottom sheet like the other panels, and it
+   never scrolls sideways: every row is either full width or a two-up grid that
+   collapses to one at 380px. */
+
+/* `display:flex` below out-specifies the browser's `[hidden] { display:none }`,
+   so without this the panel is permanently on screen and the toggle only looks
+   like it works. Any panel given an explicit display has to re-state it. */
+#slicer[hidden] { display: none; }
+
+#slicer {
+  right: 12px;
+  top: 12px;
+  bottom: 36px;
+  width: min(300px, 34vw);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 8px;
+  z-index: 20;
+}
+#slicer .sl-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px; flex: 0 0 auto;
+}
+#slicer .sl-head button {
+  width: auto; padding: 2px 8px; margin: 0; background: none;
+  border: none; color: var(--muted); font-size: 14px; cursor: pointer;
+}
+#slicer .sl-head button:hover { color: var(--text); }
+#slicer .sl-scroll { overflow-y: auto; overflow-x: hidden; flex: 1 1 auto; padding-right: 2px; }
+
+.sl-sec {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); margin: 12px 0 6px;
+  border-top: 1px solid var(--border); padding-top: 8px;
+}
+.sl-scroll > .sl-sec:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
+.sl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sl-grid label {
+  display: flex; flex-direction: column; gap: 3px;
+  font-size: 11px; color: var(--muted);
+}
+.sl-grid input {
+  width: 100%; padding: 4px 6px; background: #0c1014; color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px; font: inherit;
+}
+@media (max-width: 380px) { .sl-grid { grid-template-columns: 1fr; } }
+
+.sl-range { display: block; font-size: 11px; color: var(--muted); margin: 8px 0 4px; }
+.sl-range b { color: var(--text); font-weight: 600; }
+.sl-range input[type="range"] { width: 100%; margin-top: 4px; accent-color: var(--accent); }
+
+.sl-run { margin-top: 12px; }
+/* The panel's normal ink on the dimmed accent, which is what the extrude bar's
+   Done button has always used and measures 6.3:1. White here is 3.2:1 and fails
+   AA at this size, and so does the normal ink on the FULL accent at 2.3:1, so
+   the hover lifts the fill only part of the way rather than all of it. */
+button.primary {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--text); font-weight: 600;
+}
+button.primary:hover:not(:disabled) { background: #35589c; }
+button:disabled { opacity: .5; cursor: default; }
+
+.sl-progress { margin: 8px 0; }
+.sl-progress .sl-stage { font-size: 10px; color: var(--muted); }
+.sl-bar-track, .sl-progress {
+  --h: 4px;
+}
+.sl-progress .sl-bar, .sl-bar-track .sl-bar {
+  height: 4px; background: var(--accent); border-radius: 3px;
+  transition: width .15s linear; width: 0;
+}
+.sl-bar-track { background: var(--border); border-radius: 3px; overflow: hidden; margin: 4px 0; }
+
+.sl-msg {
+  font-size: 11px; line-height: 1.4; color: var(--muted);
+  border-left: 2px solid var(--border); padding: 4px 0 4px 7px; margin: 5px 0;
+}
+.sl-msg.bad {
+  color: var(--danger); border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: 0 5px 5px 0;
+}
+
+.sl-stats { display: grid; gap: 3px; }
+.sl-stats div { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+.sl-stats span { color: var(--muted); }
+.sl-stats b { color: var(--text); font-weight: 600; text-align: right; }
+
+.sl-seg { display: flex; gap: 0; margin: 6px 0; }
+.sl-seg button { flex: 1; margin: 0; border-radius: 0; }
+.sl-seg button:first-child { border-radius: 6px 0 0 6px; }
+.sl-seg button:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+
+.sl-legend {
+  display: flex; flex-wrap: wrap; gap: 4px 10px;
+  font-size: 10px; color: var(--muted); margin: 8px 0 4px;
+}
+.sl-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.sl-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+
+.sl-printer { margin-top: 8px; }
+.sl-print { border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+.sl-print.printing { border-color: var(--accent); }
+.sl-print.stopped { border-color: var(--danger); }
+.sl-print-head { display: flex; justify-content: space-between; font-size: 11px; }
+.sl-print-head b { text-transform: capitalize; }
+.sl-print-temps { font-size: 10px; color: var(--muted); }
+
+/* Phone: a bottom sheet, matching the Inspector and Objects panels. */
+@media (max-width: 640px) {
+  #slicer {
+    position: fixed; z-index: 75;
+    left: 0; right: 0; bottom: 0; top: auto;
+    width: auto; max-height: 78vh;
+    border-radius: 16px 16px 0 0;
+    backdrop-filter: blur(12px);
+  }
+}

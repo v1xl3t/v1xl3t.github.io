@@ -91,6 +91,39 @@ function gatherWorldMesh(objects, scale = 1) {
   return { verts, tris };
 }
 
+/**
+ * Every printable solid as one Z-up triangle soup in millimetres, 9 floats per
+ * triangle, ready for the slicer.
+ *
+ * Deliberately NOT unit-scaled. The display unit is a preference about how
+ * numbers are shown and how exported files are labelled; a printer works in
+ * millimetres and nothing else, so a slicer that respected an inch setting
+ * would produce a part 25 times too big. The same Z-up rotation the exporters
+ * bake in is applied here, because the slicer's world is the printer's world.
+ */
+export function gatherPrintMesh(objects) {
+  const chunks = [];
+  let total = 0;
+  for (const obj of printable(objects)) {
+    obj.mesh.updateWorldMatrix(true, false);
+    const g = obj.mesh.geometry.index ? obj.mesh.geometry.toNonIndexed() : obj.mesh.geometry.clone();
+    g.applyMatrix4(obj.mesh.matrixWorld);
+    g.applyMatrix4(Z_UP);
+    const pos = g.getAttribute('position');
+    const arr = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      arr[i * 3] = pos.getX(i); arr[i * 3 + 1] = pos.getY(i); arr[i * 3 + 2] = pos.getZ(i);
+    }
+    chunks.push(arr);
+    total += arr.length;
+    g.dispose();
+  }
+  const out = new Float32Array(total);
+  let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
+}
+
 const f = (n) => +n.toFixed(4); // trim float noise to keep the file lean
 
 function buildModelXML(verts, tris, unit = 'mm') {

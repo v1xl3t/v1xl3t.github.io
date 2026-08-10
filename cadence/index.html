@@ -212,6 +212,11 @@
       </div>
 
       <div class="group">
+        <div class="group-label">Print</div>
+        <button data-action="slice" id="slice-btn" data-experimental="slicer" class="tool" title="Slice this model into printer instructions: walls, infill, supports and G-code, with a layer-by-layer preview">Slice <span class="hint">(K)</span></button>
+      </div>
+
+      <div class="group">
         <div class="group-label">Export</div>
         <button data-action="export-stl" title="Download an STL mesh for 3D printing">Download STL</button>
         <button data-action="export-3mf" title="Download a 3MF file (mesh plus color) for printing">Download 3MF</button>
@@ -266,8 +271,10 @@
           Enable experimental features
         </label>
         <div class="hint" id="experimental-note">
-          Sketch, extrude, fillet and chamfer, loft, and the recipe timeline. Under
-          active development, so expect rough edges.
+          Sketch, extrude, fillet and chamfer, loft, the recipe timeline, and the
+          slicer. Under active development, so expect rough edges. The slicer in
+          particular has never driven a real printer yet, so watch the first
+          layer of anything you send it.
         </div>
       </div>
     </aside>
@@ -287,6 +294,10 @@
       </div>
       <div id="outliner-list"></div>
     </aside>
+
+    <!-- The slicer. Fills itself in from src/sliceview.js, because every control
+         in it is generated from the profile tables rather than written twice. -->
+    <aside id="slicer" class="panel" data-experimental="slicer" hidden></aside>
 
     <!-- Recipe Timeline: the multiverse history strip (toggled by Timeline / T) -->
     <aside id="timeline" class="panel" data-experimental="timeline" hidden>
@@ -317,6 +328,8 @@
             <div><kbd>L</kbd> Lasso · <kbd>M</kbd> Measure</div>
             <div><kbd>S</kbd> Sketch mode</div>
             <div><kbd>F</kbd> Frame selection</div>
+            <div><kbd>K</kbd> Slice for printing</div>
+            <div><kbd>PgUp</kbd>/<kbd>PgDn</kbd> Step a layer</div>
             <div><kbd>Ctrl</kbd>+<kbd>A</kbd> Select all</div>
             <div><kbd>Esc</kbd> Deselect / exit mode</div>
             <div class="sc-sec">In sketch mode</div>
