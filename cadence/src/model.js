@@ -14,7 +14,7 @@
 // parametric parts from their stored recipes. That cycle *is* the Stage-1
 // bidirectional spike — parametric -> mesh -> boolean -> parametric, proven.
 
-import { buildGeometry, DEFAULT_PARAMS, resolveSketch } from './primitives.js';
+import { buildGeometry, DEFAULT_PARAMS, resolveSketch, computeExtrudeReach, computeExtrudeUpTo } from './primitives.js';
 import { cloneSketch, addConstraint, removeConstraint } from './sketch.js';
 import { booleanCombine, booleanIntersect } from './kernel.js';
 import { History } from './history.js';
@@ -135,6 +135,39 @@ export class CadDocument extends EventTarget {
   }
 
   setThumbnailProvider(fn) { this._thumb = fn; }
+
+  /**
+   * Resolve a scene-aware extrude ('through' / 'upTo') against the rest of the
+   * model and cache the answer on the recipe.
+   *
+   * This exists because buildGeometry is pure: one recipe in, one geometry out,
+   * no scene. That purity is worth keeping (it is why the headless suites and
+   * the STEP exporter can build without a viewport), so the scene question is
+   * answered here and handed to the builder as data.
+   *
+   * Call it before rebuild whenever the object or its neighbours move. It is a
+   * no-op for every other end type, so calling it liberally is cheap.
+   */
+  resolveExtrudeReach(obj) {
+    if (!obj || obj.kind !== 'sketch') return;
+    const end = obj.params.endType;
+    if (end !== 'through' && end !== 'upTo') return;
+    const others = [];
+    for (const o of this.objects.values()) {
+      if (o.id === obj.id || !o.mesh) continue;
+      o.mesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(o.mesh);
+      if (!box.isEmpty()) others.push(box);
+    }
+    obj.mesh.updateMatrixWorld(true);
+    const opts = {
+      start: Number(obj.params.start) || 0,
+      worldInv: obj.mesh.matrixWorld.clone().invert(),
+    };
+    obj.params.reach = end === 'upTo'
+      ? computeExtrudeUpTo(obj.params.plane, others, opts)
+      : computeExtrudeReach(obj.params.plane, others, opts);
+  }
 
   get selected() { return this.selectedId ? this.objects.get(this.selectedId) : null; }
   get list() { return [...this.objects.values()]; }

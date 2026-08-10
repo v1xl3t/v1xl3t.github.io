@@ -243,6 +243,24 @@ export function worldToSketch(plane, point) {
   return { x: p.x, y: p.z };
 }
 
+// The two scene-aware end types.
+//
+//   'through'  pull far enough to pass completely through everything in the way
+//   'upTo'     pull until the first surface of another body, and stop there
+//
+// Both are questions about the rest of the model, and buildGeometry is pure by
+// design: it turns one recipe into one geometry and never looks at the scene.
+// So the scene answer is resolved BEFORE the build and cached on the recipe as
+// `params.reach`, exactly the way `params.profile` is a cache of the solved
+// sketch. resolveExtrudeReach in model.js writes it; this reads it.
+//
+// If the cache is missing (a recipe loaded from an older save, or a headless
+// build with no scene) the fallback is a blind pull of `depth`. That is the
+// conservative direction: a shape that is too short is visibly wrong and easy
+// to fix, whereas silently defaulting to some huge number would punch a hole
+// through the whole model the moment a file opened.
+const REACH_MARGIN = 1; // mm past the far surface, so 'through' cuts cleanly
+
 /** Describes what an extrude will do, for the UI, without building geometry. */
 export function extrudeSpan(params) {
   const depth = Math.max(0.01, Number(params.depth) || 0.01);
@@ -253,7 +271,89 @@ export function extrudeSpan(params) {
     const d2 = Math.max(0, Number(params.depth2) || 0);
     return { bottom: start - d2, top: start + depth };
   }
+  if (end === 'through' || end === 'upTo') {
+    const r = params.reach;
+    const far = r && Number.isFinite(r.top) ? r.top : null;
+    const near = r && Number.isFinite(r.bottom) ? r.bottom : null;
+    if (far === null) return { bottom: start, top: start + depth, unresolved: true };
+    if (end === 'upTo') return { bottom: start, top: far };
+    // 'through' also reaches backwards when there is material behind the sketch,
+    // which is what makes a through-cut on a mid-plane sketch behave the way a
+    // through-cut should rather than only cutting the half in front of it.
+    return { bottom: near === null ? start : Math.min(start, near), top: far };
+  }
   return { bottom: start, top: start + depth };
+}
+
+/**
+ * How far the extrude must travel to satisfy 'through' / 'upTo'.
+ *
+ * Works in the sketch's own frame, where the pull always runs along +Y, so the
+ * plane's orientation is handled by the same matrix the builder already uses
+ * instead of by separate axis maths.
+ *
+ * `others` are the world-space bounding boxes of every OTHER body in the scene.
+ * Bounding boxes, not exact surfaces: 'upTo' therefore stops at the first body's
+ * box rather than at its true silhouette. For a flat face, the common case, they
+ * are the same. For a curved or angled face it stops slightly early, which errs
+ * toward leaving material rather than cutting something that should have stayed.
+ * Exact face picking is the B-rep kernel's job, not this one's.
+ */
+// The other bodies' boxes arrive in WORLD space, while the plane matrix maps the
+// sketch frame to the sketch OBJECT's local space. Skipping the object's own
+// world transform would give the right answer only while the sketch sat at the
+// origin unrotated, and would quietly drift the moment it was moved. So compose
+// both: world -> object local (worldInv) -> sketch frame (plane inverse).
+function boxHeights(box, planeParam, worldInv) {
+  const M = planeMatrix(planeParam);
+  const planeInv = M ? M.clone().invert() : null;
+  const out = [];
+  for (let i = 0; i < 8; i++) {
+    const p = new THREE.Vector3(
+      i & 1 ? box.max.x : box.min.x,
+      i & 2 ? box.max.y : box.min.y,
+      i & 4 ? box.max.z : box.min.z,
+    );
+    if (worldInv) p.applyMatrix4(worldInv);
+    if (planeInv) p.applyMatrix4(planeInv);
+    out.push(p.y);                          // height along the pull direction
+  }
+  return out;
+}
+
+export function computeExtrudeReach(planeParam, others, opts = {}) {
+  const start = Number(opts.start) || 0;
+  let top = null, bottom = null;
+  for (const box of others) {
+    if (!box || box.isEmpty()) continue;
+    // Every corner, not the centre: that is what keeps this correct when the
+    // sketch plane is not axis-aligned with the body it has to pass through.
+    for (const h of boxHeights(box, planeParam, opts.worldInv)) {
+      if (h > start && (top === null || h > top)) top = h;
+      if (h < start && (bottom === null || h < bottom)) bottom = h;
+    }
+  }
+  if (top === null && bottom === null) return null;
+  return {
+    top: top === null ? start : top + REACH_MARGIN,
+    bottom: bottom === null ? start : bottom - REACH_MARGIN,
+  };
+}
+
+/** Nearest surface ahead of the sketch, for 'upTo'. Same frame, same caveats. */
+export function computeExtrudeUpTo(planeParam, others, opts = {}) {
+  const start = Number(opts.start) || 0;
+  let nearest = null;
+  for (const box of others) {
+    if (!box || box.isEmpty()) continue;
+    const hs = boxHeights(box, planeParam, opts.worldInv);
+    const lo = Math.min(...hs);
+    // Only bodies that actually sit ahead of the sketch can stop it. A body
+    // straddling the sketch plane is already being cut into, so its near face is
+    // behind us and stopping there would build nothing.
+    if (lo > start && (nearest === null || lo < nearest)) nearest = lo;
+  }
+  return nearest === null ? null : { top: nearest, bottom: start };
 }
 
 // A tapered extrusion, built by hand because ExtrudeGeometry only makes straight
