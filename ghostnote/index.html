@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ghost Note, a free drum play along</title>
+<meta name="description" content="Drop in a track, get a drum chart, play along. Everything happens in your browser and nothing is uploaded." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Ccircle cx='8' cy='8' r='6' fill='none' stroke='%237ee787' stroke-width='2'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="./src/style.css" />
+<!-- No bundler and no build step. Plain ES modules, resolved by an import map,
+     the same way CADence is put together, so this deploys as static files. -->
+<script type="importmap">
+{ "imports": { "playalong/": "./src/" } }
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the app</a>
+
+<header class="wrap">
+  <h1>Ghost Note</h1>
+  <p class="tag">Drop in a track, get a drum chart, play along. The whole thing runs in this tab, your audio is never uploaded anywhere.</p>
+</header>
+
+<main id="main" class="wrap">
+
+  <section class="card" aria-labelledby="load-h">
+    <h2 id="load-h">1. Bring a track</h2>
+    <div id="drop" class="drop">
+      <p class="drop-msg">Drop an audio file here, or choose one below. MP3, WAV, M4A, OGG, FLAC, whatever your browser plays.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="pick">Choose a file</button>
+        <input type="file" id="file" accept="audio/*" class="visually-hidden" />
+        <button type="button" class="btn" id="demo">Try a demo groove</button>
+      </div>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite">Ready when you are.</p>
+    <p id="honesty" class="note" hidden></p>
+  </section>
+
+  <section class="card" aria-labelledby="chart-h">
+    <div class="cardhead">
+      <h2 id="chart-h">2. The chart</h2>
+      <div class="seg" role="group" aria-label="Chart mode">
+        <button type="button" class="seg-btn on" id="mode-play" aria-pressed="true">Play</button>
+        <button type="button" class="seg-btn" id="mode-edit" aria-pressed="false">Edit</button>
+      </div>
+    </div>
+    <p id="summary" class="summary">Nothing loaded yet.</p>
+    <canvas id="chart" width="800" height="260" role="img" aria-label="Scrolling drum chart, four lanes for hi hat, snare, tom and kick"></canvas>
+
+    <div class="row transport">
+      <button type="button" class="btn primary" id="play" disabled>Play</button>
+      <button type="button" class="btn" id="restart" disabled>Back to start</button>
+      <span class="clock" id="clock">0:00 / 0:00</span>
+    </div>
+    <label class="seekwrap">
+      <span class="visually-hidden">Position in the track</span>
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1" disabled />
+    </label>
+
+    <div class="row editbar" id="editbar" hidden>
+      <button type="button" class="btn" id="ed-del">Delete note</button>
+      <button type="button" class="btn" id="ed-earlier">Nudge earlier</button>
+      <button type="button" class="btn" id="ed-later">Nudge later</button>
+      <button type="button" class="btn" id="ed-snap">Snap all to grid</button>
+      <button type="button" class="btn" id="ed-clean">Drop unsure notes</button>
+      <button type="button" class="btn" id="ed-undo">Undo</button>
+      <button type="button" class="btn" id="ed-redo">Redo</button>
+      <p class="note" id="ed-note">Tap an empty spot to add a note, tap a note to select it, drag a note to move it.</p>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="play-h">
+    <h2 id="play-h">3. Play it</h2>
+    <div class="pads" id="pads">
+      <button type="button" class="pad" data-lane="hat"><span class="pad-name">Hi hat</span><span class="pad-key">D</span></button>
+      <button type="button" class="pad" data-lane="snare"><span class="pad-name">Snare</span><span class="pad-key">F</span></button>
+      <button type="button" class="pad" data-lane="tom"><span class="pad-name">Tom</span><span class="pad-key">J</span></button>
+      <button type="button" class="pad" data-lane="kick"><span class="pad-name">Kick</span><span class="pad-key">Space</span></button>
+    </div>
+    <dl class="scoreboard">
+      <div><dt>Score</dt><dd id="sc-score">0</dd></div>
+      <div><dt>Combo</dt><dd id="sc-combo">0</dd></div>
+      <div><dt>Accuracy</dt><dd id="sc-acc">0%</dd></div>
+      <div><dt>Timing</dt><dd id="sc-bias">no data yet</dd></div>
+    </dl>
+    <p class="note" id="sc-counts">Perfect 0, great 0, good 0, missed 0</p>
+  </section>
+
+  <details class="card" id="practice">
+    <summary><h2>Practice tools</h2></summary>
+    <div class="fields">
+      <label class="field">
+        <span>Speed <output id="rate-out">100%</output></span>
+        <input type="range" id="rate" min="40" max="120" step="5" value="100" />
+        <span class="note">Pitch is held steady, so a slow pass is still in the right key.</span>
+      </label>
+      <label class="field">
+        <span>Quieten the centre <output id="duck-out">off</output></span>
+        <input type="range" id="duck" min="0" max="100" step="5" value="0" />
+        <span class="note" id="duck-note">Pulls down whatever is panned dead centre, which is usually the kick, the snare and the lead vocal. Rough, but it lets you be the drummer. Needs a stereo file.</span>
+      </label>
+      <div class="field">
+        <span>Metronome</span>
+        <div class="row">
+          <button type="button" class="btn" id="metro" aria-pressed="false">Click on the detected beat, off</button>
+        </div>
+      </div>
+      <label class="field">
+        <span>Count in</span>
+        <select id="countin">
+          <option value="0">None</option>
+          <option value="4" selected>One bar</option>
+          <option value="8">Two bars</option>
+        </select>
+      </label>
+      <div class="field">
+        <span>Loop a section</span>
+        <div class="row">
+          <button type="button" class="btn" id="loop-a">Set start</button>
+          <button type="button" class="btn" id="loop-b">Set end</button>
+          <button type="button" class="btn" id="loop-off">Clear loop</button>
+        </div>
+        <span class="note" id="loop-note">No loop set.</span>
+      </div>
+    </div>
+  </details>
+
+  <details class="card" id="exportcard">
+    <summary><h2>Export and save</h2></summary>
+    <div class="row">
+      <button type="button" class="btn primary" id="ex-midi">Export drum MIDI</button>
+      <button type="button" class="btn" id="ex-midi-q">Export quantised MIDI</button>
+      <button type="button" class="btn" id="ex-chart">Save chart file</button>
+      <button type="button" class="btn" id="im-chart">Open chart file</button>
+      <input type="file" id="chartfile" accept=".json,application/json" class="visually-hidden" />
+    </div>
+    <p class="note">The MIDI lands on channel 10 with General MIDI drum notes, so any DAW will read it. The chart file keeps your edits so a session is not lost.</p>
+  </details>
+
+  <details class="card" id="setupcard">
+    <summary><h2>Kit, keys and latency</h2></summary>
+    <div class="fields">
+      <div class="field">
+        <span>Electronic kit</span>
+        <div class="row">
+          <button type="button" class="btn" id="midi-on">Connect a MIDI kit</button>
+        </div>
+        <span class="note" id="midi-note">Not connected. The keyboard and the pads above work on their own, you never need hardware.</span>
+      </div>
+      <div class="field">
+        <span>Latency calibration <output id="cal-out">0 ms</output></span>
+        <div class="row">
+          <button type="button" class="btn" id="cal-run">Run calibration</button>
+          <button type="button" class="btn" id="cal-clear">Reset to zero</button>
+        </div>
+        <span class="note" id="cal-note">Play eight clicks and tap along on any pad or key. Your output delay gets measured once and subtracted from every judgement after that, so the app stops blaming you for the browser.</span>
+      </div>
+      <label class="field">
+        <span>Detection sensitivity <output id="sens-out">normal</output></span>
+        <input type="range" id="sens" min="60" max="160" step="10" value="100" />
+        <span class="note">Higher finds quieter hits and more mistakes. Re analyse after changing it.</span>
+      </label>
+      <div class="row">
+        <button type="button" class="btn" id="reanalyse" disabled>Analyse again</button>
+      </div>
+    </div>
+  </details>
+
+  <section class="card" aria-labelledby="honest-h">
+    <h2 id="honest-h">What this actually does, and what it does not</h2>
+    <ul class="plain">
+      <li>It finds drum hits with spectral flux onset detection, then sorts them into kick, snare and hi hat by where their energy sits in the spectrum. That is classic signal processing, not machine learning, so there is no model to download and the analysis takes a couple of seconds.</li>
+      <li>Toms and cymbals are not detected as such. They land in the nearest of the three lanes and usually come through with low confidence. Notes the detector was unsure about are drawn with a dashed outline, and the editor is there so you can fix them.</li>
+      <li>It does not separate the drums from the rest of the mix. The centre cut in the practice tools is a rough stand in. Real separation means tens of megabytes of model weights, which is a fair upgrade one day but not something to make you wait for now.</li>
+      <li>Your file never leaves this device. There is no account, no upload, no analytics.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p class="note">Built for drummers who do not want to pay a subscription to practise. Free, and the useful version is the free one.</p>
+</footer>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>
