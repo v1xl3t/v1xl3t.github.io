@@ -5,22 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vi Ellis · Directory</title>
 <meta name="description" content="Vi Ellis, portfolio and live tools: CADence, Layerloop, Résumé Studio." />
-<meta name="theme-color" content="#efe9fb" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23a78bfa'/%3E%3Cpath d='M16 18 L32 46 L48 18' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<meta name="theme-color" content="#0a0f16" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0f16'/%3E%3Cpath d='M16 18 L32 46 L48 18' fill='none' stroke='%233dfd7a' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <style>
+/* ============================================================
+   Directory shell. Shares the portfolio's design system:
+   dark + neon green is the default, violet is the opt-in light
+   theme, and the choice rides the same `vi-theme` key so the
+   theme survives a hop between /apps/ and the portfolio.
+   ============================================================ */
 :root{
-  --bg:#f7f4fe;
-  --bg-2:#efe9fb;
-  --card:#ffffff;
-  --ink:#3b3556;
-  --ink-soft:#6f6790;
-  --violet:#7256c9;
-  --violet-2:#a78bfa;
-  --lav:#c9bdf4;
-  --lav-soft:#e7defb;
-  --ring:rgba(139,123,216,.35);
-  --shadow:0 10px 30px -16px rgba(86,70,150,.45);
-  --shadow-lift:0 22px 48px -20px rgba(86,70,150,.55);
+  --bg:#0a0f16;
+  --bg-2:#0c121b;
+  --card:#121b27;
+  --card-2:#15202f;
+  --ink:#e7eef6;
+  --ink-soft:#8aa0b6;
+  --accent:#3dfd7a;
+  --accent-2:#9d7bff;
+  --accent-ink:#06210f;   /* text that sits ON the accent */
+  --line:#1f3147;
+  --line-soft:#172335;
+  --wash:rgba(61,253,122,.10);
+  --ring:rgba(61,253,122,.45);
+  --shadow:0 1px 0 rgba(255,255,255,.02), 0 18px 40px -24px rgba(0,0,0,.8);
+  --shadow-lift:0 1px 0 rgba(255,255,255,.04), 0 30px 60px -28px rgba(0,0,0,.9);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -29,9 +38,9 @@ html{scroll-behavior:smooth}
 body{
   margin:0; min-height:100vh; color:var(--ink); font-family:var(--font);
   background:
-    radial-gradient(60vw 60vw at 12% -8%, #e9e0fb 0%, transparent 55%),
-    radial-gradient(55vw 55vw at 100% 10%, #f3e6fb 0%, transparent 50%),
-    radial-gradient(50vw 50vw at 80% 110%, #e4ecff 0%, transparent 55%),
+    radial-gradient(60vw 60vw at 12% -8%, rgba(61,253,122,.07) 0%, transparent 55%),
+    radial-gradient(55vw 55vw at 100% 10%, rgba(157,123,255,.08) 0%, transparent 50%),
+    radial-gradient(50vw 50vw at 80% 110%, rgba(46,230,168,.06) 0%, transparent 55%),
     var(--bg);
   -webkit-font-smoothing:antialiased;
   display:flex; flex-direction:column;
@@ -39,7 +48,7 @@ body{
 /* slow, soft drifting tint (cute, subtle) */
 body::before{
   content:""; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
-  background:radial-gradient(40vw 40vw at 30% 40%, rgba(199,189,244,.30), transparent 60%);
+  background:radial-gradient(40vw 40vw at 30% 40%, rgba(61,253,122,.08), transparent 60%);
   animation:drift 26s ease-in-out infinite alternate;
 }
 @keyframes drift{ from{transform:translate3d(-3%,-2%,0) scale(1)} to{transform:translate3d(4%,3%,0) scale(1.08)} }
@@ -49,7 +58,7 @@ main{ width:100%; max-width:880px; margin:0 auto; padding:clamp(48px,9vw,104px) 
 .head{ animation:rise .7s cubic-bezier(.22,.61,.36,1) both }
 .mark{
   width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
-  background:linear-gradient(140deg,var(--violet-2),var(--violet)); color:#fff;
+  background:linear-gradient(140deg,var(--accent),var(--accent-2)); color:var(--accent-ink);
   font-weight:900; font-size:1.2rem; box-shadow:var(--shadow); margin-bottom:18px;
 }
 h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; line-height:1.05 }
@@ -60,7 +69,7 @@ h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; li
 
 .tile{
   position:relative; display:block; text-decoration:none; color:inherit;
-  background:var(--card); border:1px solid var(--lav-soft); border-radius:20px;
+  background:var(--card); border:1px solid var(--line); border-radius:20px;
   padding:22px 22px 20px; box-shadow:var(--shadow); overflow:hidden;
   transition:transform .28s cubic-bezier(.22,.61,.36,1), box-shadow .28s ease, border-color .28s ease;
   animation:rise .7s cubic-bezier(.22,.61,.36,1) both;
@@ -71,34 +80,34 @@ h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; li
 .tile:nth-child(7){animation-delay:.47s} .tile:nth-child(8){animation-delay:.54s}
 .tile .shot{
   width:100%; aspect-ratio:1/1; object-fit:cover; object-position:top; display:block;
-  border-radius:14px; border:1px solid var(--lav-soft); margin-bottom:14px;
-  position:relative; z-index:1; background:var(--lav-soft);
+  border-radius:14px; border:1px solid var(--line-soft); margin-bottom:14px;
+  position:relative; z-index:1; background:var(--card-2);
 }
 .tile::after{ /* soft corner bloom */
   content:""; position:absolute; right:-30px; top:-30px; width:120px; height:120px; border-radius:50%;
-  background:radial-gradient(circle at center, var(--lav-soft), transparent 70%);
+  background:radial-gradient(circle at center, var(--wash), transparent 70%);
   opacity:.8; transition:transform .4s ease, opacity .3s ease;
 }
-.tile:hover{ transform:translateY(-6px); box-shadow:var(--shadow-lift); border-color:var(--lav) }
+.tile:hover{ transform:translateY(-6px); box-shadow:var(--shadow-lift); border-color:var(--accent) }
 .tile:hover::after{ transform:scale(1.4); opacity:1 }
 .tile:focus-visible{ outline:3px solid var(--ring); outline-offset:3px }
 
 .tile .ico{
   width:38px; height:38px; border-radius:11px; display:grid; place-items:center; margin-bottom:14px;
-  background:linear-gradient(140deg,var(--lav-soft),#fff); border:1px solid var(--lav-soft); color:var(--violet);
+  background:var(--wash); border:1px solid var(--line); color:var(--accent);
   position:relative; z-index:1;
 }
 .tile h2{ margin:0; font-size:1.18rem; letter-spacing:-.01em; position:relative; z-index:1; display:flex; align-items:center; gap:8px }
 .tile p{ margin:.45em 0 0; color:var(--ink-soft); font-size:.95rem; line-height:1.5; position:relative; z-index:1 }
-.tile .go{ margin-top:14px; font-family:var(--mono); font-size:.78rem; color:var(--violet); font-weight:700; position:relative; z-index:1 }
+.tile .go{ margin-top:14px; font-family:var(--mono); font-size:.78rem; color:var(--accent); font-weight:700; position:relative; z-index:1 }
 .tile .go::after{ content:" \2192"; transition:margin-left .2s ease }
 .tile:hover .go::after{ margin-left:5px }
-.pri{ background:linear-gradient(150deg,#fff,#f4efff); border-color:var(--lav) }
-.badge{ font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; text-transform:uppercase; color:#fff;
-  background:#6f52d4; padding:3px 8px; border-radius:999px; font-weight:700 }
+.pri{ background:linear-gradient(150deg,var(--card-2),var(--card)); border-color:var(--accent) }
+.badge{ font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink);
+  background:var(--accent); padding:3px 8px; border-radius:999px; font-weight:700 }
 
 footer{ text-align:center; padding:26px 20px 36px; color:var(--ink-soft); font-size:.86rem }
-footer a{ color:var(--violet); text-decoration:none; font-weight:600 }
+footer a{ color:var(--accent); text-decoration:none; font-weight:600 }
 footer a:hover{ text-decoration:underline }
 
 @keyframes rise{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none} }
@@ -109,52 +118,53 @@ footer a:hover{ text-decoration:underline }
   html{ scroll-behavior:auto }
 }
 
-/* ---------------- dark lavender theme ---------------- */
-html[data-theme="dark"]{
-  --bg:#14101f; --bg-2:#1b1530; --card:#1f1836;
-  --ink:#ece7fb; --ink-soft:#b3a8d6;
-  --violet:#bba8f6; --violet-2:#a78bfa;
-  --lav:#6b5ca0; --lav-soft:#2a2348;
-  --ring:rgba(167,139,250,.45);
-  --shadow:0 10px 30px -16px rgba(0,0,0,.6);
-  --shadow-lift:0 22px 48px -20px rgba(0,0,0,.7);
+/* ---------------- LIGHT (VIOLET) THEME ----------------
+   Opt-in, same as the portfolio. Dark stays the default so the two
+   surfaces agree, and so does the stored value ("light" / "dark"). */
+html[data-theme="light"]{
+  --bg:#faf5fd; --bg-2:#f1eaf9;
+  --card:#ffffff; --card-2:#fbf4fd;
+  --ink:#3a2b46; --ink-soft:#5f5175;
+  --accent:#87309f; --accent-2:#7a52d6;
+  --accent-ink:#ffffff;
+  --line:#e4d5f0; --line-soft:#f0e7f8;
+  --wash:rgba(154,63,190,.10);
+  --ring:rgba(154,63,190,.45);
+  --shadow:0 10px 30px -16px rgba(150,70,140,.32);
+  --shadow-lift:0 22px 48px -20px rgba(150,70,140,.42);
 }
-html[data-theme="dark"] body{
+html[data-theme="light"] body{
   background:
-    radial-gradient(60vw 60vw at 12% -8%, #241a3e 0%, transparent 55%),
-    radial-gradient(55vw 55vw at 100% 10%, #2a1c40 0%, transparent 50%),
-    radial-gradient(50vw 50vw at 80% 110%, #1a2142 0%, transparent 55%),
+    radial-gradient(60vw 60vw at 12% -8%, rgba(167,139,250,.18) 0%, transparent 55%),
+    radial-gradient(55vw 55vw at 100% 10%, rgba(199,189,244,.22) 0%, transparent 50%),
+    radial-gradient(50vw 50vw at 80% 110%, rgba(228,236,255,.55) 0%, transparent 55%),
     var(--bg);
 }
-html[data-theme="dark"] body::before{ background:radial-gradient(40vw 40vw at 30% 40%, rgba(124,99,196,.22), transparent 60%) }
-html[data-theme="dark"] .pri{ background:linear-gradient(150deg,#241c40,#1d1633) }
-html[data-theme="dark"] .tile .ico{ background:linear-gradient(140deg,var(--lav-soft),#241c40) }
+html[data-theme="light"] body::before{ background:radial-gradient(40vw 40vw at 30% 40%, rgba(199,189,244,.28), transparent 60%) }
+html[data-theme="light"] .mark{ background:linear-gradient(140deg,var(--accent-2),var(--accent)); color:#fff }
+html[data-theme="light"] .pri{ background:linear-gradient(150deg,#fff,#f4efff) }
 
 /* ---------------- theme toggle ---------------- */
 .theme-toggle{
   position:fixed; top:18px; right:18px; z-index:10;
   width:44px; height:44px; border-radius:13px; cursor:pointer;
-  display:grid; place-items:center; color:var(--violet);
-  background:var(--card); border:1px solid var(--lav-soft); box-shadow:var(--shadow);
+  display:grid; place-items:center; color:var(--accent);
+  background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow);
   transition:transform .2s ease, border-color .2s ease, color .2s ease;
 }
-.theme-toggle:hover{ transform:translateY(-2px); border-color:var(--lav) }
+.theme-toggle:hover{ transform:translateY(-2px); border-color:var(--accent) }
 .theme-toggle:focus-visible{ outline:3px solid var(--ring); outline-offset:3px }
 .theme-toggle svg{ display:block }
-.theme-toggle .moon{ display:none }
-html[data-theme="dark"] .theme-toggle .sun{ display:none }
-html[data-theme="dark"] .theme-toggle .moon{ display:block }
+.theme-toggle .sun{ display:none }
+html[data-theme="light"] .theme-toggle .sun{ display:block }
+html[data-theme="light"] .theme-toggle .moon{ display:none }
 @media (prefers-reduced-motion: reduce){ .theme-toggle:hover{ transform:none } }
 </style>
 <script>
-  // Set theme before paint to avoid a flash. Saved choice wins; else system pref.
+  // Apply the saved light choice before paint (no flash). Dark stays the default,
+  // and the key/value match the portfolio so the theme survives navigation.
   (function(){
-    try{
-      var saved = localStorage.getItem("vi-theme");
-      var dark = saved ? saved === "dark"
-        : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      if (dark) document.documentElement.setAttribute("data-theme","dark");
-    }catch(e){}
+    try{ if (localStorage.getItem("vi-theme") === "light") document.documentElement.setAttribute("data-theme","light"); }catch(e){}
   })();
 </script>
 </head>
@@ -262,15 +272,15 @@ html[data-theme="dark"] .theme-toggle .moon{ display:block }
     var root = document.documentElement, btn = document.getElementById("themeToggle");
     var meta = document.querySelector('meta[name="theme-color"]');
     function sync(){
-      var dark = root.getAttribute("data-theme") === "dark";
-      if (meta) meta.setAttribute("content", dark ? "#14101f" : "#efe9fb");
-      btn.setAttribute("aria-pressed", String(dark));
+      var light = root.getAttribute("data-theme") === "light";
+      if (meta) meta.setAttribute("content", light ? "#f7f4fe" : "#0a0f16");
+      btn.setAttribute("aria-pressed", String(light));
     }
     sync();
     btn.addEventListener("click", function(){
-      var dark = root.getAttribute("data-theme") === "dark";
-      if (dark) root.removeAttribute("data-theme"); else root.setAttribute("data-theme","dark");
-      try{ localStorage.setItem("vi-theme", dark ? "light" : "dark"); }catch(e){}
+      var light = root.getAttribute("data-theme") === "light";
+      if (light) root.removeAttribute("data-theme"); else root.setAttribute("data-theme","light");
+      try{ localStorage.setItem("vi-theme", light ? "dark" : "light"); }catch(e){}
       sync();
     });
   })();
