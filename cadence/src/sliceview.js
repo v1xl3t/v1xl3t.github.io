@@ -49,18 +49,25 @@ const LEGEND = [
   ['support', 'Support'], ['support-interface', 'Support top'], ['skirt', 'Skirt / brim'],
 ];
 
+// The slicer keeps its own key rather than sharing the app's settings object.
+// main.js holds that object in memory and writes the whole of it back whenever
+// a preference changes, so a slicer value written after that load would be
+// silently dropped the next time someone picked a UI style.
+const STORE_KEY = 'cadence.slicer.v1';
+
 const INFILL_PATTERNS = [
   ['grid', 'Grid'], ['lines', 'Lines'], ['triangles', 'Triangles'],
   ['gyroid', 'Gyroid'], ['concentric', 'Concentric'],
 ];
 
 export class SliceView {
-  constructor(scene, doc, { flash, onOpen, onSliced } = {}) {
+  constructor(scene, doc, { flash, onOpen, onSliced, onVisibility } = {}) {
     this.scene = scene;
     this.doc = doc;
     this.flash = flash || (() => {});
     this.onOpen = onOpen || (() => {});
     this.onSliced = onSliced || (() => {});
+    this.onVisibility = onVisibility || (() => {});
 
     this.el = document.getElementById('slicer');
     this.plan = null;
@@ -89,8 +96,53 @@ export class SliceView {
     this.moveFrac = 1;
     this.mode = 'stack';
     this.showTravel = false;
+    this.stale = false;
 
     this.buildPanel();
+    this.restorePanel();
+
+    // A preview describes one particular arrangement of solids. The moment that
+    // arrangement changes it stops being a preview and becomes a picture of the
+    // past, and the numbers beside it stop being an estimate of anything.
+    //
+    // This matters more than it sounds. Deleting every object left a hundred
+    // layers of toolpath hanging in space with a print time and a filament
+    // weight next to it, all describing a model that no longer existed, and
+    // nothing on screen said so.
+    for (const ev of ['add', 'remove', 'change', 'regroup', 'undo']) {
+      doc.addEventListener(ev, (e) => this.markStale(ev, e));
+    }
+  }
+
+  /**
+   * The model has moved on. Put the solids back so the user can see what they
+   * are editing, take the stale toolpaths off the screen, and say so.
+   *
+   * Deliberately not an automatic re-slice. Slicing takes seconds on a real
+   * part, and doing it on every nudge of a gizmo would make the app feel like
+   * it was fighting you.
+   */
+  markStale(ev, e) {
+    // A mesh that has been deleted must not be held on to, or closing the panel
+    // would try to restore the visibility of an object that is gone.
+    if (ev === 'remove' && e?.detail?.mesh) {
+      this.hiddenMeshes = this.hiddenMeshes.filter((m) => m !== e.detail.mesh);
+    }
+    if (!this.plan || this.stale) return;
+    this.stale = true;
+    this.restoreModel();
+    this.group.visible = false;
+    this.renderStale();
+    this.onVisibility(false);
+  }
+
+  renderStale() {
+    const results = this.el.querySelector('#sl-results');
+    const banner = this.el.querySelector('#sl-stale');
+    if (!results || !banner) return;
+    results.classList.toggle('stale', this.stale);
+    banner.hidden = !this.stale;
+    this.el.querySelector('#sl-run').classList.toggle('wants-attention', this.stale);
   }
 
   get visible() { return !this.el.hidden; }
@@ -98,9 +150,19 @@ export class SliceView {
   toggle(force) {
     const open = force != null ? force : this.el.hidden;
     this.el.hidden = !open;
-    this.group.visible = open && !!this.plan;
-    if (open) { this.hideModel(); this.onOpen(); }
-    else this.restoreModel();
+    // Other panels lay themselves out around this one.
+    document.body.classList.toggle('slicer-open', open);
+    // A stale plan keeps its numbers on screen, marked as stale, but its
+    // toolpaths stay off: a picture of the wrong model is worse than no picture.
+    this.group.visible = open && !!this.plan && !this.stale;
+    if (open) {
+      if (!this.stale) this.hideModel();
+      this.renderStale();
+      this.onOpen();
+    } else {
+      this.restoreModel();
+    }
+    this.onVisibility(open);
   }
 
   // ---- the model gets out of the way ------------------------------------
@@ -197,31 +259,36 @@ export class SliceView {
           </select>
         </div>
 
-        <button id="sl-run" class="primary sl-run">Slice</button>
+        <div id="sl-advice" hidden></div>
+        <button id="sl-run" class="primary sl-run" title="Work out the toolpaths for this model and build the layer preview. Nothing is sent anywhere until you ask.">Slice</button>
         <div id="sl-progress" class="sl-progress" hidden><div class="sl-bar"></div><span class="sl-stage"></span></div>
         <div id="sl-messages"></div>
 
         <div id="sl-results" hidden>
+          <div id="sl-stale" class="sl-msg warn" hidden>
+            The model changed after this was sliced, so these toolpaths and
+            numbers describe the old one. Slice again to bring them up to date.
+          </div>
           <div class="sl-sec">Result</div>
           <div class="sl-stats" id="sl-stats"></div>
 
           <div class="sl-sec">Preview</div>
           <label class="sl-range">Layer <b id="sl-layer-val">0</b>
-            <input type="range" id="sl-scrub" min="0" max="0" step="1" value="0">
+            <input type="range" id="sl-scrub" min="0" max="0" step="1" value="0" title="Which layer to show. PgUp and PgDn step one at a time.">
           </label>
           <label class="sl-range">Within layer <b id="sl-move-val">all</b>
-            <input type="range" id="sl-moves" min="0" max="100" step="1" value="100">
+            <input type="range" id="sl-moves" min="0" max="100" step="1" value="100" title="How far through the current layer to draw, so you can watch the order the nozzle takes">
           </label>
           <div class="seg sl-seg">
-            <button data-slmode="stack" class="on">Stack</button>
-            <button data-slmode="single">One layer</button>
+            <button data-slmode="stack" class="on" title="Show every layer up to the one you have scrubbed to, building the part up as it prints">Stack</button>
+            <button data-slmode="single" title="Show only the layer you have scrubbed to, which is how you read what a single pass actually does">One layer</button>
           </div>
-          <label class="check"><input type="checkbox" id="sl-travel"> Show travel moves</label>
+          <label class="check"><input type="checkbox" id="sl-travel" title="Draw the moves where nothing is extruded. Lots of them means the nozzle is spending its time getting places rather than printing."> Show travel moves</label>
           <div class="sl-legend">${LEGEND.map(([k, label]) => `<span><i style="background:#${COLORS[k].toString(16).padStart(6, '0')}"></i>${label}</span>`).join('')}</div>
 
           <div class="sl-sec">Output</div>
-          <button id="sl-save">Save G-code</button>
-          <button id="sl-print">Print over USB…</button>
+          <button id="sl-save" title="Download the .gcode file, ready for an SD card">Save G-code</button>
+          <button id="sl-print" title="Send this job straight to the printer over its USB cable. Chrome or Edge on a desktop only. It asks before it starts anything.">Print over USB…</button>
           <div id="sl-printer" class="sl-printer"></div>
         </div>
       </div>
@@ -239,6 +306,14 @@ export class SliceView {
 
     $('sl-density').addEventListener('input', (e) => { $('sl-density-val').textContent = `${e.target.value}%`; });
     $('sl-angle').addEventListener('input', (e) => { $('sl-angle-val').textContent = `${e.target.value}°`; });
+
+    // One listener for the lot. Every control that feeds a slice re-checks the
+    // settings and remembers them, so neither behaviour has to be wired up
+    // again the next time a control is added to the panel.
+    for (const el of this.el.querySelectorAll('select[id], input[id]')) {
+      if (el.id === 'sl-scrub' || el.id === 'sl-moves') { el.addEventListener('change', () => this.savePanel()); continue; }
+      el.addEventListener('change', () => { this.refreshAdvice(); this.savePanel(); });
+    }
 
     // Changing the machine or material changes what the quality speeds mean, so
     // the layer height field is re-seeded from the new profile rather than left
@@ -265,8 +340,74 @@ export class SliceView {
         this.mode = b.dataset.slmode;
         this.el.querySelectorAll('[data-slmode]').forEach((o) => o.classList.toggle('on', o === b));
         this.applyRange();
+        this.savePanel();
       });
     });
+  }
+
+  /** Every control on the panel, by id, as plain values. */
+  panelValues() {
+    const out = {};
+    for (const el of this.el.querySelectorAll('select[id], input[id]')) {
+      out[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+    }
+    // The stack / one-layer choice is a pair of buttons rather than an input,
+    // so it needs carrying by hand or it is the one setting that forgets.
+    out._mode = this.mode;
+    return out;
+  }
+
+  /**
+   * Put the panel back the way it was left.
+   *
+   * Slice settings are a per-user, per-printer thing that barely changes, and
+   * retyping the layer height and re-picking the infill pattern on every visit
+   * is the kind of small tax that makes a tool feel unfinished. Restoring is
+   * best-effort on purpose: a stored value for a control that no longer exists,
+   * or an option that has since been removed, is skipped rather than throwing.
+   */
+  restorePanel() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch { saved = null; }
+    if (!saved) { this.refreshAdvice(); return; }
+    if (saved._mode) {
+      this.mode = saved._mode;
+      this.el.querySelectorAll('[data-slmode]').forEach((b) => b.classList.toggle('on', b.dataset.slmode === saved._mode));
+    }
+    for (const [id, v] of Object.entries(saved)) {
+      if (id.startsWith('_')) continue;
+      const el = this.el.querySelector('#' + CSS.escape(id));
+      if (!el) continue;
+      if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.tagName === 'SELECT') { if ([...el.options].some((o) => o.value === v)) el.value = v; }
+      else el.value = v;
+    }
+    // The readouts beside the sliders are not inputs, so they need nudging.
+    this.el.querySelectorAll('input[type="range"]').forEach((r) => r.dispatchEvent(new Event('input')));
+    this.showTravel = this.el.querySelector('#sl-travel').checked;
+    if (this.travelLines) this.travelLines.visible = this.showTravel;
+    this.refreshAdvice();
+  }
+
+  savePanel() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(this.panelValues())); } catch { /* private mode */ }
+  }
+
+  /**
+   * Say what is wrong with the settings BEFORE the slice, not after it.
+   *
+   * validate() already knew all of this; it was just being read out at the end
+   * of a job rather than while the number that caused it was being typed. A
+   * 0.35mm layer on a 0.4mm nozzle is worth hearing about before waiting for
+   * six hundred layers to be computed.
+   */
+  refreshAdvice() {
+    const host = this.el.querySelector('#sl-advice');
+    if (!host) return;
+    let msgs = [];
+    try { msgs = validate(this.readSettings()); } catch (err) { msgs = [err.message]; }
+    host.innerHTML = msgs.map((m) => `<div class="sl-msg warn">${escapeHtml(m)}</div>`).join('');
+    host.hidden = !msgs.length;
   }
 
   /** Read the panel back into a settings object. */
@@ -304,6 +445,8 @@ export class SliceView {
     if (!positions.length) { this.flash('Nothing to slice. Add a solid first.'); return; }
 
     const settings = this.readSettings();
+    this.stale = false;
+    this.renderStale();
     this.busy = true;
     this.showProgress(0, 'starting');
     this.el.querySelector('#sl-messages').innerHTML = '';
@@ -387,6 +530,8 @@ export class SliceView {
     const st = data.stats;
     const s = this.settings;
     this.el.querySelector('#sl-results').hidden = false;
+    this.stale = false;
+    this.renderStale();
 
     this.el.querySelector('#sl-stats').innerHTML = `
       <div><span>Print time</span><b>${formatDuration(st.timeSeconds)}</b></div>
@@ -466,6 +611,7 @@ export class SliceView {
     this.setLayer(this.ranges.length - 1);
     if (this.group.visible) {
       this.hideModel();
+      this.onVisibility(true);
       // Frame the TOOLPATHS, not the group: the group also holds the build
       // volume outline, and fitting a 20mm part inside a 220mm bed puts the
       // thing you wanted to look at in the middle distance.

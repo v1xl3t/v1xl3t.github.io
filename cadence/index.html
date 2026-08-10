@@ -270,12 +270,10 @@
           <input type="checkbox" id="set-experimental" />
           Enable experimental features
         </label>
-        <div class="hint" id="experimental-note">
-          Sketch, extrude, fillet and chamfer, loft, the recipe timeline, and the
-          slicer. Under active development, so expect rough edges. The slicer in
-          particular has never driven a real printer yet, so watch the first
-          layer of anything you send it.
-        </div>
+        <!-- Filled from EXPERIMENTAL_FEATURES in settings.js. Written once,
+             in the same table the gate itself reads, so the list on screen
+             cannot drift away from the list that is actually gated. -->
+        <ul class="hint exp-list" id="experimental-note"></ul>
       </div>
     </aside>
 
@@ -327,6 +325,7 @@
             <div class="sc-sec">Select &amp; view</div>
             <div><kbd>L</kbd> Lasso · <kbd>M</kbd> Measure</div>
             <div><kbd>S</kbd> Sketch mode</div>
+            <div><kbd>T</kbd> Recipe Timeline</div>
             <div><kbd>F</kbd> Frame selection</div>
             <div><kbd>K</kbd> Slice for printing</div>
             <div><kbd>PgUp</kbd>/<kbd>PgDn</kbd> Step a layer</div>

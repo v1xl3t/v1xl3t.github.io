@@ -84,7 +84,8 @@ button.collapse-btn {
   text-align: center; line-height: 18px; font-size: 15px;
   color: var(--muted);
 }
-button.collapse-btn:hover { color: var(--text); }
+button.collapse-btn { color: var(--text); }
+button.collapse-btn:hover { color: var(--accent); }
 .panel.collapsed { padding-bottom: 10px; }
 .panel.collapsed > *:not(:first-child) { display: none; }
 
@@ -132,7 +133,11 @@ button[data-add] { width: calc(50% - 3px); text-align: center; padding: 7px 4px;
   font: inherit; cursor: pointer;
 }
 .setrow select:focus { outline: none; border-color: var(--accent); }
-.btnmap { flex: 1; display: flex; gap: 4px; }
+/* min-width:0 is doing real work. A flex item will not shrink below its
+   content's minimum, and three <select>s have a wide minimum, so without it the
+   row stayed 203px inside a 198px toolbar and gave the whole panel 83px of
+   horizontal scroll at every width above the phone breakpoint. */
+.btnmap { flex: 1; min-width: 0; display: flex; gap: 4px; }
 .btnmap select {
   flex: 1; min-width: 0; padding: 4px 3px; font-size: 11px;
   background: #0c1014; color: var(--text);
@@ -154,9 +159,19 @@ button[data-add] { width: calc(50% - 3px); text-align: center; padding: 7px 4px;
 .vec { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .axis { display: flex; flex-direction: column; }
 .axis span { font-size: 10px; color: var(--muted); margin-bottom: 2px; padding-left: 2px; }
+/* The axis tints match the gizmo, so they carry meaning and cannot simply be
+   dropped. These values are picked for a dark panel; the light skins below
+   restate them at a darker value, because #4ade80 on white is 1.28:1 and the Y
+   label was effectively missing in Paper and Plush. */
 .axis.x span { color: #ff6b6b; }
 .axis.y span { color: #4ade80; }
 .axis.z span { color: #5b9bff; }
+html[data-ui="paper"] .axis.x span { color: #b4231f; }
+html[data-ui="paper"] .axis.y span { color: #1c6b30; }
+html[data-ui="paper"] .axis.z span { color: #1e4fc4; }
+html[data-ui="plush"] .axis.x span { color: #a81f3e; }
+html[data-ui="plush"] .axis.y span { color: #1e6636; }
+html[data-ui="plush"] .axis.z span { color: #2a49b8; }
 input[type="number"], input[type="text"] {
   width: 100%; padding: 5px 4px;
   background: #0c1014; color: var(--text);
@@ -176,7 +191,12 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 /* Solid / Hole segmented toggle */
 .seg { display: flex; gap: 5px; }
 .seg button { width: 50%; text-align: center; padding: 6px 2px; }
-.seg button.on { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+/* Not #fff. --accent-dim is a DARK navy in the dark skins and a PALE tint in
+   the light ones, so a fixed white foreground is legible in half the skins and
+   invisible in the other half: the Add/Cut selector measured 1.36:1 in Plush.
+   --text flips with the skin, so it is correct in both directions by
+   construction rather than by a per-skin override that the next skin forgets. */
+.seg button.on { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
 .seg button[data-role="hole"].on { background: #5c2b2b; border-color: var(--danger); }
 
 /* Outliner (Objects panel) */
@@ -192,10 +212,13 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 @media (pointer: coarse) { .multi-toggle { padding: 8px 12px; font-size: 11px; } }
 #outliner.multi .orow { cursor: copy; }
 .orow { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
-.orow:hover { background: #1f262f; }
+.orow:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .orow.sel { background: var(--accent-dim); }
 .oname { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.eye { width: auto; margin: 0; padding: 0 4px; background: none; border: none; color: var(--muted); font-size: 13px; }
+/* --muted is tuned to sit on a PANEL. These two sit on a button fill, which is
+   lighter in the dark skins, and the eye measured as low as 2.38:1 there. They
+   are controls rather than prose, so they take the full text colour. */
+.eye { width: auto; margin: 0; padding: 0 4px; background: none; border: none; color: var(--text); font-size: 13px; }
 .eye:hover { background: none; color: var(--text); }
 .badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; flex: none; }
 .b-add { background: #23314f; color: #9cc2ff; }
@@ -328,6 +351,11 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
 /* ---------------------------------------------------------------- Recipe Timeline */
 /* The multiverse history strip: docked along the bottom, between the side panels,
    above the status bar. Time → right, branches → down. */
+/* The timeline is a strip across the bottom between the two side panels. The
+   slicer is a WIDER right-hand panel, so when it is open the strip has to stop
+   further left or the two overlap in the bottom right corner. */
+body.slicer-open #timeline { right: calc(12px + min(300px, 34vw) + 14px); }
+
 #timeline {
   position: absolute;
   left: calc(12px + var(--toolbar-w, 200px) + 14px);
@@ -369,14 +397,22 @@ html[data-ui="paper"] kbd { background: #eef0f3; }
   box-shadow: 0 0 0 2px var(--accent-dim), 0 4px 14px #0008;
 }
 .tl-thumb { width: 100%; height: 44px; object-fit: cover; display: block; background: var(--bg); }
+/* The placeholder hatch is a dark-skin value; on a light skin it reads as a
+   black hole where a thumbnail should be. Derived from the tokens instead. */
 .tl-thumb.empty {
-  background: repeating-linear-gradient(45deg, #1b212a, #1b212a 6px, #161b22 6px, #161b22 12px);
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--text) 10%, var(--panel-solid)),
+    color-mix(in srgb, var(--text) 10%, var(--panel-solid)) 6px,
+    var(--panel-solid) 6px, var(--panel-solid) 12px);
 }
 .tl-label {
   font-size: 10px; color: var(--muted); text-align: center;
   padding: 0 4px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tl-node.current .tl-label { color: #fff; }
+/* The current step's label was #fff on --panel-solid, which is white on white
+   in the light skins: it measured 1.09:1 in Paper, so the step you are actually
+   standing on was the one step you could not read. */
+.tl-node.current .tl-label { color: var(--text); font-weight: 600; }
 
 /* ---------------------------------------------------------------- dimension chips */
 /* Editable dimension pills that float on the selected part in the viewport. The
@@ -1024,7 +1060,14 @@ body.render-view #viewcube-wrap { display: none; }
 button.primary {
   background: var(--accent-dim); border-color: var(--accent); color: var(--text); font-weight: 600;
 }
-button.primary:hover:not(:disabled) { background: #35589c; }
+/* Mixed from the tokens, not a fixed colour. A hardcoded navy hover was legible
+   in the four dark skins and 1.79:1 in Plush, and hover states are easy to miss
+   because a screenshot never has the pointer in it. Blending accent-dim toward
+   accent lifts the fill by the same amount in every skin and keeps --text
+   readable on it, measured 4.6:1 at worst. */
+button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-dim) 80%, var(--accent));
+}
 button:disabled { opacity: .5; cursor: default; }
 
 .sl-progress { margin: 8px 0; }
@@ -1077,9 +1120,43 @@ button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 640px) {
   #slicer {
     position: fixed; z-index: 75;
-    left: 0; right: 0; bottom: 0; top: auto;
-    width: auto; max-height: 78vh;
+    /* Above the bottom bar, not over it. Sitting at bottom:0 hid the Tools,
+       Objects and Inspect tabs entirely, so opening the slicer on a phone took
+       the rest of the app away with it. */
+    left: 0; right: 0; bottom: 52px; top: auto;
+    width: auto; max-height: 72vh;
     border-radius: 16px 16px 0 0;
     backdrop-filter: blur(12px);
   }
+  /* The strip has nowhere to go on a phone once the sheet is up. */
+  body.slicer-open #timeline { display: none; }
 }
+
+/* A stale result: the numbers stay readable but visibly demoted, because the
+   worst outcome is someone reading a print time for a model they have since
+   changed. The Slice button is what they want next, so it says so. */
+#sl-results.stale .sl-stats,
+#sl-results.stale .sl-legend,
+#sl-results.stale .sl-range { opacity: .45; }
+.sl-msg.warn {
+  color: var(--text);
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 0 5px 5px 0;
+}
+button.wants-attention {
+  animation: sl-nudge 2.4s ease-in-out infinite;
+}
+@keyframes sl-nudge {
+  0%, 92%, 100% { box-shadow: 0 0 0 0 transparent; }
+  96% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  button.wants-attention { animation: none; border-color: var(--accent); }
+}
+
+/* The experimental feature list, rendered from the same table the gate reads. */
+.exp-list { list-style: none; padding: 0; margin: 6px 0 0; }
+.exp-list li { margin: 0 0 5px; line-height: 1.4; }
+.exp-list b { color: var(--text); font-weight: 600; }
+.exp-list .exp-caution { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); }

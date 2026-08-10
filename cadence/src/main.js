@@ -31,7 +31,7 @@ import { scheduleAutosave, restoreAutosave, clearAutosave } from './autosave.js'
 import { buildShareLink, tryLoadSharedLink } from './sharelink.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
-import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, controlMap, unitLabel } from './settings.js';
+import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, EXPERIMENTAL_FEATURES, controlMap, unitLabel } from './settings.js';
 import { zipSync } from 'fflate';
 
 // Launched as a read-only portfolio viewer? (?model= / ?models= / ?view=render)
@@ -199,7 +199,10 @@ async function intersectSelected() {
 // selected). Keeps the current viewing direction, just re-centers and fits.
 function frameSelection() {
   const objs = doc.selection.size ? doc.selectedObjects : doc.list;
-  if (!objs.length) return;
+  // Silence is the wrong answer to a button press. Without this, Frame on an
+  // empty scene leaves the status bar showing the button's own hover hint,
+  // which reads as "nothing happened and nobody knows why".
+  if (!objs.length) { flash('Nothing to frame yet. Add a shape first.'); return; }
   const box = new THREE.Box3();
   for (const o of objs) { o.mesh.updateWorldMatrix(true, false); box.expandByObject(o.mesh); }
   frameBox(box);
@@ -243,6 +246,10 @@ const sliceView = new SliceView(scene, doc, {
   // Framing them is the difference between seeing the preview and being told it
   // is there.
   onSliced: (group) => frameBox(new THREE.Box3().setFromObject(group)),
+  // Dimension chips annotate a solid. While the preview is up that solid is
+  // hidden, so the chips are labels pointing at nothing, floating over a
+  // toolpath they do not describe.
+  onVisibility: (previewShowing) => dimchips?.setEnabled?.(!previewShowing && experimentalOn()),
 });
 // Each history step gets a small snapshot of the viewport for its tile.
 doc.setThumbnailProvider(() => {
@@ -363,8 +370,14 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'export-png':   exportScreenshot(); break;
     case 'export-shots': exportOrbitShots(); break;
     case 'save-preset':  saveControlsPreset(); break;
-    case 'delete':    doc.removeSelected(); break;
-    case 'duplicate': if (doc.selectedId) doc.duplicate(doc.selectedId); break;
+    case 'delete':
+      if (doc.selection.size) doc.removeSelected();
+      else flash(doc.list.length ? 'Nothing selected. Click an object first.' : 'Nothing to delete.');
+      break;
+    case 'duplicate':
+      if (doc.selectedId) doc.duplicate(doc.selectedId);
+      else flash(doc.list.length ? 'Nothing selected. Click an object first.' : 'Nothing to duplicate.');
+      break;
     case 'group':     groupSelected(); break;
     case 'intersect': intersectSelected(); break;
     case 'ungroup':   ungroupSelected(); break;
@@ -871,7 +884,17 @@ function setSketch(on) {
   // The empty-scene prompt sits dead centre, which is where the drawing goes.
   // It only refreshes on document events, so entering a sketch has to say so.
   updateEmptyState();
-  if (on) { if (lassoOn) setLasso(false); if (measureOn) setMeasure(false); }
+  // Sketching means drawing onto the model, and the slicer hides every solid so
+  // its toolpaths can be seen. Left open, you would be drawing at an invisible
+  // part and picking faces you cannot see, so entering a sketch closes it.
+  if (on) {
+    if (lassoOn) setLasso(false);
+    if (measureOn) setMeasure(false);
+    if (sliceView?.visible) {
+      sliceView.toggle(false);
+      document.getElementById('slice-btn')?.classList.remove('active');
+    }
+  }
   gizmo.enabled = !on;                          // don't let the gizmo eat sketch clicks
   renderer.domElement.style.cursor = on ? 'crosshair' : '';
   document.getElementById('sketch-btn')?.classList.toggle('active', on);
@@ -2792,6 +2815,16 @@ function initSettings() {
   bind('set-render', 'render', applyRenderMode);
   bind('set-units', 'units', applyUnits);
 
+  // The gate's own list, rendered rather than restated. Adding a feature to
+  // EXPERIMENTAL_FEATURES is now the only edit needed for it to appear here.
+  const expList = document.getElementById('experimental-note');
+  if (expList) {
+    expList.innerHTML = EXPERIMENTAL_FEATURES
+      .map((f) => `<li><b>${f.label}</b> — ${f.note}</li>`).join('')
+      + '<li class="exp-caution">All of it is still being built, so expect rough edges. '
+      + 'The slicer has not driven a real printer yet, so watch the first layer of anything you send it.</li>';
+  }
+
   const expBox = document.getElementById('set-experimental');
   if (expBox) {
     expBox.checked = !!settings.experimental;
@@ -2838,6 +2871,11 @@ function closeDrawers() {
 function openDrawer(id) {
   if (openPanelId === id) { closeDrawers(); return; }   // tapping the active tab closes it
   closeDrawers();
+  // The slicer is a bottom sheet too, and two of them stacked is neither.
+  if (sliceView?.visible) {
+    sliceView.toggle(false);
+    document.getElementById('slice-btn')?.classList.remove('active');
+  }
   document.getElementById(id)?.classList.add('drawer-open');
   scrim.classList.add('show');
   document.body.classList.add('drawer-active');        // a drawer covers the Tips button, hide it
