@@ -191,12 +191,33 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .frow .field{flex:1; min-width:110px}
 .checkline{display:flex; align-items:center; gap:8px; font-size:.9rem; margin:8px 0}
 .checkline input{width:18px; height:18px}
+/* recurrence editor */
+.recur-custom{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:2px 12px 12px; margin:-2px 0 10px}
+.recur-custom[hidden]{display:none}
+.recur-unit{font-size:.85rem; color:var(--ink2); padding-bottom:9px}
+.dow-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.dow{min-width:38px; padding:6px 8px; border-radius:999px; cursor:pointer; font-size:.76rem; font-weight:700;
+  background:var(--panel); border:1px solid var(--line); color:var(--ink2)}
+.dow:hover{border-color:var(--accent)}
+/* Dark ink on the accent, not white. White on #e07a5f is 2.95:1 and these are
+   small bold labels, so they need 4.5:1. This reads 4.65:1, in both themes,
+   since --accent does not change between them. */
+.dow.on{background:var(--accent); border-color:var(--accent); color:#3a2a20}
+.dow:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+.item-row .recur-tag{font-size:.62rem; padding:0 5px; border-radius:6px; background:var(--panel2);
+  border:1px solid var(--line); color:var(--ink2); vertical-align:1px; margin-left:4px; white-space:nowrap}
+/* Dark ink on the accent, not white. White on the terracotta --accent is
+   2.95:1, and this is the app's primary button, so it was the least readable
+   control on the most important surface. #3a2a20 reads 4.65:1 and keeps the
+   warm palette. Same reasoning for danger: white on --ticket #e63946 is 4.17:1,
+   so the button (not the ticket colour itself, which is used elsewhere) gets a
+   slightly deeper red at 4.82:1. */
 .btn{
-  background:var(--accent); color:#fff; font-weight:700; border-radius:10px; padding:9px 18px;
+  background:var(--accent); color:#3a2a20; font-weight:700; border-radius:10px; padding:9px 18px;
 }
 .btn:hover{filter:brightness(1.06)}
 .btn.ghost{background:var(--panel2); color:var(--ink); border:1px solid var(--line)}
-.btn.danger{background:var(--ticket)}
+.btn.danger{background:#d92b39; color:#fff}
 .btn:disabled{opacity:.4; cursor:not-allowed}
 .btnrow{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap}
 .btnrow .spacer{flex:1}
@@ -465,6 +486,69 @@ function resetsIn(lane){
   return dDays >= 1 ? `resets in ${dDays}d` : `resets in ${Math.max(1,h)}h`;
 }
 
+/* ---------- recurrence ----------
+   Vi asked for Google Calendar's model: easy daily and weekly, plus a custom
+   option. Perch already had a coarse version of this in the lane (daily, weekly,
+   monthly) and in loopN (how many times per cycle), but no way to say "weekdays
+   only" or "every other week", which is most of what a real routine looks like.
+
+   An item's lane still decides which list it lives in and when it resets. The
+   recurrence narrows WHICH of those periods it is actually asked for. So a daily
+   item set to Mon/Wed/Fri simply is not on the list on a Tuesday, and a Tuesday
+   with nothing owed still counts for the streak.
+
+   item.recur = { every: N, days: [0..6] | null, from: "YYYY-MM-DD" }
+     every  interval in periods. Daily lane with days set counts in WEEKS, the
+            way Google Calendar does ("every 2 weeks on Mon, Wed").
+     days   weekday numbers, Sunday is 0. Daily lane only.
+     from   the anchor the interval counts from, so "every other day" knows
+            which days those are. Set when the recurrence is saved.
+   No recur at all means every period, which is what every pre-existing item
+   means, so old saves keep working untouched. */
+function dayDiff(fromKey, d){
+  const [y,m,dd] = fromKey.split("-").map(Number);
+  const a = new Date(y, m-1, dd); a.setHours(0,0,0,0);
+  const b = new Date(d); b.setHours(0,0,0,0);
+  return Math.round((b - a) / 86400000);
+}
+function weekDiff(fromKey, d){
+  const [y,m,dd] = fromKey.split("-").map(Number);
+  return Math.round((weekStartOf(d) - weekStartOf(new Date(y, m-1, dd))) / 604800000);
+}
+function monthDiff(fromKey, d){
+  const [y,m] = fromKey.split("-").map(Number);
+  return (d.getFullYear() - y) * 12 + (d.getMonth() - (m-1));
+}
+function activeOn(item, d=new Date()){
+  const r = item.recur;
+  if(!r || !r.from) return true;
+  const every = Math.max(1, r.every || 1);
+  if(item.lane === "daily"){
+    if(r.days && r.days.length){
+      // Weekly-style: the chosen weekdays, every Nth week.
+      if(!r.days.includes(d.getDay())) return false;
+      return every === 1 || ((weekDiff(r.from, d) % every + every) % every) === 0;
+    }
+    return ((dayDiff(r.from, d) % every + every) % every) === 0;
+  }
+  if(item.lane === "weekly") return ((weekDiff(r.from, d) % every + every) % every) === 0;
+  return ((monthDiff(r.from, d) % every + every) % every) === 0;
+}
+const DOW_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function recurLabel(item){
+  const r = item.recur;
+  if(!r || !r.from) return "";
+  const every = Math.max(1, r.every || 1);
+  if(item.lane === "daily" && r.days && r.days.length){
+    const wd = r.days.slice().sort();
+    const isWeekdays = wd.length===5 && wd.every(n=>n>=1 && n<=5);
+    const which = isWeekdays ? "weekdays" : wd.map(n=>DOW_SHORT[n]).join(" ");
+    return every===1 ? which : `${which}, every ${every} wks`;
+  }
+  const unit = item.lane==="daily" ? "day" : item.lane==="weekly" ? "week" : "month";
+  return every===1 ? "" : `every ${every} ${unit}s`;
+}
+
 /* ---------- items + completion ---------- */
 const LANES = ["daily","weekly","monthly"];
 const LANE_META = {
@@ -488,6 +572,7 @@ function visibleItems(lane){
   return state.items.filter(i => {
     if(i.lane!==lane || i.archived) return false;
     if(!i.repeat && i.done && periodKey(lane, new Date(i.doneTs)) !== pk) return false; // retired one-shot
+    if(!activeOn(i)) return false;   // not asked for in this period
     return true;
   });
 }
@@ -582,13 +667,16 @@ function streak(){
   const daily = state.items.filter(i=>i.lane==="daily" && i.repeat && !i.bonus && !i.archived);
   if(!daily.length) return 0;
   let n=0; const d = new Date();
-  const doneOn = dk => daily.every(i => {
+  // Only items actually asked for on that date count. Without this a Mon/Wed/Fri
+  // item would break the streak every Tuesday, punishing you for following the
+  // schedule you set. A day that owed nothing is a kept day.
+  const doneOn = (dk, date) => daily.filter(i => activeOn(i, date)).every(i => {
     const c = state.completions[i.id], v = c && c[dk];
     return (Array.isArray(v) ? v.length : (v ? 1 : 0)) >= loopN(i);
   });
-  if(!doneOn(dayKeyOf(d))) d.setDate(d.getDate()-1); // today not done yet doesn't break streak
+  if(!doneOn(dayKeyOf(d), d)) d.setDate(d.getDate()-1); // today not done yet doesn't break streak
   for(let k=0; k<400; k++){
-    if(doneOn(dayKeyOf(d))){ n++; d.setDate(d.getDate()-1); } else break;
+    if(doneOn(dayKeyOf(d), new Date(d))){ n++; d.setDate(d.getDate()-1); } else break;
   }
   return n;
 }
@@ -612,6 +700,9 @@ function itemRowHTML(item){
     item.auto ? `<span class="tag" title="auto-completes via linked lane">🔗 auto</span>` : "",
     item.bonus ? `<span class="tag" title="optional, pure bonus points">⭐ bonus</span>` : "",
     item.contan ? `<span class="tag" title="in the assistant queue">🤖</span>` : "",
+    // Only says something when the schedule is not the plain one. A row that
+    // repeats every period says nothing extra, which is the common case.
+    recurLabel(item) ? `<span class="recur-tag" title="repeat schedule">↻ ${esc(recurLabel(item))}</span>` : "",
   ].join("");
   const notes = item.notes ? `<button class="noteb" data-act="noteToggle" title="show notes">▾</button><span class="sub">${esc(item.notes)}</span>` : "";
   const loopLabel = !item.repeat ? "1×" : (n>1 ? `↻${n}` : "↻");
@@ -725,6 +816,43 @@ function openLane(lane, rerender){
 }
 
 /* ---------- item editor ---------- */
+// The repeat control, in the Google Calendar shape: a few presets that cover
+// nearly everything, and a Custom row that only unfolds if you actually want it.
+// The preset list depends on the lane, because "weekdays only" is meaningless
+// for a monthly goal.
+function recurPreset(v){
+  if(!v.repeat) return "once";
+  const r = v.recur;
+  if(!r || !r.from || ((r.every||1) === 1 && !(r.days && r.days.length))) return "every";
+  if(v.lane === "daily" && r.days && r.days.length === 5 &&
+     r.days.slice().sort().every((n,i)=>n===i+1) && (r.every||1) === 1) return "weekdays";
+  return "custom";
+}
+function recurFieldHTML(v){
+  const preset = recurPreset(v);
+  const r = v.recur || {};
+  const days = r.days || [];
+  const unit = v.lane==="daily" ? "days" : v.lane==="weekly" ? "weeks" : "months";
+  const everyLabel = v.lane==="daily" ? "Every day" : v.lane==="weekly" ? "Every week" : "Every month";
+  return `<div class="field"><label>Repeats ↻</label>
+      <select id="fRecur">
+        <option value="every" ${preset==="every"?"selected":""}>${everyLabel}</option>
+        ${v.lane==="daily"?`<option value="weekdays" ${preset==="weekdays"?"selected":""}>Weekdays (Mon to Fri)</option>`:""}
+        <option value="custom" ${preset==="custom"?"selected":""}>Custom...</option>
+        <option value="once" ${preset==="once"?"selected":""}>Does not repeat (retires when done)</option>
+      </select></div>
+    <div id="fRecurCustom" class="recur-custom" ${preset==="custom"?"":"hidden"}>
+      <div class="frow" style="align-items:flex-end">
+        <div class="field" style="flex:0 0 110px"><label>Every</label>
+          <input id="fEvery" type="number" min="1" max="52" value="${Math.max(1, r.every||1)}"></div>
+        <span class="recur-unit" id="fEveryUnit">${days.length && v.lane==="daily" ? "weeks" : unit}</span>
+      </div>
+      ${v.lane==="daily"?`<div class="dow-row" id="fDows">
+        ${DOW_SHORT.map((d,i)=>`<button type="button" class="dow ${days.includes(i)?"on":""}" data-dow="${i}">${d[0]}${d[1]}</button>`).join("")}
+        <span class="note" style="margin:0 0 0 6px">pick none for every day</span>
+      </div>`:""}
+    </div>`;
+}
 function openEditor(itemId, lane){
   const item = itemId ? state.items.find(i=>i.id===itemId) : null;
   const v = item || { title:"", lane:lane||"daily", points:10, repeat:true, bonus:false, contan:false, notes:"" };
@@ -735,7 +863,7 @@ function openEditor(itemId, lane){
         ${LANES.map(l=>`<option value="${l}" ${v.lane===l?"selected":""}>${LANE_META[l].label}</option>`).join("")}</select></div>
       <div class="field"><label>Points 🎟</label><input id="fPts" type="number" min="0" step="5" value="${v.points}"></div>
     </div>
-    <label class="checkline"><input type="checkbox" id="fRepeat" ${v.repeat?"checked":""}> Repeats every cycle <span style="color:var(--ink2);font-size:.78rem">(unchecked = one-shot, retires when done)</span></label>
+    ${recurFieldHTML(v)}
     <div class="frow">
       <div class="field" style="flex:0 0 170px"><label>Times per cycle ↻</label><input id="fLoopN" type="number" min="1" max="24" value="${v.loopN||1}" title="e.g. 2 for meds taken AM and PM"></div>
       <div class="field" style="flex:0 0 190px"><label>On the calendar 📅</label><input id="fDue" type="date" value="${v.due||""}"></div>
@@ -750,17 +878,83 @@ function openEditor(itemId, lane){
       ${item?`<button class="btn danger" data-act="deleteItem" data-id="${item.id}">Delete</button>`:""}
     </div>
     ${item && item.auto ? `<div class="note">This is a 🔗 linked item. It checks itself when you complete an item in the <b>${item.auto}</b> lane, and you can rename it or change its points.</div>`:""}`);
+  wireRecurField();
   setTimeout(()=>$("#fTitle").focus(), 50);
+}
+// Live behaviour for the repeat control. Kept out of the global click handler
+// because it only exists while the editor is open, and it has to survive the
+// field being rebuilt when the lane changes.
+function wireRecurField(){
+  const sel = $("#fRecur"), custom = $("#fRecurCustom");
+  if(!sel) return;
+  const syncUnit = () => {
+    const unitEl = $("#fEveryUnit");
+    if(!unitEl) return;
+    const lane = $("#fLane").value;
+    const anyDay = !!document.querySelector("#fDows .dow.on");
+    // Picking weekdays turns the interval into weeks, the way Google Calendar
+    // does: "every 2 weeks on Mon, Wed" rather than "every 2 days on Mon, Wed",
+    // which would mean almost nothing.
+    unitEl.textContent = lane==="daily" ? (anyDay ? "weeks" : "days") : lane==="weekly" ? "weeks" : "months";
+  };
+  sel.addEventListener("change", ()=>{ custom.hidden = sel.value !== "custom"; syncUnit(); });
+  const dows = $("#fDows");
+  if(dows) dows.addEventListener("click", e => {
+    const b = e.target.closest(".dow");
+    if(!b) return;
+    b.classList.toggle("on");
+    syncUnit();
+  });
+  // The preset list itself depends on the lane (weekdays makes no sense for a
+  // monthly goal), so rebuild the whole control and re-wire it.
+  $("#fLane").addEventListener("change", ()=>{
+    const draft = {
+      lane: $("#fLane").value,
+      repeat: sel.value !== "once",
+      recur: sel.value === "custom" ? {
+        every: Math.max(1, parseInt($("#fEvery").value||"1",10)),
+        days: [...document.querySelectorAll("#fDows .dow.on")].map(b=>+b.dataset.dow),
+        from: dayKeyOf(),
+      } : sel.value === "weekdays" ? { every:1, days:[1,2,3,4,5], from:dayKeyOf() } : null,
+    };
+    const wrap = document.createElement("div");
+    wrap.innerHTML = recurFieldHTML(draft);
+    sel.closest(".field").replaceWith(...wrap.childNodes);
+    custom.remove();
+    wireRecurField();
+  }, { once:true });
+  syncUnit();
 }
 function saveItemFromForm(id){
   const title = $("#fTitle").value.trim();
   if(!title){ $("#fTitle").focus(); return; }
+  const existing = id ? state.items.find(i=>i.id===id) : null;
+  const lane = $("#fLane").value;
+  const preset = $("#fRecur").value;
+  const days = [...document.querySelectorAll("#fDows .dow.on")].map(b=>+b.dataset.dow);
+  let recur = null;
+  if(preset === "weekdays") recur = { every:1, days:[1,2,3,4,5] };
+  else if(preset === "custom"){
+    const every = Math.max(1, Math.min(52, parseInt($("#fEvery").value||"1",10)));
+    // "Every 1, no weekdays picked" is just the plain preset. Storing it as a
+    // custom rule would only give the label something pointless to say.
+    if(every > 1 || (lane==="daily" && days.length)) recur = { every, days: lane==="daily" && days.length ? days : null };
+  }
+  if(recur){
+    // Keep the original anchor when one already exists, so editing the points on
+    // an "every other day" item does not silently shift which days it lands on.
+    const sameShape = existing && existing.recur && existing.recur.from &&
+      existing.recur.every === recur.every &&
+      String(existing.recur.days || "") === String(recur.days || "");
+    recur.from = sameShape ? existing.recur.from : dayKeyOf();
+  }
   const vals = {
-    title, lane: $("#fLane").value, points: Math.max(0, parseInt($("#fPts").value||"0",10)),
-    repeat: $("#fRepeat").checked, bonus: $("#fBonus").checked,
+    title, lane, points: Math.max(0, parseInt($("#fPts").value||"0",10)),
+    repeat: preset !== "once", bonus: $("#fBonus").checked,
     contan: $("#fContan").checked, notes: $("#fNotes").value.trim(),
     loopN: Math.max(1, Math.min(24, parseInt($("#fLoopN").value||"1",10))),
     due: $("#fDue").value || null,
+    recur,
   };
   if(id){ Object.assign(state.items.find(i=>i.id===id), vals); }
   else{ state.items.push(Object.assign({ id:uid(), auto:null, done:false, doneTs:0, archived:false }, vals)); }
