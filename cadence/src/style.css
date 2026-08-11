@@ -9,6 +9,19 @@
   --accent-dim: #2b4a86;
   --danger: #ff5d5d;
   --good: #3fb950;
+
+  /* ---- the bottom stack ----------------------------------------------------
+     The bottom of the screen is a LAYOUT, not a pile. From the bottom up it is:
+     the mobile bar, the status line, whichever stage bar is open (sketch or
+     extrude), then the undo/Tips/redo strip. Each band reads the height of the
+     bands below it, so nothing has to be stacked on top of anything else.
+     Two of those heights wrap (the status line rewraps with its message, the
+     stage bars rewrap with the width), so main.js measures them and writes them
+     here rather than anyone guessing a constant. */
+  --dock-h: 0px;      /* the fixed mobile bottom bar — phones only */
+  --status-h: 0px;    /* measured: #statusbar */
+  --stage-h: 0px;     /* measured: the open #sketch-bar / #extrude-bar */
+  --stage-bottom: calc(var(--dock-h) + var(--status-h) + 10px);
 }
 
 * { box-sizing: border-box; }
@@ -546,8 +559,12 @@ body.no-experimental [data-experimental] { display: none !important; }
    (bottom-right). Sits just above the status bar. */
 /* Undo, Tips, Redo travel together as one centred strip. Undo is a reflex, so
    it belongs in the spot a thumb already rests, not behind a panel. */
+/* The strip rides the top of the bottom stack (see the tokens at the top of the
+   file) instead of a fixed 38px, so it clears the status line and the mobile
+   bar wherever those land. */
 #tips-row {
-  position: fixed; left: 50%; transform: translateX(-50%); bottom: 38px; z-index: 80;
+  position: fixed; left: 0; right: 0; margin-inline: auto; width: fit-content;
+  bottom: calc(var(--dock-h) + var(--status-h) + 8px); z-index: 80;
   display: flex; align-items: center; gap: 6px;
   max-width: calc(100% - 32px);
 }
@@ -570,22 +587,37 @@ body.no-experimental [data-experimental] { display: none !important; }
    one says plainly that there is nothing left to take back. */
 .tips-side:disabled { opacity: .25; cursor: default; }
 @media (pointer: coarse) {
-  #tips-row { bottom: 78px; gap: 10px; }
+  #tips-row { gap: 10px; }
   #tips-btn { padding: 9px 14px; font-size: 12px; }
   /* The 44px floor that the rest of the touch pass established. */
   .tips-side { width: var(--touch, 44px); height: var(--touch, 44px); font-size: 19px; opacity: .85; }
 }
 /* a drawer slides up over the bottom on mobile, so hide the strip while one is open */
 body.drawer-active #tips-row { opacity: 0; pointer-events: none; }
+/* A sketch or extrude stage owns the bottom band while it is open, so the strip
+   steps UP over it rather than being hidden or stacked on top of it. Undo is
+   exactly the control you want when an extrude goes wrong, so it has to stay on
+   screen and stay 44px — it just moves. */
+body.stage-active #tips-row {
+  bottom: calc(var(--stage-bottom) + var(--stage-h) + 10px);
+}
 
 /* ============================================================
    Mini transparent quick-tools bar, top-center. Icon-only; the
    label shows on hover (desktop) or press (touch). Buttons proxy
    their clicks to the real toolbar buttons (see main.js).
    ============================================================ */
+/* Centred by auto margins between left:0 and right:0, NOT by left:50% plus a
+   translate. With left:50% the shrink-to-fit width a browser offers is only
+   half the viewport, and a row of nowrap buttons simply overflows that box —
+   which is how the Render control ended up 17px off the right edge of a 390px
+   screen while the no-horizontal-scroll gate stayed green. Between two zero
+   offsets the available width is the whole viewport, so max-width and wrap can
+   actually do their jobs. */
 #topbar {
-  position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 80;
-  display: flex; gap: 2px; padding: 3px;
+  position: fixed; top: 10px; left: 0; right: 0; margin-inline: auto;
+  width: fit-content; max-width: calc(100vw - 16px); z-index: 80;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; padding: 3px;
   border-radius: 12px; background: transparent;
 }
 #topbar button {
@@ -627,6 +659,9 @@ body.drawer-active #topbar { opacity: 0; pointer-events: none; }
    (>=640px, e.g. 768) keep the original floating-panel layout.
    ============================================================ */
 @media (max-width: 640px) {
+  /* The bottom bar is the floor of the bottom stack on a phone. Everything that
+     sits above it reads this, so the safe-area inset is honoured once. */
+  :root { --dock-h: calc(52px + env(safe-area-inset-bottom, 0px)); }
   /* Resize handles make no sense for full-width drawers. */
   .resize-handle { display: none !important; }
   /* The per-panel collapse chevron is replaced by the bar + scrim. */
@@ -678,7 +713,7 @@ body.drawer-active #topbar { opacity: 0; pointer-events: none; }
   .orow { padding: 9px 6px; }
 
   /* Status bar sits just above the bottom bar. */
-  #statusbar { bottom: 52px; }
+  #statusbar { bottom: var(--dock-h); }
 
   /* The bottom action bar: always-visible drawer toggles + Frame. */
   #mobile-bar {
@@ -725,6 +760,18 @@ body.drawer-active #topbar { opacity: 0; pointer-events: none; }
 #rv-toggle .rv-lbl { line-height: 1; }
 #rv-toggle.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important; }
 #rv-toggle::after { content: none; }  /* it has its own label */
+/* On a phone the word does not fit: seven icons plus "⊕ Render" measured 423px
+   of a 390px screen and the label ran off the edge. The toggle joins the rest of
+   the row as an icon and gets the same press-to-see label every other control in
+   the bar already has, rather than the row shrinking under the touch floor. */
+@media (max-width: 640px) {
+  /* var(--touch) not a smaller number: it is a touch target like the rest of the
+     row, and the width the base rule sets is `auto !important`, so the coarse
+     44px rule cannot win on its own. */
+  #rv-toggle { width: var(--touch, 44px) !important; padding: 0 !important; gap: 0; }
+  #rv-toggle .rv-lbl { display: none; }
+  #rv-toggle::after { content: attr(data-label); }
+}
 
 /* In render view, hide the editing chrome; keep the scene + topbar toggle. */
 body.render-view #toolbar,
@@ -757,7 +804,9 @@ body.render-view #topbar button[data-proxy] { display: none; }  /* hide edit too
 #rv-bar[hidden] { display: none; }
 
 @media (pointer: coarse), (max-width: 640px) {
-  #rv-bar { bottom: 12px; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 6px; }
+  /* Above the phone's bottom bar rather than on it (--dock-h is 0 everywhere
+     that bar does not exist, so this is still bottom:12px on a tablet). */
+  #rv-bar { bottom: calc(var(--dock-h) + 12px); gap: 6px; flex-wrap: wrap; justify-content: center; padding: 6px; }
   #rv-bar button { padding: 10px 12px; }
 }
 /* hide onboarding/tour + tips in render view (belt-and-suspenders to the JS guard) */
@@ -798,8 +847,14 @@ body.render-view #tips-row { display: none !important; }
 .sk-note { margin-top: 8px; line-height: 1.4; }
 
 /* On-canvas sketcher */
+/* Centred between two zero offsets rather than by left:50% + translate: the
+   half-viewport shrink-to-fit box that left:50% produces squeezed this bar into
+   a 195px column four rows tall on a phone. Its `bottom` comes from the bottom
+   stack so it sits above the status line and the mobile bar instead of under
+   them. */
 #sketch-bar {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px;
+  position: absolute; left: 0; right: 0; margin-inline: auto; width: fit-content;
+  bottom: var(--stage-bottom);
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
   max-width: min(96vw, 720px);
   background: var(--panel); backdrop-filter: blur(10px);
@@ -951,7 +1006,13 @@ body.render-view #tips-row { display: none !important; }
      56px cube is under 30px of thumb target, and the faces sit edge to edge so
      a near miss picks the WRONG view rather than none. 72px puts every face
      back over 36px without taking meaningfully more of the screen. */
-  #viewcube-wrap { top: 52px; left: 10px; }
+  /* left:32 not 10, for the same reason the desktop rule uses top:40 not 12: a
+     cube turned corner-on paints up to ~28px outside its own box, and at left:10
+     the TOP and RIGHT faces were sliced off by the edge of the screen. The
+     vertical case was fixed here already; the horizontal one was not. */
+  /* top follows the measured quick-tools bar (it wraps to two rows at 360px),
+     plus the same ~12px the cube paints above its own box. */
+  #viewcube-wrap { top: calc(var(--topbar-h, 56px) + 26px); left: 32px; }
   #viewcube { width: 72px; height: 72px; perspective: 300px; }
   .vc-face { font-size: 8px; }
   .vc-top    { transform: rotateX(90deg)  translateZ(36px); }
@@ -972,7 +1033,8 @@ body.render-view #viewcube-wrap { display: none; }
    the bottom of the screen. The row is ~590px wide and only wraps once the
    viewport is genuinely too narrow for it. */
 #extrude-bar {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px;
+  position: absolute; left: 0; right: 0; margin-inline: auto; width: fit-content;
+  bottom: var(--stage-bottom);
   display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; justify-content: center;
   max-width: min(96vw, 800px);
   background: var(--panel); backdrop-filter: blur(10px);
@@ -1007,7 +1069,10 @@ body.render-view #viewcube-wrap { display: none; }
 }
 
 @media (max-width: 640px) {
-  #sketch-bar { bottom: 8px; gap: 4px; padding: 6px; }
+  /* The bars keep the full width of the screen minus a gutter. Anything narrower
+     makes them wrap into a tall tower over the model. */
+  #sketch-bar, #extrude-bar { max-width: calc(100vw - 16px); }
+  #sketch-bar { gap: 4px; padding: 6px; }
   #sketch-bar button { padding: 6px 8px; font-size: 12px; }
   #sketch-bar .sk-read { width: 100%; order: 99; }
 }
@@ -1189,6 +1254,10 @@ button:disabled { opacity: .5; cursor: default; }
   #slicer.sl-collapsed { bottom: 52px; top: auto; }
   /* The strip has nowhere to go on a phone once the sheet is up. */
   body.slicer-open #timeline { display: none; }
+  /* Same call as a drawer: the sheet fills the lower screen, so the undo strip
+     would float on top of the layer dock — the one part of the slicer you drive
+     while you are watching the model. Nothing in the slicer is an undo step. */
+  body.slicer-open #tips-row { opacity: 0; pointer-events: none; }
 }
 
 /* A stale result: the numbers stay readable but visibly demoted, because the

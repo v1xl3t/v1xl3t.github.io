@@ -609,6 +609,45 @@ function nudgeSelection(key, shift, repeat) {
   setStatus();
 }
 
+// ------------------------------------------------------------- bottom stack
+// The bottom of the screen is a layout, not a pile. From the floor up: the
+// mobile bar, the status line, whichever stage bar is open (sketch or extrude),
+// then the undo/Tips/redo strip. style.css stacks them with custom properties;
+// two of those heights are not constants — the status line rewraps with its
+// message and the stage bars rewrap with the width — so they get measured here
+// instead of guessed.
+//
+// The alternative, giving one of them a bigger z-index, only chooses which
+// control gets covered: while an extrude is open you need the extrude bar AND
+// you need undo, which is the one thing you reach for when an extrude is wrong.
+function syncBottomStack() {
+  const shown = (el) => !!el && !el.hidden && el.offsetParent !== null;
+  const root = document.documentElement;
+  const status = document.getElementById('statusbar');
+  const stage = [document.getElementById('extrude-bar'), document.getElementById('sketch-bar')].find(shown);
+  root.style.setProperty('--status-h', `${shown(status) ? Math.round(status.offsetHeight) : 0}px`);
+  root.style.setProperty('--stage-h', `${stage ? Math.round(stage.offsetHeight) : 0}px`);
+  document.body.classList.toggle('stage-active', !!stage);
+  // The top is a stack too. The quick-tools bar wraps to a second row on the
+  // narrowest phones (eight controls at the 44px touch floor genuinely do not
+  // fit across 360px), and the view cube parks under whatever height that is
+  // rather than under a constant that is right for one of the two cases.
+  const topbar = document.getElementById('topbar');
+  if (topbar) root.style.setProperty('--topbar-h', `${Math.round(topbar.offsetHeight)}px`);
+}
+// Observed rather than only called: a bar that rewraps because the message got
+// longer or the phone turned changes height without anything toggling.
+if (window.ResizeObserver) {
+  try {
+    const ro = new ResizeObserver(() => syncBottomStack());
+    for (const id of ['statusbar', 'sketch-bar', 'extrude-bar', 'topbar']) {
+      const el = document.getElementById(id);
+      if (el) ro.observe(el);
+    }
+  } catch {}
+}
+window.addEventListener('resize', () => syncBottomStack());
+
 // ---------------------------------------------------------------- status bar
 const statusbar = document.getElementById('statusbar');
 function setStatus() {
@@ -925,6 +964,7 @@ function setSketch(on) {
   document.getElementById('sketch-btn')?.classList.toggle('active', on);
   const bar = document.getElementById('sketch-bar');
   if (bar) bar.hidden = !on;
+  syncBottomStack();          // the bar owns a band of the bottom while it is open
 
   if (on) {
     skDoc = createSketch('XZ');
@@ -2269,6 +2309,7 @@ function openExtrudeStage(obj, { note = '', stash = null } = {}) {
   doc.select?.(obj.id);
   const bar = exBar();
   if (bar) bar.hidden = false;
+  syncBottomStack();          // moves the undo strip above the stage, not under it
   const inp = exInput();
   if (inp) {
     inp.value = round1(obj.params.depth);
@@ -2285,6 +2326,7 @@ function closeExtrudeStage() {
   exObj = null; exDragging = null; exStash = null;
   const bar = exBar();
   if (bar) bar.hidden = true;
+  syncBottomStack();
 }
 
 function syncExtrudeBar() {
@@ -2518,7 +2560,10 @@ function wireViewCube() {
     if (!b || e.button !== 0) return;
     // Iso is an ordinary button, not part of the cube's drag surface.
     const draggable = b.classList.contains('vc-face');
-    e.preventDefault();
+    // Deliberately NOT preventDefault here. On touch it suppresses the
+    // compatibility click, and click is what tap-to-snap and keyboard
+    // activation both ride on. Scrolling is already blocked by
+    // `touch-action: none` on the faces, which is the correct tool for it.
     e.stopPropagation();                       // never let OrbitControls see it too
     drag = {
       id: e.pointerId, view: b.dataset.view, draggable,
@@ -2539,18 +2584,37 @@ function wireViewCube() {
     vcEls.wrap.classList.add('vc-dragging');
   });
 
+  // A drag has to swallow the click the browser fires after it, or every orbit
+  // would end by snapping to whichever face you started on.
+  let swallowClick = false;
+
   const end = (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     const wasTap = drag.moved <= drag.slop;
-    const view = drag.view;
     drag = null;
     vcEls.wrap.classList.remove('vc-dragging');
-    if (!wasTap) { flash('Camera turned. Tap a face to snap to it.'); return; }
-    snapToView(view);
-    flash(`${view === 'iso' ? 'Isometric' : view[0].toUpperCase() + view.slice(1)} view.`);
+    if (!wasTap) { swallowClick = true; flash('Camera turned. Tap a face to snap to it.'); }
   };
   vcEls.wrap.addEventListener('pointerup', end);
   vcEls.wrap.addEventListener('pointercancel', end);
+
+  /**
+   * Snapping lives on `click`, not on `pointerup`.
+   *
+   * The faces are real buttons, so `click` is the one event that arrives for a
+   * mouse click, a touch tap, AND Enter or Space on a focused face. Doing the
+   * work on `pointerup` instead is what silently removed keyboard access when
+   * this widget moved to pointer events for drag-to-orbit: the focus ring still
+   * appeared, promising something that no longer happened. Pointer events now
+   * do only what they are uniquely needed for, which is the drag.
+   */
+  vcEls.wrap.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    if (swallowClick) { swallowClick = false; return; }
+    snapToView(b.dataset.view);
+    flash(`${b.dataset.view === 'iso' ? 'Isometric' : b.dataset.view[0].toUpperCase() + b.dataset.view.slice(1)} view.`);
+  });
 
   syncViewCube();
 }
@@ -3201,6 +3265,9 @@ initSettings();
 setupMobileUI();
 setupEmptyState();
 setupOnboarding();
+// The strip is built by setupOnboarding, so measure the bottom stack once
+// everything that lives in it exists.
+syncBottomStack();
 
 // Restore the last autosaved project before the first render, so a reload — or
 // reopening from the portfolio preview iframe in a fresh tab — picks up exactly

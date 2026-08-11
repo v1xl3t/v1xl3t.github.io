@@ -15,6 +15,12 @@ const ABBR = {
   'Outer radius': 'Rₒ', 'Inner radius': 'Rᵢ', 'Round (mm)': '⌒',
   'Sides': 'n', 'Top width (X)': 'Wₜ', 'Top depth (Z)': 'Dₜ',
   'Base width (X)': 'W', 'Base depth (Z)': 'D', 'Twist (°)': '∡',
+  // A sketch feature carries five of these at once and the initials collide:
+  // "Down" and "Draft" both abbreviate to D, so the row read "E 6 · D 0 · SO 0 ·
+  // D 0 · R 360" and two different numbers wore the same name. Spelled out far
+  // enough to tell apart, still short enough to be a chip.
+  'Extrude (mm)': 'Up', 'Down (mm)': 'Dn', 'Start offset': 'Off',
+  'Draft (°)': 'Draft', 'Revolve (°)': 'Rev',
 };
 const abbrev = (l) => ABBR[l] || l.replace(/\s*\(.*\)/, '').split(' ').map((w) => w[0]).join('').toUpperCase();
 const fmt = (n) => Number(n.toFixed(3)).toString();

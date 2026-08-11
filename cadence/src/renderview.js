@@ -161,6 +161,9 @@ export function initRenderView(api) {
   toggle.id = 'rv-toggle';
   toggle.type = 'button';
   toggle.setAttribute('aria-label', 'Toggle render view');
+  // The visible "Render" word is dropped on phones (it did not fit), so the
+  // toggle carries the same data-label tooltip as every other topbar control.
+  toggle.dataset.label = 'Render';
   toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4M3.8 12h16.4"/></svg><span class="rv-lbl">Render</span>';
   if (topbar) topbar.appendChild(toggle);
 
