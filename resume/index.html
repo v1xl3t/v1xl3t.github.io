@@ -475,9 +475,20 @@ async function tryLoadShareLink(){
     return true;
   }catch(e){ console.warn("share link failed to load", e); return false; }
 }
+// Discord refuses a message over 2,000 characters. A normal résumé is nowhere
+// near it — a full two-page one measures about 750 — but a master document with
+// every role you have ever held can pass it, and a copied link that breaks when
+// pasted looks like the recipient's fault. Say so rather than hand it over.
+const RS_PASTE_LIMIT = 2000;
 document.getElementById("sharelink").onclick = async () => {
   const btn = document.getElementById("sharelink"), label = btn.textContent;
   const url = await buildShareLink();
+  if (url.length > RS_PASTE_LIMIT){
+    btn.textContent = "✗ Too big";
+    setTimeout(()=>{ btn.textContent = label; }, 2600);
+    alert(`This résumé is too long for a link. It comes to ${url.length.toLocaleString()} characters and chat apps cut off at ${RS_PASTE_LIMIT.toLocaleString()}.\n\nUse Save JSON to download it and send that file instead.`);
+    return;
+  }
   try { await navigator.clipboard.writeText(url); btn.textContent = "✓ Copied"; setTimeout(()=>{ btn.textContent = label; }, 1600); }
   catch { prompt("Copy this backup / sync link:", url); }
 };
