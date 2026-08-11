@@ -26,7 +26,10 @@
 //      so each object picks the coarsest of 1 / 0.1 / 0.01mm that is LOSSLESS
 //      for it and spends 2 bits saying which.
 //   B. ANGLES. Rotations are overwhelmingly 0, ±90, 180 or ±45 degrees. Three
-//      bits of table index instead of twenty bits of radians.
+//      bits of table index instead of twenty bits of radians. An axis that fits
+//      none of the cheap shapes pays for its raw double rather than costing the
+//      whole document the long format, which is what a gizmo drag needs (see
+//      planAxis for why the gizmo does not land on any grid).
 //   C. NEIGHBOURS. Designs are built by duplicating and nudging, so a position
 //      is stored as a delta from the previous object when that is cheaper and
 //      exact, and absolutely when it is not.
@@ -49,8 +52,10 @@
 //   * Any primitive kind whose defaults this table does not know, so adding a
 //     primitive to DEFAULT_PARAMS makes links fall back rather than encode
 //     something wrong.
-//   * Positions, scales, rotations or params that do not survive quantisation
-//     bit-for-bit (see QUANTISATION below).
+//   * Positions, scales or params that do not survive quantisation bit-for-bit
+//     (see QUANTISATION below). Rotation is NOT in this list any more. Since the
+//     raw-double mode landed, every finite rotation is representable exactly, so
+//     an angle can no longer be the reason a document takes the long way.
 //   * Booleans that still carry a baked mesh, that have no `op`, that have
 //     fewer than two parts, or whose baseMatrix is not a pure translation.
 //   * Imported meshes and anything else with fields this format has no slot for.
@@ -63,10 +68,13 @@
 //   scale      0.001
 //   params     0.01 (mm, degrees or count, depending on the param)
 //   rotation   per axis: one of six table angles, OR an exact whole number of
-//              degrees, OR an exact multiple of 0.0001 radians
+//              degrees, OR an exact multiple of 0.0001 radians, OR the raw
+//              double at 64 bits when it is none of those
 //
 // A position of 12.7431mm therefore does NOT fit the 0.01mm grid, and the whole
 // document falls back to the deflate format rather than being rounded to 12.74.
+// A rotation of 12.7431 radians, by contrast, now costs eleven characters and
+// arrives exact, because rotation has a mode with no grid under it at all.
 //
 // THE LAST LINE OF DEFENCE. buildShareLink does not trust this encoder. It
 // encodes, immediately DECODES the result back, and compares the decoded
@@ -82,9 +90,21 @@
 import { DEFAULT_PARAMS } from './primitives.js';
 import { DEFAULT_COLORS } from './model.js';
 
-// Bumping this changes the wire format. Old links keep opening because they
-// travel under a different payload prefix letter (z / j), not because this
-// number is backward compatible.
+// Bumping this changes the wire format, and because FORMAT_VERSION is baked into
+// SCHEMA_FINGERPRINT below, it also invalidates every `t` link already sent. Old
+// z / j links keep opening regardless, because they travel under a different
+// payload prefix letter, not because this number is backward compatible.
+//
+// NOT BUMPED for the raw-double rotation mode, deliberately. The rotation mode
+// field was already two bits wide with values 0, 1 and 2 used and 3 unused, and
+// the old encoder could not emit a 3 at all, because planAxis returned null
+// there and the document fell back. So no payload in the wild contains a 3, no
+// other bit in the stream moved, and every existing `t` link decodes to the same
+// document as before. Bumping would have broken all of them to describe a change
+// they cannot contain. The one asymmetry is forwards, a not-yet-updated build
+// meeting a new link that uses mode 3, and that build throws on the mode it does
+// not know, which tryLoadSharedLink turns into a refusal to load. Loud and
+// empty, never a model with the wrong angle in it.
 const FORMAT_VERSION = 4;
 
 // 4 bits of kind, so 0..14 are primitives and 15 is reserved for booleans.
@@ -100,6 +120,11 @@ const ANGLES = [0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -Math.PI / 4
 
 // zigzag varints are written 32-bit; anything past this would wrap silently.
 const VARINT_MAX = 0x7fffffff;
+
+// Scratch for reading a double out as bits and putting it back. One shared
+// buffer, because encode and decode are both single-threaded and never hold a
+// value in it across a call.
+const F64 = new DataView(new ArrayBuffer(8));
 
 /* ------------------------------------------------------------------ schema --
  *
@@ -166,6 +191,14 @@ class BitWriter {
     if (!Number.isInteger(v) || Math.abs(v) > VARINT_MAX) throw refuse(`value too large to encode: ${v}`);
     this.varint(v < 0 ? -v * 2 - 1 : v * 2);
   }
+  // The double itself, IEEE-754, big-endian. The expensive escape hatch, for a
+  // number that sits on none of this format's grids. Exact by construction, so
+  // it can never round anything.
+  f64(v) {
+    F64.setFloat64(0, v);
+    this.bits(F64.getUint32(0), 32);
+    this.bits(F64.getUint32(4), 32);
+  }
   done() { while (this.n) this.bit(0); return Uint8Array.from(this.bytes); }
 }
 
@@ -191,6 +224,11 @@ class BitReader {
     }
   }
   zigzag() { const u = this.varint(); return (u & 1) ? -((u + 1) / 2) : u / 2; }
+  f64() {
+    F64.setUint32(0, this.bits(32));
+    F64.setUint32(4, this.bits(32));
+    return F64.getFloat64(0);
+  }
 }
 
 /* ------------------------------------------------------------------ refusal */
@@ -328,8 +366,10 @@ function writeObj(w, o, taken, prev, isChild) {
   if (!posPlan) throw refuse(`position ${o.position.join(', ')} is finer than the 0.01mm grid`);
 
   // --- rotation
+  // Unreachable for a finite rotation, which finite3 above has already checked.
+  // Kept so that a future change to planAxis cannot start writing garbage.
   const rotPlan = planRotation(o.rotation);
-  if (!rotPlan) throw refuse(`rotation ${o.rotation.join(', ')} is not a whole degree or a multiple of 0.0001 rad`);
+  if (!rotPlan) throw refuse(`rotation ${o.rotation.join(', ')} is not a finite angle`);
 
   // --- scale
   const scl = o.scale.map((s) => exactQ(s, SCALE_MUL));
@@ -370,6 +410,7 @@ function writeObj(w, o, taken, prev, isChild) {
     for (const a of rotPlan.axes) {
       if (!rotPlan.allTable) w.bits(a.mode, 2);
       if (a.mode === 0) w.bits(a.value, 3);
+      else if (a.mode === 3) w.f64(a.value);
       else w.zigzag(a.value);
     }
   }
@@ -431,15 +472,35 @@ function writeBaseMatrix(w, bm, position) {
 // Rotation, cheapest mode first, CHOSEN PER AXIS. Per axis matters more than it
 // looks: "stood on end and nudged" is [-90°, 0.3 rad, 0], and a single mode for
 // all three would refuse that whole object over one axis. Every mode is checked
-// by reconstructing the value and demanding an exact match, so a free-dragged
-// angle still refuses rather than arriving 0.0001 rad from where it was drawn.
+// by reconstructing the value and demanding an exact match, so a snapped angle
+// still cannot arrive 0.0001 rad from where it was drawn.
 //
 //   mode 0  index into ANGLES        3 bits
 //   mode 1  whole degrees            zigzag varint, r === k * PI / 180
 //   mode 2  multiples of 0.0001 rad  zigzag varint
+//   mode 3  the raw double           64 bits
 //
 // One leading bit says "all three axes are table angles", which is the common
 // case and pays for itself immediately.
+//
+// WHY MODE 3 EXISTS. Modes 0 to 2 are all grids, and the gizmo does not land on
+// grids. TransformControls rounds the drag to the 15 degree snap, builds a
+// quaternion from an axis and that angle, and Three then derives object.rotation
+// back out of the quaternion with atan2 and asin. That last step is where the
+// exactness goes. Measured against Three r160, a 45 degree turn about Y comes
+// back as 0.7853981633974484 where PI/4 is 0.7853981633974483, one unit in the
+// last place adrift, and a 90 degree turn about X comes back as
+// 1.5707963267948963 rather than 1.5707963267948966. Past 90 degrees on Y the
+// Euler triple flips representation entirely, so a 135 degree turn arrives as
+// [-PI, 0.7853981633974485, -PI], three arbitrary doubles for one snapped drag.
+//
+// None of those sit on any grid, and before mode 3 every one of them cost the
+// user the long format for the whole document. Rotating a part by 45 degrees
+// with the gizmo is not an exotic action, so the fix is not a coarser grid, it
+// is a mode that has no grid at all. 64 bits is about eleven characters of
+// base64 for the one axis that needs it, and no axis that already encodes well
+// is ever offered it, because it is only reached once the three cheaper modes
+// have each failed their exact-match check.
 function planAxis(r) {
   const t = ANGLES.indexOf(r);
   if (t >= 0) return { mode: 0, value: t };
@@ -447,6 +508,11 @@ function planAxis(r) {
   if (Number.isInteger(k) && Math.abs(k) <= VARINT_MAX && (k * Math.PI) / 180 === r) return { mode: 1, value: k };
   const q = exactQ(r, RAD_MUL);
   if (q !== null) return { mode: 2, value: q };
+  // Every finite double reaches here intact, so rotation is no longer a reason
+  // for a document to fall back. Non-finite values are already refused by the
+  // finite3 check in writeObj, and the guard is repeated here because a mode
+  // that claims to be exact must not quietly write a NaN.
+  if (Number.isFinite(r)) return { mode: 3, value: r };
   return null;
 }
 
@@ -549,7 +615,7 @@ function readObj(r, taken, prev, isChild, ctx) {
       }
       if (mode === 1) return (r.zigzag() * Math.PI) / 180;
       if (mode === 2) return r.zigzag() / RAD_MUL;
-      throw new Error('tinylink: reserved rotation mode');
+      return r.f64();                          // mode 3, the raw double
     });
   }
 
