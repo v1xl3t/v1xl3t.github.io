@@ -29,6 +29,7 @@ import { DimChips } from './dimchips.js';
 import { exportSTL, export3MF, downloadJSON } from './io.js';
 import { scheduleAutosave, restoreAutosave, clearAutosave } from './autosave.js';
 import { buildShareLink, tryLoadSharedLink } from './sharelink.js';
+import { encodeTiny, decodeTiny, encodeVerified } from './tinylink.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS } from './primitives.js';
 import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, EXPERIMENTAL_FEATURES, controlMap, unitLabel } from './settings.js';
@@ -3305,6 +3306,10 @@ window.cadence = {
   // page, rather than asserting against a copy of the encoder that could drift
   // away from the one the button actually calls.
   buildShareLink,
+  // The tiny share-link codec, exposed for the same reason: the harness fuzzes
+  // several hundred generated documents through the REAL encoder and decoder
+  // rather than a copy that could drift away from the ones the button calls.
+  tinylink: { encode: encodeTiny, decode: decodeTiny, verify: encodeVerified },
   // The slicer, exposed so the headless harness can drive it and read back the
   // plan rather than screenshot-diffing a pile of coloured lines.
   slicer: sliceView,

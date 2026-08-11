@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CADence</title>
+<meta name="robots" content="noindex">
+<!--
+  Short alias for CADence share links.
+
+  `https://vi-ellis.com/cadence/#d=` spends 32 characters before a design
+  exists. At roughly six characters per part, that is two or three parts of a
+  hundred character budget gone to the address bar. `vi-ellis.com/c/#` is 16.
+
+  This page exists only to forward. The important part is that the FRAGMENT has
+  to survive the hop, and it does so for free: a fragment never reaches a
+  server, so it is not something to preserve so much as something that was
+  never at risk. It is copied across explicitly anyway, because relying on a
+  browser's redirect semantics for the payload would be relying on the one
+  thing that must never be lost.
+
+  replace() rather than assign(), so the alias does not sit in the back button
+  between the visitor and where they came from.
+-->
+<style>
+  html { color-scheme: dark light; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+         font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<p><noscript>This short link needs JavaScript. </noscript><a id="go" href="/cadence/">Opening CADence…</a></p>
+<script>
+  // Keep the query too, so `?v=2` style cache-busting still works through the
+  // alias rather than being silently dropped.
+  var target = '/cadence/' + (location.search || '') + (location.hash || '');
+  document.getElementById('go').href = target;
+  location.replace(target);
+</script>
+</body>
+</html>

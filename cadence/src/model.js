@@ -30,6 +30,11 @@ const SOLID_COLOR = '#7aa2ff';
 const HOLE_COLOR = '#ff8a8a';
 const GROUP_COLOR = '#9ad29a';
 
+// The same three colours, exported so the tiny share-link format can predict
+// them instead of keeping a second copy that could drift. A colour a link does
+// not carry is a colour the app already knows.
+export const DEFAULT_COLORS = { solid: SOLID_COLOR, hole: HOLE_COLOR, boolean: GROUP_COLOR };
+
 export class CadObject {
   // opts: { kind, params, name, role, geometry?, children? }
   //   geometry/children are only used for kind === 'boolean'.

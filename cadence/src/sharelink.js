@@ -4,8 +4,18 @@
 // the shared design read-safe: the current autosave is snapshotted to a backup
 // key first, so nothing of the visitor's own work is ever lost.
 //
-// Payload format:  #d=z<base64url of deflate-raw JSON>   (modern browsers)
-//                  #d=j<base64url of plain JSON>         (fallback)
+// Payload format:  #d=t<base64url of the packed tiny format>   (see tinylink.js)
+//                  #d=z<base64url of deflate-raw JSON>         (fallback)
+//                  #d=j<base64url of plain JSON>               (last resort)
+//
+// SIZE, PART TWO (2026-08-11). Recipes-only got a one-box link to 245
+// characters, which pastes anywhere but is not a link you would read out. The
+// `t` format packs the same recipes at the bit level against the app's own
+// defaults, and takes that box to 68 characters of URL. It refuses anything it
+// cannot reproduce exactly — sketch profiles, off-grid coordinates, an unknown
+// primitive — and this file quietly falls back to `z` for those. Links already
+// sent under `z` and `j` keep opening exactly as before; nothing below the
+// prefix letter changed for them.
 //
 // SIZE (2026-08-11). A boolean used to travel as its finished mesh, every
 // vertex a decimal number, *alongside* the recipe that made it. Measured, that
@@ -21,6 +31,7 @@
 // load; saving a file still bakes the mesh so opening your own work is instant.
 
 import { rebakeBooleans } from './model.js';
+import { encodeVerified, decodeTiny } from './tinylink.js';
 
 const AUTOSAVE_KEY = 'cadence:autosave:v1';
 const BACKUP_KEY   = 'cadence:autosave:pre-share-backup';
@@ -46,19 +57,45 @@ async function pipe(bytes, TransformCtor, mode) {
 
 /* ---------- public API ---------- */
 
+// The prefix is dead weight inside a hundred-character budget: `/cadence/`
+// spends nine characters before the design starts. The Pages repo forwards
+// `/c/` to the same app with the fragment intact, so the canonical site emits
+// the short form and everything after `#d=` is untouched by this.
+//
+// DERIVED, never pasted. The harness serves this app from localhost, and a
+// hard-coded production URL would make every round-trip test either navigate to
+// the live site or fail outright. Anywhere that is not the canonical path, the
+// link is exactly the address you are already on.
+const CANONICAL_PATH = '/cadence/';
+const SHORT_PATH = '/c/';
+
+const link = (payload) => {
+  const p = location.pathname;
+  const path = p.endsWith(CANONICAL_PATH) ? p.slice(0, -CANONICAL_PATH.length) + SHORT_PATH : p;
+  return `${location.origin}${path}#d=${payload}`;
+};
+
 // Build a copyable URL for the current design. Returns null when there is
 // nothing worth sharing.
 export async function buildShareLink(doc) {
   if (!doc.list.length) return null;
-  const json = JSON.stringify(doc.toJSON({ recipeOnly: true }));
-  const raw = new TextEncoder().encode(json);
+  const data = doc.toJSON({ recipeOnly: true });
+
+  // Tiny first. encodeVerified decodes its own output and compares it to `data`
+  // before handing anything back, so a null here means "this document cannot be
+  // carried exactly", never "it was carried approximately".
+  const tiny = encodeVerified(data);
+  if (tiny.bytes) return link('t' + bytesToB64url(tiny.bytes));
+  if (tiny.reason) console.info('share link: using the long format —', tiny.reason);
+
+  const raw = new TextEncoder().encode(JSON.stringify(data));
   let payload;
   try {
     payload = 'z' + bytesToB64url(await pipe(raw, CompressionStream, 'deflate-raw'));
   } catch {
     payload = 'j' + bytesToB64url(raw);
   }
-  return `${location.origin}${location.pathname}#d=${payload}`;
+  return link(payload);
 }
 
 // On boot: if the URL carries a shared design, load it. The visitor's own
@@ -69,10 +106,16 @@ export async function tryLoadSharedLink(doc) {
   if (!m) return false;
   try {
     const kind = m[1][0], body = m[1].slice(1);
-    let raw = b64urlToBytes(body);
-    if (kind === 'z') raw = await pipe(raw, DecompressionStream, 'deflate-raw');
-    else if (kind !== 'j') return false;
-    const data = JSON.parse(new TextDecoder().decode(raw));
+    let data;
+    if (kind === 't') {
+      data = decodeTiny(b64urlToBytes(body));
+    } else {
+      // Untouched: every link ever sent under `z` or `j` still opens this way.
+      let raw = b64urlToBytes(body);
+      if (kind === 'z') raw = await pipe(raw, DecompressionStream, 'deflate-raw');
+      else if (kind !== 'j') return false;
+      data = JSON.parse(new TextDecoder().decode(raw));
+    }
     if (!data || data.app !== 'CADence' || !Array.isArray(data.objects)) return false;
     // Put the meshes back before the document sees the data, so loadJSON stays
     // synchronous and cannot tell a shared design from a saved file.
