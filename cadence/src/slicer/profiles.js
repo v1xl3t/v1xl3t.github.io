@@ -77,14 +77,14 @@ export const MACHINES = {
   // Bambu Lab
   // -------------------------------------------------------------------------
   //
-  // Five machines that share a hotend, a direct drive extruder and a nozzle,
+  // Six machines that share a hotend, a direct drive extruder and a nozzle,
   // and differ in how big the bed is, how hot the bed goes, and how the gantry
   // moves. The A1 pair sling the bed back and forth the way the Ender does,
-  // only far stiffer. The P1 and X1 are CoreXY, which is why their acceleration
-  // is higher again.
+  // only far stiffer. The P1, P2 and X1 are CoreXY, which is why their
+  // acceleration is higher again.
   //
   // Six things are true of all of them and are worth saying once rather than
-  // five times.
+  // repeating them in every entry.
   //
   // ORIGIN. Front-left, like the Ender. Bambu print coordinates run from zero
   // to the bed size, not from minus half the bed to plus half, so originCentre
@@ -192,11 +192,37 @@ export const MACHINES = {
     bedWidth: 256, bedDepth: 256, bedHeight: 256,
     originCentre: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
-    // The hottest bed in the table, which is the one number that lets an
-    // enclosed X1C take ABS without an argument.
+    // The hottest bed in the table, shared with the P2S below, and the one
+    // number that lets an enclosed X1C take ABS without an argument.
     heatedBed: true, maxBedTemp: 110, maxNozzleTemp: 300,
     firmware: 'bambu',
     maxFeedrateXY: 500, maxFeedrateZ: 20, maxFeedrateE: 50,
+    accelerationXY: 10000, accelerationE: 3000,
+    jerkXY: 12, jerkZ: 0.4, jerkE: 5,
+    extruder: 'direct',
+    usbPrintable: false,
+    startGcode: bambuStart, endGcode: bambuEnd,
+  },
+
+  // The P2S is the enclosed CoreXY the P1S grew into, same 256mm cube of build
+  // volume and the same hardened 0.4mm nozzle, so most of this entry is its
+  // neighbour's. The one field that actually moves is the bed, which reaches
+  // 110C here rather than the P1S's 100C. That puts it level with the X1C and
+  // means ABS slices on a P2S without the bed warning a P1S earns.
+  'bambu-p2s': {
+    id: 'bambu-p2s',
+    name: 'Bambu Lab P2S',
+    bedWidth: 256, bedDepth: 256, bedHeight: 256,
+    originCentre: false,
+    nozzleDiameter: 0.4, filamentDiameter: 1.75,
+    heatedBed: true, maxBedTemp: 110, maxNozzleTemp: 300,
+    firmware: 'bambu',
+    maxFeedrateXY: 500, maxFeedrateZ: 20, maxFeedrateE: 50,
+    // Bambu advertises 20,000 for this machine, and it is the same kind of
+    // number as every other headline in this family, a peak held on a long
+    // straight move. Quoting it would shorten every estimate on the short
+    // cornering moves a real part is mostly made of, so the P2S keeps the
+    // 10,000 its CoreXY siblings use and the estimate stays honest.
     accelerationXY: 10000, accelerationE: 3000,
     jerkXY: 12, jerkZ: 0.4, jerkE: 5,
     extruder: 'direct',
