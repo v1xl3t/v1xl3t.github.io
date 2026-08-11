@@ -296,6 +296,7 @@ export class CadDocument extends EventTarget {
       // duplicate is a fully independent, still-ungroupable group.
       copy = new CadObject({
         kind: 'boolean', role: src.role, name: `${src.name} copy`,
+        params: { ...src.params },          // carries `op`, so the copy is rebakeable too
         geometry: src.mesh.geometry.clone(),
         children: src.children ? src.children.map((c) => ({ ...c, geometryClone: c.geometryClone?.clone() })) : null,
         baseMatrix: src.baseMatrix ? src.baseMatrix.clone() : null,
@@ -392,7 +393,7 @@ export class CadDocument extends EventTarget {
     // Run the kernel first; if it fails, the document is left untouched.
     const result = await booleanCombine(objs.map((o) => ({ mesh: o.mesh, role: o.role })));
     if (!result) { this.commit('Cut (holes only)'); this._disband(objs); this.select(null); this._emit('regroup'); return null; } // all holes
-    return this._bakeGroup(objs, result.geometry, 'Group');
+    return this._bakeGroup(objs, result.geometry, 'Group', 'combine');
   }
 
   async intersect(ids) {
@@ -400,7 +401,7 @@ export class CadDocument extends EventTarget {
     if (objs.length < 2) return null;
     const result = await booleanIntersect(objs.map((o) => o.mesh));
     if (!result) return null;     // no shared volume — leave document untouched
-    return this._bakeGroup(objs, result.geometry, 'Intersection');
+    return this._bakeGroup(objs, result.geometry, 'Intersection', 'intersect');
   }
 
   _disband(objs) {
@@ -411,7 +412,14 @@ export class CadDocument extends EventTarget {
   }
 
   // Consume `objs` into one watertight boolean body built from `geometry`.
-  _bakeGroup(objs, geometry, name) {
+  //
+  // `op` records WHICH kernel call produced the body ('combine' or 'intersect').
+  // The children alone are not enough to reproduce it — the same two shapes give
+  // a different solid under union and under intersection — and without that one
+  // word a share link cannot drop the baked mesh and rebuild it on open. It
+  // lives in `params` so it rides along on every existing save, snapshot and
+  // history entry for free.
+  _bakeGroup(objs, geometry, name, op) {
     this.commit(name === 'Intersection' ? 'Intersect' : 'Group');
     const children = objs.map((o) => o.snapshot());   // world-space recipes for ungroup
     this._disband(objs);
@@ -423,7 +431,7 @@ export class CadDocument extends EventTarget {
     geometry.boundingBox.getCenter(center);
     geometry.translate(-center.x, -center.y, -center.z);
 
-    const grp = new CadObject({ kind: 'boolean', geometry, children, name });
+    const grp = new CadObject({ kind: 'boolean', geometry, children, name, params: { op } });
     grp.mesh.position.copy(center);
     grp.mesh.updateMatrix();
     grp.baseMatrix = grp.mesh.matrix.clone();   // ungroup applies only the delta from this
@@ -635,8 +643,13 @@ export class CadDocument extends EventTarget {
   }
 
   // --- save / load ------------------------------------------------------
-  toJSON() {
-    return { app: 'CADence', version: 1, objects: this.list.map(serializeObject) };
+  //
+  // opts.recipeOnly drops a boolean's baked mesh when the recipe can rebuild it.
+  // Files and history snapshots keep the mesh (opening your own work stays
+  // instant, and undo must not depend on the async kernel). Share links set it,
+  // because there the mesh is 95-100% of the payload and the URL is the budget.
+  toJSON(opts = {}) {
+    return { app: 'CADence', version: 1, objects: this.list.map((o) => serializeObject(o, opts)) };
   }
 
   loadJSON(data) {
@@ -682,17 +695,29 @@ function arraysToGeo(d) {
   return creased;
 }
 
+// Can this boolean's mesh be thrown away and rebuilt from its parts?
+//
+// Only if we know both the parts and the operation. `op` was added in 2026-08,
+// so a group made before that (still sitting in someone's autosave) has no `op`
+// and must keep its baked mesh — a link that opens wrong is worse than a link
+// that is long. Fewer than two children means there is nothing to re-run.
+function rebakeable(node) {
+  const op = node?.params?.op;
+  return (op === 'combine' || op === 'intersect') && Array.isArray(node.children) && node.children.length >= 2;
+}
+
 // A boolean's child entries are snapshot()-shaped (may nest). Convert their
 // THREE geometry clones to/from arrays recursively.
-function serializeChild(s) {
+function serializeChild(s, opts = {}) {
   const c = {
     id: s.id, kind: s.kind, role: s.role, name: s.name, color: s.color,
     params: deepParams(s.params), position: [...s.position], rotation: [...s.rotation], scale: [...s.scale],
   };
   if (s.kind === 'boolean') {
     c.baseMatrix = s.baseMatrix || null;                       // already an array from snapshot()
-    c.geometry = s.geometryClone ? geoToArrays(s.geometryClone) : null;
-    c.children = s.children ? s.children.map(serializeChild) : null;
+    c.children = s.children ? s.children.map((k) => serializeChild(k, opts)) : null;
+    c.geometry = (opts.recipeOnly && rebakeable(c)) ? null
+               : s.geometryClone ? geoToArrays(s.geometryClone) : null;
   }
   return c;
 }
@@ -720,7 +745,7 @@ function deepParams(p) {
   return out;
 }
 
-function serializeObject(o) {
+function serializeObject(o, opts = {}) {
   const d = {
     id: o.id, kind: o.kind, role: o.role, name: o.name, color: o.color,
     // Deep, not shallow: a sketch document is a nested object, and a shallow
@@ -734,10 +759,74 @@ function serializeObject(o) {
   };
   if (o.kind === 'boolean') {
     d.baseMatrix = o.baseMatrix ? o.baseMatrix.toArray() : null;
-    d.geometry = geoToArrays(o.mesh.geometry);
-    d.children = o.children ? o.children.map(serializeChild) : null;
+    d.children = o.children ? o.children.map((c) => serializeChild(c, opts)) : null;
+    d.geometry = (opts.recipeOnly && rebakeable(d)) ? null : geoToArrays(o.mesh.geometry);
   }
   return d;
+}
+
+// --- rebuilding a stripped boolean ----------------------------------------
+//
+// The inverse of `toJSON({ recipeOnly: true })`. Given decoded document data,
+// re-run the kernel on any boolean whose mesh was left out and fill it back in,
+// so what reaches loadJSON() is indistinguishable from a full save. That keeps
+// the load path synchronous and untouched: all the async lives out here.
+//
+// Deliberately tolerant. If one group cannot be rebuilt, the rest of the design
+// still opens — a missing group is a visible, recoverable disappointment, a
+// thrown exception is a blank page.
+export async function rebakeBooleans(data) {
+  if (!data || !Array.isArray(data.objects)) return data;
+  const failed = [];
+  for (const o of data.objects) await rebakeNode(o, failed);
+  if (failed.length) console.warn('share link: could not rebuild', failed.length, 'group(s)');
+  data.objects = data.objects.filter((o) => !failed.includes(o));
+  return data;
+}
+
+async function rebakeNode(node, failed) {
+  if (!node || node.kind !== 'boolean') return;
+  // Depth first: a nested group must have its own mesh back before it can be
+  // handed to the kernel as one of its parent's parts.
+  if (node.children) for (const c of node.children) await rebakeNode(c, failed);
+  if (node.geometry) return;                       // shipped baked, nothing to do
+
+  const built = [];
+  try {
+    for (const c of node.children) {
+      const obj = new CadObject(
+        c.kind === 'boolean'
+          ? { kind: 'boolean', params: deepParams(c.params), name: c.name, role: c.role, geometry: arraysToGeo(c.geometry) }
+          : { kind: c.kind, params: deepParams(c.params), name: c.name, role: c.role }
+      );
+      obj.mesh.position.fromArray(c.position);
+      obj.mesh.rotation.set(...c.rotation);
+      obj.mesh.scale.fromArray(c.scale);
+      obj.mesh.updateMatrixWorld(true);            // the kernel reads matrixWorld
+      built.push(obj);
+    }
+
+    const result = node.params.op === 'intersect'
+      ? await booleanIntersect(built.map((o) => o.mesh))
+      : await booleanCombine(built.map((o) => ({ mesh: o.mesh, role: o.role })));
+    if (!result?.geometry) throw new Error(`kernel returned nothing for op ${node.params.op}`);
+
+    // Recentre exactly as _bakeGroup did, so the rebuilt mesh sits in the same
+    // local space the saved position/rotation/scale were recorded against.
+    const geometry = result.geometry;
+    geometry.computeBoundingBox();
+    const center = new THREE.Vector3();
+    geometry.boundingBox.getCenter(center);
+    geometry.translate(-center.x, -center.y, -center.z);
+
+    node.geometry = geoToArrays(geometry);
+    geometry.dispose();
+  } catch (e) {
+    console.warn('share link: rebuild failed for', node.name, e);
+    failed.push(node);
+  } finally {
+    for (const o of built) { o.mesh.geometry?.dispose(); o.mesh.material?.dispose(); }
+  }
 }
 
 function deserializeObject(d) {

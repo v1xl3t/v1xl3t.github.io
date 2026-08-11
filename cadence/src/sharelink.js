@@ -6,6 +6,21 @@
 //
 // Payload format:  #d=z<base64url of deflate-raw JSON>   (modern browsers)
 //                  #d=j<base64url of plain JSON>         (fallback)
+//
+// SIZE (2026-08-11). A boolean used to travel as its finished mesh, every
+// vertex a decimal number, *alongside* the recipe that made it. Measured, that
+// mesh was 95% of a drilled box and 100% of a sphere cut by a sphere: 2,289 and
+// 19,068 characters of URL, against Discord's 2,000 character paste limit. No
+// encoder gets you out of that — deflate already took the sphere from 178,000
+// characters to 19,000 and it was still unusable.
+//
+// So the link ships recipes only and re-runs the kernel on open (see
+// rebakeBooleans). 2,289 → 407 and 19,068 → 375, and link length now tracks how
+// many shapes you used rather than how curved they are. The price is a moment
+// of rebuild on open, paid by the visitor who is already waiting on a page
+// load; saving a file still bakes the mesh so opening your own work is instant.
+
+import { rebakeBooleans } from './model.js';
 
 const AUTOSAVE_KEY = 'cadence:autosave:v1';
 const BACKUP_KEY   = 'cadence:autosave:pre-share-backup';
@@ -35,7 +50,7 @@ async function pipe(bytes, TransformCtor, mode) {
 // nothing worth sharing.
 export async function buildShareLink(doc) {
   if (!doc.list.length) return null;
-  const json = JSON.stringify(doc.toJSON());
+  const json = JSON.stringify(doc.toJSON({ recipeOnly: true }));
   const raw = new TextEncoder().encode(json);
   let payload;
   try {
@@ -59,6 +74,9 @@ export async function tryLoadSharedLink(doc) {
     else if (kind !== 'j') return false;
     const data = JSON.parse(new TextDecoder().decode(raw));
     if (!data || data.app !== 'CADence' || !Array.isArray(data.objects)) return false;
+    // Put the meshes back before the document sees the data, so loadJSON stays
+    // synchronous and cannot tell a shared design from a saved file.
+    await rebakeBooleans(data);
     try {
       const prev = localStorage.getItem(AUTOSAVE_KEY);
       if (prev) localStorage.setItem(BACKUP_KEY, prev);

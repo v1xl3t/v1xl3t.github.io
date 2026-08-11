@@ -43,6 +43,11 @@ const IS_VIEWER = (() => {
 })();
 
 // ---------------------------------------------------------------- scene setup
+// The longest share link worth handing someone. Discord refuses a message over
+// 2,000 characters, which is the wall Vi's links were hitting, and it is a
+// reasonable proxy for "will paste anywhere".
+const PASTE_LIMIT = 2000;
+
 const canvas = document.getElementById('viewport');
 // logarithmicDepthBuffer keeps depth precision sane across the huge near:far
 // range below, so distant objects don't z-fight or sink behind the grid.
@@ -435,6 +440,14 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'share-link':
       buildShareLink(doc).then(url => {
         if (!url) { flash('Nothing to share yet. Add a solid first.'); return; }
+        // A link longer than this is refused by chat apps (Discord cuts a
+        // message off at 2,000 characters) and truncated by some address bars.
+        // Copying it anyway hands over something that fails at the far end and
+        // looks like the recipient's fault, so say it plainly instead.
+        if (url.length > PASTE_LIMIT) {
+          flash(`This design is too big for a link (${url.length.toLocaleString()} characters, the limit is ${PASTE_LIMIT.toLocaleString()}). Save the project and send the file instead.`);
+          return;
+        }
         navigator.clipboard.writeText(url)
           .then(() => flash('Share link copied. Anyone who opens it sees this design.'))
           .catch(() => { prompt('Copy this share link:', url); });
@@ -3288,6 +3301,10 @@ setStatus();
 // Expose for console tinkering / debugging.
 window.cadence = {
   doc, scene, THREE, camera, renderer, orbit,
+  // Exposed so the harness can encode a link and open it in a second browser
+  // page, rather than asserting against a copy of the encoder that could drift
+  // away from the one the button actually calls.
+  buildShareLink,
   // The slicer, exposed so the headless harness can drive it and read back the
   // plan rather than screenshot-diffing a pile of coloured lines.
   slicer: sliceView,
