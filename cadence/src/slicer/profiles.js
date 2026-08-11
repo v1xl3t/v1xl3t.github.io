@@ -72,6 +72,137 @@ export const MACHINES = {
     jerkXY: 10, jerkZ: 0.4, jerkE: 5,
     extruder: 'direct',
   },
+
+  // -------------------------------------------------------------------------
+  // Bambu Lab
+  // -------------------------------------------------------------------------
+  //
+  // Five machines that share a hotend, a direct drive extruder and a nozzle,
+  // and differ in how big the bed is, how hot the bed goes, and how the gantry
+  // moves. The A1 pair sling the bed back and forth the way the Ender does,
+  // only far stiffer. The P1 and X1 are CoreXY, which is why their acceleration
+  // is higher again.
+  //
+  // Six things are true of all of them and are worth saying once rather than
+  // five times.
+  //
+  // ORIGIN. Front-left, like the Ender. Bambu print coordinates run from zero
+  // to the bed size, not from minus half the bed to plus half, so originCentre
+  // is false and placeOnBed shifts a CADence model by half the plate.
+  //
+  // EXTRUDER. Direct drive, every one of them. That single word is what makes
+  // MATERIALS pick the short retraction, so PLA retracts 0.8mm here instead of
+  // the Ender's 5mm without anything else in the file knowing about Bambu.
+  //
+  // ACCELERATION. Deliberately well under what Bambu advertises. The headline
+  // figure is a peak reached on a long straight move with the right filament,
+  // and quoting it here would make every time estimate optimistic on exactly
+  // the short cornering moves a real part is made of. These are conservative
+  // numbers chosen so a quoted print time is not a lie in the fast direction.
+  //
+  // JERK. Bambu firmware plans corners with junction deviation rather than a
+  // classic jerk setting, so there is no true value to copy. The number here is
+  // only the speed the motion model in gcode.js starts and ends a move at, and
+  // it is set a little above the Ender's because these machines do not shake
+  // themselves apart taking a corner at speed.
+  //
+  // FIRMWARE. Not Marlin. Nothing in CADence reads this field today, so it is
+  // documentation rather than behaviour, but writing 'marlin' here would be a
+  // false fact sitting in a table of true ones.
+  //
+  // START SCRIPT. Plain on purpose. See bambuStart() at the bottom of this file
+  // for what it does and, more importantly, what it does not do.
+
+  'bambu-a1-mini': {
+    id: 'bambu-a1-mini',
+    name: 'Bambu Lab A1 mini',
+    bedWidth: 180, bedDepth: 180, bedHeight: 180,
+    originCentre: false,
+    nozzleDiameter: 0.4, filamentDiameter: 1.75,
+    // The A1 mini's bed stops at 80C, which is the one spec that really
+    // separates it from its bigger sibling. ABS wants 100 and will say so.
+    heatedBed: true, maxBedTemp: 80, maxNozzleTemp: 300,
+    firmware: 'bambu',
+    maxFeedrateXY: 500, maxFeedrateZ: 12, maxFeedrateE: 50,
+    accelerationXY: 8000, accelerationE: 3000,
+    jerkXY: 12, jerkZ: 0.4, jerkE: 5,
+    extruder: 'direct',
+    usbPrintable: false,
+    startGcode: bambuStart, endGcode: bambuEnd,
+  },
+
+  'bambu-a1': {
+    id: 'bambu-a1',
+    name: 'Bambu Lab A1',
+    bedWidth: 256, bedDepth: 256, bedHeight: 256,
+    originCentre: false,
+    nozzleDiameter: 0.4, filamentDiameter: 1.75,
+    heatedBed: true, maxBedTemp: 100, maxNozzleTemp: 300,
+    firmware: 'bambu',
+    maxFeedrateXY: 500, maxFeedrateZ: 12, maxFeedrateE: 50,
+    accelerationXY: 8000, accelerationE: 3000,
+    jerkXY: 12, jerkZ: 0.4, jerkE: 5,
+    extruder: 'direct',
+    usbPrintable: false,
+    startGcode: bambuStart, endGcode: bambuEnd,
+  },
+
+  // CoreXY from here down. The head carries no bed with it, so the moving mass
+  // is a fraction of an A1's and the accelerations below reflect that.
+  'bambu-p1s': {
+    id: 'bambu-p1s',
+    name: 'Bambu Lab P1S',
+    bedWidth: 256, bedDepth: 256, bedHeight: 256,
+    originCentre: false,
+    nozzleDiameter: 0.4, filamentDiameter: 1.75,
+    heatedBed: true, maxBedTemp: 100, maxNozzleTemp: 300,
+    firmware: 'bambu',
+    maxFeedrateXY: 500, maxFeedrateZ: 20, maxFeedrateE: 50,
+    accelerationXY: 10000, accelerationE: 3000,
+    jerkXY: 12, jerkZ: 0.4, jerkE: 5,
+    extruder: 'direct',
+    usbPrintable: false,
+    startGcode: bambuStart, endGcode: bambuEnd,
+  },
+
+  // The P1P is a P1S without the enclosure and the same machine everywhere
+  // else. This table has no field for an enclosure yet, so the entry really is
+  // identical apart from its name, and the practical consequence is worth
+  // knowing: ABS on an open-frame P1P lifts its corners the way it does on an
+  // Ender, and nothing here will warn about that because nothing here can tell.
+  'bambu-p1p': {
+    id: 'bambu-p1p',
+    name: 'Bambu Lab P1P',
+    bedWidth: 256, bedDepth: 256, bedHeight: 256,
+    originCentre: false,
+    nozzleDiameter: 0.4, filamentDiameter: 1.75,
+    heatedBed: true, maxBedTemp: 100, maxNozzleTemp: 300,
+    firmware: 'bambu',
+    maxFeedrateXY: 500, maxFeedrateZ: 20, maxFeedrateE: 50,
+    accelerationXY: 10000, accelerationE: 3000,
+    jerkXY: 12, jerkZ: 0.4, jerkE: 5,
+    extruder: 'direct',
+    usbPrintable: false,
+    startGcode: bambuStart, endGcode: bambuEnd,
+  },
+
+  'bambu-x1c': {
+    id: 'bambu-x1c',
+    name: 'Bambu Lab X1 Carbon',
+    bedWidth: 256, bedDepth: 256, bedHeight: 256,
+    originCentre: false,
+    nozzleDiameter: 0.4, filamentDiameter: 1.75,
+    // The hottest bed in the table, which is the one number that lets an
+    // enclosed X1C take ABS without an argument.
+    heatedBed: true, maxBedTemp: 110, maxNozzleTemp: 300,
+    firmware: 'bambu',
+    maxFeedrateXY: 500, maxFeedrateZ: 20, maxFeedrateE: 50,
+    accelerationXY: 10000, accelerationE: 3000,
+    jerkXY: 12, jerkZ: 0.4, jerkE: 5,
+    extruder: 'direct',
+    usbPrintable: false,
+    startGcode: bambuStart, endGcode: bambuEnd,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -291,6 +422,12 @@ export function buildSettings({ machine = 'ender3pro', material = 'pla', quality
     jerkXY: M.jerkXY, jerkZ: M.jerkZ, jerkE: M.jerkE,
     extruder: M.extruder,
     maxBedTemp: M.maxBedTemp, maxNozzleTemp: M.maxNozzleTemp,
+    // Can this machine be fed a G-code stream down a USB cable, the way Marlin
+    // takes one line at a time and answers "ok"? A Bambu cannot: it is a
+    // network and SD card machine, and its USB port is not a print console.
+    // Absent means yes, so every machine written before this field existed
+    // keeps the behaviour it had.
+    usbPrintable: M.usbPrintable !== false,
     // material
     materialId: F.id, materialName: F.name,
     nozzleTemp: F.nozzleTemp, firstLayerNozzleTemp: F.firstLayerNozzleTemp,
@@ -360,13 +497,39 @@ export const listQuality = () => Object.values(QUALITY).map((q) => ({ id: q.id, 
 // firmware scripts
 // ---------------------------------------------------------------------------
 
-/**
- * The start script. The prime line matters more than it looks: it wipes the
- * ooze that built up while the nozzle came to temperature, and it gives the
- * first real extrusion somewhere to start from other than the middle of the
- * part. The Ender's stock line runs up the left edge of the bed.
- */
+//
+// A start script is a machine fact, not a global one. The Ender's prime line
+// runs up the very edge of its plate at X0.1, which is exactly the sort of move
+// that is correct on one printer and off the bed on the next. So a machine
+// entry may carry its own startGcode and endGcode, and the Ender's pair are the
+// default, which means a machine that says nothing keeps behaving precisely as
+// it always has.
+//
+// The lookup goes through MACHINES by id rather than through a function hung on
+// the settings object, because settings are structured-cloned into the slicing
+// worker and a function on them throws DataCloneError before a single layer is
+// computed.
+
+/** The start script for whichever machine this is. */
 export function startGcode(s) {
+  const M = MACHINES[s.machineId];
+  return (M && M.startGcode ? M.startGcode : enderStart)(s);
+}
+
+/** The end script for whichever machine this is. */
+export function endGcode(s) {
+  const M = MACHINES[s.machineId];
+  return (M && M.endGcode ? M.endGcode : enderEnd)(s);
+}
+
+/**
+ * The Ender start script, and the default for anything that does not say
+ * otherwise. The prime line matters more than it looks: it wipes the ooze that
+ * built up while the nozzle came to temperature, and it gives the first real
+ * extrusion somewhere to start from other than the middle of the part. The
+ * Ender's stock line runs up the left edge of the bed.
+ */
+function enderStart(s) {
   const bed = Math.round(s.firstLayerBedTemp);
   const hot = Math.round(s.firstLayerNozzleTemp);
   const y2 = Math.min(s.bedDepth - 20, 200);
@@ -394,9 +557,10 @@ export function startGcode(s) {
   return lines.join('\n');
 }
 
-/** The end script. Retract, get the nozzle off the part, cool down, and push
- *  the bed forward so the print is reachable without leaning into the gantry. */
-export function endGcode(s) {
+/** The Ender end script. Retract, get the nozzle off the part, cool down, and
+ *  push the bed forward so the print is reachable without leaning into the
+ *  gantry. */
+function enderEnd(s) {
   return [
     '; CADence end script',
     'M107                         ; fan off',
@@ -410,5 +574,95 @@ export function endGcode(s) {
     'M104 S0                      ; nozzle off',
     s.heatedBed ? 'M140 S0                      ; bed off' : null,
     'M84 X Y E                    ; steppers off, keep Z holding',
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * Bambu Lab, and it is worth being blunt about how little this does.
+ *
+ * A stock Bambu start sequence is long and specific to the machine. It wipes
+ * the nozzle on a silicone brush, probes a full bed mesh with the load cell in
+ * the toolhead, calibrates flow and resonance, and purges into a chute at the
+ * back of the plate. None of that is documented well enough to reproduce from
+ * outside Bambu's own slicer, and an approximation of it would be a hot nozzle
+ * driven to coordinates this file cannot vouch for. So this script attempts
+ * none of it.
+ *
+ * WHAT IT DOES. Heats both heaters and waits for them, sets millimetres and
+ * absolute positioning, homes, and draws a prime line ten millimetres in from
+ * the left edge. Ten millimetres in is safe by construction: it is inside the
+ * printable area on every Bambu in the table, because the printable area is
+ * what the bed dimensions above describe.
+ *
+ * WHAT IT DOES NOT DO. There is no bed mesh, so nothing here compensates for a
+ * plate that is not flat. There is no nozzle wipe and no purge into the chute,
+ * so the prime line is doing the whole job of getting the extruder flowing.
+ * There is no flow or resonance calibration. The Z offset is whatever G28
+ * leaves behind, which on these machines is a load cell finding the plate, and
+ * this script trusts it rather than second-guessing it.
+ *
+ * WHAT THAT MEANS FOR A PERSON. Watch the first layer. If it is high or low,
+ * that is the missing bed mesh talking and it is a nozzle offset to set on the
+ * machine, not a bug in the slice.
+ */
+function bambuStart(s) {
+  const bed = Math.round(s.firstLayerBedTemp);
+  const hot = Math.round(s.firstLayerNozzleTemp);
+  const zf = Math.round((s.maxFeedrateZ || 10) * 60);
+  const y1 = 20;
+  const y2 = Math.min(s.bedDepth - 20, 140);
+  // Roughly the filament per millimetre the Ender line above lays down, which
+  // is a fat, deliberately over-extruded bead. A prime line that is thin has
+  // not primed anything.
+  const lines = [
+    '; CADence start script for Bambu Lab',
+    '; No bed mesh, no nozzle wipe, no flow calibration. Watch the first layer.',
+    'M140 S' + bed + '            ; start heating the bed',
+    'M104 S' + hot + '            ; start heating the nozzle',
+    'M190 S' + bed + '            ; wait for the bed',
+    'M109 S' + hot + '            ; wait for the nozzle',
+    'G21                          ; millimetres',
+    'G90                          ; absolute positioning',
+    'M82                          ; absolute extrusion',
+    'M107                         ; fan off for the first layer',
+    'G28                          ; home all axes',
+    'G92 E0                       ; zero the extruder',
+    `G1 Z5 F${zf}                 ; lift well clear of the plate`,
+    `G1 X10 Y${y1} Z0.3 F5000     ; move to the start of the prime line`,
+    `G1 X10 Y${y2} Z0.3 F1200 E10 ; draw the prime line, ten in from the edge`,
+    `G1 X10.5 Y${y2} Z0.3 F5000`,
+    `G1 X10.5 Y${y1} Z0.3 F1200 E18  ; and back, to wipe`,
+    'G92 E0                       ; zero the extruder again',
+    `G1 Z5 F${zf}                 ; lift before travelling to the part`,
+  ];
+  if (!s.heatedBed) return lines.filter((l) => !/^M1[49]0/.test(l)).join('\n');
+  return lines.join('\n');
+}
+
+/**
+ * The Bambu end script, and the same caution applies.
+ *
+ * It retracts, gets the nozzle a long way off the part, and turns both heaters
+ * off. It deliberately does not present the plate, because a Bambu bed does not
+ * slide out to meet you the way an Ender's does and parking near the back of
+ * the plate is where the purge chute lives on the enclosed machines. It also
+ * does not disable the steppers, because the machine idles them out on its own
+ * and leaving them engaged is the harmless option.
+ */
+function bambuEnd(s) {
+  const zf = Math.round((s.maxFeedrateZ || 10) * 60);
+  return [
+    '; CADence end script for Bambu Lab',
+    'M107                         ; fan off',
+    'G91                          ; relative positioning',
+    'G1 E-3 F2700                 ; retract to stop oozing',
+    'G1 E-2 Z0.5 F2400            ; retract and lift off the part',
+    `G1 Z10 F${zf}                ; and get well clear of it`,
+    'G90                          ; absolute positioning',
+    'M104 S0                      ; nozzle off',
+    s.heatedBed ? 'M140 S0                      ; bed off' : null,
+    '; The plate is not presented and the steppers are left engaged. Both of',
+    '; those are machine specific here, and getting them wrong is worse than',
+    '; not doing them at all.',
   ].filter(Boolean).join('\n');
 }

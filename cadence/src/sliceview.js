@@ -466,6 +466,27 @@ export class SliceView {
     try { msgs = validate(this.readSettings()); } catch (err) { msgs = [err.message]; }
     host.innerHTML = msgs.map((m) => `<div class="sl-msg warn">${escapeHtml(m)}</div>`).join('');
     host.hidden = !msgs.length;
+    this.refreshPrintButton();
+  }
+
+  /**
+   * Some machines cannot be printed to down a USB cable at all.
+   *
+   * Marlin takes one line, answers "ok", and takes the next. A Bambu does not:
+   * it is a network and SD card machine and its USB port is not a print
+   * console. Left alone, the button would open the browser's port chooser, find
+   * nothing useful, and then sit at nought percent forever waiting for an "ok"
+   * that is never coming, which is the worst kind of failure because it looks
+   * like a slow start. So the button says why instead.
+   */
+  refreshPrintButton() {
+    const btn = this.el.querySelector('#sl-print');
+    if (!btn || (this.link && this.link.printing)) return;
+    const can = this.settings.usbPrintable !== false;
+    btn.disabled = !can;
+    btn.title = can
+      ? 'Send this job straight to the printer over its USB cable. Chrome or Edge on a desktop only. It asks before it starts anything.'
+      : `A ${this.settings.machineName} does not take a G-code stream over USB. Save the file and send it to the machine the way you normally would.`;
   }
 
   /** Read the panel back into a settings object. */
@@ -833,6 +854,14 @@ export class SliceView {
     // asks a second question.
     if (this.link && this.link.printing) { await this.link.abort(); return; }
     if (!this.gcode) { this.flash('Slice something first.'); return; }
+
+    // The disabled button above is the visible guard. This is the one that
+    // matters, because it is the one no keyboard or stale panel state can get
+    // past, and nothing has opened a port yet when it fires.
+    if (this.settings.usbPrintable === false) {
+      host.innerHTML = `<div class="sl-msg warn">A ${escapeHtml(this.settings.machineName)} does not accept a G-code stream over USB. Save the G-code and send it to the machine the way you normally do.</div>`;
+      return;
+    }
 
     // Refusing to send a job that does not fit is not paternalism. The gantry
     // will happily drive into its own frame trying.
