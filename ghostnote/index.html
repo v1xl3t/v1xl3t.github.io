@@ -78,6 +78,19 @@
       <button type="button" class="pad" data-lane="tom"><span class="pad-name">Tom</span><span class="pad-key">J</span></button>
       <button type="button" class="pad" data-lane="kick"><span class="pad-name">Kick</span><span class="pad-key">Space</span></button>
     </div>
+    <!-- Appears only when a kit sends a pad this app does not recognise. Not
+         every kit follows General MIDI, so the honest move is to ask rather
+         than to ignore the hit and look broken. -->
+    <div class="learn-row" id="learn-row" hidden>
+      <p>That pad sent <strong>MIDI note <span id="learn-note">0</span></strong>, which is not one this app knows. Which drum is it?</p>
+      <div class="learn-buttons">
+        <button type="button" data-learn="hat">Hi hat</button>
+        <button type="button" data-learn="snare">Snare</button>
+        <button type="button" data-learn="tom">Tom</button>
+        <button type="button" data-learn="kick">Kick</button>
+        <button type="button" data-learn="ignore" class="ghost">Ignore it</button>
+      </div>
+    </div>
     <dl class="scoreboard">
       <div><dt>Score</dt><dd id="sc-score">0</dd></div>
       <div><dt>Combo</dt><dd id="sc-combo">0</dd></div>

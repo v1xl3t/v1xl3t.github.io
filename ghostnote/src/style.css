@@ -253,6 +253,34 @@ input[type="range"] {
 .pad[data-lane="tom"] { border-left: 5px solid var(--tom); }
 .pad[data-lane="kick"] { border-left: 5px solid var(--kick); }
 
+/* The unrecognised-pad prompt. It only ever appears because something the user
+   did produced nothing, so it has to read as a question the app is asking,
+   not as an error the user caused. */
+.learn-row {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--panel2);
+}
+.learn-row p { margin: 0 0 10px; color: var(--ink); }
+.learn-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.learn-buttons button {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.learn-buttons button.ghost { background: transparent; color: var(--ink); }
+
 .pad.lit { background: #2b3644; }
 .pad-name { font-weight: 650; }
 .pad-key { color: var(--ink-dim); font-size: 0.8rem; }

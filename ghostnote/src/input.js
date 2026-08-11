@@ -17,6 +17,9 @@ export const KEY_MAP = {
 };
 
 const CAL_KEY = 'playalong.calibration.v1';
+// Learned pad mappings live on the device, because they are a fact about the
+// kit plugged into THIS machine and mean nothing on anyone else's.
+const NOTE_MAP_KEY = 'playalong.notemap.v1';
 
 export class InputHub {
   constructor() {
@@ -24,6 +27,8 @@ export class InputHub {
     this.midiAccess = null;
     this.midiInputs = [];
     this.midiState = 'not asked';
+    this.noteMap = this.loadNoteMap();
+    this.unmapped = new Map();          // note number -> how many times it arrived
     this.offsetMs = this.loadOffset();
     this._down = new Set();
     this._onKeyDown = this._onKeyDown.bind(this);
@@ -33,6 +38,13 @@ export class InputHub {
   loadOffset() {
     const v = parseFloat(localStorage.getItem(CAL_KEY));
     return isFinite(v) ? v : 0;
+  }
+
+  loadNoteMap() {
+    try {
+      const m = JSON.parse(localStorage.getItem(NOTE_MAP_KEY) || '{}');
+      return m && typeof m === 'object' ? m : {};
+    } catch { return {}; }
   }
 
   setOffset(ms) {
@@ -97,9 +109,34 @@ export class InputHub {
   _onMidi(msg) {
     const [status, d1, d2] = msg.data;
     if ((status & 0xf0) !== 0x90 || d2 === 0) return;
-    const lane = FROM_GM[d1];
-    if (!lane) return;
+    const lane = this.noteMap[d1] || FROM_GM[d1];
+    if (!lane) {
+      // An unmapped pad used to be dropped in silence, which is the same dead
+      // end as a file that loads to nothing: you hit the drum, the app does
+      // nothing, and there is no way to tell a broken app from a wrong cable.
+      //
+      // The General MIDI table below covers a stock Alesis or Roland kit, but
+      // "MIDI drum kit" is not a standard. Pad controllers, older modules and
+      // anything home-built (Vi's own Arduino kit included) send whatever notes
+      // they were told to. So an unknown note is reported, not swallowed, and
+      // it can be claimed by a lane through learn().
+      this.unmapped.set(d1, (this.unmapped.get(d1) || 0) + 1);
+      this.emit({ lane: null, vel: d2 / 127, source: 'midi', note: d1, unmapped: true });
+      return;
+    }
     this.emit({ lane, vel: d2 / 127, source: 'midi', note: d1 });
+  }
+
+  /** Point a note number at a lane, so an unrecognised pad becomes usable. */
+  learn(note, lane) {
+    this.noteMap[note] = lane;
+    this.unmapped.delete(note);
+    try { localStorage.setItem(NOTE_MAP_KEY, JSON.stringify(this.noteMap)); } catch {}
+  }
+
+  /** The notes that have arrived and gone nowhere, most-hit first. */
+  unmappedNotes() {
+    return [...this.unmapped.entries()].sort((a, b) => b[1] - a[1]).map(([note, hits]) => ({ note, hits }));
   }
 }
 

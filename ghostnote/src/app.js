@@ -167,6 +167,7 @@ function playTime() {
 }
 
 hub.on((e) => {
+  if (e.unmapped) { offerToLearn(e.note); return; }
   litPad(e.lane);
   if (!state.chart || state.mode !== 'play' || calibrator.running) return;
   const t = playTime() - hub.offsetMs / 1000;
@@ -174,6 +175,38 @@ hub.on((e) => {
   view.flash(res.grade, e.lane);
   updateScore();
 });
+
+// A pad the app does not recognise. "MIDI drum kit" is not a standard: the
+// General MIDI table covers a stock Alesis or Roland, but pad controllers, older
+// modules and home-built kits send whatever they were told to. Rather than let
+// someone conclude the app is broken, name the note and let them claim it for a
+// lane by tapping one. The choice is remembered for this device.
+let learnNote = null;
+function offerToLearn(note) {
+  learnNote = note;
+  const row = $('learn-row');
+  $('learn-note').textContent = String(note);
+  row.hidden = false;
+  setStatus(`Unrecognised pad, MIDI note ${note}. Pick the drum it should count as.`, 'busy');
+}
+
+function bindLearnRow() {
+  const row = $('learn-row');
+  if (!row) return;
+  row.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-learn]');
+    if (!b || learnNote == null) return;
+    if (b.dataset.learn === 'ignore') {
+      setStatus(`Ignoring MIDI note ${learnNote}.`);
+    } else {
+      hub.learn(learnNote, b.dataset.learn);
+      setStatus(`MIDI note ${learnNote} now counts as ${b.dataset.learn}.`);
+    }
+    learnNote = null;
+    row.hidden = true;
+  });
+}
+bindLearnRow();
 
 function litPad(lane) {
   const el = document.querySelector(`.pad[data-lane="${lane}"]`);
