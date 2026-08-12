@@ -25,8 +25,14 @@
      diver's highlight color (was red #e23b32; now neon green). */
   --diver-accent:#3DFF6E;
   /* paradise accent: neon green is hard to read on the bright paradise background,
-     so the crosshair + diver eyes switch to this high-contrast purple down there. */
+     so the diver eyes switch to this high-contrast purple down there. */
   --paradise-accent:#7c3aed;
+  /* the scope red. Vi asked for a RED crosshair, and the grin borrows the same red
+     so the mouth reads as its own feature instead of another body line. Kept apart
+     from --diver-accent on purpose, so the site accent stays neon green. Flip these
+     two values to retune, or point them at var(--diver-accent) to undo the red. */
+  --hp-red:#ff3b47;
+  --hp-red-ink:#c2101f;   /* the same red, dark enough to read on the bright paradise */
   --bg:#0b0913;                 /* JS overwrites this from scroll depth */
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -73,6 +79,17 @@ body.light .readscrim{background:rgba(247,244,254,0)}
   opacity:0; will-change:opacity,transform; mix-blend-mode:screen;
   -webkit-mask-image:radial-gradient(78% 66% at 50% 50%, #000 30%, transparent 82%);
   mask-image:radial-gradient(78% 66% at 50% 50%, #000 30%, transparent 82%)}
+/* d09 keeps its star in the TOP THIRD of the frame. The layer is 128vh tall and the
+   picture covers it, so that third was scaled up and pushed off the top of the screen,
+   leaving the bottom of the glyph sitting in the middle of the reveal window. Two
+   changes, and they only work together: the window moves up to the layer's top third,
+   and data-yoff pushes the layer down by the same amount so that third lands at the
+   middle of the SCREEN. Cover is kept, so the picture still has no visible edges.
+   The vertical radius drops to 27% to match, so the mask reaches full transparency
+   exactly at the top of the layer and the pushed-down picture never shows an edge. */
+.dlayer.top-focus{
+  -webkit-mask-image:radial-gradient(78% 27% at 50% 27%, #000 45%, transparent 98%);
+  mask-image:radial-gradient(78% 27% at 50% 27%, #000 45%, transparent 98%)}
 .dlayer::after{content:""; position:absolute; inset:0;
   background:linear-gradient(180deg, rgba(7,6,13,.55), transparent 28% 72%, rgba(7,6,13,.65))}
 
@@ -82,15 +99,20 @@ body.light .readscrim{background:rgba(247,244,254,0)}
 
 /* diver cursor: a little guy whose state tracks the fall */
 .diver{position:fixed; top:0; left:0; width:54px; height:74px; z-index:50;
-  pointer-events:none; transform:translate(-50%,-50%); will-change:left,top}
+  pointer-events:none; transform:translate(-50%,-50%); will-change:left,top;
+  perspective:240px}   /* gives the right-click barrel roll real depth instead of a flat squash */
 .diver svg{display:block; overflow:visible}
 .diver{--diver:#ece2fb}
 body.light .diver{--diver:#241f38}
 .diver .ln{fill:none; stroke:var(--diver); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
 .diver .fl{fill:var(--diver); stroke:none}
 .diver .soft{fill:var(--diver); fill-opacity:.34; stroke:var(--diver); stroke-width:1.7}
-/* mouth: small, legible toothy grin in the body ink (NOT red) */
-.diver .face{stroke:var(--diver); stroke-width:1.9; fill:none; stroke-linecap:round; stroke-linejoin:round}
+/* mouth: small toothy grin. It used to be drawn in the body ink, which made it
+   vanish into the rest of the linework, so it now carries the scope red plus a
+   soft glow of its own. */
+.diver .face{stroke:var(--hp-red); stroke-width:2.1; fill:none; stroke-linecap:round; stroke-linejoin:round;
+  filter:drop-shadow(0 0 1.6px var(--hp-red))}
+body.paradise .diver .face{stroke:var(--hp-red-ink); filter:drop-shadow(0 0 1.4px rgba(194,16,31,.7))}
 .diver .gold{fill:none; stroke:#ffe6a3; stroke-width:2.4}
 /* parts hidden by default, shown per stage */
 .diver .p-chute,.diver .p-cords,.diver .p-wing,.diver .p-halo,.diver .p-spark{opacity:0; transition:opacity .6s ease}
@@ -111,7 +133,6 @@ body.light .diver{--diver:#241f38}
 .diver[data-stage="halo"] .p-wing{animation:flap 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
 .diver[data-stage="halo"] .p-spark{animation:twinkle 1.2s ease-in-out infinite}
 .diver[data-stage="halo"] .glowbody{filter:drop-shadow(0 0 6px rgba(255,230,163,.9))}
-@keyframes somersault{from{transform:rotate(0deg)} to{transform:rotate(360deg)}}  /* head-over-heels flip */
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.7)}}
 @keyframes twinkle{0%,100%{opacity:.4; transform:scale(.8)}50%{opacity:1; transform:scale(1.15)}}
@@ -123,10 +144,10 @@ body.light .diver{--diver:#241f38}
 /* red scope: a steady crosshair that tracks the pointer directly, marking where a click lands */
 .scope{position:fixed; top:0; left:0; width:30px; height:30px; z-index:52; pointer-events:none;
   transform:translate(-50%,-50%); will-change:left,top; opacity:.92}
-.scope svg{display:block; filter:drop-shadow(0 0 2px var(--diver-accent))}
-.scope .ring{fill:none; stroke:var(--diver-accent); stroke-width:1.6}
-.scope .tick{stroke:var(--diver-accent); stroke-width:1.6; stroke-linecap:round}
-.scope .dot{fill:var(--diver-accent)}
+.scope svg{display:block; filter:drop-shadow(0 0 2px var(--hp-red))}
+.scope .ring{fill:none; stroke:var(--hp-red); stroke-width:1.6}
+.scope .tick{stroke:var(--hp-red); stroke-width:1.6; stroke-linecap:round}
+.scope .dot{fill:var(--hp-red)}
 .scope.click{animation:scopeflash .3s ease-out}
 @keyframes scopeflash{0%{transform:translate(-50%,-50%) scale(1)}45%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
 @media (hover:none){ .scope{display:none} }
@@ -135,18 +156,43 @@ body.light .diver{--diver:#241f38}
 .diver .eye{stroke:var(--diver-accent); stroke-width:1.9; fill:none; stroke-linecap:round}
 body.light .diver .eye{stroke:var(--diver-accent)}
 .diver .horns{fill:var(--diver); stroke:var(--diver); stroke-width:.5; stroke-linejoin:miter}
+/* FALL ACTION LINES. Was a radial star of eight spokes, which read as a sunburst
+   rather than as speed. Now a stack of chevrons whose point leads the fall, drawn
+   thin and dashed so the linework stays sketchy. --chop (0..1, set from the fall
+   progress in JS) ramps how many of them show, how hard they jitter and how fast,
+   so the fall gets choppier the closer the parachute is. --face counter-rotates the
+   group so the V keeps pointing down-screen while the diver turns to face the
+   crosshair. */
+.diver .fall-v{opacity:0; transition:opacity .3s ease;
+  transform:rotate(var(--face,0deg)); transform-box:fill-box; transform-origin:center}
+.diver .fall-v path{fill:none; stroke:var(--diver); stroke-width:.9; stroke-linecap:round;
+  stroke-dasharray:6 5; opacity:.6; transform-box:fill-box; transform-origin:center;
+  animation:vjit calc(1s - var(--chop,0) * .62s) steps(2,end) infinite}
+.diver .fall-v path:nth-child(2){animation-delay:-.13s; stroke-dasharray:4 7}
+.diver .fall-v path:nth-child(3){animation-delay:-.27s; stroke-dasharray:8 4;
+  opacity:calc(.15 + var(--chop,0) * .6)}
+.diver[data-stage="dive"] .fall-v,.diver[data-stage="flail"] .fall-v{opacity:calc(.3 + var(--chop,0) * .7)}
+@keyframes vjit{
+  0%{transform:translate(0,0) scaleY(1)}
+  25%{transform:translate(-1.5px,-2px) scaleY(1.1)}
+  50%{transform:translate(1.5px,1px) scaleY(.92)}
+  75%{transform:translate(-1px,-1px) scaleY(1.06)}
+  100%{transform:translate(0,0) scaleY(1)}}
+@media (prefers-reduced-motion: reduce){ .diver .fall-v path{animation:none} }
 /* PARADISE ACCENT: same paradise-detection that darkens the stars (body.paradise) swaps the
    crosshair + diver eyes from hard-to-read neon green to a high-contrast purple over the bright
    background. Placed after body.light so it wins where both classes are active. */
-body.paradise .scope svg{filter:drop-shadow(0 0 2px var(--paradise-accent))}
-body.paradise .scope .ring,body.paradise .scope .tick{stroke:var(--paradise-accent)}
-body.paradise .scope .dot{fill:var(--paradise-accent)}
+body.paradise .scope svg{filter:drop-shadow(0 0 2px var(--hp-red-ink))}
+body.paradise .scope .ring,body.paradise .scope .tick{stroke:var(--hp-red-ink)}
+body.paradise .scope .dot{fill:var(--hp-red-ink)}
 body.paradise .diver .eye{stroke:var(--paradise-accent)}
-/* click actions: left = small CCW tilt toward 11 o'clock (on .rig, relative to current facing);
-   right = somersault (on svg, a head-over-heels flip) */
-.diver.act-l .rig{animation:tilt11 .38s ease-out}
-.diver.act-r svg{animation:somersault .66s ease-in-out}
-@keyframes tilt11{0%{transform:rotate(0deg)}38%{transform:rotate(-17deg)}100%{transform:rotate(0deg)}}
+/* click actions: left = the old punch thrash (Vi preferred it to the 11 o'clock tilt);
+   right = a barrel roll around the diver's own long axis, replacing the flat somersault
+   and replacing the barrel roll that used to be baked into the fall. */
+.diver.act-l .rig{animation:punch .32s ease}
+.diver.act-r svg{animation:barrel .7s ease-in-out}
+@keyframes punch{0%{transform:scale(1)}40%{transform:scale(1.35,.7)}100%{transform:scale(1)}}
+@keyframes barrel{from{transform:rotateY(0deg)} to{transform:rotateY(360deg)}}
 /* falling action lines (Naruto style); opacity + speed set in JS */
 .speedlines{position:fixed; inset:-14%; z-index:5; pointer-events:none; opacity:0;
   background:repeating-linear-gradient(91deg, transparent 0 13px, rgba(220,210,250,.5) 13px 14px);
@@ -169,9 +215,28 @@ body.paradise .diver .eye{stroke:var(--paradise-accent)}
 @keyframes puff{0%{opacity:.9; transform:translate(-50%,-50%) scale(.4)}
   100%{opacity:0; transform:translate(calc(-50% + var(--dx,0)), calc(-50% + var(--dy,0))) scale(1.7)}}
 .fx.star{color:#fff3bf; font-size:18px; line-height:1; text-shadow:0 0 6px rgba(255,228,140,.95), 0 0 14px rgba(255,205,90,.6); animation:startw 1.2s ease-out forwards}
+@keyframes startw{0%{opacity:0; transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0; transform:translate(-50%,-50%) scale(1.1)}}
+/* KONAMI RAIN. The unlock used to spawn the same sparkle the cursor already leaves
+   behind, at the same size, gone in about a second. There was nothing to spot. These
+   fall the entire height of the screen, which is a motion nothing else here makes,
+   and the banner names the thing so it reads as a reward and not as dust. */
+.fx.rain{animation:starfall var(--fall,2.6s) linear forwards;
+  text-shadow:0 0 10px rgba(255,228,140,.95), 0 0 22px rgba(255,205,90,.7)}
+@keyframes starfall{
+  0%{opacity:0; transform:translate(-50%,-50%) translateY(-14vh) rotate(0deg) scale(.7)}
+  10%{opacity:1}
+  86%{opacity:1}
+  100%{opacity:0; transform:translate(-50%,-50%) translateY(114vh) translateX(var(--dx,0px)) rotate(200deg) scale(1.15)}}
 /* paradise is bright lavender: render stars dark so they stay visible */
 .fx.star.dark{color:#1c1533; text-shadow:0 0 5px rgba(60,30,110,.55), 0 0 12px rgba(80,55,140,.4)}
-@keyframes startw{0%{opacity:0; transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0; transform:translate(-50%,-50%) scale(1.1)}}
+.konami-banner{position:fixed; z-index:60; left:50%; top:15vh; transform:translateX(-50%);
+  font-family:var(--mono); font-size:clamp(.82rem,2.6vw,1.1rem); letter-spacing:.26em;
+  text-transform:uppercase; color:#ffe6a3; text-shadow:0 0 14px rgba(255,205,90,.85);
+  pointer-events:none; white-space:nowrap; animation:kban 2.9s ease-out forwards}
+body.paradise .konami-banner{color:#4a2408; text-shadow:0 0 12px rgba(255,205,90,.95)}
+@keyframes kban{0%{opacity:0; transform:translateX(-50%) scale(.92)}
+  12%{opacity:1; transform:translateX(-50%) scale(1)}76%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){ .fx.rain{animation:none} .konami-banner{animation:none} }
 .fx.pow{color:var(--accent-ink); font-family:var(--mono); font-weight:800; font-size:14px; animation:powfx .5s ease-out forwards}
 @keyframes powfx{0%{opacity:1; transform:translate(-50%,-50%) scale(.6)}100%{opacity:0; transform:translate(-50%,-95%) scale(1.25)}}
 /* readability boost over the descent imagery */
@@ -186,11 +251,15 @@ section{position:relative; min-height:100vh; display:flex; align-items:center;
 h1{font-size:clamp(2.6rem,7vw,6rem); line-height:.98; letter-spacing:-.03em; margin:0; font-weight:800}
 h2{font-size:clamp(1.8rem,4vw,3rem); line-height:1.06; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
 /* black-metal display font used ONLY as a spaced-out decorative accent */
+/* Bigger word, and a lot more air above and below it. The tracking comes in a little
+   to pay for the extra size, so the whole word still fits the column instead of being
+   clipped by overflow-x. The room comes out of #chasm's own padding further down, so
+   the section keeps its height and the rest of the page does not shift under it. */
 .bm{font-family:"BlackMetal",var(--font); font-weight:700;
-  letter-spacing:.5em; padding:.15em .1em 0; text-transform:uppercase;
-  opacity:.55; line-height:1; font-size:clamp(4rem,15.5vw,10rem); margin:clamp(96px,19vh,230px) 0 clamp(88px,16vh,200px);
+  letter-spacing:.44em; padding:.15em .1em 0; text-transform:uppercase;
+  opacity:.55; line-height:1; font-size:clamp(4.6rem,17vw,12rem); margin:clamp(150px,26vh,300px) 0 clamp(140px,23vh,270px);
   max-width:100%; overflow-x:clip; overflow-y:visible}
-@media (max-width:520px){ .bm{font-size:clamp(3rem,16vw,5rem); letter-spacing:.26em; margin:clamp(56px,12vh,90px) 0} }
+@media (max-width:520px){ .bm{font-size:clamp(3.4rem,19vw,6rem); letter-spacing:.2em; margin:clamp(96px,17vh,150px) 0} }
 /* ABYSS "Custom B" glitch-in: flashes into place ONCE on scroll-reveal, then rests as the
    BlackMetal accent. Seizure-safe: ~0.9s, a few discrete jumps + colored ghosts, no sustained
    strobe; fully disabled under prefers-reduced-motion. .glitch ghosts ride ::before/::after. */
@@ -253,7 +322,10 @@ body.light .cell{background:rgba(124,95,224,.04)}
   border-radius:50%; background:var(--accent)}
 
 /* chasm floor: the turn */
-#chasm{text-align:center; justify-content:center}
+/* padding trimmed from 14vh: the Abyss wordmark's own margins now provide the space,
+   and doing it this way keeps #chasm the same height it was, which keeps every scroll
+   depth below it pointing at the same content it pointed at before. */
+#chasm{text-align:center; justify-content:center; padding:5vh 0}
 #chasm h2{max-width:18ch; margin-inline:auto}
 .rule{width:1px; height:90px; margin:0 auto 30px; background:linear-gradient(transparent,var(--accent))}
 
@@ -286,9 +358,18 @@ body.light .member{background:rgba(124,95,224,.05)}
   background:rgba(255,255,255,.02)}
 body.light .bucket{background:rgba(124,95,224,.05)}
 .bucket .bk-h{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
-.bucket .bk-n{font-family:var(--mono); font-size:.8rem; color:var(--accent-ink)}
-.bucket h3{font-size:1.15rem; margin:0; font-weight:800; letter-spacing:-.01em}
-.bucket .bk-d{color:var(--muted); font-size:.92rem; margin:9px 0 0; max-width:64ch}
+/* THE CROSSFADE INKS. These four used fixed per-theme colours, so halfway through
+   the descent-to-paradise crossfade they sat at almost exactly the background
+   luminance and dropped to 1.26:1. The -safe tokens are recomputed from the live
+   background on every scroll frame (see safeInk in the script), which is what makes
+   them take part in the crossfade the rest of the palette already takes part in.
+   The var() fallbacks are the old colours, for the no-JS case. */
+.bucket .bk-n{font-family:var(--mono); font-size:.8rem; color:var(--accent-safe,var(--accent-ink))}
+/* size deliberately left alone. Bumping it to 1.2rem would clear the WCAG large-text
+   line and buy a lower required ratio, but --ink-safe already clears 4.5:1 on its own,
+   and holding the size holds the page height, which holds every scroll depth below. */
+.bucket h3{font-size:1.15rem; margin:0; font-weight:800; letter-spacing:-.01em; color:var(--ink-safe,var(--ink))}
+.bucket .bk-d{color:var(--muted-safe,var(--muted)); font-size:.92rem; margin:9px 0 0; max-width:64ch}
 .roster-h{font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
   color:var(--accent-ink); margin-top:18px}
 body.light .roster-h{color:#1a8f45}
@@ -298,9 +379,9 @@ body.light .roster-h{color:#1a8f45}
   transition:border-color .2s ease, color .2s ease}
 body.light .chip{background:rgba(124,95,224,.05)}
 .chip:hover{border-color:var(--diver-accent); color:var(--accent-ink)}
-.bucket .count{display:block; margin-top:14px; font-family:var(--mono); font-size:.7rem; color:var(--muted)}
-.bucket .src{display:inline-flex; align-items:center; gap:8px; margin-top:14px; min-height:40px;
-  font-family:var(--mono); font-size:.72rem; color:var(--accent-ink); text-decoration:none}
+.bucket .count{display:block; margin-top:14px; font-family:var(--mono); font-size:.7rem; color:var(--muted-safe,var(--muted))}
+.bucket .src{display:inline-flex; align-items:center; gap:8px; margin-top:14px; min-height:44px;
+  font-family:var(--mono); font-size:.72rem; color:var(--accent-safe,var(--accent-ink)); text-decoration:none}
 .bucket .src:hover{text-decoration:underline}
 
 /* member cards are clickable -> open the collectible-card modal */
@@ -364,10 +445,16 @@ body.light .chip{background:rgba(124,95,224,.05)}
 
 /* light paradise background: neon green text/border needs a darker green to stay legible.
    same single accent, just an ink-safe shade where it sits on near white. clarity wins. */
-body.light .member .handle, body.light .bucket .bk-n, body.light .bucket .src{color:#1a8f45}
+/* .bucket .bk-n and .bucket .src used to be pinned here too. They now ride
+   --accent-safe, which already lands on the right green for the current
+   background, so pinning them again would just undo it. */
+body.light .member .handle{color:#1a8f45}
 body.light .member .links a:hover, body.light .chip:hover{color:#1a8f45; border-color:#1a8f45}
 
-.note{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-top:18px; opacity:.85}
+/* no opacity here any more: a .85 alpha quietly lowers the REAL contrast below the
+   ratio any audit reads off the colour, which is exactly the kind of gap that lets
+   invisible text pass a gate. The muted ink alone carries the de-emphasis. */
+.note{font-family:var(--mono); font-size:.72rem; color:var(--muted-safe,var(--muted)); margin-top:18px}
 
 /* recruiting (crystal clear, lighter panel) */
 #apply .panel{border:1px solid var(--line); border-radius:20px; padding:clamp(24px,4vw,44px);
@@ -379,14 +466,22 @@ body.light #apply .panel{background:rgba(255,255,255,.5)}
   transition:transform .15s ease, background .2s ease}
 .btn:hover{transform:translateY(-2px); background:#cdbcf9}
 .btn.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+/* In paradise --accent becomes a deep violet, and the dark button label that reads
+   fine on the pale lavender of the descent drops to 2.59:1 on it. White on that
+   violet is 7.2:1, so the label flips with the theme the same way everything else does. */
+body.light .btn:not(.ghost){color:#fff}
+body.light .btn:not(.ghost):hover{background:#5b21b6; color:#fff}
 
 footer{padding:60px 0 80px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:.8rem}
 footer a{color:var(--accent); text-decoration:none}
 
 /* loader */
 .loader{position:fixed; inset:0; z-index:100; background:#07060d; display:grid; place-items:center;
-  transition:opacity .6s ease}
-.loader.gone{opacity:0; pointer-events:none}
+  transition:opacity .6s ease, visibility 0s linear .6s}
+/* visibility, not just opacity: an opacity-0 loader is still a painted element as far
+   as an auditor is concerned, and its "descending" label was being scored against the
+   paradise palette it never actually appears in. Hidden means hidden. */
+.loader.gone{opacity:0; pointer-events:none; visibility:hidden}
 .loader .mk{font-family:var(--mono); letter-spacing:.3em; color:var(--accent); font-size:.9rem;
   text-transform:uppercase; animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.4} 50%{opacity:1}}
@@ -396,12 +491,14 @@ footer a{color:var(--accent); text-decoration:none}
 <div class="loader" id="loader"><div class="mk">descending</div></div>
 <div class="void" aria-hidden="true"><span class="l1"></span><span class="l2"></span><span class="l3"></span></div>
 <div class="descent-layers" id="descentLayers" aria-hidden="true">
-  <div class="dlayer" data-center="0.08" data-peak="0.32" data-bg="media/descent/d01.jpg"></div>
-  <div class="dlayer" data-center="0.21" data-peak="0.34" data-bg="media/descent/d07.jpg"></div>
-  <div class="dlayer" data-center="0.32" data-peak="0.36" data-bg="media/descent/d05.jpg"></div>
-  <div class="dlayer" data-center="0.42" data-peak="0.36" data-bg="media/descent/d08.jpg"></div>
-  <div class="dlayer" data-center="0.50" data-peak="0.30" data-bg="media/descent/d10.jpg"></div>
-  <div class="dlayer" data-center="0.57" data-peak="0.34" data-bg="media/descent/d09.jpg" style="background-position:center top"></div>
+  <!-- Four images, not six, so each one holds the screen roughly half again as long
+       (the crossfade sigma widened to match). Dropped d05 and d07, which repeated the
+       cross motif that d08 and d09 already carry. d08 and d09 are the same sigil seen
+       twice, once burning in the dark and once inverted as the light comes up. -->
+  <div class="dlayer" data-center="0.10" data-peak="0.32" data-bg="media/descent/d01.jpg"></div>
+  <div class="dlayer" data-center="0.26" data-peak="0.36" data-bg="media/descent/d08.jpg"></div>
+  <div class="dlayer" data-center="0.42" data-peak="0.32" data-bg="media/descent/d10.jpg"></div>
+  <div class="dlayer top-focus" data-center="0.56" data-peak="0.34" data-yoff="29.4" data-bg="media/descent/d09.jpg"></div>
 </div>
 <div class="grain" aria-hidden="true"></div>
 <div class="readscrim" aria-hidden="true"></div>
@@ -420,6 +517,13 @@ footer a{color:var(--accent); text-decoration:none}
       </filter>
     </defs>
     <g class="rig" filter="url(#sketch)">
+     <!-- fall action lines: chevrons pointing down-screen, the way the diver is going.
+          Outside .pose on purpose, so the upside-down free-fall pose never flips them. -->
+     <g class="fall-v">
+       <path d="M4,16 L27,58 L50,16"/>
+       <path d="M11,4 L27,50 L43,4"/>
+       <path d="M-2,30 L27,68 L56,30"/>
+     </g>
      <g class="pose">
       <path class="p-chute soft" d="M5,20 Q27,-1 49,20 Q44,15 38,20 Q33,14 27,20 Q21,14 16,20 Q10,15 5,20 Z"/>
       <path class="p-cords ln" d="M7,20 L22,33 M47,20 L32,33"/>
@@ -827,6 +931,57 @@ footer a{color:var(--accent); text-decoration:none}
     }
     return stops[stops.length-1][1];
   }
+  // ===== crossfade-aware inks =====
+  // The page palette moves continuously from abyss to paradise, but a few section
+  // colours (the project headings, their descriptions, the block numbers and the
+  // SoundCloud link) were fixed per theme. Halfway through the crossfade the
+  // background passes straight through their luminance and they drop to as low as
+  // 1.26:1, which is invisible text, not low-contrast text. These helpers push a
+  // colour toward black or white by the smallest amount that clears the target
+  // ratio against whatever the background actually is at this scroll depth, so at
+  // the top and bottom of the page the designed colours are untouched and only the
+  // crossfade band gets corrected.
+  function srgb(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+  function lumOf(c){ return 0.2126*srgb(c[0]) + 0.7152*srgb(c[1]) + 0.0722*srgb(c[2]); }
+  function cratio(l1,l2){ return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05); }
+  function mixTo(c,p,t){ return [Math.round(c[0]+(p[0]-c[0])*t), Math.round(c[1]+(p[1]-c[1])*t), Math.round(c[2]+(p[2]-c[2])*t)]; }
+  var inkMemo = {};
+  function safeInk(c, bgL, need){
+    var memo = c.join(",")+"|"+bgL.toFixed(3)+"|"+need;
+    if (inkMemo[memo]) return inkMemo[memo];
+    var best = c, bestR = cratio(lumOf(c), bgL), out = null;
+    if (bestR >= need) out = c;
+    else {
+      // try both poles, keep the one that needs the least distortion
+      var poles = [[0,0,0],[255,255,255]], bestT = 2;
+      for (var p=0; p<2; p++){
+        for (var t=0.05; t<=1.0001; t+=0.05){
+          var cc = mixTo(c, poles[p], t), r = cratio(lumOf(cc), bgL);
+          if (r >= need){ if (t < bestT){ bestT = t; out = cc; } break; }
+          if (r > bestR){ bestR = r; best = cc; }   // fallback: the most contrast reachable
+        }
+      }
+      if (!out) out = best;
+    }
+    var css = "rgb("+out[0]+","+out[1]+","+out[2]+")";
+    inkMemo[memo] = css;
+    return css;
+  }
+  // targets are [dark-theme colour, light-theme colour], matching the CSS tokens
+  var INK_T = [[236,231,251],[42,36,64]];
+  var MUTED_T = [[198,191,226],[90,83,119]];
+  var GREEN_T = [[61,255,110],[26,143,69]];
+  // 5.2, not 4.5: the panels these sit on paint a faint white wash over the page
+  // background, so the real background is a little lighter than the palette value,
+  // and small text has no room to be borderline.
+  var INK_NEED = 5.2;
+  function paintInks(c, isLight){
+    var bgL = lumOf(c), i = isLight ? 1 : 0, rs = document.documentElement.style;
+    rs.setProperty("--ink-safe",    safeInk(INK_T[i],   bgL, INK_NEED));
+    rs.setProperty("--muted-safe",  safeInk(MUTED_T[i], bgL, INK_NEED));
+    rs.setProperty("--accent-safe", safeInk(GREEN_T[i], bgL, INK_NEED));
+  }
+
   var voidLayers = document.querySelectorAll(".void span");
   var dlayers = Array.prototype.slice.call(document.querySelectorAll(".dlayer")).map(function(el){
     return { el: el, c: parseFloat(el.dataset.center), peak: parseFloat(el.dataset.peak), yoff: parseFloat(el.dataset.yoff||0) };
@@ -854,7 +1009,8 @@ footer a{color:var(--accent); text-decoration:none}
     e.style.left = x + "px"; e.style.top = y + "px";
     if (opts.text) e.textContent = opts.text;
     if (opts.size) e.style.fontSize = opts.size + "px";
-    if (opts.dx != null){ e.style.setProperty("--dx", opts.dx + "px"); e.style.setProperty("--dy", opts.dy + "px"); }
+    if (opts.dx != null){ e.style.setProperty("--dx", opts.dx + "px"); e.style.setProperty("--dy", (opts.dy||0) + "px"); }
+    if (opts.fall) e.style.setProperty("--fall", opts.fall + "s");
     document.body.appendChild(e);
     setTimeout(function(){ e.remove(); }, opts.life || 1100);
   }
@@ -880,7 +1036,9 @@ footer a{color:var(--accent); text-decoration:none}
       // the worst moment of the crossfade at its best possible contrast. The band
       // still cannot reach AA with any flat colour: at bg luminance ~0.199 the best
       // achievable is 3.5:1, so this is the optimum, not a pass.
-      document.body.classList.toggle("light", (c[0]+c[1]+c[2]) > 369);
+      var isLight = (c[0]+c[1]+c[2]) > 369;
+      document.body.classList.toggle("light", isLight);
+      paintInks(c, isLight);
       // descent image layers: gaussian crossfade by depth, fade out toward paradise
       var bright = Math.max(0, Math.min(1, (f - 0.58) / 0.18));
       dlayers.forEach(function(L){
@@ -891,9 +1049,13 @@ footer a{color:var(--accent); text-decoration:none}
           L.el.removeAttribute("data-bg");
         }
         var d = f - L.c;
-        var o = L.peak * Math.exp(-(d*d)/(2*0.07*0.07)) * (1 - bright);
+        // sigma widened from 0.07 with the drop from six images to four, so each one
+        // fades up and out over a longer stretch of the scroll instead of blipping past
+        var o = L.peak * Math.exp(-(d*d)/(2*0.085*0.085)) * (1 - bright);
         L.el.style.opacity = o.toFixed(3);
-        if (!reduce) L.el.style.transform = "translate(-50%, calc(-50% + " + (d*-150 + L.yoff) + "px))";
+        // yoff is in vh, not px, so a layer that needs to sit lower sits equally lower
+        // on a phone and on a monitor
+        if (!reduce) L.el.style.transform = "translate(-50%, calc(-50% + " + (d*-150 + L.yoff*window.innerHeight/100).toFixed(1) + "px))";
       });
       // the diver's state tracks the fall
       var stage = diverStage(f);
@@ -907,8 +1069,11 @@ footer a{color:var(--accent); text-decoration:none}
         if (speedlines){ speedlines.style.opacity = (fallP*0.30).toFixed(3); speedlines.style.animationDuration = (0.55 - fallP*0.45).toFixed(2) + "s"; }
       } else {
         fallActive = false;
+        fallP = 0;
         if (speedlines) speedlines.style.opacity = "0";
       }
+      // the V action lines get choppier and faster the closer the parachute is
+      if (diver) diver.style.setProperty("--chop", fallP.toFixed(3));
       // parachute poofs little clouds the moment it opens
       if (!reduce && stage === "chute" && prevStage !== "chute"){
         for (var pi=0; pi<6; pi++){ var pa=Math.random()*6.28;
@@ -976,6 +1141,9 @@ footer a{color:var(--accent); text-decoration:none}
         var targetRot = Math.max(-42, Math.min(42, ang * (180/Math.PI) * 1.25));
         faceRot += (targetRot - faceRot) * 0.12;
         diver.style.transform = "translate(" + diverX.toFixed(1) + "px," + diverY.toFixed(1) + "px) translate(-50%,-50%) rotate(" + faceRot.toFixed(2) + "deg)";
+        // cancel the facing turn for the action lines only, so the V keeps pointing
+        // down-screen (the fall direction) no matter which way the diver is looking
+        diver.style.setProperty("--face", (-faceRot).toFixed(2) + "deg");
         // sketchy wake trail: ONLY at the start of the dive, then it stops (Vi cut the falling trail)
         if (trailActive){
           var now = performance.now();
@@ -994,22 +1162,24 @@ footer a{color:var(--accent); text-decoration:none}
         spawnFx("star", lastX + (Math.random()*16-8), lastY + (Math.random()*16-8), {text:"✦", life:1100});
       }
     }, {passive:true});
-    // left click = tilt toward 11 o'clock + exclamation; right click = somersault. Scope flashes to mark the hit.
+    // left click = the old punch thrash + exclamation at the crosshair; right click = barrel roll.
+    // Scope flashes to mark the hit.
     window.addEventListener("mousedown", function(e){
       if (reduce) return;
       if (scope){ scope.classList.remove("click"); void scope.offsetWidth; scope.classList.add("click");
         setTimeout(function(){ scope.classList.remove("click"); }, 320); }
       if (e.button === 0){
-        // left click: a small CCW tilt toward 11 o'clock + an exclamation straight up above the
-        // diver in GLOBAL space (not rotated with the diver's local frame)
+        // left click: the original punch thrash, with the exclamation popping at the
+        // crosshair (Vi asked for this one back over the 11 o'clock tilt)
         diver.classList.remove("act-l"); void diver.offsetWidth; diver.classList.add("act-l");
-        spawnFx("pow", diverX, diverY-42, {text:"!", life:520});
-        setTimeout(function(){ diver.classList.remove("act-l"); }, 420);
+        spawnFx("pow", lastX, lastY-18, {text:"!", life:500});
+        setTimeout(function(){ diver.classList.remove("act-l"); }, 340);
       } else if (e.button === 2){
-        // right click: somersault (the older behavior)
+        // right click: barrel roll. It used to be baked into the fall, where it never stopped;
+        // it belongs on demand instead.
         diver.classList.remove("act-r"); void diver.offsetWidth; diver.classList.add("act-r");
         for (var i=0;i<5;i++) spawnFx("star", lastX+(Math.random()*36-18), lastY+(Math.random()*36-18), {text:"✦", life:900});
-        setTimeout(function(){ diver.classList.remove("act-r"); }, 660);
+        setTimeout(function(){ diver.classList.remove("act-r"); }, 700);
       }
     });
     window.addEventListener("contextmenu", function(e){ e.preventDefault(); });
@@ -1028,19 +1198,24 @@ footer a{color:var(--accent); text-decoration:none}
   // easter egg: a message for the curious in the console
   try{
     console.log("%cHACKING☆PARADISE","font-size:20px;font-weight:bold;color:#b9a6f5");
+    // A cross, drawn in solid blocks with even arms and a long stem so it reads as a
+    // cross at a glance. The caption is its own line now, instead of being tucked into
+    // the bottom corner of the art where it looked like part of the shape.
     console.log("%c"+[
-      "            ######            ",
-      "            ######            ",
-      "            ######            ",
-      "  ##########################  ",
-      "  ##########################  ",
-      "            ######            ",
-      "            ######            ",
-      "            ######            ",
-      "            ######            ",
-      "            ######            ",
-      "        plummet to paradise   "
+      "        ██████        ",
+      "        ██████        ",
+      "        ██████        ",
+      "  ██████████████████  ",
+      "  ██████████████████  ",
+      "  ██████████████████  ",
+      "        ██████        ",
+      "        ██████        ",
+      "        ██████        ",
+      "        ██████        ",
+      "        ██████        ",
+      "        ██████        "
     ].join("\n"), "color:#cdbcf9;font-family:monospace;line-height:1.05;font-size:12px");
+    console.log("%cplummet to paradise","color:#ffe6a3;font-family:monospace;letter-spacing:.28em");
     console.log("%cYou found the console. Of course you did. We look for the route others overlook.\nIf you build, reach out: v1xl3t@gmail.com","color:#9d8fc7");
     console.log("%cA path is hidden here. Type  descend()  and press Enter to begin.","color:#ffe6a3;font-weight:bold");
   }catch(e){}
@@ -1093,26 +1268,40 @@ footer a{color:var(--accent); text-decoration:none}
       return "(paradise)";
     };
   })();
-  // easter egg: Konami code rains stars
+  // easter egg: Konami code rains stars.
+  // Vi could not spot the old version, and the reason was not the code, it was the
+  // payoff: forty small sparkles at random points, identical to the ones the cursor
+  // already drops, all of it over inside two seconds. This version rains from above
+  // the fold to below it for about five seconds and names itself on screen.
+  function starRain(){
+    var flash = document.createElement("div");
+    flash.style.cssText = "position:fixed;inset:0;z-index:48;pointer-events:none;opacity:0;"
+      + "background:radial-gradient(70% 60% at 50% 30%, rgba(255,224,150,.6), rgba(255,205,90,0) 72%);"
+      + "transition:opacity .25s ease";
+    document.body.appendChild(flash);
+    requestAnimationFrame(function(){ flash.style.opacity = "1";
+      setTimeout(function(){ flash.style.opacity = "0"; setTimeout(function(){ flash.remove(); }, 600); }, 320); });
+    var ban = document.createElement("div");
+    ban.className = "konami-banner"; ban.textContent = "PLUMMET TO PARADISE";
+    document.body.appendChild(ban);
+    setTimeout(function(){ ban.remove(); }, 3000);
+    // 70 stars falling the full height of the viewport, staggered so the rain keeps up.
+    // Under reduced motion nothing should travel across the screen, so there they simply
+    // appear where they land and fade, which is the payoff without the movement.
+    for (var i=0;i<70;i++)(function(d){ setTimeout(function(){
+      spawnFx(reduce ? "star" : "star rain",
+        Math.random()*window.innerWidth,
+        reduce ? Math.random()*window.innerHeight : 0,
+        {text:"✦", size:(22 + Math.random()*26)|0, life:reduce ? 1600 : 4200,
+         dx:(Math.random()*170-85), fall:(2.1 + Math.random()*1.5).toFixed(2)});
+    }, d*38); })(i);
+    try{ console.log("%cPLUMMET TO PARADISE","font-size:18px;font-weight:bold;color:#ffe6a3");
+         console.log("%cKonami code found. That is the star rain.","color:#cdbcf9"); }catch(e){}
+  }
   var konami=[38,38,40,40,37,39,37,39,66,65], ki=0;
   window.addEventListener("keydown", function(e){
     ki = (e.keyCode===konami[ki]) ? ki+1 : (e.keyCode===konami[0]?1:0);
-    if (ki===konami.length){ ki=0;
-      // a clear gold flash so the unlock is unmistakable
-      var flash = document.createElement("div");
-      flash.style.cssText = "position:fixed;inset:0;z-index:48;pointer-events:none;opacity:0;"
-        + "background:radial-gradient(60% 55% at 50% 38%, rgba(255,224,150,.55), rgba(255,205,90,0) 70%);"
-        + "transition:opacity .25s ease";
-      document.body.appendChild(flash);
-      requestAnimationFrame(function(){ flash.style.opacity = "1";
-        setTimeout(function(){ flash.style.opacity = "0"; setTimeout(function(){ flash.remove(); }, 600); }, 260); });
-      // ~40 big, bright gold stars raining down
-      for (var i=0;i<40;i++)(function(d){ setTimeout(function(){
-        spawnFx("star", Math.random()*window.innerWidth, Math.random()*window.innerHeight,
-          {text:"✦", size:(28 + Math.random()*18)|0, life:1800});
-      }, d*45); })(i);
-      try{ console.log("%cPLUMMET TO PARADISE","font-size:18px;font-weight:bold;color:#ffe6a3"); }catch(e){}
-    }
+    if (ki===konami.length){ ki=0; starRain(); }
   });
 
   // apply button placeholder (wire to a hosted form later)

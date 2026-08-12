@@ -1,0 +1,352 @@
+/* ============================================================
+   HACKING PARADISE card component.
+
+   One design language at two scales.
+
+     .hpc.show   SHOWCASE. Full size, ornate. Name plate, rank
+                 stars, attribute badge, art window, type line,
+                 text box, set footer. This is a member card or
+                 a game tile.
+
+     .hpc.play   PLAY. Compact. Built for a tableau where twenty
+                 cards overlap and only the top strip of each one
+                 is visible. It is NOT the showcase card scaled
+                 down, the ornate frame stops reading below about
+                 120px wide. It keeps the family through four
+                 things and only four, so the resemblance survives
+                 the size change:
+                   1. the same 5/7 shape
+                   2. the same notched top-right / bottom-left
+                      corner geometry
+                   3. the same violet-black bezel with a gold
+                      hairline inside it
+                   4. the same striped void pattern on the back
+                      and in the art window
+
+   The play card's FACE is paper, not void. Red and black pips on
+   a dark card are unreadable, and solitaire without red/black is
+   not solitaire. So the HP color lives in the bezel and in a suit
+   band, and the pip stays classic. Legibility beats theming.
+
+   Everything is scoped under .hpc-scope so a member page can drop
+   this file in without its own tokens being touched. No images,
+   no dependencies, no build step.
+
+   Built 2026-08-12 for hp/games/. Reusable by the member pages.
+   ============================================================ */
+
+.hpc-scope{
+  /* the void palette, matching hp/index.html and the member pages */
+  --hpc-ink:#ece7fb;
+  --hpc-muted:#c6bfe2;
+  --hpc-violet:#b9a6f5;
+  --hpc-violet-2:#8b7bd8;
+  --hpc-neon:#3DFF6E;
+  --hpc-purple:#7c3aed;
+  --hpc-gold:#ffe6a3;
+  --hpc-card:#0d0a18;
+  --hpc-void:#07060d;
+  --hpc-line:rgba(185,166,245,.35);
+  --hpc-line-soft:rgba(185,166,245,.22);
+
+  /* play card paper. Measured, not guessed.
+     #17122a on #f4f1fb is 16.4:1. #b3122c on #f4f1fb is 6.3:1. */
+  --hpc-face:#f4f1fb;
+  --hpc-face-ink:#17122a;
+  --hpc-red:#b3122c;
+  --hpc-face-line:rgba(23,18,42,.20);
+
+  --hpc-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --hpc-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+
+  /* the notch depth, scaled per variant */
+  --hpc-notch:14px;
+}
+
+/* The display face is optional. It is only ever decoration here, so if the
+   font fails to load nothing breaks and nothing shifts meaning. */
+@font-face{font-family:"BlackMetal"; src:url("../fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+
+.hpc-scope *{box-sizing:border-box}
+
+/* the striped void, shared by the showcase art window and the play card back */
+.hpc-scope{
+  --hpc-weave:
+    radial-gradient(80% 120% at 50% 0%, rgba(124,58,237,.45), transparent 60%),
+    repeating-linear-gradient(45deg, #120c22 0 10px, #0e0a1b 10px 20px);
+}
+
+/* ---------- the shared shell ---------- */
+.hpc{
+  position:relative;
+  aspect-ratio:5/7;
+  font-family:var(--hpc-font);
+  color:var(--hpc-ink);
+  /* the corner geometry. Top-right and bottom-left are cut, top-left and
+     bottom-right stay square so the play card's rank index has a corner to
+     sit in. Same polygon at both scales, only --hpc-notch changes. */
+  clip-path:polygon(
+    0 0,
+    calc(100% - var(--hpc-notch)) 0,
+    100% var(--hpc-notch),
+    100% 100%,
+    var(--hpc-notch) 100%,
+    0 calc(100% - var(--hpc-notch))
+  );
+}
+
+/* ============================================================
+   SHOWCASE
+   ============================================================ */
+.hpc.show{
+  --hpc-notch:16px;
+  width:100%;
+  padding:11px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  background:
+    linear-gradient(180deg, rgba(185,166,245,.10), rgba(124,58,237,.05)),
+    var(--hpc-card);
+  /* clip-path removes the border box, so the bezel is drawn as an inset ring */
+  box-shadow:
+    inset 0 0 0 1px var(--hpc-line),
+    inset 0 0 0 4px rgba(7,6,13,.85),
+    inset 0 0 0 5px rgba(255,230,163,.28),
+    inset 0 0 44px rgba(124,58,237,.12);
+}
+.hpc.show::after{
+  /* holo sheen, the same sweep robby.html uses */
+  content:""; position:absolute; inset:0; pointer-events:none;
+  mix-blend-mode:screen; opacity:.5;
+  background:linear-gradient(115deg, transparent 30%, rgba(61,255,110,.10) 45%,
+    rgba(185,166,245,.18) 50%, rgba(255,230,163,.10) 55%, transparent 70%);
+  background-size:280% 280%; animation:hpc-holo 7s ease-in-out infinite;
+}
+@keyframes hpc-holo{0%,100%{background-position:0% 50%} 50%{background-position:100% 50%}}
+
+.hpc.show .hpc-plate{
+  display:flex; align-items:center; justify-content:space-between; gap:9px;
+  border:1px solid var(--hpc-line); border-radius:10px; padding:8px 11px;
+  background:linear-gradient(180deg, rgba(185,166,245,.14), rgba(185,166,245,.04));
+}
+.hpc.show .hpc-name{
+  margin:0; font-size:clamp(1rem,3.4vw,1.32rem); line-height:1.08;
+  letter-spacing:-.01em; font-weight:800;
+}
+.hpc.show .hpc-rank{
+  font-size:.78rem; letter-spacing:.06em; color:var(--hpc-gold);
+  white-space:nowrap; text-shadow:0 0 8px rgba(255,230,163,.35);
+}
+.hpc.show .hpc-meta{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  font-family:var(--hpc-mono); font-size:.64rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--hpc-muted);
+}
+.hpc.show .hpc-attr{
+  color:#07060d; background:var(--hpc-neon); border-radius:999px;
+  padding:3px 9px; font-weight:700; letter-spacing:.08em;
+  flex:0 0 auto;
+}
+/* The handle is the only row whose length we do not control, because it is a
+   real account name and Robby's is 18 characters. Left alone it ran past the
+   bezel on the narrower cards, losing the last letters with no ellipsis to say
+   so. A flex child will not shrink below its content unless min-width is
+   cleared, which is the actual cause rather than the width being tight. */
+.hpc.show .hpc-meta > span:last-child{
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* The art window takes whatever is left after the fixed rows. Giving it a
+   ratio instead was the first attempt and it overflowed the 5/7 shell at
+   narrow widths, because the plate, type line and footer do not shrink. */
+.hpc.show .hpc-art{
+  position:relative; flex:1 1 auto; min-height:64px; border-radius:10px;
+  overflow:hidden; border:1px solid rgba(185,166,245,.3); background:var(--hpc-weave);
+}
+.hpc.show .hpc-glyph{
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-family:"BlackMetal",var(--hpc-font); font-size:clamp(2rem,9vw,3.4rem);
+  color:rgba(236,231,251,.55); text-shadow:0 0 24px rgba(124,58,237,.6);
+  letter-spacing:.05em; line-height:1;
+}
+.hpc.show .hpc-artstar{
+  position:absolute; right:8px; top:6px; font-size:.95rem; color:var(--hpc-gold);
+  text-shadow:0 0 10px rgba(255,230,163,.5);
+}
+.hpc.show .hpc-type{
+  font-family:var(--hpc-mono); font-size:.64rem; letter-spacing:.06em;
+  color:#d9cdfb; padding:6px 2px;
+  border-top:1px solid var(--hpc-line-soft); border-bottom:1px solid var(--hpc-line-soft);
+}
+.hpc.show .hpc-type b{color:var(--hpc-neon); font-weight:700}
+.hpc.show .hpc-text{
+  flex:0 0 auto; max-height:8.4em; overflow:auto;
+  border:1px solid var(--hpc-line-soft); border-radius:9px;
+  padding:10px 12px; background:rgba(0,0,0,.28); font-size:.86rem;
+  scrollbar-width:thin;
+}
+.hpc.show .hpc-text p{margin:0; color:var(--hpc-muted); line-height:1.5}
+.hpc.show .hpc-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  font-family:var(--hpc-mono); font-size:.58rem; letter-spacing:.09em;
+  color:var(--hpc-muted);
+}
+.hpc.show .hpc-set{color:var(--hpc-neon)}
+
+/* the four suit accents, applied to a showcase card as a member skin */
+.hpc[data-suit="S"]{--hpc-accent:#3DFF6E}
+.hpc[data-suit="C"]{--hpc-accent:#b9a6f5}
+.hpc[data-suit="H"]{--hpc-accent:#f06ab0}
+.hpc[data-suit="D"]{--hpc-accent:#ffe6a3}
+.hpc.show[data-suit] .hpc-attr{background:var(--hpc-accent, var(--hpc-neon))}
+.hpc.show[data-suit] .hpc-set{color:var(--hpc-accent, var(--hpc-neon))}
+
+/* a showcase card that is a link or a button */
+a.hpc, button.hpc{
+  display:flex; text-align:left; text-decoration:none; cursor:pointer;
+  border:0; font:inherit; color:var(--hpc-ink);
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+a.hpc:hover, button.hpc:hover, a.hpc:focus-visible, button.hpc:focus-visible{
+  transform:translateY(-4px);
+  box-shadow:
+    inset 0 0 0 1px var(--hpc-accent, var(--hpc-neon)),
+    inset 0 0 0 4px rgba(7,6,13,.85),
+    inset 0 0 0 5px rgba(255,230,163,.5),
+    inset 0 0 44px rgba(124,58,237,.2);
+}
+a.hpc:focus-visible, button.hpc:focus-visible{outline:3px solid var(--hpc-neon); outline-offset:3px}
+.hpc.locked{opacity:.62; cursor:default}
+.hpc.locked:hover{transform:none}
+@media (prefers-reduced-motion: reduce){
+  .hpc.show::after{animation:none}
+  a.hpc, button.hpc{transition:none}
+  a.hpc:hover, button.hpc:hover{transform:none}
+}
+
+/* ============================================================
+   PLAY
+   The compact variant. Sized by its container, never by a fixed
+   px value, so one rule serves 50px on a phone and 96px on a
+   desktop. Everything inside is in cqw (container query units)
+   of the card's own width, which is what keeps the index legible
+   at every size instead of only at the one it was designed at.
+   ============================================================ */
+.hpc.play{
+  --hpc-notch:9%;
+  container-type:inline-size;
+  width:100%;
+  user-select:none; -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+/* --- face up --- */
+.hpc.play.up{
+  background:var(--hpc-face);
+  color:var(--hpc-face-ink);
+  box-shadow:
+    inset 0 0 0 1px rgba(23,18,42,.35),
+    inset 0 0 0 3px var(--hpc-card),
+    inset 0 0 0 4px rgba(255,230,163,.55),
+    0 2px 6px rgba(0,0,0,.5);
+}
+.hpc.play.red{color:var(--hpc-red)}
+
+/* The suit band. A 4 percent stripe of the member color down the left edge,
+   inside the bezel. It is decoration, never the only way to tell a suit apart,
+   the pip and the letter always carry that. */
+.hpc.play.up::before{
+  content:""; position:absolute; left:4px; top:4px; bottom:4px; width:4px;
+  background:var(--hpc-band, var(--hpc-violet-2)); opacity:.85;
+}
+.hpc.play[data-suit="S"]{--hpc-band:#1f8f45}
+.hpc.play[data-suit="C"]{--hpc-band:#5b3fb0}
+.hpc.play[data-suit="H"]{--hpc-band:#b3122c}
+.hpc.play[data-suit="D"]{--hpc-band:#a06a10}
+
+/* The corner index. This is the whole reason the play variant exists. In a
+   cascade only the top strip of a card is visible, so rank and suit live in
+   the top-left, side by side, as large as the card allows. */
+.hpc-idx{
+  position:absolute; display:flex; align-items:center; gap:2cqw;
+  line-height:1; font-weight:800; letter-spacing:-.02em;
+}
+.hpc-idx.tl{left:11cqw; top:6cqw}
+.hpc-idx.br{right:8cqw; bottom:6cqw; transform:rotate(180deg)}
+.hpc-idx .r{font-size:30cqw; font-variant-numeric:tabular-nums}
+.hpc-idx .p{font-size:23cqw}
+/* Below roughly 62px wide a second index is noise, not information. */
+@container (max-width: 62px){ .hpc-idx.br{display:none} }
+
+/* The center pip is a watermark, and it is a pseudo-element on purpose. As a
+   real text node a 16 percent opacity glyph is a genuine contrast failure to
+   any auditor, and rightly so, because an auditor cannot tell decoration from
+   content. A pseudo-element says decoration in a way a machine can read.
+   The index is the truth, this is wallpaper.
+
+   Court cards carry their letter instead of a pip. The BlackMetal display face
+   was tried here first and a BlackMetal J, Q and K are three different
+   scratches nobody can tell apart, so the plain face won. BlackMetal stays on
+   the card back, where it is texture and not information. */
+.hpc.play.up::after{
+  content:var(--hpc-pip-ch, "");
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-size:56cqw; line-height:1; opacity:.16; pointer-events:none;
+}
+.hpc.play.up.pipcourt::after{
+  font-weight:800; font-size:44cqw; opacity:.2; letter-spacing:-.04em;
+}
+
+/* --- face down --- */
+.hpc.play.down{
+  background:var(--hpc-weave);
+  box-shadow:
+    inset 0 0 0 1px var(--hpc-line),
+    inset 0 0 0 3px rgba(7,6,13,.9),
+    inset 0 0 0 4px rgba(185,166,245,.3),
+    0 2px 6px rgba(0,0,0,.5);
+}
+.hpc.play.down::after{
+  content:"HP"; position:absolute; inset:0; display:grid; place-items:center;
+  font-family:"BlackMetal",var(--hpc-font); font-size:30cqw; letter-spacing:.08em;
+  color:rgba(236,231,251,.5); text-shadow:0 0 14px rgba(124,58,237,.7);
+}
+
+/* --- an empty pile --- */
+.hpc.play.empty{
+  background:rgba(255,255,255,.03);
+  box-shadow:inset 0 0 0 1px var(--hpc-line-soft), inset 0 0 0 3px rgba(7,6,13,.5);
+}
+.hpc.play.empty .hpc-slot{
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-size:38cqw; line-height:1; color:var(--hpc-violet); opacity:.5;
+}
+
+/* --- interaction states --- */
+.hpc.play.sel{
+  box-shadow:
+    inset 0 0 0 1px rgba(23,18,42,.35),
+    inset 0 0 0 3px var(--hpc-neon),
+    inset 0 0 0 5px rgba(7,6,13,.9),
+    0 0 0 2px var(--hpc-neon), 0 0 18px rgba(61,255,110,.55);
+}
+.hpc.play.drop{
+  box-shadow:
+    inset 0 0 0 2px var(--hpc-gold),
+    0 0 0 2px var(--hpc-gold), 0 0 18px rgba(255,230,163,.5);
+}
+.hpc.play.drag{opacity:.55}
+.hpc.play:focus-visible{outline:3px solid var(--hpc-neon); outline-offset:2px}
+
+/* ============================================================
+   PARADISE (light) theme.
+   The PAGE flips. The CARD does not. A physical card does not
+   change color because the room got brighter, and keeping the
+   card fixed means every ratio measured inside it holds in both
+   themes instead of needing a second audit.
+   ============================================================ */
+:root[data-theme="light"] .hpc-scope{
+  --hpc-line:rgba(74,52,140,.38);
+  --hpc-line-soft:rgba(74,52,140,.24);
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Klondike solitaire &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Free Klondike solitaire in the browser. Draw one or draw three, undo, drag or tap, and it keeps your game if you close the tab." />
+<meta name="theme-color" content="#0b0913" />
+<link rel="stylesheet" href="hp-cards.css" />
+<link rel="stylesheet" href="games.css" />
+<link rel="stylesheet" href="solitaire.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body class="hpc-scope">
+
+<a class="skip" href="#board">Skip to the board</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main>
+  <div class="gamewrap">
+
+    <div class="controls">
+      <button class="btn primary" type="button" id="newBtn">New game</button>
+      <button class="btn" type="button" id="undoBtn">Undo</button>
+      <button class="btn" type="button" id="autoBtn" hidden>Auto finish</button>
+      <div class="seg" role="group" aria-label="Cards per deal">
+        <button type="button" id="draw1" aria-pressed="true">Draw 1</button>
+        <button type="button" id="draw3" aria-pressed="false">Draw 3</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="stat">Moves <b id="moves">0</b></span>
+      <span class="stat">In the deck <b id="left">24</b></span>
+    </div>
+
+    <div class="winbar" id="winbar" hidden>
+      <div>
+        <h2>Cleared</h2>
+        <p>Every card is home. That is the whole climb, bottom to top.</p>
+      </div>
+      <button class="btn primary" type="button" id="winNew">Deal again</button>
+    </div>
+
+    <div class="board" id="board">
+      <div class="lane top">
+        <div class="pile stock" data-pile="stock"></div>
+        <div class="pile waste" data-pile="waste"></div>
+        <div class="pile spacer"></div>
+        <div class="pile" data-pile="found:S"></div>
+        <div class="pile" data-pile="found:H"></div>
+        <div class="pile" data-pile="found:C"></div>
+        <div class="pile" data-pile="found:D"></div>
+      </div>
+      <div class="lane" id="tableau">
+        <div class="pile col" data-pile="tab:0"></div>
+        <div class="pile col" data-pile="tab:1"></div>
+        <div class="pile col" data-pile="tab:2"></div>
+        <div class="pile col" data-pile="tab:3"></div>
+        <div class="pile col" data-pile="tab:4"></div>
+        <div class="pile col" data-pile="tab:5"></div>
+        <div class="pile col" data-pile="tab:6"></div>
+      </div>
+    </div>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ul>
+        <li>Build the four foundations up from the ace to the king, one suit each.</li>
+        <li>Build the seven columns down, always alternating red and black.</li>
+        <li>Only a king can move into an empty column.</li>
+        <li>Tap the deck to turn cards over. When it runs out, tap it again to turn the pile back over.</li>
+        <li>Drag a card, or tap it once to pick it up and tap where you want it. Tap the same card twice to send it straight to its foundation.</li>
+        <li>Undo walks back through your last eighty moves. Your game is saved in this browser, so closing the tab does not lose it.</li>
+      </ul>
+    </details>
+
+  </div>
+</main>
+
+<div class="draglayer" id="draglayer" hidden></div>
+<p class="live" id="live" role="status" aria-live="polite"></p>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">More games</a></p>
+</div></footer>
+
+<script src="hp-cards.js"></script>
+<script src="games.js"></script>
+<script src="solitaire.js"></script>
+</body>
+</html>

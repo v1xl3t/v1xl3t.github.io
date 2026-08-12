@@ -1,0 +1,102 @@
+/* ============================================================
+   Klondike board.
+
+   The card LOOK is entirely in hp-cards.css. Nothing here paints
+   a card, it only places them. That separation is the point, the
+   member pages will want the card and none of this.
+
+   Sizing is done in JS, because a cascade of nineteen cards has
+   to shrink its own overlap to fit the screen and CSS cannot
+   measure a pile. JS writes --cw and --ch on .board and every
+   rule below is expressed in those.
+   ============================================================ */
+
+.gamewrap{max-width:1080px; margin:0 auto; padding:0 clamp(8px,2vw,20px)}
+
+/* ---------- controls ---------- */
+.controls{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  padding:10px 0 12px;
+}
+.controls .spacer{flex:1 1 auto}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden;
+  background:var(--panel)}
+.seg button{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.05em;
+  background:transparent; border:0; color:var(--ink); cursor:pointer;
+  min-height:var(--tap); padding:0 14px; line-height:1.1}
+.seg button[aria-pressed="true"]{background:var(--accent); color:#15102a; font-weight:700}
+:root[data-theme="light"] .seg button[aria-pressed="true"]{color:#f6f2ff}
+.seg button:focus-visible{outline:3px solid var(--accent-ink); outline-offset:-3px}
+.stat{font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; color:var(--muted);
+  white-space:nowrap}
+.stat b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+
+/* ---------- board ---------- */
+.board{
+  --cw:60px; --ch:84px; --gap:6px;
+  position:relative;
+  padding:10px 0 40px;
+  touch-action:pan-y;      /* vertical page scroll still works, drags do not scroll */
+}
+.board .lane{
+  display:grid; grid-template-columns:repeat(7, var(--cw));
+  gap:var(--gap); justify-content:center;
+}
+.top{margin-bottom:calc(var(--gap) * 2)}
+
+/* one pile position. Cards inside are absolutely placed. */
+.pile{position:relative; width:var(--cw); height:var(--ch)}
+.pile .hpc{position:absolute; left:0; top:0; width:var(--cw); height:var(--ch)}
+.pile.col{height:auto; min-height:var(--ch)}
+/* stock and waste sit in the first two columns, foundations in the last four */
+.pile.spacer{visibility:hidden}
+
+/* the stock gets a hint when it can be recycled */
+.pile.stock .hpc.empty .hpc-slot{opacity:.55}
+.pile.stock.dead .hpc.empty .hpc-slot{opacity:.18}
+
+/* waste fans its top three so a draw of three is readable */
+.pile.waste{width:calc(var(--cw) + var(--fan) * 2)}
+
+/* A card owns its own gestures. Without this the browser starts scrolling the
+   page the moment a drag goes vertical and cancels the pointer mid move. The
+   board shrinks its cascades to fit the screen, so vertical scrolling on the
+   board itself is rarely needed. */
+.board .hpc{touch-action:none; cursor:pointer}
+.board .hpc.empty{cursor:default}
+body.dragging, body.dragging *{cursor:grabbing !important}
+
+/* the drag layer */
+.draglayer{position:fixed; inset:0; z-index:200; pointer-events:none}
+.draglayer[hidden]{display:none}
+.draglayer .hpc{position:absolute; left:0; top:0; width:var(--dcw); height:var(--dch);
+  box-shadow:0 10px 30px rgba(0,0,0,.6)}
+
+/* ---------- win ---------- */
+.winbar{
+  margin:14px 0 0; border:1px solid var(--accent-ink); border-radius:14px;
+  padding:16px 18px; background:var(--panel);
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+}
+.winbar[hidden]{display:none}
+.winbar h2{margin:0; font-size:1.15rem}
+.winbar p{margin:4px 0 0; color:var(--muted); font-size:.92rem}
+
+/* ---------- rules ---------- */
+.rules{margin-top:26px}
+.rules summary{
+  font-family:var(--mono); font-size:.74rem; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--accent); cursor:pointer; min-height:var(--tap); display:flex; align-items:center;
+  gap:9px; list-style:none}
+.rules summary::-webkit-details-marker{display:none}
+/* display:flex eats the native marker, so draw one back. Without it the row
+   reads as a heading and nobody knows it opens. */
+.rules summary::before{content:"▸"; font-size:.9rem; transition:transform .18s ease}
+.rules[open] summary::before{transform:rotate(90deg)}
+.rules summary:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
+.rules ul{margin:10px 0 0; padding-left:20px; color:var(--muted); max-width:62ch}
+.rules li{margin:6px 0}
+
+/* live region for screen readers, never visible */
+.live{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}

@@ -16,11 +16,36 @@
   --line:#e2d5c0; --accent:#e07a5f; --sage:#81b29a; --lav:#b8a1d9; --peach:#f2cc8f;
   --ticket:#e63946; --good:#5a9367; --shadow:0 4px 14px rgba(74,63,53,.12);
   --r:14px;
+
+  /* The soft palette above is built for BACKGROUNDS. Used as ink it lands
+     between 2.2:1 and 4.2:1, which is why the prize costs, the ledger amounts,
+     the bill tags and the "bring back" link were all unreadable at once. Each
+     one gets a text-weight twin that clears 4.5:1 on every surface it lands on,
+     and unlike the base colours these DO flip with the theme, because dark ink
+     on a dark panel cannot be rescued by anything else.
+       --accent-ink  4.76:1 worst case (the tinted "upcoming" chip)
+       --ticket-ink  5.18:1 worst case (the tinted "past due" chip)
+       --good-ink    5.27:1 worst case (--panel2)
+     The three solid fills are the other half of the same problem: white on
+     --ticket is 4.17:1 and white on --sage is 2.40:1, so a filled control needs
+     either a deeper fill or darker ink. Both are here, and both hold in either
+     theme, since none of these four change between them. */
+  --accent-ink:#9c4429; --ticket-ink:#a81b26; --good-ink:#2f6b45;
+  --danger:#d92b39;      /* white on it, 4.82:1 */
+  --good-solid:#3c7550;  /* white on it, 5.45:1 */
+  --on-accent:#3a2a20;   /* on --accent,  4.65:1 */
+  --on-sage:#173325;     /* on --sage,    5.71:1 */
+
+  /* Perch draws its own colours, but the form widgets it does not draw (the
+     date picker, the checkbox, the select popup, the scrollbars) come from the
+     browser, and without this they render in light mode inside the dark theme. */
+  color-scheme:light dark;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#241f1c; --panel:#2f2925; --panel2:#3a322c; --ink:#f0e6d8; --ink2:#b3a390;
     --line:#4a4038; --shadow:0 4px 14px rgba(0,0,0,.35);
+    --accent-ink:#f0a48c; --ticket-ink:#ff9aa2; --good-ink:#8ecfa3;
   }
 }
 *{box-sizing:border-box; margin:0}
@@ -32,6 +57,11 @@ body{
 }
 button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
 input,select,textarea{font:inherit; color:var(--ink); background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+/* Chrome's own placeholder grey is #757575 whatever the page does, which is
+   3.83:1 on the light field and 2.73:1 on the dark one. It is real copy ("e.g.
+   Water the plants") and it never appears in any stylesheet, so it is invisible
+   to a gate that only reads the author's CSS. */
+input::placeholder,textarea::placeholder{color:var(--ink2); opacity:1}
 h1,h2,h3{font-family:ui-monospace,Consolas,monospace; letter-spacing:.06em; text-transform:uppercase}
 
 /* ---------- header ---------- */
@@ -53,8 +83,9 @@ header h1 small{display:block; font-size:.62rem; color:var(--ink2); letter-spaci
   padding:7px 11px; box-shadow:var(--shadow); font-size:.95rem;
 }
 .hdr-btn:hover{background:var(--panel2)}
-.hdr-btn.active{background:var(--accent); color:#fff; border-color:var(--accent)}
-.badge{background:var(--ticket); color:#fff; border-radius:999px; font-size:.68rem; padding:1px 6px; font-weight:700}
+.hdr-btn.active{background:var(--accent); color:var(--on-accent); border-color:var(--accent)}
+/* The count is small bold text, so 4.5:1. White on --ticket is 4.17:1. */
+.badge{background:var(--danger); color:#fff; border-radius:999px; font-size:.68rem; padding:1px 6px; font-weight:700}
 
 /* ---------- scene ---------- */
 #sceneWrap{
@@ -63,10 +94,16 @@ header h1 small{display:block; font-size:.62rem; color:var(--ink2); letter-spaci
 }
 #sceneBox{position:relative; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); border:1px solid var(--line)}
 canvas#scene{display:block; width:100%; image-rendering:pixelated; background:#1d1712}
+/* These are DOM text sitting on the canvas, so no CSS walk can say what is
+   behind them, and both contrast gates skipped them for years as "unmeasurable".
+   Sampling the canvas underneath says it plainly: #fff8ec on the shelf band
+   rgb(201,151,95) is 2.46:1. Dark ink on the same band is 6.27:1, so the signs
+   are painted on the wood now rather than lit against it, with the shadow
+   flipped to a light emboss. */
 .scene-label{
   position:absolute; transform:translate(-50%,0); pointer-events:none;
   font-family:ui-monospace,monospace; font-size:clamp(8px,1.3vw,12px); font-weight:700;
-  color:#fff8ec; text-shadow:0 1px 0 #000a, 0 0 6px #0008; letter-spacing:.08em; white-space:nowrap;
+  color:#2b1d12; text-shadow:0 1px 0 #ffffff40; letter-spacing:.08em; white-space:nowrap;
   transition:opacity .35s ease;
 }
 /* The machine labels are DOM sitting over the canvas, so the spotlight cannot
@@ -109,7 +146,16 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
   overflow-y:auto; overscroll-behavior:contain; pointer-events:none;
   transition:transform .55s cubic-bezier(.22,.61,.36,1), opacity .45s, filter .45s;
 }
-.car-card:not(.front){opacity:.42; filter:saturate(.6)}
+/* The side cards used to sit at 42% (45% once updateCar set it inline), which
+   put every line of text on them between 1.7:1 and 2.4:1. Fading text is fading
+   contrast and nothing else buys it back: to clear 4.5:1 these would have to sit
+   near 97%, at which point there is no depth cue left anyway.
+   So they keep the fade and give up the text. A card turned 34 degrees away was
+   never readable, it was texture, and now it is honestly texture: a blank card
+   edge behind the front one. The dots and arrows below already say which lane is
+   next, and the moment a card turns to the front its content is at full strength. */
+.car-card:not(.front){opacity:.5; filter:saturate(.62)}
+.car-card:not(.front) > *{visibility:hidden}
 .floor-shadow{
   width:72%; height:15px; margin:16px auto 0; border-radius:50%;
   background:radial-gradient(ellipse at center, rgba(40,25,15,.3), transparent 70%);
@@ -140,7 +186,7 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
   background:var(--panel);
 }
 .item-row .check:not(:disabled):hover{border-color:var(--sage)}
-.item-row.done .check{background:var(--sage); border-color:var(--sage); color:#fff}
+.item-row.done .check{background:var(--sage); border-color:var(--sage); color:var(--on-sage)}
 .item-row .t{flex:1; min-width:0; font-size:.92rem; line-height:1.25}
 .item-row.done .t{color:var(--ink2)}
 .item-row.done .ttl{text-decoration:line-through}
@@ -149,29 +195,35 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .item-row .noteb{font-size:.65rem; color:var(--ink2); padding:0 4px; vertical-align:1px}
 .item-row.notes-open .noteb{transform:rotate(180deg)}
 .item-row .mover{display:flex; flex-direction:column; gap:0; opacity:0; transition:opacity .15s; margin-right:-4px}
-.item-row:hover .mover{opacity:.45}
+.item-row:hover .mover{opacity:.8}
 .item-row .mover:hover{opacity:1}
 .item-row .mover button{font-size:.5rem; line-height:1.1; padding:1px 3px; color:var(--ink2)}
-.item-row .mover button:hover{color:var(--accent)}
-@media (pointer:coarse){ .item-row .mover{opacity:.3} }
+.item-row .mover button:hover{color:var(--accent-ink)}
+/* On a phone there is no hover, so this is the resting state of the only reorder
+   control there is. .3 left it at 1.5:1, under the 3:1 floor for a control. */
+@media (pointer:coarse){ .item-row .mover{opacity:.8} }
 .item-row .loopb{
   flex:none; font-size:.68rem; font-weight:800; padding:2px 7px; border-radius:999px;
   border:1px solid var(--line); color:var(--ink2); font-family:ui-monospace,monospace;
 }
-.item-row .loopb:hover{border-color:var(--accent); color:var(--accent)}
+.item-row .loopb:hover{border-color:var(--accent); color:var(--accent-ink)}
 .item-row .check.multi{font-size:.6rem; font-weight:800; font-family:ui-monospace,monospace}
 .item-row.partial .check{border-color:var(--peach); color:#5c4520; background:var(--peach)}
+/* No opacity here. --ink2 is picked to clear 4.5:1 on --bg exactly, so any fade
+   at all puts the corner hint under the floor (it measured 3.72:1 at 85%). */
 #hintCorner{
   position:fixed; left:12px; bottom:10px; z-index:40; max-width:46vw;
   font-size:.72rem; color:var(--ink2); font-family:ui-monospace,monospace;
-  pointer-events:none; opacity:.85; line-height:1.3;
+  pointer-events:none; line-height:1.3;
 }
 .item-row .pts{
   flex:none; font-size:.74rem; font-weight:800; padding:3px 8px; border-radius:999px;
   background:var(--peach); color:#5c4520; font-family:ui-monospace,monospace;
 }
 .item-row.bonus .pts{background:var(--lav); color:#3c2c56}
-.item-row .edit{flex:none; opacity:.35; font-size:.85rem; padding:2px 4px}
+/* The pencil is the only door into the item editor, which is the surface this
+   whole audit is about. At .35 it sat at 1.9:1. */
+.item-row .edit{flex:none; opacity:.62; font-size:.85rem; padding:2px 4px}
 .item-row .edit:hover{opacity:1}
 .tag{font-size:.66rem; padding:0 5px; border-radius:6px; background:var(--panel2); border:1px solid var(--line); color:var(--ink2); vertical-align:1px; margin-left:4px}
 .add-row{margin-top:8px; font-size:.82rem; color:var(--ink2); padding:6px; border-radius:10px; text-align:left}
@@ -189,7 +241,9 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
   border:1px solid var(--line);
 }
 #modal h2{font-size:.95rem; margin-bottom:10px; display:flex; align-items:center; gap:8px}
-#modal h2 .x{margin-left:auto; font-size:1.1rem; opacity:.5; padding:2px 8px}
+/* .5 put the close glyph at 2.6:1. It is the way out of every one of these
+   sheets, so it clears the 3:1 floor for non-text UI even at rest. */
+#modal h2 .x{margin-left:auto; font-size:1.1rem; opacity:.62; padding:2px 8px}
 #modal h2 .x:hover{opacity:1}
 .field{display:flex; flex-direction:column; gap:4px; margin:10px 0}
 .field label{font-size:.74rem; font-weight:700; color:var(--ink2); text-transform:uppercase; letter-spacing:.06em}
@@ -223,7 +277,7 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 }
 .btn:hover{filter:brightness(1.06)}
 .btn.ghost{background:var(--panel2); color:var(--ink); border:1px solid var(--line)}
-.btn.danger{background:#d92b39; color:#fff}
+.btn.danger{background:var(--danger); color:#fff}
 .btn:disabled{opacity:.4; cursor:not-allowed}
 .btnrow{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap}
 .btnrow .spacer{flex:1}
@@ -240,10 +294,12 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 }
 .prize .em{font-size:1.9rem}
 .prize .nm{font-size:.85rem; font-weight:700; line-height:1.2}
-.prize .cost{font-family:ui-monospace,monospace; font-size:.78rem; font-weight:800; color:var(--ticket)}
-.prize .redeem{background:var(--ticket); color:#fff; font-size:.75rem; font-weight:800; border-radius:999px; padding:5px 14px}
-.prize .redeem:disabled{background:var(--line); color:var(--ink2)}
-.prize .pedit{position:absolute; top:6px; right:8px; opacity:.35; font-size:.8rem}
+.prize .cost{font-family:ui-monospace,monospace; font-size:.78rem; font-weight:800; color:var(--ticket-ink)}
+.prize .redeem{background:var(--danger); color:#fff; font-size:.75rem; font-weight:800; border-radius:999px; padding:5px 14px}
+/* WCAG exempts disabled controls, but "you cannot afford this yet" is the state
+   most prize tiles are in most of the time, so it stays readable anyway. */
+.prize .redeem:disabled{background:var(--panel); color:var(--ink2)}
+.prize .pedit{position:absolute; top:6px; right:8px; opacity:.62; font-size:.8rem}
 .prize .pedit:hover{opacity:1}
 
 /* ---------- calendar ---------- */
@@ -260,18 +316,22 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
   text-align:left;
 }
 .cal-cell:hover{border-color:var(--accent)}
-.cal-cell.out{opacity:.35}
-.cal-cell.today .dnum{background:var(--accent); color:#fff; border-radius:99px; padding:0 5px}
+/* Days from the neighbouring months used to fade to 35%, which took the date
+   itself to 1.55:1. They recede by sinking to the page colour instead, so the
+   cell reads as outside the month and the number stays legible. */
+.cal-cell.out{background:transparent; border-style:dashed}
+.cal-cell.today .dnum{background:var(--accent); color:var(--on-accent); border-radius:99px; padding:0 5px}
 .cal-cell.sel{background:var(--panel); border-color:var(--accent); box-shadow:var(--shadow)}
 .cal-cell .dnum{font-size:.66rem; font-weight:800; color:var(--ink2); align-self:flex-start}
 .cchip{
   font-size:.56rem; line-height:1.45; background:var(--peach); color:#5c4520; border-radius:5px;
   padding:0 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; max-width:100%;
 }
-.cchip.done{background:var(--sage); color:#fff; text-decoration:line-through}
+.cchip.done{background:var(--sage); color:var(--on-sage); text-decoration:line-through}
 .cchip.carried{background:var(--lav); color:#3c2c56}
 .cchip.fin{background:#2f7d6b; color:#eafff8}
-.cchip.fin.paid{background:var(--sage); color:#fff; opacity:.72}
+/* Was white on sage at 72% opacity, 1.9:1. The strike-through carries "paid". */
+.cchip.fin.paid{background:var(--sage); color:var(--on-sage); text-decoration:line-through}
 .cal-more{font-size:.55rem; color:var(--ink2); pointer-events:none}
 .cal-day-panel{margin-top:14px; border-top:1px solid var(--line); padding-top:10px}
 .cal-day-panel h3{font-size:.8rem; margin-bottom:6px; color:var(--ink2)}
@@ -292,18 +352,25 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .fin-sum-l{display:block; font-size:.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink2); margin-top:2px}
 .fin-list{display:flex; flex-direction:column; gap:6px}
 .fin-row{display:flex; align-items:center; gap:9px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:7px 9px}
-.fin-row.paid{opacity:.66}
+/* A paid row used to fade to 66%, which dragged its title, its amount, its due
+   day and its tags all under the floor at once. It settles into the page colour
+   and strikes the amount instead, which says "handled" without dimming it. */
+.fin-row.paid{background:var(--bg)}
+.fin-row.paid .ttl{text-decoration:line-through}
+.fin-row.paid .fin-amt{color:var(--ink2); text-decoration:line-through}
 .fin-day{flex:0 0 auto; min-width:26px; height:26px; display:grid; place-items:center; border-radius:7px; background:var(--panel); border:1px solid var(--line); font-weight:800; font-size:.8rem; color:var(--ink2)}
 .fin-t{flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px}
 .fin-t .ttl{font-weight:700; font-size:.86rem}
 .fin-t .sub{flex-basis:100%; font-size:.7rem; color:var(--ink2)}
 .fin-t .tag{font-size:.6rem; background:var(--panel); border:1px solid var(--line); color:var(--ink2); border-radius:99px; padding:1px 7px}
-.fin-t .tag.late{background:#e6394622; border-color:var(--ticket); color:var(--ticket)}
-.fin-t .tag.due{background:#e07a5f22; border-color:var(--accent); color:var(--accent)}
+.fin-t .tag.late{background:#e6394622; border-color:var(--ticket-ink); color:var(--ticket-ink)}
+.fin-t .tag.due{background:#e07a5f22; border-color:var(--accent-ink); color:var(--accent-ink)}
 .fin-amt{flex:0 0 auto; font-weight:800; font-size:.86rem; color:var(--ink)}
 .fin-check{flex:0 0 auto; font-size:.7rem; font-weight:700; border:1px solid var(--line); background:var(--panel); color:var(--ink2); border-radius:99px; padding:4px 10px; cursor:pointer}
-.fin-check:hover{border-color:var(--good); color:var(--good)}
-.fin-check.on{background:var(--good); border-color:var(--good); color:#fff}
+.fin-check:hover{border-color:var(--good-ink); color:var(--good-ink)}
+/* --good is a background green. White on it is 3.9:1 and near-black on it is
+   3.95:1, so no ink rescues this pill, the fill itself has to go deeper. */
+.fin-check.on{background:var(--good-solid); border-color:var(--good-solid); color:#fff}
 @media (max-width:560px){ .fin-check{padding:4px 8px} .fin-amt{font-size:.8rem} }
 
 /* ---------- ledger ---------- */
@@ -311,7 +378,7 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .ledger-row .when{flex:none; width:104px; color:var(--ink2); font-size:.72rem; font-family:ui-monospace,monospace}
 .ledger-row .lbl{flex:1; min-width:0}
 .ledger-row .delta{flex:none; font-family:ui-monospace,monospace; font-weight:800}
-.delta.pos{color:var(--good)} .delta.neg{color:var(--ticket)}
+.delta.pos{color:var(--good-ink)} .delta.neg{color:var(--ticket-ink)}
 
 /* ---------- toast + confetti ---------- */
 #toasts{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:80; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none}
@@ -329,7 +396,7 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .note{font-size:.78rem; color:var(--ink2); margin-top:10px; line-height:1.45}
 hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
 .retired-row{display:flex; gap:8px; align-items:center; font-size:.85rem; padding:4px 0; color:var(--ink2)}
-.retired-row button{color:var(--accent); font-size:.78rem; font-weight:700}
+.retired-row button{color:var(--accent-ink); font-size:.78rem; font-weight:700}
 </style>
 </head>
 <body>
@@ -782,9 +849,11 @@ function updateCar(){
   [...ring.children].forEach((c,i)=>{
     const d = (i - carIdx + 4) % 4; // 0 front, 1 right, 3 left, 2 tucked behind
     let t, o, z;
-    if(d===0){      t = "translateX(0) rotateY(0deg) scale(1)";        o = 1;   z = 3; }
-    else if(d===1){ t = "translateX(58%) rotateY(-34deg) scale(.88)";  o = .45; z = 2; }
-    else if(d===3){ t = "translateX(-58%) rotateY(34deg) scale(.88)";  o = .45; z = 2; }
+    // The side cards are blank silhouettes (see .car-card:not(.front) in the
+    // CSS), so their fade costs no readability. Only the front card shows text.
+    if(d===0){      t = "translateX(0) rotateY(0deg) scale(1)";        o = 1;  z = 3; }
+    else if(d===1){ t = "translateX(58%) rotateY(-34deg) scale(.88)";  o = .5; z = 2; }
+    else if(d===3){ t = "translateX(-58%) rotateY(34deg) scale(.88)";  o = .5; z = 2; }
     else {          t = "translateX(0) rotateY(0deg) scale(.76)";      o = 0;   z = 1; }
     c.style.transform = t; c.style.opacity = o; c.style.zIndex = z;
     c.classList.toggle("front", d===0);

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>The deck &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Every card in the HACKING☆PARADISE deck, at both scales, so the whole set can be checked at a glance." />
+<meta name="theme-color" content="#0b0913" />
+<link rel="stylesheet" href="hp-cards.css" />
+<link rel="stylesheet" href="games.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<style>
+/* gallery only. Nothing here belongs to the component. */
+.suitrow{margin-top:26px}
+.suitrow h3{margin:0 0 4px; font-size:1.05rem; font-weight:800}
+.suitrow .who{font-family:var(--mono); font-size:.68rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 12px}
+.deckgrid{display:grid; gap:8px; grid-template-columns:repeat(auto-fill,minmax(56px,1fr))}
+@media (min-width:760px){ .deckgrid{grid-template-columns:repeat(13,1fr)} }
+
+.sizes{display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; margin-top:20px}
+.sizes figure{margin:0}
+.sizes figcaption{font-family:var(--mono); font-size:.66rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); margin-top:9px}
+.w50{width:50px} .w72{width:72px} .w96{width:96px} .w132{width:132px}
+
+/* the cascade proof: ten cards overlapping the way a tableau stacks them */
+.cascade{position:relative; width:64px}
+.cascade .hpc{position:absolute; left:0; width:64px}
+.showcasegrid{display:grid; gap:clamp(14px,3vw,22px); margin-top:22px;
+  grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+@media (max-width:430px){ .showcasegrid{grid-template-columns:1fr} }
+.pair{display:grid; gap:16px; grid-template-columns:132px 1fr; align-items:start; margin-top:20px}
+@media (max-width:520px){ .pair{grid-template-columns:1fr} }
+</style>
+</head>
+<body class="hpc-scope">
+
+<a class="skip" href="#main">Skip to the deck</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main id="main">
+
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">The deck</p>
+      <h1>FIFTY TWO</h1>
+      <p class="lede">One design language at two scales. The showcase card is the ornate one, the face a member or a game wears. The play card is the compact one, built so a rank and a suit still read when twenty of them overlap.</p>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <h2>Two scales</h2>
+      <p class="lede">Same shape, same cut corners, same gold hairline inside the bezel. The play card is not the showcase card shrunk, it is redrawn, because the ornate frame stops reading below about a hundred and twenty pixels wide.</p>
+      <div class="pair">
+        <div id="pairShow"></div>
+        <div>
+          <div class="sizes" id="sizes"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <h2>The cascade test</h2>
+      <p class="lede">This is the case the compact card exists for. Ten cards stacked with only the top strip of each one showing. If you can read every rank and suit here, it works.</p>
+      <div class="sizes" style="margin-top:26px">
+        <figure><div class="cascade" id="cascadeUp"></div><figcaption>Face up run</figcaption></figure>
+        <figure><div class="cascade" id="cascadeMix"></div><figcaption>Face down under face up</figcaption></figure>
+        <figure><div class="w96" id="pileParts"></div><figcaption>Back and empty space</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Every card</h2>
+      <p class="lede">Four suits, thirteen ranks. The pip stays classic red or black because that is the only thing a player reads at speed. The member color lives in the stripe down the left edge instead.</p>
+      <div id="deck"></div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <h2>Showcase cards</h2>
+      <p class="lede">The full size face. This is the component the member pages will use, so it is built once here and imported there.</p>
+      <div class="showcasegrid" id="showcase"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">Back to the games</a></p>
+</div></footer>
+
+<script src="hp-cards.js"></script>
+<script src="games.js"></script>
+<script>
+(function(){
+  'use strict';
+  var C = window.HPCards;
+
+  function el(tag, cls){ var n=document.createElement(tag); if(cls) n.className=cls; return n; }
+
+  /* ---- two scales, side by side ---- */
+  var pairShow = document.getElementById('pairShow');
+  pairShow.appendChild(C.showcase({
+    name:'Ace of Spades', rank:7, attr:'Founder', handle:'@hackingparadise',
+    glyph:'A', type:'Showcase | Ornate | Full size', suit:'S',
+    text:'The full size face. Name plate, rank, attribute, art window, type line, text box and a set footer.',
+    no:'HPD 001', set:'Showcase'
+  }));
+
+  var sizes = document.getElementById('sizes');
+  [['w50','50px, a phone tableau'],['w72','72px, a tablet'],['w96','96px, a desktop'],['w132','132px, oversized']]
+    .forEach(function(pair){
+      var fig = el('figure');
+      var box = el('div', pair[0]);
+      box.appendChild(C.play({id:'SA', s:'S', r:'A', v:1}));
+      fig.appendChild(box);
+      var cap = el('figcaption'); cap.textContent = pair[1]; fig.appendChild(cap);
+      sizes.appendChild(fig);
+    });
+
+  /* ---- the cascade proof ---- */
+  function cascade(host, cards, faceDownCount){
+    var step = 19, w = 64;
+    host.style.height = (step * (cards.length - 1) + w * 7 / 5) + 'px';
+    cards.forEach(function(c, i){
+      var node = i < faceDownCount ? C.back() : C.play(c);
+      node.style.top = (i * step) + 'px';
+      node.style.zIndex = String(i + 1);
+      host.appendChild(node);
+    });
+  }
+  var run = [
+    {id:'SK',s:'S',r:'K',v:13},{id:'HQ',s:'H',r:'Q',v:12},{id:'CJ',s:'C',r:'J',v:11},
+    {id:'DT',s:'D',r:'T',v:10},{id:'S9',s:'S',r:'9',v:9},{id:'H8',s:'H',r:'8',v:8},
+    {id:'C7',s:'C',r:'7',v:7},{id:'D6',s:'D',r:'6',v:6},{id:'S5',s:'S',r:'5',v:5},
+    {id:'H4',s:'H',r:'4',v:4}
+  ];
+  cascade(document.getElementById('cascadeUp'), run, 0);
+  cascade(document.getElementById('cascadeMix'), run, 4);
+
+  var parts = document.getElementById('pileParts');
+  var stack = el('div');
+  stack.style.display = 'grid';
+  stack.style.gap = '10px';
+  stack.appendChild(C.back());
+  stack.appendChild(C.slot('☆'));
+  parts.appendChild(stack);
+
+  /* ---- the whole deck, suit by suit ---- */
+  var deckHost = document.getElementById('deck');
+  var full = C.deck();
+  C.SUITS.forEach(function(s){
+    var row = el('div','suitrow');
+    var h = el('h3'); h.textContent = s.name + ' ' + s.pip; row.appendChild(h);
+    var who = el('p','who'); who.textContent = s.member + ', ' + s.mark; row.appendChild(who);
+    var grid = el('div','deckgrid');
+    full.filter(function(c){ return c.s === s.k; }).forEach(function(c){
+      grid.appendChild(C.play(c));
+    });
+    row.appendChild(grid);
+    deckHost.appendChild(row);
+  });
+
+  /* ---- showcase set ----
+     Every line of copy on these four cards is lifted verbatim from the member
+     grid on hp/index.html, which is Vi's own approved wording and is already
+     public. The first draft of this page carried paraphrases written here, and
+     three of these are real people who did not agree to be described by a
+     paraphrase. If a card's wording needs to change, change it on index.html
+     first and copy it here, never the other way around. */
+  var showcase = document.getElementById('showcase');
+  [
+    { name:'Vi Ellis', suit:'S', rank:8, attr:'Composer', handle:'@hackingparadise', glyph:'VE',
+      type:'Composer | Sound designer | Technologist',
+      text:'Composer and technical sound designer. When the tool I need does not exist, I build it.',
+      no:'HPD 002', set:'Spades' },
+    { name:'Shinobi Necro', suit:'H', rank:7, attr:'Artist', handle:'@shinobi-necro', glyph:'SN',
+      type:'Artist | Flagship project',
+      text:'A flagship HACKING PARADISE project, a shinobi to necro transformation with a page of its own.',
+      no:'HPD 003', set:'Hearts' },
+    { name:'Judah Ellis', suit:'C', rank:7, attr:'Producer', handle:'@crunchculture', glyph:'JE',
+      type:'Programmer | Game designer | Musician',
+      text:'Programmer, game designer, and musician. Builds games and the systems under them.',
+      no:'HPD 004', set:'Clubs' },
+    { name:'Robby Winters', suit:'D', rank:6, attr:'Narrative', handle:'@pastel_porchlight', glyph:'RW',
+      type:'Narrative lead | Writer | Worldbuilder',
+      text:'Narrative lead, the writer and worldbuilder threading the story through it all.',
+      no:'HPD 005', set:'Diamonds' }
+  ].forEach(function(d){ showcase.appendChild(C.showcase(d)); });
+})();
+</script>
+</body>
+</html>

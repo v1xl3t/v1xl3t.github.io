@@ -1,0 +1,148 @@
+/* ============================================================
+   HACKING PARADISE games, shared page chrome.
+
+   Everything here is the frame around the cards. The cards
+   themselves live in hp-cards.css, which is standalone so the
+   member pages can take it without taking this.
+
+   Two themes, driven by data-theme on <html>. Abyss is the
+   default and Paradise is the bright one, the same two ends the
+   index page falls between. Both are audited, and every color
+   below was measured rather than eyeballed.
+   ============================================================ */
+
+:root{
+  --ink:#ece7fb;
+  --muted:#c6bfe2;
+  --accent:#b9a6f5;
+  --accent-ink:#3DFF6E;
+  --line:rgba(185,166,245,.20);
+  --panel:rgba(255,255,255,.03);
+  --bg:#0b0913;
+  --bg-2:#07060d;
+  --felt:#0e0a1b;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --tap:44px;
+}
+:root[data-theme="light"]{
+  --ink:#2a2440;
+  --muted:#5a5377;
+  --accent:#6d28d9;
+  --accent-ink:#126e35;
+  --line:rgba(74,52,140,.26);
+  --panel:rgba(124,58,237,.06);
+  --bg:#f3eefb;
+  --bg-2:#e8e0f7;
+  --felt:#ded3f2;
+}
+
+@font-face{font-family:"BlackMetal"; src:url("../fonts/blackmetal.ttf") format("truetype"); font-display:swap}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+/* Buttons here are display:inline-flex, which beats the user agent rule for
+   [hidden] and left a hidden button on screen. Say it once, loudly. */
+[hidden]{display:none !important}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+  line-height:1.6; -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+a{color:inherit}
+img{max-width:100%; display:block}
+.wrap{max-width:1080px; margin:0 auto; padding:0 clamp(14px,4vw,48px)}
+
+/* ambient void wash, the same glows the member pages use */
+.voidbg{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.voidbg span{position:absolute; left:50%; width:120vmax; height:120vmax; border-radius:50%;
+  transform:translate(-50%,0); filter:blur(48px); opacity:.4}
+.voidbg .a{top:-46vmax; background:radial-gradient(circle,rgba(139,123,216,.30),transparent 60%)}
+.voidbg .b{top:44vmax; background:radial-gradient(circle,rgba(124,58,237,.20),transparent 60%)}
+.grain{position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+:root[data-theme="light"] .grain{opacity:.03;
+  background-image:repeating-linear-gradient(0deg,#000 0 1px,transparent 1px 3px)}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky; top:0; z-index:30; backdrop-filter:blur(8px);
+  background:linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 70%, transparent));
+  border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex; align-items:center; gap:10px; min-height:56px; flex-wrap:wrap}
+.brand{font-family:var(--mono); font-size:.72rem; letter-spacing:.24em; text-transform:uppercase;
+  color:var(--accent); text-decoration:none; white-space:nowrap; margin-right:auto;
+  display:inline-flex; align-items:center; min-height:var(--tap)}
+.brand b{color:var(--ink)}
+.tb-btn{
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-decoration:none;
+  color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:999px;
+  padding:0 14px; min-height:var(--tap); min-width:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  white-space:nowrap; cursor:pointer; line-height:1.1;
+  transition:border-color .2s ease, color .2s ease}
+.tb-btn:hover{border-color:var(--accent-ink); color:var(--accent-ink)}
+.tb-btn:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
+
+/* ---------- headings ---------- */
+.eyebrow{font-family:var(--mono); font-size:.7rem; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 14px}
+h1{font-size:clamp(2.1rem,8vw,4.4rem); line-height:.98; letter-spacing:-.03em; margin:0; font-weight:800}
+h2{font-size:clamp(1.4rem,4vw,2.2rem); line-height:1.1; letter-spacing:-.02em; margin:0 0 .5em; font-weight:800}
+.lede{font-size:clamp(1rem,1.5vw,1.18rem); color:var(--muted); max-width:60ch}
+section{padding:clamp(34px,7vh,84px) 0}
+
+/* ---------- the hub grid ---------- */
+.tiles{
+  display:grid; gap:clamp(14px,3vw,24px); margin-top:28px;
+  grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+}
+@media (max-width:430px){ .tiles{grid-template-columns:1fr; gap:16px} }
+.tile{position:relative}
+.tile .flag{
+  position:absolute; z-index:3; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-8deg);
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.2em; text-transform:uppercase;
+  color:#07060d; background:var(--accent); border-radius:6px; padding:7px 12px; font-weight:700;
+  pointer-events:none; box-shadow:0 6px 20px rgba(0,0,0,.5)}
+:root[data-theme="light"] .tile .flag{color:#f6f2ff}
+
+/* ---------- generic panel + buttons ---------- */
+.panel{border:1px solid var(--line); border-radius:16px; padding:clamp(14px,3vw,22px);
+  background:var(--panel)}
+.btn{
+  font-family:var(--mono); font-size:.74rem; letter-spacing:.06em;
+  color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:999px;
+  padding:0 16px; min-height:var(--tap); min-width:var(--tap);
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  cursor:pointer; white-space:nowrap; line-height:1.1; text-decoration:none;
+  transition:border-color .2s ease, color .2s ease}
+.btn:hover{border-color:var(--accent-ink); color:var(--accent-ink)}
+.btn:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
+.btn[disabled]{opacity:.45; cursor:default}
+.btn[disabled]:hover{border-color:var(--line); color:var(--ink)}
+.btn.on{border-color:var(--accent-ink); color:var(--accent-ink)}
+.btn.primary{background:var(--accent); color:#15102a; border-color:var(--accent); font-weight:700}
+:root[data-theme="light"] .btn.primary{color:#f6f2ff}
+.btn.primary:hover{color:#15102a; border-color:var(--accent); filter:brightness(1.08)}
+:root[data-theme="light"] .btn.primary:hover{color:#f6f2ff}
+
+.row{display:flex; flex-wrap:wrap; gap:9px; align-items:center}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line); padding:26px 0 40px; margin-top:20px}
+footer .wrap{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between}
+footer p{margin:0; font-family:var(--mono); font-size:.68rem; letter-spacing:.06em; color:var(--muted)}
+footer a{color:var(--accent-ink)}
+
+/* ---------- visually hidden, still read aloud ---------- */
+.sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+/* skip link, visible once focused */
+.skip{position:absolute; left:8px; top:-60px; z-index:200; background:var(--bg);
+  border:1px solid var(--accent-ink); color:var(--ink); border-radius:8px;
+  padding:10px 14px; text-decoration:none; transition:top .15s ease}
+.skip:focus{top:8px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important; transition-duration:.001ms !important}
+}
