@@ -130,9 +130,9 @@
     <summary><h2>Practice tools</h2></summary>
     <div class="fields">
       <label class="field">
-        <span>Quieten the centre <output id="duck-out">off</output></span>
+        <span>Quieten the center <output id="duck-out">off</output></span>
         <input type="range" id="duck" min="0" max="100" step="5" value="0" />
-        <span class="note" id="duck-note">Pulls down whatever is panned dead centre, which is usually the kick, the snare and the lead vocal. Rough, but it lets you be the drummer. Needs a stereo file.</span>
+        <span class="note" id="duck-note">Pulls down whatever is panned dead center, which is usually the kick, the snare and the lead vocal. Rough, but it lets you be the drummer. Needs a stereo file.</span>
       </label>
       <div class="field">
         <span>Metronome</span>
@@ -190,15 +190,15 @@
           <button type="button" class="btn" id="cal-run">Run calibration</button>
           <button type="button" class="btn" id="cal-clear">Reset to zero</button>
         </div>
-        <span class="note" id="cal-note">Play eight clicks and tap along on any pad or key. Your output delay gets measured once and subtracted from every judgement after that, so the app stops blaming you for the browser.</span>
+        <span class="note" id="cal-note">Play eight clicks and tap along on any pad or key. Your output delay gets measured once and subtracted from every judgment after that, so the app stops blaming you for the browser.</span>
       </div>
       <label class="field">
         <span>Detection sensitivity <output id="sens-out">normal</output></span>
         <input type="range" id="sens" min="60" max="160" step="10" value="100" />
-        <span class="note">Higher finds quieter hits and more mistakes. Re analyse after changing it.</span>
+        <span class="note">Higher finds quieter hits and more mistakes. Re analyze after changing it.</span>
       </label>
       <div class="row">
-        <button type="button" class="btn" id="reanalyse" disabled>Analyse again</button>
+        <button type="button" class="btn" id="reanalyse" disabled>Analyze again</button>
       </div>
     </div>
   </details>
@@ -208,14 +208,14 @@
     <ul class="plain">
       <li>It finds drum hits with spectral flux onset detection, then sorts them into kick, snare and hi hat by where their energy sits in the spectrum. That is classic signal processing, not machine learning, so there is no model to download and the analysis takes a couple of seconds.</li>
       <li>Toms and cymbals are not detected as such. They land in the nearest of the three lanes and usually come through with low confidence. Notes the detector was unsure about are drawn with a dashed outline, and the editor is there so you can fix them.</li>
-      <li>It does not separate the drums from the rest of the mix. The centre cut in the practice tools is a rough stand in. Real separation means tens of megabytes of model weights, which is a fair upgrade one day but not something to make you wait for now.</li>
+      <li>It does not separate the drums from the rest of the mix. The center cut in the practice tools is a rough stand in. Real separation means tens of megabytes of model weights, which is a fair upgrade one day but not something to make you wait for now.</li>
       <li>Your file never leaves this device. There is no account, no upload, no analytics.</li>
     </ul>
   </section>
 </main>
 
 <footer class="wrap">
-  <p class="note">Built for drummers who do not want to pay a subscription to practise. Free, and the useful version is the free one.</p>
+  <p class="note">Built for drummers who do not want to pay a subscription to practice. Free, and the useful version is the free one.</p>
 </footer>
 
 <script type="module" src="./src/app.js"></script>
