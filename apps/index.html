@@ -13,7 +13,7 @@
      the font-rendered glyph closed up into a blob and also depended on
      whichever sans the viewer's OS happens to supply. Inline data URI keeps
      it a zero-fetch, which is how the rest of the site does favicons. -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='3' y1='-3' x2='61' y2='67'%3E%3Cstop offset='0' stop-color='%233dfd7a'/%3E%3Cstop offset='1' stop-color='%239d7bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='19' fill='url(%23g)'/%3E%3Cpath d='M18 19 L32 45 L46 19' fill='none' stroke='%2306210f' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Cdefs%3E%3ClinearGradient%20id='vg'%20gradientUnits='userSpaceOnUse'%20x1='3'%20y1='-3'%20x2='61'%20y2='67'%3E%3Cstop%20offset='0'%20stop-color='%233dfd7a'/%3E%3Cstop%20offset='1'%20stop-color='%239d7bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='64'%20height='64'%20rx='19'%20fill='url(%23vg)'/%3E%3Cpath%20d='M19.66%2018%20L25.82%2046%20L31.98%2018'%20fill='none'%20stroke='%2306210f'%20stroke-width='6.5'%20stroke-linecap='butt'%20stroke-linejoin='miter'/%3E%3Cpath%20d='M41.09%2028.64%20L41.09%2046'%20fill='none'%20stroke='%2306210f'%20stroke-width='6.5'%20stroke-linecap='butt'/%3E%3Crect%20x='37.84'%20y='17.27'%20width='6.5'%20height='6.5'%20fill='%2306210f'/%3E%3C/svg%3E" />
 <style>
 /* ============================================================
    Directory shell. Shares the portfolio's design system:
@@ -65,9 +65,10 @@ main{ width:100%; max-width:880px; margin:0 auto; padding:clamp(48px,9vw,104px) 
 .head{ animation:rise .7s cubic-bezier(.22,.61,.36,1) both }
 .mark{
   width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
-  background:linear-gradient(140deg,var(--accent),var(--accent-2)); color:var(--accent-ink);
-  font-weight:900; font-size:1.2rem; box-shadow:var(--shadow); margin-bottom:18px;
+  /* Tile and letter live inside the SVG, this box only sizes it. */
+  overflow:hidden; box-shadow:var(--shadow); margin-bottom:18px;
 }
+.mark svg{ display:block; width:100%; height:100% }
 h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; line-height:1.05 }
 .tag{ margin:.6em 0 0; color:var(--ink-soft); font-size:clamp(1rem,.95rem+.3vw,1.15rem); max-width:46ch }
 
@@ -182,7 +183,7 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
 </button>
 <main>
   <div class="head">
-    <div class="mark" aria-hidden="true">V</div>
+    <div class="mark" aria-hidden="true"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='vg' gradientUnits='userSpaceOnUse' x1='3' y1='-3' x2='61' y2='67'><stop offset='0' stop-color='#3dfd7a'/><stop offset='1' stop-color='#9d7bff'/></linearGradient></defs><rect width='64' height='64' rx='19' fill='url(#vg)'/><path d='M19.66 18 L25.82 46 L31.98 18' fill='none' stroke='#06210f' stroke-width='6.5' stroke-linecap='butt' stroke-linejoin='miter'/><path d='M41.09 28.64 L41.09 46' fill='none' stroke='#06210f' stroke-width='6.5' stroke-linecap='butt'/><rect x='37.84' y='17.27' width='6.5' height='6.5' fill='#06210f'/></svg></div>
     <h1>Vi Ellis</h1>
     <p class="tag">Engineer, product developer, and composer. Here's the work, and a few things you can actually play with.</p>
   </div>

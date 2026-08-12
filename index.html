@@ -12,7 +12,7 @@
      node because a favicon gets rasterised at 16px, where the font-rendered
      glyph closed up into a blob and also depended on whichever sans the
      viewer's OS happens to supply. Inline data URI keeps it a zero-fetch. -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='3' y1='-3' x2='61' y2='67'%3E%3Cstop offset='0' stop-color='%233dfd7a'/%3E%3Cstop offset='1' stop-color='%239d7bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='19' fill='url(%23g)'/%3E%3Cpath d='M18 19 L32 45 L46 19' fill='none' stroke='%2306210f' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Cdefs%3E%3ClinearGradient%20id='vg'%20gradientUnits='userSpaceOnUse'%20x1='3'%20y1='-3'%20x2='61'%20y2='67'%3E%3Cstop%20offset='0'%20stop-color='%233dfd7a'/%3E%3Cstop%20offset='1'%20stop-color='%239d7bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='64'%20height='64'%20rx='19'%20fill='url(%23vg)'/%3E%3Cpath%20d='M19.66%2018%20L25.82%2046%20L31.98%2018'%20fill='none'%20stroke='%2306210f'%20stroke-width='6.5'%20stroke-linecap='butt'%20stroke-linejoin='miter'/%3E%3Cpath%20d='M41.09%2028.64%20L41.09%2046'%20fill='none'%20stroke='%2306210f'%20stroke-width='6.5'%20stroke-linecap='butt'/%3E%3Crect%20x='37.84'%20y='17.27'%20width='6.5'%20height='6.5'%20fill='%2306210f'/%3E%3C/svg%3E" />
 <style>
 /* ============================================================
    Vi Ellis, Portfolio
@@ -122,12 +122,13 @@ nav{
 .brand .mark{
   width:30px; height:30px; flex:none;
   display:grid; place-items:center;
-  border-radius:9px;
-  background:linear-gradient(140deg, var(--accent-dim), #0d2a1e);
-  border:1px solid var(--border);
-  color:var(--accent); font-weight:900;
-  box-shadow:inset 0 0 12px rgba(61,253,122,.15);
+  /* The tile, gradient and letter all live inside the SVG now, so this box
+     only sizes it. Drawing a background here as well would put a second tile
+     behind the first, and the light-theme override below used to repaint a
+     mark that no longer takes a colour. */
+  border-radius:9px; overflow:hidden;
 }
+.brand .mark svg{ display:block; width:100%; height:100% }
 .nav-links{display:flex; align-items:center; gap:4px}
 .nav-links a{
   color:var(--muted); font-weight:600; font-size:.93rem;
@@ -768,7 +769,6 @@ html[data-theme="light"] body{
 }
 html[data-theme="light"] header{ background:rgba(247,244,254,.72) }
 html[data-theme="light"] header.scrolled{ background:rgba(247,244,254,.9) }
-html[data-theme="light"] .brand .mark{ background:linear-gradient(140deg,var(--accent-2),var(--accent)); color:#fff; box-shadow:inset 0 0 12px rgba(124,95,224,.2) }
 html[data-theme="light"] .nav-links a:hover{ background:rgba(60,53,86,.06) }
 html[data-theme="light"] .btn-primary,
 html[data-theme="light"] .nav-links a.cta,
@@ -863,7 +863,7 @@ html[data-theme="light"] .media-note{
 <header id="top">
   <nav aria-label="Primary">
     <a class="brand" href="#top" aria-label="Vi Ellis, home">
-      <span class="mark" aria-hidden="true">V</span>
+      <span class="mark" aria-hidden="true"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='vg' gradientUnits='userSpaceOnUse' x1='3' y1='-3' x2='61' y2='67'><stop offset='0' stop-color='#3dfd7a'/><stop offset='1' stop-color='#9d7bff'/></linearGradient></defs><rect width='64' height='64' rx='19' fill='url(#vg)'/><path d='M19.66 18 L25.82 46 L31.98 18' fill='none' stroke='#06210f' stroke-width='6.5' stroke-linecap='butt' stroke-linejoin='miter'/><path d='M41.09 28.64 L41.09 46' fill='none' stroke='#06210f' stroke-width='6.5' stroke-linecap='butt'/><rect x='37.84' y='17.27' width='6.5' height='6.5' fill='#06210f'/></svg></span>
       <span>Vi Ellis</span>
     </a>
     <div class="nav-right">
