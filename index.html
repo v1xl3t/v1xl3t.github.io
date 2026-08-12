@@ -6,7 +6,13 @@
 <title>Vi Ellis · Engineer · Product Developer · Composer</title>
 <meta name="description" content="Vi Ellis, applied computer scientist, hardware product developer, and award-winning composer. Production AI agents on the Claude API, full-pipeline hardware, GDC-showcased game audio." />
 <meta name="theme-color" content="#0a0f16" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0f16'/%3E%3Cpath d='M16 18 L32 46 L48 18' fill='none' stroke='%233dfd7a' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<!-- The "V" mark, same one the /apps/ header wears. Tile geometry, gradient
+     stops and ink are lifted straight from the .mark rule there, so the two
+     surfaces cannot drift. The letter is a stroked path rather than a text
+     node because a favicon gets rasterised at 16px, where the font-rendered
+     glyph closed up into a blob and also depended on whichever sans the
+     viewer's OS happens to supply. Inline data URI keeps it a zero-fetch. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='3' y1='-3' x2='61' y2='67'%3E%3Cstop offset='0' stop-color='%233dfd7a'/%3E%3Cstop offset='1' stop-color='%239d7bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='19' fill='url(%23g)'/%3E%3Cpath d='M18 19 L32 45 L46 19' fill='none' stroke='%2306210f' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <style>
 /* ============================================================
    Vi Ellis, Portfolio
@@ -779,6 +785,12 @@ html[data-theme="light"] .filter[aria-pressed="true"]{ background:#7c5fe0; borde
 html[data-theme="light"] .btn-primary:hover{ background:#6d4fd0 }
 html[data-theme="light"] .nav-links a.cta:hover{ background:#6d4fd0; color:#fff }
 html[data-theme="light"] .eyebrow{ background:rgba(154,63,190,.10); color:#87309f }
+/* The raw --accent lands at 4.39:1 on the lavender wash, just under the 4.5
+   floor, and these labels are small uppercase mono where it matters most. Same
+   darkened purple the eyebrow already uses, and the same value /apps/ took for
+   its light accent. The rule before the text keeps --accent, since a decorative
+   1px line is not text and carries no contrast requirement. */
+html[data-theme="light"] .section-label{ color:#87309f }
 html[data-theme="light"] .eyebrow .dot{ box-shadow:0 0 0 4px rgba(124,95,224,.18) }
 html[data-theme="light"] h1.hero-title .accent{ background:linear-gradient(100deg,#7c5fe0,#8b63e6 55%,#9575f5); -webkit-background-clip:text; background-clip:text }
 html[data-theme="light"] .lede{ color:#5a5377 }
