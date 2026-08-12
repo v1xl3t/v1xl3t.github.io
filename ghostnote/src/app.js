@@ -4,7 +4,7 @@
 // CADence exposes window.cadence, so the suite can push a synthetic click track
 // through the real pipeline instead of a pretend one.
 
-import { analyse, analyseBuffer, downmix, DEFAULTS } from './analyse.js';
+import { analyse, analyseBuffer, downmix, estimateMeter, DEFAULTS } from './analyse.js';
 import { renderHits, rockPattern, demoBuffer } from './synth.js';
 import { Chart, LANES, LANE_LABEL } from './chart.js';
 import { writeMidi, readMidi } from './midi.js';
@@ -118,28 +118,98 @@ export async function loadBlob(blob, name = 'track') {
 export async function reanalyse() {
   if (!state.lastBuffer) return null;
   setStatus('Analysing again.', 'busy');
+  // Re analysing is about the hits, not about the meter, so a signature the
+  // user set by hand survives it. Having to choose 3/4 again every time the
+  // sensitivity moves would be its own small glitch.
+  const chosen = $('timesig').value;
   const a = await runAnalysis(monoOf(state.lastBuffer), state.lastBuffer.sampleRate, { sensitivity: state.sensitivity });
   applyAnalysis(a);
+  if (chosen !== 'auto') {
+    $('timesig').value = chosen;
+    applyMeterChoice();
+    updateSummary();
+  }
   setStatus(`Ready. ${state.chart.notes.length} hits found.`);
   return state.chart;
 }
 
+/**
+ * Everything that has to be forgotten when a different track arrives.
+ *
+ * A second file used to be loaded on top of the first without clearing any of
+ * this, and the leftovers were most of what "the controls glitch out" meant. A
+ * loop region from a six minute track survived onto a thirty second one, so the
+ * play head was yanked to a point past the end and playback died on the spot
+ * while the panel still read "No loop set". The selected note pointed at an id
+ * that no longer existed, so Delete and Nudge quietly did nothing. The play
+ * button still said Pause while the player sat stopped.
+ */
+function resetForNewTrack() {
+  player.pause();
+  player.cancelCountIn();
+  player.loop = null;
+  player._nextClick = 0;
+  state.countingIn = false;
+  view.selectedId = null;
+  view._drag = null;
+  view.time = 0;
+  scorer.reset();
+  player.seek(0);
+  $('seek').value = '0';
+  seeking = false;
+  updateLoopNote();
+  if ($('ed-note')) describeSelection();
+}
+
 function applyAnalysis(a) {
   state.analysis = a;
+  resetForNewTrack();
   state.chart = Chart.fromAnalysis(a);
   state.chart.onchange = () => { updateSummary(); };
   view.chart = state.chart;
-  scorer.reset();
   state.ready = true;
-  player.seek(0);
-  view.time = 0;
   $('play').disabled = false;
   $('restart').disabled = false;
   $('seek').disabled = false;
   $('reanalyse').disabled = false;
+  // A fresh track gets a fresh reading of the meter, so the manual override goes
+  // back to following the detector rather than pinning the previous track's.
+  $('timesig').value = 'auto';
+  applyMeterChoice();
   updateSummary();
   updateScore();
+  updateRateLabel();
   updateDuckAvailability();
+}
+
+/** 6 beats to a bar is written 6/8, everything else over a quarter. */
+function signatureLabel(beatsPerBar) {
+  return beatsPerBar === 6 ? '6/8' : beatsPerBar === 7 ? '7/8' : `${beatsPerBar}/4`;
+}
+
+/** Read the time signature control, and tell the chart what it says. */
+function applyMeterChoice() {
+  const c = state.chart;
+  if (!c) return;
+  const raw = $('timesig').value;
+  if (raw !== 'auto') c.setMeter(parseInt(raw, 10));
+  const label = signatureLabel(c.beatsPerBar);
+  $('sig-out').textContent = label;
+  $('sig-note').textContent = raw !== 'auto'
+    ? `Set by you to ${label}. Choose Detected to hand it back to the app.`
+    : c.meterDetected
+      ? `Heard as ${label} from the way the pattern repeats. Change it here if that looks wrong.`
+      : 'Counted in four, which is the default whenever the track does not clearly say otherwise.';
+  player._nextClick = 0;
+}
+
+/** Speed in both vocabularies at once, so nobody has to translate. */
+function updateRateLabel() {
+  const pct = Math.round((player.rate || 1) * 100);
+  const c = state.chart;
+  $('rate-out').textContent = c && c.bpm
+    ? `${Math.round(c.bpm * (pct / 100))} BPM · ${pct}%`
+    : `${pct}%`;
 }
 
 function updateSummary() {
@@ -148,7 +218,7 @@ function updateSummary() {
   const n = c.counts();
   const bpm = c.bpm ? `${Math.round(c.bpm)} BPM` : 'tempo unclear';
   $('summary').textContent =
-    `${c.notes.length} notes, ${bpm}, kick ${n.kick}, snare ${n.snare}, hi hat ${n.hat}, tom ${n.tom}.`;
+    `${c.notes.length} notes, ${bpm} in ${signatureLabel(c.beatsPerBar)}, kick ${n.kick}, snare ${n.snare}, hi hat ${n.hat}, tom ${n.tom}.`;
   const unsure = c.unsure(0.5);
   const h = $('honesty');
   if (unsure > 0) {
@@ -235,21 +305,40 @@ async function togglePlay() {
     player.pause();
     player.cancelCountIn();
     state.countingIn = false;
-    $('play').textContent = 'Play';
+    syncTransport();
     setStatus('Paused.');
     return;
   }
-  const beats = parseInt($('countin').value, 10) || 0;
-  $('play').textContent = 'Pause';
+  // The count in is chosen in bars, and a bar is however many beats the time
+  // signature says. Counting a waltz in as four was one of the ways a 3/4 track
+  // felt broken before the first note even arrived.
+  const bars = parseInt($('countin').value, 10) || 0;
+  const bpb = state.chart.beatsPerBar || 4;
+  const beats = bars * bpb;
   if (beats && state.chart.period) {
     state.countingIn = true;
+    syncTransport();
     setStatus('Count in.', 'busy');
-    await player.countInThenPlay(beats, state.chart.period);
+    await player.countInThenPlay(beats, state.chart.period, bpb);
     state.countingIn = false;
     setStatus('Playing.');
   } else {
     await player.play();
   }
+  syncTransport();
+}
+
+/**
+ * The play button reads its label off the player rather than being told.
+ *
+ * Every path that could stop playback used to have to remember to set the text,
+ * and the ones that forgot left the button saying Pause over a stopped track.
+ * Reading the truth once a frame means it cannot drift, whatever stopped it.
+ */
+function syncTransport() {
+  const label = player.playing || state.countingIn ? 'Pause' : 'Play';
+  const el = $('play');
+  if (el.textContent !== label) el.textContent = label;
 }
 
 function restart() {
@@ -274,8 +363,8 @@ function frame() {
     player.pumpLoop();
     player.pumpMetronome(state.chart);
     if (state.chart) { scorer.sweep(state.chart, t - hub.offsetMs / 1000); updateScore(); }
-    if (!player.el.paused && player.el.ended) $('play').textContent = 'Play';
   }
+  syncTransport();
   $('clock').textContent = `${fmt(t)} / ${fmt(player.duration)}`;
   if (!seeking && player.duration) $('seek').value = String(Math.round((t / player.duration) * 1000));
   view.render();
@@ -292,7 +381,7 @@ function setMode(mode) {
   $('mode-play').setAttribute('aria-pressed', String(mode === 'play'));
   $('mode-edit').setAttribute('aria-pressed', String(mode === 'edit'));
   $('editbar').hidden = mode !== 'edit';
-  if (mode === 'edit') { player.pause(); $('play').textContent = 'Play'; }
+  if (mode === 'edit') { player.pause(); player.cancelCountIn(); state.countingIn = false; syncTransport(); }
 }
 
 function selectedNote() {
@@ -439,9 +528,13 @@ function wire() {
   });
 
   $('rate').addEventListener('input', (ev) => {
-    const v = +ev.target.value;
-    $('rate-out').textContent = v + '%';
-    player.setRate(v / 100);
+    player.setRate(+ev.target.value / 100);
+    updateRateLabel();
+  });
+
+  $('timesig').addEventListener('change', () => {
+    applyMeterChoice();
+    updateSummary();
   });
 
   $('duck').addEventListener('input', (ev) => {
@@ -457,15 +550,9 @@ function wire() {
     $('metro').classList.toggle('primary', player.metronome);
   });
 
-  $('loop-a').addEventListener('click', () => {
-    player.loop = { a: player.time, b: player.loop ? player.loop.b : player.duration };
-    updateLoopNote();
-  });
-  $('loop-b').addEventListener('click', () => {
-    player.loop = { a: player.loop ? player.loop.a : 0, b: player.time };
-    updateLoopNote();
-  });
-  $('loop-off').addEventListener('click', () => { player.loop = null; updateLoopNote(); });
+  $('loop-a').addEventListener('click', () => setLoop(player.time, player.loop ? player.loop.b : player.duration));
+  $('loop-b').addEventListener('click', () => setLoop(player.loop ? player.loop.a : 0, player.time));
+  $('loop-off').addEventListener('click', () => { player.loop = null; updateLoopNote(); setStatus('Loop cleared.'); });
 
   $('ex-midi').addEventListener('click', () => {
     const bytes = exportMidiBytes(false);
@@ -485,11 +572,16 @@ function wire() {
     if (!f) return;
     try {
       const c = Chart.fromJSON(JSON.parse(await f.text()));
+      // Same clean slate a new audio file gets. A chart swapped in under a live
+      // loop region and a stale selection is the same desync, by another door.
+      resetForNewTrack();
       state.chart = c;
       c.onchange = () => updateSummary();
       view.chart = c;
-      scorer.reset();
+      $('timesig').value = 'auto';
+      applyMeterChoice();
       updateSummary();
+      updateRateLabel();
       setStatus('Chart loaded. Bring the same audio back in to play along to it.');
     } catch (err) {
       setStatus(String(err.message || err), 'bad');
@@ -531,6 +623,18 @@ function wire() {
 
   window.addEventListener('keydown', (ev) => {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(ev.target.tagName)) return;
+    // Space starts and stops, the way it does in every other piece of music
+    // software. A focused button gets to keep it, or one press would both click
+    // the button and toggle the transport.
+    if (ev.code === 'Space' && !ev.repeat) {
+      const t = ev.target;
+      const interactive = t && t.closest && t.closest('button, summary, a, select, input');
+      if (!interactive) {
+        ev.preventDefault();
+        togglePlay();
+        return;
+      }
+    }
     if (state.mode === 'edit' && (ev.key === 'Delete' || ev.key === 'Backspace')) {
       const n = selectedNote();
       if (n) { ev.preventDefault(); state.chart.remove(n.id); view.selectedId = null; describeSelection(); }
@@ -538,6 +642,35 @@ function wire() {
   });
 
   window.addEventListener('resize', () => view.resize());
+}
+
+/**
+ * Set the loop region, and say what happened either way.
+ *
+ * Marking the end before the start left {a: 3, b: 1} sitting in the player. The
+ * loop only runs while b is greater than a, so nothing happened, and the panel
+ * still read "No loop set" even though two buttons had been pressed. Pressing a
+ * control twice and being told nothing was set is exactly what "the controls
+ * glitch out" describes. The region is put in order here instead, and a region
+ * too short to be a loop says so in words.
+ */
+const MIN_LOOP = 0.15;
+
+function setLoop(a, b) {
+  const dur = player.duration || (state.chart ? state.chart.duration : 0);
+  let lo = Math.max(0, Math.min(a, b));
+  let hi = Math.min(dur || Math.max(a, b), Math.max(a, b));
+  if (hi - lo < MIN_LOOP) {
+    player.loop = null;
+    updateLoopNote();
+    setStatus('That loop would be shorter than a fifth of a second, so it was not set. Move the play head and mark the other end.', 'bad');
+    return false;
+  }
+  player.loop = { a: lo, b: hi };
+  player._nextClick = 0;
+  updateLoopNote();
+  setStatus(`Looping ${fmt(lo)} to ${fmt(hi)}.`);
+  return true;
 }
 
 function updateLoopNote() {
@@ -564,11 +697,12 @@ requestAnimationFrame(frame);
 // Everything the tests drive, and anything a curious user wants in the console.
 window.playalong = {
   state, player, hub, scorer, view, calibrator,
-  analyse, analyseBuffer, runAnalysis,
+  analyse, analyseBuffer, runAnalysis, estimateMeter,
   renderHits, rockPattern,
   writeMidi, readMidi, exportMidiBytes,
   Chart, LANES, LANE_LABEL, KEY_MAP, DEFAULTS,
   loadBlob, reanalyse, setMode, restart, togglePlay,
+  setLoop, signatureLabel, applyMeterChoice, updateSummary,
   get chart() { return state.chart; },
   /** Push raw samples through the whole pipeline, the way a real file goes. */
   async loadSamples(samples, sampleRate = 44100, name = 'fixture.wav') {

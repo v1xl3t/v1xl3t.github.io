@@ -52,11 +52,37 @@
       <button type="button" class="btn primary" id="play" disabled>Play</button>
       <button type="button" class="btn" id="restart" disabled>Back to start</button>
       <span class="clock" id="clock">0:00 / 0:00</span>
+      <span class="note kbd">Space plays and stops.</span>
     </div>
     <label class="seekwrap">
       <span class="visually-hidden">Position in the track</span>
       <input type="range" id="seek" min="0" max="1000" value="0" step="1" disabled />
     </label>
+
+    <!-- Tempo and meter live here, in the transport, because that is where a
+         hand goes looking for them. Both are labelled in beats per minute and
+         in percent at once, so a beginner and a producer read the same control
+         without either having to translate. -->
+    <div class="transbar">
+      <label class="field">
+        <span>Speed <output id="rate-out">100%</output></span>
+        <input type="range" id="rate" min="40" max="120" step="5" value="100" />
+        <span class="note">Slow it down to learn a part. The pitch is held steady, so it stays in the right key.</span>
+      </label>
+      <label class="field">
+        <span>Time signature <output id="sig-out">4/4</output></span>
+        <select id="timesig">
+          <option value="auto" selected>Detected</option>
+          <option value="2">2/4</option>
+          <option value="3">3/4</option>
+          <option value="4">4/4</option>
+          <option value="5">5/4</option>
+          <option value="6">6/8</option>
+          <option value="7">7/8</option>
+        </select>
+        <span class="note" id="sig-note">Counted in four unless the track clearly says otherwise. Change it here if the bar lines look wrong.</span>
+      </label>
+    </div>
 
     <div class="row editbar" id="editbar" hidden>
       <button type="button" class="btn" id="ed-del">Delete note</button>
@@ -76,7 +102,7 @@
       <button type="button" class="pad" data-lane="hat"><span class="pad-name">Hi hat</span><span class="pad-key">D</span></button>
       <button type="button" class="pad" data-lane="snare"><span class="pad-name">Snare</span><span class="pad-key">F</span></button>
       <button type="button" class="pad" data-lane="tom"><span class="pad-name">Tom</span><span class="pad-key">J</span></button>
-      <button type="button" class="pad" data-lane="kick"><span class="pad-name">Kick</span><span class="pad-key">Space</span></button>
+      <button type="button" class="pad" data-lane="kick"><span class="pad-name">Kick</span><span class="pad-key">K</span></button>
     </div>
     <!-- Appears only when a kit sends a pad this app does not recognise. Not
          every kit follows General MIDI, so the honest move is to ask rather
@@ -104,11 +130,6 @@
     <summary><h2>Practice tools</h2></summary>
     <div class="fields">
       <label class="field">
-        <span>Speed <output id="rate-out">100%</output></span>
-        <input type="range" id="rate" min="40" max="120" step="5" value="100" />
-        <span class="note">Pitch is held steady, so a slow pass is still in the right key.</span>
-      </label>
-      <label class="field">
         <span>Quieten the centre <output id="duck-out">off</output></span>
         <input type="range" id="duck" min="0" max="100" step="5" value="0" />
         <span class="note" id="duck-note">Pulls down whatever is panned dead centre, which is usually the kick, the snare and the lead vocal. Rough, but it lets you be the drummer. Needs a stereo file.</span>
@@ -121,10 +142,12 @@
       </div>
       <label class="field">
         <span>Count in</span>
+        <!-- Bars, not beats. A bar is however many beats the time signature
+             says, so a waltz gets counted in three and not four. -->
         <select id="countin">
           <option value="0">None</option>
-          <option value="4" selected>One bar</option>
-          <option value="8">Two bars</option>
+          <option value="1" selected>One bar</option>
+          <option value="2">Two bars</option>
         </select>
       </label>
       <div class="field">

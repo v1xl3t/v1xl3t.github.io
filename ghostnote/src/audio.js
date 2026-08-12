@@ -231,12 +231,15 @@ export class Player {
   /**
    * Count in, then start. Returns a promise that resolves when the music starts.
    */
-  async countInThenPlay(beats, period, onTick) {
+  async countInThenPlay(beats, period, beatsPerBar = 4, onTick) {
     if (!beats || !period) { await this.play(); return; }
     const ctx = this.ensureCtx();
     const start = ctx.currentTime + 0.15;
     const spb = period / (this.rate || 1);
-    for (let i = 0; i < beats; i++) this.click(start + i * spb, i % 4 === 0);
+    // Accent every bar, and a bar is not always four beats. Counting a waltz in
+    // as one two three four is its own small way of breaking the track.
+    const bpb = Math.max(1, beatsPerBar || 4);
+    for (let i = 0; i < beats; i++) this.click(start + i * spb, i % bpb === 0);
     this._countingIn = true;
     const token = {};
     this._countToken = token;
@@ -267,7 +270,9 @@ export class Player {
     while (this._nextClick < now + lookahead * rate) {
       const when = ctx.currentTime + (this._nextClick - now) / rate;
       const beatIndex = Math.round((this._nextClick - chart.phase) / chart.period);
-      if (when > ctx.currentTime) this.click(when, ((beatIndex % 4) + 4) % 4 === 0);
+      const bpb = Math.max(1, chart.beatsPerBar || 4);
+      const rel = beatIndex - (chart.barOffset || 0);
+      if (when > ctx.currentTime) this.click(when, ((rel % bpb) + bpb) % bpb === 0);
       this._nextClick += chart.period;
     }
   }

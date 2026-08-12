@@ -9,11 +9,15 @@
 
 import { FROM_GM } from './midi.js';
 
+// Space used to be the kick. It is the transport now, because every other piece
+// of music software on the machine starts and stops with it and a hand reaches
+// for it without thinking. The kick moved one key along from the tom, so the
+// four lanes sit under the fingers as D, F, J, K.
 export const KEY_MAP = {
   KeyD: 'hat',
   KeyF: 'snare',
   KeyJ: 'tom',
-  Space: 'kick',
+  KeyK: 'kick',
 };
 
 const CAL_KEY = 'playalong.calibration.v1';

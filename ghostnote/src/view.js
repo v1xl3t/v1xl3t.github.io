@@ -53,6 +53,20 @@ export class Highway {
   }
   yAt(lane) { return 22 + LANES.indexOf(lane) * this.laneH + this.laneH / 2; }
 
+  get beatsPerBar() { return (this.chart && this.chart.beatsPerBar) || 4; }
+  get barOffset() { return (this.chart && this.chart.barOffset) || 0; }
+
+  /** Does a bar start on this beat. Kept out of render so it can be tested. */
+  barAt(beatIndex) {
+    const b = this.beatsPerBar;
+    return (((beatIndex - this.barOffset) % b) + b) % b === 0;
+  }
+
+  /** Which bar number this beat starts, counting from one. */
+  barNumber(beatIndex) {
+    return Math.round((beatIndex - this.barOffset) / this.beatsPerBar) + 1;
+  }
+
   resize() {
     const dpr = Math.min(3, window.devicePixelRatio || 1);
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
@@ -159,6 +173,9 @@ export class Highway {
     // grid
     if (this.showGrid && this.chart && this.chart.period) {
       const { period, phase } = this.chart;
+      // The bar is whatever the chart says it is. This used to be four beats no
+      // matter what the music did, so on a waltz the bar lines walked steadily
+      // out of step with the track and the whole chart read as broken.
       const step = period / (this.chart.div || 4);
       const t0 = this.timeAt(this.labelW), t1 = this.timeAt(w);
       let k = Math.floor((t0 - phase) / step) - 1;
@@ -166,9 +183,9 @@ export class Highway {
       for (let t = phase + k * step; t < t1 + step; t += step, k++) {
         const x = this.xAt(t);
         if (x < this.labelW) continue;
-        const beat = Math.round((t - phase) / period * 4) / 4;
-        const isBeat = Math.abs((t - phase) / period - Math.round((t - phase) / period)) < 1e-6;
-        const isBar = isBeat && ((Math.round((t - phase) / period) % 4) + 4) % 4 === 0;
+        const beatPos = (t - phase) / period;
+        const isBeat = Math.abs(beatPos - Math.round(beatPos)) < 1e-6;
+        const isBar = isBeat && this.barAt(Math.round(beatPos));
         ctx.strokeStyle = isBar ? '#5b6675' : isBeat ? '#39424f' : '#242c36';
         ctx.lineWidth = isBar ? 2 : 1;
         ctx.beginPath();
@@ -176,7 +193,7 @@ export class Highway {
         ctx.lineTo(Math.round(x) + 0.5, bot);
         ctx.stroke();
         if (isBar) {
-          const bar = Math.round((t - phase) / period / 4) + 1;
+          const bar = this.barNumber(Math.round(beatPos));
           ctx.fillStyle = '#9aa7b6';
           ctx.font = '11px system-ui, sans-serif';
           ctx.fillText(String(bar), x + 4, 11);

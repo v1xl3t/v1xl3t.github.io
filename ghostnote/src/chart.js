@@ -17,6 +17,13 @@ export class Chart {
     this.phase = init.phase || 0;
     this.div = init.div || 4;
     this.duration = init.duration || 0;
+    // The meter. Everything that draws a bar line, counts you in, accents a
+    // click or stamps a MIDI time signature reads these two, and nothing
+    // assumes four any more. barOffset is which beat of the bar beat one is.
+    this.beatsPerBar = init.beatsPerBar || 4;
+    this.barOffset = init.barOffset || 0;
+    this.meterDetected = !!init.meterDetected;
+    this.meterConfidence = init.meterConfidence == null ? 0 : init.meterConfidence;
     this.tempoConfidence = init.tempoConfidence == null ? 0 : init.tempoConfidence;
     this.notes = (init.notes || []).map((n) => ({ ...n, id: n.id || nextId++ }));
     this.undoStack = [];
@@ -31,6 +38,10 @@ export class Chart {
       phase: a.phase,
       div: a.div,
       duration: a.duration,
+      beatsPerBar: a.beatsPerBar,
+      barOffset: a.barOffset,
+      meterDetected: a.meterDetected,
+      meterConfidence: a.meterConfidence,
       tempoConfidence: a.tempoConfidence,
       notes: a.hits.map((h) => ({
         id: nextId++,
@@ -46,6 +57,31 @@ export class Chart {
   }
 
   get step() { return this.period ? this.period / this.div : 0; }
+
+  /** How long one bar lasts, which is not always four beats. */
+  get barLength() { return this.period * this.beatsPerBar; }
+
+  /** The bar number and the beat within it, for any moment in the track. */
+  beatAt(t) {
+    if (!this.period) return { bar: 1, beat: 1, index: 0 };
+    const index = Math.floor((t - this.phase) / this.period + 1e-9);
+    const rel = index - this.barOffset;
+    const inBar = ((rel % this.beatsPerBar) + this.beatsPerBar) % this.beatsPerBar;
+    return { bar: Math.floor(rel / this.beatsPerBar) + 1, beat: inBar + 1, index };
+  }
+
+  /**
+   * Change the meter by hand. The detector defaults to 4/4 and is only allowed
+   * to move off it when it is sure, so this is how anyone disagrees with it.
+   */
+  setMeter(beatsPerBar, barOffset = this.barOffset) {
+    const n = Math.max(1, Math.min(16, Math.round(beatsPerBar) || 4));
+    if (n === this.beatsPerBar && barOffset === this.barOffset) return false;
+    this.beatsPerBar = n;
+    this.barOffset = ((Math.round(barOffset) % n) + n) % n;
+    this.changed();
+    return true;
+  }
 
   /** Snapshot for undo. Cheap, a chart is a few hundred small objects. */
   snapshot() {
@@ -150,6 +186,8 @@ export class Chart {
       phase: this.phase,
       div: this.div,
       duration: this.duration,
+      beatsPerBar: this.beatsPerBar,
+      barOffset: this.barOffset,
       notes: this.notes.map(({ id, ...rest }) => rest),
     };
   }

@@ -18,12 +18,32 @@ export const LANES = ['hat', 'snare', 'tom', 'kick'];
 export const DEFAULTS = {
   frame: 1024,          // ~23ms at 44.1k, short enough to keep drum transients sharp
   hop: 256,             // ~5.8ms between flux samples
-  minGapMs: 40,         // two hits closer than this are one hit
+  // Two hits closer than this are treated as one. It used to be 40ms, which is
+  // longer than the gap between the notes of a trap hi hat roll, so those rolls
+  // came back as a third of the notes actually played. A 1/64 at 140 BPM is
+  // 26.8ms apart and a 1/32 triplet is 35.7ms, and both were being merged.
+  // 25ms is under every subdivision a drummer plays as separate chart notes,
+  // and it is still long enough that no single stroke is ever counted twice.
+  minGapMs: 25,
   medianWin: 21,        // frames either side used for the adaptive threshold
   thresholdMult: 1.55,  // how far above the local median a peak must sit
   thresholdBias: 0.12,  // plus a fraction of the global mean, kills silence chatter
   floorFrac: 0.05,      // and an absolute floor against the loudest hit in the track
   sensitivity: 1,       // user facing multiplier, >1 finds more hits
+  // A second, sharper pass that only listens above hatMinHz. See hatPass below
+  // for why a track cannot be resolved at one window size.
+  hatPass: true,
+  hatFrame: 256,        // ~5.8ms, short enough to separate hits 27ms apart
+  hatHop: 128,          // ~2.9ms
+  hatMinHz: 3000,       // cymbals and hi hats only, no kick and no tom
+  // A short window rings, so this pass has to be asked for more before it will
+  // call something a note. These sit well above the main pass on purpose.
+  hatThresholdMult: 2.6,
+  hatFloorFrac: 0.22,
+  // Hi hats landing closer together than this count as a roll, and inside a
+  // roll the short window is the one to believe. 70ms leaves a 1/32 at 90 BPM
+  // alone, because the main pass already gets that one exactly right.
+  hatDenseMs: 70,
   minBpm: 60,
   maxBpm: 200,
   div: 4,               // grid subdivisions per beat (4 = sixteenth notes)
@@ -84,6 +104,23 @@ function spectralFlux(sg) {
   return flux;
 }
 
+/** Rectified spectral flux from one band upward, used by the hi hat pass. */
+function spectralFluxAbove(sg, sr, frame, minHz) {
+  const { mags, frames, bins } = sg;
+  const k0 = Math.max(1, Math.floor(minHz / (sr / frame)));
+  const flux = new Float64Array(frames);
+  for (let t = 1; t < frames; t++) {
+    let s = 0;
+    const a = t * bins, b = (t - 1) * bins;
+    for (let k = k0; k < bins; k++) {
+      const d = mags[a + k] - mags[b + k];
+      if (d > 0) s += d;
+    }
+    flux[t] = s;
+  }
+  return flux;
+}
+
 function median(sorted) {
   const n = sorted.length;
   return n % 2 ? sorted[(n - 1) >> 1] : 0.5 * (sorted[n / 2 - 1] + sorted[n / 2]);
@@ -132,15 +169,71 @@ function pickPeaks(flux, o, sr, maxFlux) {
 }
 
 /**
+ * A second onset pass for fast hi hat work, and why one pass cannot do it.
+ *
+ * The main analysis window is 1024 samples, about 23ms. A trap hi hat roll at a
+ * 1/64 puts its notes 42ms apart at 90 BPM and 27ms apart at 140, so a single
+ * window straddles two of them, the flux smears into one broad hump, and the
+ * peak picker either merges the pair or invents a peak in the trough between
+ * them. Shortening the window to 256 samples resolves those rolls perfectly,
+ * and it also makes a low tom fall apart, because a 6ms window is too short to
+ * hold a 120Hz pitch sweep steady and every wobble reads as a new attack. That
+ * is a genuine conflict, not a threshold that needs tuning.
+ *
+ * What settles it is that the two problems live in different parts of the
+ * spectrum. A hi hat is almost entirely above 3kHz and a kick or a tom has
+ * nearly nothing up there, so a short window that only listens above 3kHz gets
+ * the timing resolution the rolls need and cannot produce a low drum false
+ * positive at all. Its onsets are then merged into the main list, and only
+ * where the main pass found nothing nearby.
+ */
+function hatPass(x, sr, o) {
+  const so = {
+    ...o,
+    frame: o.hatFrame,
+    hop: o.hatHop,
+    thresholdMult: o.hatThresholdMult,
+    floorFrac: o.hatFloorFrac,
+  };
+  const sg = spectrogram(x, so);
+  if (!sg.frames) return [];
+  const flux = spectralFluxAbove(sg, sr, o.hatFrame, o.hatMinHz);
+  let maxFlux = 1e-9;
+  for (let i = 0; i < flux.length; i++) if (flux[i] > maxFlux) maxFlux = flux[i];
+  // medianWin is a number of frames, so it has to be rescaled or the adaptive
+  // threshold would look at half as much time as the main pass does.
+  so.medianWin = Math.max(3, Math.round(o.medianWin * (o.hop / o.hatHop)));
+  const peaks = pickPeaks(flux, so, sr, maxFlux);
+  const out = [];
+  let prev = -Infinity;
+  for (let i = 0; i < peaks.length; i++) {
+    const t = refineOnset(x, sr, peaks[i], so, prev, i + 1 < peaks.length ? peaks[i + 1] : Infinity);
+    prev = t * sr;
+    out.push({ t, strength: Math.min(1, flux[peaks[i]] / maxFlux) });
+  }
+  return out;
+}
+
+/**
  * A flux frame only tells you which 23ms window the transient landed in. Walk
  * the raw samples around it and find where the envelope actually takes off, so
  * the reported time is close to the real attack rather than to a frame edge.
  */
-function refineOnset(x, sr, frameIndex, o) {
+function refineOnset(x, sr, frameIndex, o, prevSample = -Infinity, nextFrame = Infinity) {
   const { hop, frame } = o;
-  const start = Math.max(0, frameIndex * hop - hop * 2);
-  const end = Math.min(x.length, frameIndex * hop + frame);
-  if (end - start < 8) return start / sr;
+  // The search window must not spill into the neighbouring hits. A fixed window
+  // of two hops back and one frame forward is 35ms wide, which is wider than the
+  // gap between the notes of a fast roll, so on dense passages the walk found
+  // the PREVIOUS hit's attack first and reported this hit at that earlier time.
+  // That is why rolls came back about 10ms early while everything slower was
+  // accurate to under a millisecond. Bound the window by the neighbours and the
+  // error goes away without touching anything about sparse material.
+  const guard = Math.round(sr * 0.004);
+  const lo = isFinite(prevSample) ? Math.ceil(prevSample) + guard : 0;
+  const hi = isFinite(nextFrame) ? nextFrame * hop : x.length;
+  const start = Math.max(0, lo, frameIndex * hop - hop * 2);
+  const end = Math.min(x.length, hi, frameIndex * hop + frame);
+  if (end - start < 8) return Math.max(start, frameIndex * hop) / sr;
   // A 1ms rms envelope of the DIFFERENCED signal. Straight rms is dominated by
   // whatever bass note is sustaining, and a 55Hz sine swings a 1ms window from
   // nothing to full scale every 18ms, so the search kept locking onto the last
@@ -306,6 +399,113 @@ export function estimateTempo(flux, sr, o) {
   return { bpm: 60 / period, period, confidence };
 }
 
+/** Bar lengths worth testing, in beats. Two is folded into four below. */
+const METERS = [2, 3, 4, 5, 6, 7];
+
+/**
+ * How many beats are in a bar, from how the drum pattern repeats.
+ *
+ * The bar is the length at which the pattern starts saying the same thing
+ * again, so this measures one beat against the beat B later and asks how alike
+ * they are. Any multiple of the true bar repeats too, which is why the SMALLEST
+ * length that clears the bar wins rather than the highest scoring one.
+ *
+ * The answer defaults to four and only moves off it when the evidence is clear,
+ * because a wrong automatic guess is worse than no guess at all. The user
+ * cannot see why the bar lines are wrong, they can only see that the app looks
+ * broken, so silence is the safer failure.
+ *
+ * @returns {{beatsPerBar:number, barOffset:number, confidence:number, detected:boolean}}
+ */
+export function estimateMeter(hits, period, phase, duration, minConf = 0.4) {
+  const none = { beatsPerBar: 4, barOffset: 0, confidence: 0, detected: false, scores: {} };
+  if (!period || !hits || !hits.length) return none;
+  const nBeats = Math.floor((duration - phase) / period);
+  if (nBeats < 8) return none;
+
+  // Every hit goes into the beat it belongs to. The small lead allows for a
+  // drummer landing just ahead of the downbeat, which otherwise files the most
+  // important hit in the bar under the bar before it.
+  const v = Array.from({ length: nBeats }, () => new Float64Array(LANES.length));
+  const energy = new Float64Array(nBeats);
+  for (const h of hits) {
+    const i = Math.floor((h.t - phase + period * 0.15) / period);
+    if (i < 0 || i >= nBeats) continue;
+    const li = LANES.indexOf(h.lane);
+    const w = h.vel == null ? 1 : h.vel;
+    if (li >= 0) v[i][li] += w;
+    energy[i] += w;
+  }
+
+  const dot = (a, b) => { let s = 0; for (let k = 0; k < a.length; k++) s += a[k] * b[k]; return s; };
+  const mags = v.map((a) => Math.sqrt(dot(a, a)));
+
+  const scores = {};
+  for (const B of METERS) {
+    let s = 0, wsum = 0;
+    for (let i = 0; i + B < nBeats; i++) {
+      const m = mags[i] * mags[i + B];
+      if (m <= 1e-9) continue;
+      // Quiet beats say little about the meter, so they count for less.
+      const w = Math.min(mags[i], mags[i + B]);
+      s += (dot(v[i], v[i + B]) / m) * w;
+      wsum += w;
+    }
+    scores[B] = wsum > 0 ? s / wsum : 0;
+  }
+
+  const best = Math.max(...Object.values(scores));
+  let raw = 4;
+  for (const B of METERS) if (scores[B] >= best * 0.98) { raw = B; break; }
+
+  // Confidence is measured against the raw answer rather than the reported one.
+  // A straight rock beat really does repeat every two beats, so it repeats every
+  // six as well, and comparing the doubled four against six would call every
+  // rock beat in the world unsure.
+  let rival = 0;
+  for (const B of METERS) {
+    if (B === raw || raw % B === 0 || B % raw === 0) continue;
+    rival = Math.max(rival, scores[B]);
+  }
+  const confidence = Math.max(0, Math.min(1, (scores[raw] - rival) * 3));
+
+  // Two beats to a bar is a real answer, and it is conventionally written 4/4.
+  const pick = raw === 2 ? 4 : raw;
+  const detected = confidence >= minConf && pick !== 4;
+
+  // Which beat of the bar is beat one. The downbeat is where the low end lands,
+  // and ties break toward the start of the track because estimatePhase has
+  // already pulled beat zero onto the first strong onset.
+  //
+  // This is only reported for a meter that was actually detected. In 4/4 the
+  // kick usually falls on one AND three, so beat one and beat three look alike,
+  // and a track whose fills put toms where the kick would be tips the answer to
+  // the wrong one of the pair. Guessing there would move bar lines that are
+  // currently in the right place, so 4/4 keeps the offset of zero it has always
+  // had and only a meter we are sure about gets an offset at all.
+  let barOffset = 0;
+  if (detected) {
+    let bestDown = -Infinity;
+    for (let o = 0; o < pick; o++) {
+      let s = 0, n = 0;
+      for (let i = o; i < nBeats; i += pick) { s += v[i][0] * 2 + energy[i] * 0.5; n++; }
+      const sc = n ? (s / n) * (1 - 0.05 * o) : 0;
+      if (sc > bestDown) { bestDown = sc; barOffset = o; }
+    }
+  }
+
+  // Anything short of sure comes back as 4/4. The whole point of the threshold
+  // is that an unexplained wrong answer is worse than a plain default, because
+  // the user can see that the bar lines are wrong but not why.
+  return {
+    beatsPerBar: detected ? pick : 4,
+    barOffset,
+    confidence: +confidence.toFixed(3),
+    detected,
+    scores,
+  };
+}
+
 /** Slide the beat grid until it lines up with the loud onsets. */
 export function estimatePhase(hits, period, duration) {
   if (!hits.length || !period) return 0;
@@ -340,12 +540,91 @@ export function analyse(x, sr, opts = {}) {
   for (let i = 0; i < flux.length; i++) if (flux[i] > maxFlux) maxFlux = flux[i];
   const peaks = pickPeaks(flux, o, sr, maxFlux);
 
+  // Every onset the main pass found, as a time with a loudness.
+  const found = [];
+  let prevSample = -Infinity;
+  for (let pi = 0; pi < peaks.length; pi++) {
+    const p = peaks[pi];
+    const t = refineOnset(x, sr, p, o, prevSample, pi + 1 < peaks.length ? peaks[pi + 1] : Infinity);
+    prevSample = t * sr;
+    found.push({ t, strength: Math.min(1, flux[p] / maxFlux) });
+  }
+
+  // Then the fast hi hat pass, which only ever ADDS onsets, and only where the
+  // main pass heard nothing. Merging rather than replacing means a track with no
+  // fast hat work comes out of this exactly as it did before.
+  if (o.hatPass) {
+    const gap = o.minGapMs / 1000;
+    const dense = o.hatDenseMs / 1000;
+    const hp = hatPass(x, sr, o);
+
+    // A stretch of the track where the hi hats are rolling. Only in here does
+    // the short window get to overrule the long one, because only in here is the
+    // long window straddling two notes. Everywhere else the main pass is already
+    // accurate to well under a millisecond and is left completely alone.
+    const rolling = (t) => {
+      for (let i = 0; i + 1 < hp.length; i++) {
+        if (hp[i + 1].t - hp[i].t <= dense && t >= hp[i].t - dense && t <= hp[i + 1].t + dense) return true;
+      }
+      return false;
+    };
+
+    const taken = new Array(hp.length).fill(false);
+    const merged = [];
+    for (const m of found) {
+      let near = -1, nearD = Infinity;
+      for (let i = 0; i < hp.length; i++) {
+        const d = Math.abs(hp[i].t - m.t);
+        if (d < nearD) { nearD = d; near = i; }
+      }
+      const inRoll = rolling(m.t);
+      // A short window onset can only stand for one long window onset. Letting
+      // two claim the same one emitted the same note twice, at the same instant.
+      if (near >= 0 && nearD < gap && taken[near]) continue;
+      if (near >= 0 && nearD < gap) {
+        // Same note heard twice. Inside a roll the short window has the better
+        // time, outside it the long one does, and either way it stays one note.
+        taken[near] = true;
+        merged.push(inRoll ? { t: hp[near].t, strength: Math.max(m.strength, hp[near].strength) } : m);
+      } else {
+        merged.push({ ...m, inRoll });
+      }
+    }
+    for (let i = 0; i < hp.length; i++) {
+      if (!taken[i]) merged.push({ ...hp[i], fromHat: true });
+    }
+    merged.sort((a, b) => a.t - b.t);
+    // Two passes over the same audio can hear the same stroke twice, so the
+    // minimum gap is enforced once more over the combined list. Nothing
+    // downstream should ever see two notes a millisecond apart, whichever pass
+    // they came from, and the louder of a pair is the one that survives.
+    found.length = 0;
+    for (const c of merged) {
+      const last = found[found.length - 1];
+      if (last && c.t - last.t < gap) {
+        if (c.strength > last.strength) found[found.length - 1] = c;
+        continue;
+      }
+      found.push(c);
+    }
+  }
+
   const hits = [];
-  for (const p of peaks) {
-    const t = refineOnset(x, sr, p, o);
+  for (const f of found) {
+    const t = f.t;
     const tb = timbre(x, sr, t * sr - Math.round(sr * 0.002));
     const { lane, conf, scores } = classify(tb);
-    const strength = Math.min(1, flux[p] / maxFlux);
+    // The extra pass is allowed to find hi hats and nothing else. A short window
+    // rings on a low drum, and the ring has enough broadband edge to clear a
+    // threshold, so without this a lone tom grows a handful of phantom notes.
+    // The main pass has already caught everything that is not a hi hat.
+    if (f.fromHat && lane !== 'hat') continue;
+    // A hi hat the long window reported in the middle of a roll, with no short
+    // window onset anywhere near it, is the smear between two real notes rather
+    // than a note of its own. Kicks and snares in the same stretch are kept,
+    // because the short window is deaf to them by design and cannot vouch.
+    if (f.inRoll && lane === 'hat') continue;
+    const strength = f.strength;
     hits.push({
       t,
       lane,
@@ -358,7 +637,11 @@ export function analyse(x, sr, opts = {}) {
   }
 
   const tempo = estimateTempo(flux, sr, o);
-  const phase = estimatePhase(hits, tempo.period, x.length / sr);
+  const duration = x.length / sr;
+  const phase = estimatePhase(hits, tempo.period, duration);
+  const meter = o.beatsPerBar
+    ? { beatsPerBar: o.beatsPerBar, barOffset: o.barOffset || 0, confidence: 1, detected: true }
+    : estimateMeter(hits, tempo.period, phase, duration);
 
   // Quantise against the grid, and record how far off each hit was. That number
   // is shown in the editor, it is not used to move anything without consent.
@@ -376,7 +659,11 @@ export function analyse(x, sr, opts = {}) {
     period: tempo.period,
     phase,
     div: o.div,
-    duration: x.length / sr,
+    duration,
+    beatsPerBar: meter.beatsPerBar,
+    barOffset: meter.barOffset,
+    meterConfidence: meter.confidence,
+    meterDetected: meter.detected,
     tempoConfidence: +tempo.confidence.toFixed(3),
     hits,
     settings: o,

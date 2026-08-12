@@ -34,8 +34,26 @@ function be16(n) { return [(n >> 8) & 255, n & 255]; }
  * @param {{quantised?:boolean, name?:string}} opts
  * @returns {Uint8Array}
  */
+/**
+ * The time signature to stamp on the file, and the quarter note tempo that goes
+ * with it.
+ *
+ * Six beats to a bar is read as 6/8, because that is what six almost always
+ * means and because the beat the analyser locked onto in that case is the
+ * eighth. A quarter is then two of those beats, so the tempo written into the
+ * file is half the beat rate the app works in, and an eighth still lands on 240
+ * ticks. Every other count is written over a quarter, so five beats is 5/4.
+ */
+function signature(beatsPerBar, bpm) {
+  const n = Math.max(1, Math.min(16, Math.round(beatsPerBar) || 4));
+  if (n === 6) return { num: 6, denomPow: 3, clicksPerBeat: 36, quarterBpm: bpm / 2 };
+  return { num: n, denomPow: 2, clicksPerBeat: 24, quarterBpm: bpm };
+}
+
 export function writeMidi(chart, opts = {}) {
-  const bpm = chart.bpm > 0 ? chart.bpm : 120;
+  const beatBpm = chart.bpm > 0 ? chart.bpm : 120;
+  const sig = signature(chart.beatsPerBar || 4, beatBpm);
+  const bpm = sig.quarterBpm;
   const secPerTick = 60 / bpm / PPQ;
   const useQ = !!opts.quantised;
 
@@ -56,8 +74,10 @@ export function writeMidi(chart, opts = {}) {
   // tempo meta
   const usPerQuarter = Math.round(60000000 / bpm);
   track.push(0x00, 0xff, 0x51, 0x03, (usPerQuarter >> 16) & 255, (usPerQuarter >> 8) & 255, usPerQuarter & 255);
-  // 4/4 time signature
-  track.push(0x00, 0xff, 0x58, 0x04, 4, 2, 24, 8);
+  // The real time signature. This used to be 4/4 no matter what the chart said,
+  // so a waltz exported into a DAW had its bar lines in the wrong place and
+  // every note appeared to be on the wrong beat.
+  track.push(0x00, 0xff, 0x58, 0x04, sig.num, sig.denomPow, sig.clicksPerBeat, 8);
   // track name
   const name = str(opts.name || 'Play Along drums');
   track.push(0x00, 0xff, 0x03, ...vlq(name.length), ...name);
@@ -86,6 +106,7 @@ export function readMidi(bytes) {
   let p = 8 + headerLen;
   const notes = [];
   let usPerQuarter = 500000;
+  let timeSignature = null;
 
   for (let tr = 0; tr < tracks; tr++) {
     if (txt(p, 4) !== 'MTrk') throw new Error('Missing MTrk chunk');
@@ -104,6 +125,7 @@ export function readMidi(bytes) {
         let l = 0;
         do { byte = b[i++]; l = (l << 7) | (byte & 0x7f); } while (byte & 0x80);
         if (type === 0x51) usPerQuarter = (b[i] << 16) | (b[i + 1] << 8) | b[i + 2];
+        if (type === 0x58) timeSignature = { numerator: b[i], denominator: 2 ** b[i + 1] };
         i += l;
       } else if (status === 0xf0 || status === 0xf7) {
         let l = 0;
@@ -122,7 +144,7 @@ export function readMidi(bytes) {
   }
   const secPerTick = usPerQuarter / 1e6 / division;
   return {
-    format, tracks, division,
+    format, tracks, division, timeSignature,
     bpm: 60000000 / usPerQuarter,
     notes: notes.map((n) => ({ ...n, t: n.tick * secPerTick, lane: FROM_GM[n.note] || null })),
   };
