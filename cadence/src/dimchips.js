@@ -25,6 +25,40 @@ const ABBR = {
 const abbrev = (l) => ABBR[l] || l.replace(/\s*\(.*\)/, '').split(' ').map((w) => w[0]).join('').toUpperCase();
 const fmt = (n) => Number(n.toFixed(3)).toString();
 
+// Which axis of mesh.scale stretches each recipe number.
+//
+// The chips used to print obj.params straight out, and the gizmo never touches
+// params — it only writes mesh.scale. So the moment you scaled a part with the
+// scale tool the chips froze at the size the part used to be, which is what Vi
+// hit. Multiplying by the scale on the axis a number actually governs makes the
+// chip report the size the object IS, whichever route changed it.
+//
+// Only genuine lengths are listed. Facet counts, side counts, twist and draft
+// angles are not lengths and are shown raw. Corner rounding is left out on
+// purpose too: under a non-uniform scale a fillet is no longer one radius, so
+// any single number we printed would be a lie.
+const SCALE_AXIS = {
+  box:      { width: 'x', height: 'y', depth: 'z' },
+  cylinder: { radius: 'x', height: 'y' },
+  sphere:   { radius: 'x' },
+  cone:     { radius: 'x', height: 'y' },
+  torus:    { radius: 'x', tube: 'y' },      // the donut is laid flat, hole up
+  tube:     { outer: 'x', inner: 'x', height: 'y' },
+  wedge:    { width: 'x', height: 'y', depth: 'z' },
+  prism:    { radius: 'x', height: 'y' },
+  loft:     { width: 'x', depth: 'z', topWidth: 'x', topDepth: 'z', height: 'y' },
+  sketch:   { depth: 'y', depth2: 'y', start: 'y' },   // the extrusion runs up Y
+};
+
+// How much a given recipe number has been stretched by the scale tool. Always
+// a positive factor: a mirrored object is still that many millimetres across.
+export function scaleFactor(obj, key) {
+  const axis = SCALE_AXIS[obj?.kind]?.[key];
+  if (!axis || !obj.mesh) return 1;
+  const s = Math.abs(obj.mesh.scale[axis]);
+  return s > 1e-9 ? s : 1;
+}
+
 export class DimChips {
   constructor(doc, { camera, renderer, onEdit } = {}) {
     this.doc = doc;
@@ -59,7 +93,7 @@ export class DimChips {
       const chip = document.createElement('div');
       chip.className = 'dimchip';
       chip.dataset.key = f.key;
-      chip.innerHTML = `<span class="dc-k">${abbrev(f.label)}</span><span class="dc-v">${fmt(obj.params[f.key])}</span>`;
+      chip.innerHTML = `<span class="dc-k">${abbrev(f.label)}</span><span class="dc-v">${fmt(this.worldValue(f.key))}</span>`;
       chip.title = `${f.label}, click to edit`;
       chip.addEventListener('pointerdown', (e) => e.stopPropagation());   // don't deselect/pick
       chip.addEventListener('click', () => this.editChip(chip, f));
@@ -69,9 +103,13 @@ export class DimChips {
     this.update();
   }
 
+  // What this number measures in the world right now: the recipe value with the
+  // scale tool's stretch folded in.
+  worldValue(key) { return this.obj.params[key] * scaleFactor(this.obj, key); }
+
   editChip(chip, f) {
     if (chip.querySelector('input')) return;
-    const cur = this.obj.params[f.key];
+    const cur = this.worldValue(f.key);
     chip.innerHTML = `<span class="dc-k">${abbrev(f.label)}</span>`
       + `<input class="dc-in" type="number" step="${f.step ?? 0.5}" ${f.min != null ? `min="${f.min}"` : ''} value="${fmt(cur)}"/>`;
     const inp = chip.querySelector('input');
@@ -84,7 +122,13 @@ export class DimChips {
     });
     inp.addEventListener('blur', () => {
       const v = parseFloat(inp.value);
-      if (!Number.isNaN(v) && this.obj) this.onEdit(this.obj, f.key, f.integer ? Math.round(v) : v);
+      // You typed the size you want the part to BE, so divide the stretch back
+      // out before it goes into the recipe. Type 20 into a chip on a part the
+      // scale tool doubled and the part measures 20, not 40.
+      if (!Number.isNaN(v) && this.obj) {
+        const raw = v / scaleFactor(this.obj, f.key);
+        this.onEdit(this.obj, f.key, f.integer ? Math.round(raw) : raw);
+      }
       this.rebuild();
     });
   }
@@ -95,7 +139,7 @@ export class DimChips {
     for (const c of this.chips) {
       if (c.el.querySelector('input')) continue;
       const v = c.el.querySelector('.dc-v');
-      if (v) v.textContent = fmt(this.obj.params[c.field.key]);
+      if (v) v.textContent = fmt(this.worldValue(c.field.key));
     }
   }
 

@@ -646,6 +646,25 @@ body.stage-active #tips-row {
 body.drawer-active #topbar { opacity: 0; pointer-events: none; }
 @media (pointer: coarse) { #topbar { top: 8px; gap: 1px; } #topbar button { width: 40px; height: 38px; } }
 
+/* ---- transform mode cycle (Move → Rotate → Scale) ----
+   A button that is also the readout: the icon and the word ARE the current
+   mode, so there is nothing to keep in step by hand. It sits in the quick bar
+   on a desktop and in the phone dock on a phone, never both at once. */
+.mode-cycle { font: inherit; cursor: pointer; }
+#topbar .mode-cycle {
+  width: auto !important; padding: 0 11px !important; gap: 7px;
+  display: inline-flex !important; align-items: center;
+  color: var(--text); background: rgba(127,127,127,.14);
+  border: 1px solid var(--border) !important;
+  font-size: 12px; font-weight: 600; letter-spacing: .02em;
+}
+#topbar .mode-cycle .mc-ico { font-size: 15px; line-height: 1; }
+#topbar .mode-cycle .mc-lbl { line-height: 1; }
+#topbar .mode-cycle::after { content: none; }   /* the label is already visible */
+/* On a phone the same control lives in the bottom dock, where a thumb is. Two
+   of them on one screen would be two things to read and one of them redundant. */
+@media (max-width: 640px) { #topbar .mode-cycle { display: none !important; } }
+
 /* ============================================================
    Mobile bottom bar + drawer scrim — created by JS, hidden on
    desktop. The drawer layout itself is in the media query below.
@@ -731,6 +750,9 @@ body.drawer-active #topbar { opacity: 0; pointer-events: none; }
   #mobile-bar button .mb-ico { font-size: 18px; line-height: 1; }
   #mobile-bar button:active { background: #ffffff14; }
   #mobile-bar button.active { color: var(--accent); }
+  /* The cycle button is a readout as much as a control, so it is never the
+     muted grey the drawer tabs use when they are closed. */
+  #mobile-bar .mode-cycle { color: var(--text); }
 
   /* Scrim behind an open drawer; tap it to dismiss. */
   #mobile-scrim {
@@ -781,6 +803,9 @@ body.render-view #timeline,
 body.render-view #dimchips,
 body.render-view #statusbar { display: none !important; }
 body.render-view #topbar button[data-proxy] { display: none; }  /* hide edit tools, keep the toggle */
+/* The transform cycle goes with them: render view detaches the gizmo entirely,
+   so a button offering to switch its mode would be offering nothing. */
+body.render-view #topbar [data-modecycle] { display: none !important; }
 
 /* Floating render bar: presets + camera. Mobile-first (bottom, thumb-reachable). */
 #rv-bar {

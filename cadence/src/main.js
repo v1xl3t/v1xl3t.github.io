@@ -116,14 +116,87 @@ const COARSE_POINTER = window.matchMedia('(pointer: coarse)').matches;
 const gizmo = new TransformControls(camera, renderer.domElement);
 // A bigger gizmo on touch gives fingertips a real hit area on the handles.
 gizmo.setSize(COARSE_POINTER ? 1.5 : 0.9);
-gizmo.addEventListener('dragging-changed', (e) => { orbit.enabled = !e.value; });
-gizmo.addEventListener('mouseDown', () =>                          // one history step per drag
-  doc.commit({ translate: 'Move', rotate: 'Rotate', scale: 'Scale' }[gizmo.getMode()] || 'Transform'));
+gizmo.addEventListener('dragging-changed', (e) => {
+  orbit.enabled = !e.value;
+  if (!e.value) scaleDrag = null;                                  // drag over, forget the anchor
+});
+gizmo.addEventListener('mouseDown', () => {                        // one history step per drag
+  doc.commit({ translate: 'Move', rotate: 'Rotate', scale: 'Scale' }[gizmo.getMode()] || 'Transform');
+  scaleDrag = beginScaleDrag();
+});
+gizmo.addEventListener('mouseUp', () => { scaleDrag = null; });
 gizmo.addEventListener('objectChange', () => {
+  plantScaledFace();                       // before anything reads the transform
   const obj = doc.selected;
   if (obj) doc.dispatchEvent(new CustomEvent('change', { detail: obj }));
 });
 scene.add(gizmo);
+
+// --- scale grows the way you drag ----------------------------------------
+// TransformControls only ever writes mesh.scale, and scale multiplies about the
+// object's own origin. So a single-axis handle pushes BOTH faces outward from
+// wherever that origin happens to sit, and the face you are dragging away from
+// slides out from under your finger.
+//
+// Our primitives sit base-at-y=0 and centred on X and Z, which is exactly why
+// Vi saw what she saw: the up handle looked right (the bottom face is already
+// on the origin, so it could not move), the down handle grew the box UPWARD,
+// and every X/Z handle grew it both ways at once.
+//
+// The fix is to keep the face opposite the grabbed handle nailed to its world
+// position. When the scale on an axis changes by ds, the far face would have
+// moved by ds times its local offset, so move the object back by that much
+// along the object's OWN axis. Doing it along the rotated axis rather than the
+// world axis is what makes this hold for a rotated part.
+//
+// The uniform handles are left alone. Scaling about the centre is what they are
+// for, and Vi asked for that one to stay as it is.
+const AXIS_VEC = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+let scaleDrag = null;
+
+function beginScaleDrag() {
+  if (gizmo.getMode() !== 'scale') return null;
+  const mesh = gizmo.object;
+  const axis = gizmo.axis;
+  // The uniform handles carry XYZ in their name, and those are the ones that
+  // should keep scaling about the centre. Matching on the name rather than a
+  // list survives three.js adding another one.
+  if (!mesh || !axis || axis.includes('XYZ')) return null;
+  const axes = ['x', 'y', 'z'].filter((a) => axis.includes(a.toUpperCase()));
+  if (!axes.length) return null;
+
+  // Recomputed rather than trusted: a rebuild hands the mesh a fresh geometry
+  // and the box that comes with it is whatever was last cached on it.
+  mesh.geometry.computeBoundingBox();
+  const bb = mesh.geometry.boundingBox;
+  if (!bb) return null;
+
+  const quat = mesh.getWorldQuaternion(new THREE.Quaternion());
+  // pointStart is where the grab landed, measured from the object's origin in
+  // world space. Rotate it back into the object's own frame and its sign on
+  // each axis says which end of the handle pair was taken. Nothing else on the
+  // controls distinguishes the two: three.js gives both ends the same name.
+  const grab = (gizmo.pointStart ? gizmo.pointStart.clone() : new THREE.Vector3())
+    .applyQuaternion(quat.clone().invert());
+
+  const plant = {};
+  for (const a of axes) plant[a] = (grab[a] || 0) < 0 ? bb.max[a] : bb.min[a];
+  return { mesh, axes, plant, quat, scale0: mesh.scale.clone(), pos0: mesh.position.clone() };
+}
+
+function plantScaledFace() {
+  const d = scaleDrag;
+  if (!d || d.mesh !== gizmo.object) return;
+  // Recomputed from the drag-start pose every frame rather than nudged, so a
+  // hundred move events in one drag cannot accumulate rounding.
+  const p = d.pos0.clone();
+  for (const a of d.axes) {
+    const f = d.plant[a];
+    if (!f) continue;                       // that face already sits on the origin
+    p.addScaledVector(AXIS_VEC[a].clone().applyQuaternion(d.quat), (d.scale0[a] - d.mesh.scale[a]) * f);
+  }
+  d.mesh.position.copy(p);
+}
 
 applySnap(true);
 function applySnap(on) {
@@ -373,6 +446,13 @@ function pickAt(e) {
   }
 })();
 
+// Every cycle button, wherever it lives, on one delegated listener. The phone
+// dock is built later in the run, so binding by selector at startup would miss
+// it and binding twice is how the two copies would fall out of step.
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-modecycle]')) cycleMode();
+});
+
 // ---------------------------------------------------------------- toolbar
 document.getElementById('toolbar').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
@@ -389,10 +469,7 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
   if (btn.dataset.align) align(btn.dataset.align, btn.dataset.alignMode || 'center');
   if (btn.dataset.distribute) distribute(btn.dataset.distribute);
 
-  if (btn.dataset.mode) {
-    gizmo.setMode(btn.dataset.mode);
-    document.querySelectorAll('button.mode').forEach((b) => b.classList.toggle('active', b === btn));
-  }
+  if (btn.dataset.mode) setMode(btn.dataset.mode);
 
   switch (btn.dataset.action) {
     case 'frame':     frameSelection(); break;
@@ -523,7 +600,10 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (k === 'w') setMode('translate');
+  // Q sits right next to W/E/R and was the only unbound key in that cluster,
+  // so it takes the cycle. W/E/R still jump straight to one tool.
+  if (k === 'q' && !e.ctrlKey && !e.metaKey) cycleMode();
+  else if (k === 'w') setMode('translate');
   else if (k === 'e') setMode('rotate');
   else if (k === 'r') setMode('scale');
   else if ((k === 'delete' || k === 'backspace') && doc.selection.size) { doc.removeSelected(); e.preventDefault(); }
@@ -602,9 +682,49 @@ document.getElementById('shortcuts-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'shortcuts-overlay') toggleShortcuts(false);
 });
 
+// --- transform mode: one source of truth ---------------------------------
+// The gizmo itself holds the mode. Nothing else stores a copy, so the side
+// panel buttons, the cycle button and the keyboard cannot drift apart: every
+// one of them calls setMode, and setMode is the only thing that redraws any of
+// them. The old code set the panel's active class inside the toolbar click
+// handler, which is why a mode changed any other way left the panel lying.
+const MODES = ['translate', 'rotate', 'scale'];
+// Scale is NOT ⤢: that glyph is already the phone dock's Frame button, and two
+// buttons side by side wearing the same icon is worse than no icon at all.
+const MODE_UI = {
+  translate: { label: 'Move',   icon: '✥' },
+  rotate:    { label: 'Rotate', icon: '⟳' },
+  scale:     { label: 'Scale',  icon: '⇲' },
+};
+
 function setMode(mode) {
+  if (!MODES.includes(mode)) return;
   gizmo.setMode(mode);
+  syncModeUI();
+}
+
+// Move → Rotate → Scale → Move. One tap, no hunting through a drawer.
+function cycleMode() {
+  setMode(MODES[(MODES.indexOf(gizmo.getMode()) + 1) % MODES.length]);
+}
+
+function syncModeUI() {
+  const mode = gizmo.getMode();
+  const ui = MODE_UI[mode] || MODE_UI.translate;
   document.querySelectorAll('button.mode').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+  // The cycle button exists twice, once in the always-visible quick bar and
+  // once in the phone dock, and only one of the two is on screen at a time.
+  // Both are painted here, from the mode, so neither can go stale.
+  for (const btn of document.querySelectorAll('[data-modecycle]')) {
+    btn.dataset.mode = mode;
+    btn.setAttribute('aria-label', `Transform tool: ${ui.label}. Tap to cycle.`);
+    btn.setAttribute('data-label', `${ui.label} (Q)`);
+    btn.title = `Transform tool: ${ui.label}. Tap or press Q for the next one.`;
+    const ico = btn.querySelector('.mc-ico');
+    const lbl = btn.querySelector('.mc-lbl');
+    if (ico) ico.textContent = ui.icon;
+    if (lbl) lbl.textContent = ui.label;
+  }
 }
 
 // Arrow keys nudge the selection by the snap step (1 mm if snapping is off) in
@@ -3071,9 +3191,14 @@ function setupMobileUI() {
     { drawer: 'inspector', ico: '⚙', label: 'Inspect' },
     { act: 'frame',        ico: '⤢', label: 'Frame' },
   ];
+  // The transform cycle rides at the end of the dock because on a phone that is
+  // where a thumb already is, and switching Move/Rotate/Scale used to mean
+  // opening the Tools drawer, tapping, and closing it again.
   mobileBar.innerHTML = BTNS.map((b) =>
     `<button ${b.drawer ? `data-drawer="${b.drawer}"` : `data-act="${b.act}"`} title="${b.label}">`
-    + `<span class="mb-ico">${b.ico}</span><span>${b.label}</span></button>`).join('');
+    + `<span class="mb-ico">${b.ico}</span><span>${b.label}</span></button>`).join('')
+    + `<button data-modecycle id="mobile-mode" class="mode-cycle" type="button">`
+    + `<span class="mb-ico mc-ico" aria-hidden="true">✥</span><span class="mc-lbl">Move</span></button>`;
   mobileBar.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -3279,6 +3404,9 @@ initSettings();
 setupMobileUI();
 setupEmptyState();
 setupOnboarding();
+// Paint both cycle buttons from the gizmo's actual mode now that the phone dock
+// exists, so the very first frame already agrees with the side panel.
+syncModeUI();
 // The strip is built by setupOnboarding, so measure the bottom stack once
 // everything that lives in it exists.
 syncBottomStack();
@@ -3302,6 +3430,9 @@ setStatus();
 // Expose for console tinkering / debugging.
 window.cadence = {
   doc, scene, THREE, camera, renderer, orbit,
+  // The transform gizmo and the one function allowed to change its mode, so the
+  // harness drives the same path the buttons do rather than a copy of it.
+  gizmo, setMode, cycleMode,
   // Exposed so the harness can encode a link and open it in a second browser
   // page, rather than asserting against a copy of the encoder that could drift
   // away from the one the button actually calls.

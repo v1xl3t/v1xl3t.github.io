@@ -113,6 +113,12 @@
       <button data-proxy='#multi-btn' data-label="Multi-select" aria-label="Multi-select" id="topbar-multi">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7.5" width="10" height="10" rx="2"/><rect x="11.5" y="4.5" width="10" height="10" rx="2"/><path d="M6 12.5l1.8 1.8L11 11"/></svg>
       </button>
+      <!-- Move / Rotate / Scale in one button. Its icon and word are the mode,
+           so it doubles as the readout, and it is painted only by syncModeUI so
+           the side panel and this can never say two different things. -->
+      <button data-modecycle id="topbar-mode" class="mode-cycle" type="button">
+        <span class="mc-ico" aria-hidden="true">✥</span><span class="mc-lbl">Move</span>
+      </button>
     </div>
 
     <!-- Live dimension input. Rides the cursor while a curve is being drawn and
@@ -326,6 +332,7 @@
           <div class="sc-col">
             <div class="sc-sec">Transform</div>
             <div><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> Move / Rotate / Scale</div>
+            <div><kbd>Q</kbd> Cycle to the next transform tool</div>
             <div><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> Nudge by snap step</div>
             <div><kbd>Shift</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> Nudge up / down</div>
             <div class="sc-sec">Select &amp; view</div>
