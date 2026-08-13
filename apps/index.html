@@ -88,6 +88,11 @@ h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; li
 .tile:nth-child(3){animation-delay:.19s} .tile:nth-child(4){animation-delay:.26s}
 .tile:nth-child(5){animation-delay:.33s} .tile:nth-child(6){animation-delay:.4s}
 .tile:nth-child(7){animation-delay:.47s} .tile:nth-child(8){animation-delay:.54s}
+/* The stagger stopped at 8 while the grid already held 9, so the last tiles
+   rose with no delay and broke the cascade. Carried out to 12 so adding an app
+   does not silently do that again. */
+.tile:nth-child(9){animation-delay:.61s} .tile:nth-child(10){animation-delay:.68s}
+.tile:nth-child(11){animation-delay:.75s} .tile:nth-child(12){animation-delay:.82s}
 .tile .shot{
   width:100%; aspect-ratio:1/1; object-fit:cover; object-position:top; display:block;
   border-radius:14px; border:1px solid var(--line-soft); margin-bottom:14px;
@@ -220,6 +225,14 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
       <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-4 0-7 3-7 7 0 5 7 11 7 11s7-6 7-11c0-4-3-7-7-7z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
       <h2>Perch</h2>
       <p>A cozy goal arcade. Waddle a little bird between machines, turn daily wins into tickets, and trade them for treats.</p>
+      <span class="go">Launch it</span>
+    </a>
+
+    <a class="tile" href="/ghostnote/">
+      <img class="shot" src="thumbs/ghostnote.jpg" alt="Ghost Note preview" loading="lazy">
+      <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+      <h2>Ghost Note</h2>
+      <p>Drop in a track and it writes the drum chart for you, then play it on a MIDI kit. The chart is editable, and your audio never leaves the tab.</p>
       <span class="go">Launch it</span>
     </a>
 

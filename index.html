@@ -793,6 +793,13 @@ html[data-theme="light"] .eyebrow{ background:rgba(154,63,190,.10); color:#87309
 html[data-theme="light"] .section-label{ color:#87309f }
 html[data-theme="light"] .eyebrow .dot{ box-shadow:0 0 0 4px rgba(124,95,224,.18) }
 html[data-theme="light"] h1.hero-title .accent{ background:linear-gradient(100deg,#7c5fe0,#8b63e6 55%,#9575f5); -webkit-background-clip:text; background-clip:text }
+/* Light theme swaps the mark to violet, matching /apps/ exactly. Vi asked for
+   this on 2026-08-12 after seeing it there. The green-to-violet gradient is
+   built for the dark theme and reads as a leftover on the lavender wash, where
+   every other accent has already turned violet. Same declaration as the apps
+   page so the two cannot drift, and white ink rather than the dark green,
+   which lands at 5.2:1 and 5.5:1 on the two gradient ends. */
+html[data-theme="light"] .brand .mark{ background:linear-gradient(140deg,var(--accent-2),var(--accent)); color:#fff }
 html[data-theme="light"] .lede{ color:#5a5377 }
 html[data-theme="light"] .blurb{ color:#4a4368 }
 html[data-theme="light"] .dl{ color:#4a4368 }
