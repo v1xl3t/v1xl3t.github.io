@@ -73,6 +73,16 @@ footer a:hover{color:var(--blue)}
  .railnav{display:none}
  .gal{order:1}.inf{order:3}
  .main{max-height:56vh}.inf h1{font-size:26px}}
+
+/* Touch targets, from the site-wide audit. */
+@media (pointer: coarse) {
+  a.here, a.bk-mark, .nav a, a[href^="mailto:"],
+  button.co, button.sw, button.sz { min-height: 44px; }
+  /* The cart's close button is a bare 15x26 glyph. */
+  button[data-scb] { min-width: 44px; min-height: 44px; }
+  a.here, a.bk-mark, a[href^="mailto:"] { display: inline-flex; align-items: center; }
+  button.sw { min-width: 44px; }
+}
 </style>
 </head>
 <body>

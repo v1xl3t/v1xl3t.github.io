@@ -49,6 +49,16 @@ main{max-width:1150px;margin:8px auto 0;padding:0 24px}
 .pcard i{font-style:normal;font-size:14px;color:#625F5B}
 @media(max-width:820px){.pgrid{grid-template-columns:repeat(2,1fr);gap:28px 18px}}
 @media(max-width:480px){.pgrid{grid-template-columns:repeat(2,1fr);gap:22px 12px}main{padding:0 14px}}
+
+/* Touch targets, from the site-wide audit. */
+@media (pointer: coarse) {
+  a.here, a.bk-mark, .nav a, a[href^="mailto:"],
+  button.co, button.sw, button.sz { min-height: 44px; }
+  /* The cart's close button is a bare 15x26 glyph. */
+  button[data-scb] { min-width: 44px; min-height: 44px; }
+  a.here, a.bk-mark, a[href^="mailto:"] { display: inline-flex; align-items: center; }
+  button.sw { min-width: 44px; }
+}
 </style>
 </head>
 <body>

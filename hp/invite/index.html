@@ -334,6 +334,15 @@ footer a{color:var(--accent); text-decoration:none}
 .loader .mk{font-family:var(--mono); letter-spacing:.3em; color:var(--accent); font-size:.9rem;
   text-transform:uppercase; animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.4} 50%{opacity:1}}
+
+  /* Touch targets, from the site-wide audit. */
+  @media (pointer: coarse) {
+    /* `.bucket .src` in the base sheet is two classes, so a bare `a.src` loses
+       on specificity. */
+    a, .bucket a.src { min-height: 44px; }
+    a { display: inline-flex; align-items: center; }
+    a[href^="mailto:"] { min-height: 44px; display: inline-flex; align-items: center; }
+  }
 </style>
 </head>
 <body>

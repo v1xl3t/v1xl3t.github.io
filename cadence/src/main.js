@@ -3462,7 +3462,9 @@ function initSettings() {
   const expList = document.getElementById('experimental-note');
   if (expList) {
     expList.innerHTML = EXPERIMENTAL_FEATURES
-      .map((f) => `<li><b>${f.label}</b> — ${f.note}</li>`).join('')
+      // A comma, not an em dash. The standing copy rule says no em dashes in
+      // prose, and this list was seven of the site's seven remaining flags.
+      .map((f) => `<li><b>${f.label}</b>, ${f.note}</li>`).join('')
       + '<li class="exp-caution">All of it is still being built, so expect rough edges. '
       + 'The slicer has not driven a real printer yet, so watch the first layer of anything you send it.</li>';
   }

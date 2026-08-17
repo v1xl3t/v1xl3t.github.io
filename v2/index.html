@@ -311,6 +311,12 @@ html.glitch #cover, html.glitch .spread{ animation:glitch .55s steps(5,end) 1 }
   80%{ filter:none; transform:none }
 }
 @media (prefers-reduced-motion:reduce){ html.glitch #cover, html.glitch .spread{ animation:none } }
+
+  /* Touch targets, from the site-wide audit: the skin button and the nav links
+     were 39 to 42px, just under the floor. */
+  @media (pointer: coarse) {
+    .skinbtn, .links a, nav a, header a { min-height: 44px; display: inline-flex; align-items: center; }
+  }
 </style>
 </head>
 <body>

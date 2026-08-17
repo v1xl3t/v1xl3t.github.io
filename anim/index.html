@@ -157,6 +157,21 @@
     .stage-top{flex-wrap:wrap;gap:8px;padding:8px 12px}
     .stage-top button{min-height:44px}
   }
+
+  /* Touch targets, from the site-wide audit. The palette cells and the colour
+     swatch stay small on purpose, which the rule at the top of this block
+     already says; these are the controls that were simply a couple of pixels
+     short of the floor. */
+  @media (pointer: coarse) {
+    input#brush, input#fps, select#stateSel, select#transSel,
+    input#trans-start, input#cw, input#ch,
+    button.mini { min-height: 44px; }
+    button.mini { min-width: 44px; }
+    /* .pcell and #color.swatch stay small deliberately, which the rule further
+       up already states: they are an 18px palette strip, and a six across row
+       of 44px blocks would be a different control. Recorded as an accepted
+       exception in the site audit rather than left to be re-found. */
+  }
 </style>
 </head>
 <body>

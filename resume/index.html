@@ -165,6 +165,17 @@
       transition-duration:.001ms !important; scroll-behavior:auto !important;
     }
   }
+
+  /* Touch targets, from the site-wide audit: the template picker, the accent
+     swatch, and every add and delete button in the editor were 34 to 39px.
+     Element plus class, because the base rules are written that way and win on
+     specificity against a bare class. */
+  @media (pointer: coarse) {
+    select#tpl, input#accent,
+    button.add, button.del,
+    button#ob-close, button#ob-blank { min-height: 44px; }
+    button.del { min-width: 44px; }
+  }
 </style>
 </head>
 <body>

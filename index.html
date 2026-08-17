@@ -858,6 +858,12 @@ html[data-theme="light"] .media-note{
   html[data-theme="light"] .nav-links{ background:rgba(247,244,254,.97) }
   html[data-theme="light"] .nav-links a.active{ background:rgba(124,95,224,.12) }
 }
+
+  /* Touch targets, from the site-wide audit. The wordmark is the only control
+     in the header and it was 30px tall. */
+  @media (pointer: coarse) {
+    a.brand { min-height: 44px; display: inline-flex; align-items: center; }
+  }
 </style>
 <script>
   // Apply the saved light choice before paint (no flash). Dark stays the default.

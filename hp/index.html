@@ -485,6 +485,15 @@ footer a{color:var(--accent); text-decoration:none}
 .loader .mk{font-family:var(--mono); letter-spacing:.3em; color:var(--accent); font-size:.9rem;
   text-transform:uppercase; animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.4} 50%{opacity:1}}
+
+  /* Touch targets, from the site-wide audit. The member chips were 32px tall,
+     and they are the main way anyone leaves this page. */
+  @media (pointer: coarse) {
+    a.chip { min-height: 44px; display: inline-flex; align-items: center; }
+    /* The contact address is a 15px line of text, which is a reading size and
+       not a tapping size. */
+    a[href^="mailto:"] { min-height: 44px; display: inline-flex; align-items: center; }
+  }
 </style>
 </head>
 <body>

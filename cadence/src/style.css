@@ -1405,6 +1405,19 @@ button.wants-attention {
   .check input[type="checkbox"] { width: 22px; height: 22px; }
   .check { min-height: var(--touch); }
 
+  /* Everything the touch sweep found that the rules above did not already
+     reach: the Iso button under the view cube, the onboarding card's two
+     buttons, and the colour swatch in the inspector.
+
+     The view cube's own FACES are deliberately not here. They are 3D rotated,
+     so what a finger meets is the projected parallelogram, about 32px tall at
+     the default angle, and the only way to make that 44 is to grow the cube to
+     roughly 110px, which on a 390px screen covers the model it exists to
+     orient you around. Recorded as an exception in site-audit.mjs rather than
+     silently left. */
+  #cm-card .cm-btns button { min-height: var(--touch); }
+  input[type="color"] { min-height: var(--touch); }
+
   /* The visibility eye was 19px wide inside a 44px row. */
   .eye { min-width: var(--touch); min-height: var(--touch); }
   .orow { min-height: var(--touch); }
@@ -1412,8 +1425,9 @@ button.wants-attention {
   /* Dimension chips are editable values, so they are targets, not labels. */
   .dimchip { padding: 8px 12px; font-size: 13px; }
 
-  /* The orientation cube and its Iso button. */
-  #vc-home { min-height: 40px; min-width: 52px; padding: 8px 14px; }
+  /* The orientation cube and its Iso button. 40px was an arbitrary near-miss,
+     four pixels under the floor every other control here clears. */
+  #vc-home { min-height: var(--touch); min-width: 52px; padding: 8px 14px; }
   #slicer .sl-head button { min-width: var(--touch); }
   .dimchip { min-height: 44px; }
   #tips-btn { min-height: var(--touch); }

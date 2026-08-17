@@ -24,7 +24,10 @@
           }
           body > button { right: 14px; padding: 6px 10px; cursor: pointer; }
           body > input[type=range] { right: 150px; }
-        </style>
+        
+  /* Touch targets, from the site-wide audit. */
+  @media (pointer: coarse) { button, input[type="range"] { min-height: 44px; } }
+</style>
         <script src="p5/p5.js"></script>
         <script src="p5/addons/p5.sound.js"></script>
         <script src="Brackets/sketch/201022dataProject.js"></script>

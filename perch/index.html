@@ -397,6 +397,14 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 hr.sep{border:none; border-top:1px solid var(--line); margin:16px 0}
 .retired-row{display:flex; gap:8px; align-items:center; font-size:.85rem; padding:4px 0; color:var(--ink2)}
 .retired-row button{color:var(--accent-ink); font-size:.78rem; font-weight:700}
+
+  /* Touch targets. The site-wide audit found the header row and the quick
+     buttons sitting at 34px, ten under the floor every other control here
+     clears, which on a phone is the difference between tapping the ledger and
+     tapping the thing beside it. */
+  @media (pointer: coarse) {
+    .hdr-btn, .stat, .quick-btn { min-height: 44px; min-width: 44px; }
+  }
 </style>
 </head>
 <body>

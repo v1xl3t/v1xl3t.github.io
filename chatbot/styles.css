@@ -149,3 +149,7 @@ body {
     width: 91.5%;
   }
 }
+
+/* Touch target, from the site-wide audit: the message box was 35px tall, and
+   it is the only control on the page. */
+@media (pointer: coarse) { #input { min-height: 44px; } }
