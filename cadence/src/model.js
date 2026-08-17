@@ -53,6 +53,20 @@ export class CadObject {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
     this.mesh.userData.cadId = this.id;
+    this._tagPattern();
+  }
+
+  /**
+   * Tell the kernel that this mesh is really N bodies made from one rule.
+   *
+   * The merged geometry a pattern draws with is only safe as CSG input while
+   * its copies stay apart. Rather than police that, the kernel rebuilds the
+   * copies and unions them properly, and it finds out that it should through
+   * this tag rather than by knowing what a CADence object is.
+   */
+  _tagPattern() {
+    if (this.kind === 'pattern') this.mesh.userData.patternParams = this.params;
+    else delete this.mesh.userData.patternParams;
   }
 
   _material() {
@@ -74,6 +88,7 @@ export class CadObject {
     const next = buildGeometry(this.kind, this.params);
     this.mesh.geometry.dispose();
     this.mesh.geometry = next;
+    this._tagPattern();
   }
 
   setColor(hex) { this.color = hex; this.mesh.material.color.set(hex); }
@@ -407,6 +422,106 @@ export class CadDocument extends EventTarget {
     const result = await booleanIntersect(objs.map((o) => o.mesh));
     if (!result) return null;     // no shared volume — leave document untouched
     return this._bakeGroup(objs, result.geometry, 'Intersection', 'intersect');
+  }
+
+  // ---- patterns --------------------------------------------------------------
+  //
+  // Vi's framing, 2026-08-11: we encode the RESULT, a list of objects, when the
+  // thing that actually happened was one instruction. Six bolt holes are six
+  // objects here and one sentence out loud, "six of these, twenty apart". A
+  // pattern stores the sentence. The count stays a number you can change, the
+  // whole thing is one row in the outliner instead of six, and a share link
+  // carries a rule rather than six copies of the same box.
+
+  /**
+   * Turn an object into a pattern of itself.
+   *
+   * The object does not move. Copy zero is the identity, so this reads as an
+   * edit to the thing already on the plate rather than as a new thing appearing
+   * somewhere else, and the pattern inherits its place, its role and its
+   * colour.
+   */
+  makePattern(id, mode = 'linear') {
+    const src = this.objects.get(id);
+    if (!src || src.kind === 'pattern') return null;
+    this.commit('Pattern');
+
+    const desc = src.kind === 'boolean'
+      ? {
+          kind: 'boolean',
+          params: { ...src.params },
+          geo: geoToArrays(src.mesh.geometry),
+          children: src.children ? src.children.map((c) => serializeChild(c)) : null,
+        }
+      : { kind: src.kind, params: deepParams(src.params) };
+
+    // A first step of one and a half bounding boxes, so the copies land clear
+    // of each other. A default of zero would draw every copy inside the first
+    // one and look exactly like nothing happened.
+    src.mesh.geometry.computeBoundingBox();
+    const size = new THREE.Vector3();
+    src.mesh.geometry.boundingBox.getSize(size);
+    const step = Math.max(1, Math.round(size.x * Math.abs(src.mesh.scale.x) * 1.5));
+
+    const obj = new CadObject({
+      kind: 'pattern',
+      role: src.role,
+      params: { ...DEFAULT_PARAMS.pattern, mode, dx: step, radius: Math.max(step, 30), src: desc },
+    });
+    obj.name = this._uniqueName(`${src.name} pattern`);
+    obj.mesh.position.copy(src.mesh.position);
+    obj.mesh.rotation.copy(src.mesh.rotation);
+    obj.mesh.scale.copy(src.mesh.scale);
+    obj.setColor(src.color);
+
+    this._disband([src]);
+    this.objects.set(obj.id, obj);
+    this._emit('regroup');
+    this.select(obj.id);
+    return obj;
+  }
+
+  /**
+   * Give the source back and throw the rule away.
+   *
+   * The inverse of makePattern, and the reason a pattern is safe to try. It
+   * lands exactly where copy zero was, because copy zero is the identity.
+   */
+  releasePattern(id) {
+    const pat = this.objects.get(id);
+    if (!pat || pat.kind !== 'pattern' || !pat.params.src) return null;
+    this.commit('Release pattern');
+    const s = pat.params.src;
+    const obj = s.kind === 'boolean'
+      ? new CadObject({
+          kind: 'boolean', role: pat.role, params: { ...s.params },
+          geometry: arraysToGeo(s.geo),
+          children: s.children ? s.children.map(reviveChild) : null,
+        })
+      : new CadObject({ kind: s.kind, role: pat.role, params: deepParams(s.params) });
+    obj.name = this._uniqueName(pat.name.replace(/ pattern.*$/, '') || obj.name);
+    obj.mesh.position.copy(pat.mesh.position);
+    obj.mesh.rotation.copy(pat.mesh.rotation);
+    obj.mesh.scale.copy(pat.mesh.scale);
+    obj.setColor(pat.color);
+    if (obj.kind === 'boolean') { obj.mesh.updateMatrix(); obj.baseMatrix = obj.mesh.matrix.clone(); }
+
+    this._disband([pat]);
+    this.objects.set(obj.id, obj);
+    this._emit('regroup');
+    this.select(obj.id);
+    return obj;
+  }
+
+  /** Change one pattern parameter and rebuild, as one history step. */
+  setPatternParam(id, key, value) {
+    const pat = this.objects.get(id);
+    if (!pat || pat.kind !== 'pattern') return false;
+    this.commit('Pattern ' + key);
+    pat.params[key] = value;
+    pat.rebuild();
+    this.touch(pat);
+    return true;
   }
 
   _disband(objs) {
@@ -747,6 +862,22 @@ function deepParams(p) {
   const out = { ...p };
   if (out.sk) out.sk = cloneSketch(out.sk);
   if (Array.isArray(out.profile)) out.profile = out.profile.map((pt) => [...pt]);
+  // A pattern's source is a whole recipe living inside params. A shallow copy
+  // would let an edit made after a history snapshot reach back and rewrite the
+  // snapshot that was supposed to have frozen it, which is the same trap the
+  // sketch document above is cloned to avoid.
+  if (out.src) {
+    // Built key by key rather than by spreading, so an absent `geo` stays
+    // absent instead of becoming a key holding undefined. The share link
+    // encoder verifies itself by comparing the decoded document against this
+    // one, and a key that exists on one side and not the other fails that
+    // comparison for no reason anybody could act on.
+    const s = { kind: out.src.kind };
+    if (out.src.params) s.params = deepParams(out.src.params);
+    if (out.src.geo) s.geo = { position: Array.from(out.src.geo.position), index: out.src.geo.index ? Array.from(out.src.geo.index) : null };
+    if (out.src.children) s.children = out.src.children.map((c) => ({ ...c }));
+    out.src = s;
+  }
   return out;
 }
 

@@ -3,7 +3,7 @@
 // the "TinkerCAD-easy" half. Both edit the same model, so you can drag roughly
 // then dial in an exact value — the workflow swap Vi is after, in miniature.
 
-import { PARAM_SCHEMA, ROLE_LABELS, resolveSketch, extrudeSpan } from './primitives.js';
+import { PARAM_SCHEMA, ROLE_LABELS, resolveSketch, extrudeSpan, PATTERN_FIELDS, patternTransforms } from './primitives.js';
 import { dimensionList, constraintLabel, isDimension } from './sketch.js';
 import { unitScale, unitLabel } from './settings.js';
 import * as THREE from 'three';
@@ -50,9 +50,15 @@ export class Inspector {
     // revolve angle next to the extrude depth was always confusing, so only the
     // fields that actually drive the current shape are rendered.
     const isSketch = obj.kind === 'sketch';
+    const isPattern = obj.kind === 'pattern';
     const isRevolve = isSketch && obj.params.op === 'revolve';
     const endType = obj.params.endType || 'blind';
     const relevant = (f) => {
+      // A pattern carries the fields for all three modes and only one mode's
+      // worth of them mean anything at a time. Showing a ring radius while the
+      // copies march in a straight line is a number you can type that changes
+      // nothing, which is worse than no field at all.
+      if (isPattern) return (PATTERN_FIELDS[obj.params.mode] || PATTERN_FIELDS.linear).includes(f.key);
       if (!isSketch) return true;
       if (f.key === 'angle') return isRevolve;
       // 'upTo' works out its own distance, so a depth field would be a number
@@ -122,7 +128,7 @@ export class Inspector {
 
     const dimRow = dimFields ? `
       <div class="field">
-        <label>Dimensions (mm)</label>
+        <label>${isPattern ? 'The rule' : 'Dimensions (mm)'}</label>
         ${dimFields}
       </div>` : (partsRow || `<div class="meta">A group's shape comes from its parts. <b>Ungroup</b> to edit them, then regroup.</div>`);
 
@@ -137,6 +143,7 @@ export class Inspector {
 
       ${roleRow}
       ${opRow}
+      ${this._patternRow(obj)}
       ${this._extrudeRow(obj)}
       ${this._sketchRow(obj)}
       ${dimRow}
@@ -160,6 +167,68 @@ export class Inspector {
   // How far the extrusion goes, and which way. Three end types cover almost
   // everything people reach for: one direction, centred on the plane, or a
   // different distance each way. Each is one tap, which matters on a phone.
+  /**
+   * The pattern rule: which way the copies go, around which axis, and a plain
+   * sentence saying what the numbers add up to.
+   *
+   * The sentence matters more than it looks. A pattern is the one object here
+   * whose shape is not visible from its own dimensions, and "6 copies, 25mm
+   * apart, 125mm end to end" is the check that stops a part being sent to a
+   * printer that cannot fit it.
+   */
+  _patternRow(obj) {
+    if (obj.kind !== 'pattern') return '';
+    const p = obj.params;
+    const mode = p.mode || 'linear';
+    const seg = (attr, value, label, title) =>
+      `<button type="button" data-${attr}="${value}" title="${esc(title)}" class="${(attr === 'pmode' ? mode : attr === 'paxis' ? (p.axis || 'y') : (p.plane || 'x')) === value ? 'on' : ''}">${label}</button>`;
+
+    const axisRow = mode === 'circular' ? `
+      <div class="field">
+        <label>Ring axis</label>
+        <div class="seg">
+          ${seg('paxis', 'x', 'X', 'Copies ring around the X axis')}
+          ${seg('paxis', 'y', 'Y', 'Copies ring around the up axis, which is the usual one for a bolt circle')}
+          ${seg('paxis', 'z', 'Z', 'Copies ring around the Z axis')}
+        </div>
+      </div>` : '';
+
+    const planeRow = mode === 'mirror' ? `
+      <div class="field">
+        <label>Mirror across</label>
+        <div class="seg">
+          ${seg('pplane', 'x', 'YZ', 'Flip left to right')}
+          ${seg('pplane', 'y', 'XZ', 'Flip top to bottom')}
+          ${seg('pplane', 'z', 'XY', 'Flip front to back')}
+        </div>
+      </div>` : '';
+
+    const count = patternTransforms(p).length;
+    let says;
+    if (mode === 'mirror') {
+      says = "The original and one reflection of it, through a plane at this object's own origin.";
+    } else if (mode === 'circular') {
+      const step = (p.sweep >= 359.999 ? p.sweep / count : p.sweep / Math.max(1, count - 1));
+      says = `${count} copies on a ${round(p.radius)}mm ring, one every ${round(step, 1)}°, centred on this object's own origin.`;
+    } else {
+      const span = Math.hypot((p.dx || 0) * (count - 1), (p.dy || 0) * (count - 1), (p.dz || 0) * (count - 1));
+      says = `${count} copies, ${round(span, 1)}mm from the first to the last.`;
+    }
+
+    return `
+      <div class="field">
+        <label>Pattern</label>
+        <div class="seg">
+          ${seg('pmode', 'linear', 'Line', 'Copies march along a straight step in X, Y and Z')}
+          ${seg('pmode', 'circular', 'Ring', 'Copies go round a circle, for bolt holes, gear teeth and spokes')}
+          ${seg('pmode', 'mirror', 'Mirror', 'One reflected copy, for parts that come in left and right hands')}
+        </div>
+      </div>
+      ${axisRow}
+      ${planeRow}
+      <div class="meta">${esc(says)} <b>Release</b> in the toolbar gives the single part back.</div>`;
+  }
+
   _extrudeRow(obj) {
     if (obj.kind !== 'sketch' || obj.params.op === 'revolve') return '';
     const end = obj.params.endType || 'blind';
@@ -358,6 +427,19 @@ export class Inspector {
         this.render();           // reflect color + active state
       });
     });
+    // The pattern rule. Three controls, one path: set the key, rebuild, re-render
+    // so the fields that stopped meaning anything go away with it.
+    for (const [attr, key] of [['pmode', 'mode'], ['paxis', 'axis'], ['pplane', 'plane']]) {
+      this.body.querySelectorAll(`button[data-${attr}]`).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const v = btn.dataset[attr];
+          if (obj.params[key] === v) return;
+          this.doc.setPatternParam(obj.id, key, v);
+          this.onChange(obj);
+          this.render();
+        });
+      });
+    }
     // Sketch feature toggle (extrude / revolve).
     this.body.querySelectorAll('button[data-op]').forEach((btn) => {
       btn.addEventListener('click', () => {

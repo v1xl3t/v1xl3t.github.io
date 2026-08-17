@@ -31,7 +31,7 @@ import { scheduleAutosave, restoreAutosave, clearAutosave } from './autosave.js'
 import { buildShareLink, tryLoadSharedLink } from './sharelink.js';
 import { encodeTiny, decodeTiny, encodeVerified } from './tinylink.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
-import { ROLE_LABELS } from './primitives.js';
+import { ROLE_LABELS, patternTransforms } from './primitives.js';
 import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, EXPERIMENTAL_FEATURES, controlMap, unitLabel } from './settings.js';
 import { zipSync } from 'fflate';
 
@@ -259,6 +259,34 @@ async function groupSelected() {
 function ungroupSelected() {
   if (doc.selected?.kind === 'boolean') doc.ungroup(doc.selectedId);
   else flash('Select a group to ungroup.');
+}
+
+/**
+ * Turn the selection into a repeat of itself.
+ *
+ * The status line says what the rule is rather than that a thing happened,
+ * because the whole point of a pattern is that the numbers are editable and
+ * nobody edits a number they were not told about.
+ */
+function patternSelected() {
+  if (!experimentalOn()) { flash('Pattern is an experimental feature. Turn it on in Settings.'); return; }
+  const sel = doc.selected;
+  if (!sel) { flash(doc.list.length ? 'Select an object to repeat.' : 'Nothing to repeat yet. Add a shape first.'); return; }
+  if (sel.kind === 'pattern') { flash('That is already a pattern. Change its rule in the inspector, or press Release to get the single part back.'); return; }
+  try {
+    const p = doc.makePattern(doc.selectedId, 'linear');
+    flash(p ? `${sel.name} is now a pattern of ${p.params.count}, ${p.params.dx}mm apart. Change the rule in the inspector.` : 'Could not build that pattern.');
+  } catch (err) {
+    console.error('[CADence] pattern failed:', err);
+    flash('Pattern failed. See console.');
+  }
+}
+
+function releaseSelectedPattern() {
+  if (doc.selected?.kind === 'pattern') {
+    const o = doc.releasePattern(doc.selectedId);
+    flash(o ? `Released. ${o.name} is a single part again.` : 'Could not release that pattern.');
+  } else flash('Select a pattern to release.');
 }
 
 async function intersectSelected() {
@@ -489,6 +517,8 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'group':     groupSelected(); break;
     case 'intersect': intersectSelected(); break;
     case 'ungroup':   ungroupSelected(); break;
+    case 'pattern':         patternSelected(); break;
+    case 'release-pattern': releaseSelectedPattern(); break;
     case 'undo':      doc.undo(); break;
     case 'export-stl':
       if (exportSTL(doc.list, undefined, displayUnit)) flash(`Exported STL (${unitLabel(displayUnit)} units).`);
@@ -716,7 +746,14 @@ function syncModeUI() {
   // once in the phone dock, and only one of the two is on screen at a time.
   // Both are painted here, from the mode, so neither can go stale.
   for (const btn of document.querySelectorAll('[data-modecycle]')) {
-    btn.dataset.mode = mode;
+    // Deliberately NOT `data-mode`. That attribute means "this button selects
+    // this mode", and the cycle button selects the next one, whatever it is.
+    // Writing the current mode there made `[data-mode="rotate"]` match the
+    // cycle button as well as the Rotate button, and since the cycle button
+    // sits earlier in the document, the first match flipped to a button that
+    // never wears the active class. Nothing ever read it back, so it was
+    // write-only state whose only effect was to break a selector.
+    btn.dataset.modenow = mode;
     btn.setAttribute('aria-label', `Transform tool: ${ui.label}. Tap to cycle.`);
     btn.setAttribute('data-label', `${ui.label} (Q)`);
     btn.title = `Transform tool: ${ui.label}. Tap or press Q for the next one.`;
@@ -3430,6 +3467,9 @@ setStatus();
 // Expose for console tinkering / debugging.
 window.cadence = {
   doc, scene, THREE, camera, renderer, orbit,
+  // The pattern rule, exposed so the harness asserts against the same function
+  // the geometry is built from rather than a copy of the arithmetic.
+  patternTransforms,
   // The transform gizmo and the one function allowed to change its mode, so the
   // harness drives the same path the buttons do rather than a copy of it.
   gizmo, setMode, cycleMode,

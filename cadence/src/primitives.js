@@ -45,6 +45,25 @@ export const DEFAULT_PARAMS = {
   // like everything else, so it saves, reloads, undoes and booleans normally
   // instead of being an opaque imported mesh.
   supports: { slabs: [], grow: 0 },
+  // A pattern is an OPERATION, not a pile of objects. Six bolt holes are six
+  // objects in every other tool here and one instruction in this one, "repeat
+  // six times, twenty apart". That is Vi's framing from 2026-08-11 and it is
+  // the right one: the count is a number you can change afterwards, the whole
+  // thing is one row in the outliner, and a share link carries the rule rather
+  // than six copies of the same box.
+  //
+  // `src` is the recipe being repeated, {kind, params, geo?}. `geo` is only
+  // used when the source was a baked group, which has no scalar recipe to
+  // rebuild from.
+  pattern: {
+    mode: 'linear',                     // linear | circular | mirror
+    count: 4,
+    dx: 25, dy: 0, dz: 0,               // linear step, mm per copy
+    radius: 30, sweep: 360, follow: 1,  // circular ring, degrees of sweep, rotate copies to face out
+    axis: 'y',                          // circular axis
+    plane: 'x',                         // mirror plane normal
+    src: null,
+  },
 };
 
 // A reusable "corner radius" field for primitives that support rounding.
@@ -123,6 +142,24 @@ export const PARAM_SCHEMA = {
   supports: [
     { key: 'grow', label: 'Thicken (mm)', min: -2, max: 5, step: 0.1 },
   ],
+  // Which of these the inspector shows depends on the mode, the same way the
+  // sketch hides its revolve angle while it is extruding. A field you can type
+  // into that changes nothing is worse than no field.
+  pattern: [
+    { key: 'count',  label: 'Copies',        min: 1,  step: 1, integer: true },
+    { key: 'dx',     label: 'Step X (mm)',   step: 1 },
+    { key: 'dy',     label: 'Step Y (mm)',   step: 1 },
+    { key: 'dz',     label: 'Step Z (mm)',   step: 1 },
+    { key: 'radius', label: 'Ring radius',   min: 0, step: 1 },
+    { key: 'sweep',  label: 'Sweep (°)',     min: 1, max: 360, step: 15 },
+  ],
+};
+
+/** Which pattern fields mean anything in a given mode. */
+export const PATTERN_FIELDS = {
+  linear:   ['count', 'dx', 'dy', 'dz'],
+  circular: ['count', 'radius', 'sweep'],
+  mirror:   [],
 };
 
 // ---- parametric sketch ------------------------------------------------------
@@ -726,6 +763,141 @@ function buildSupportStack(params) {
   return merged;
 }
 
+// ---- patterns ---------------------------------------------------------------
+//
+// Everything about a pattern that is not geometry lives in these two functions,
+// and both are pure. The transforms can be tested against arithmetic without a
+// browser, and the geometry is just those transforms applied to one source.
+
+const PATTERN_AXIS = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+
+/**
+ * Where every copy of a pattern goes, copy zero first.
+ *
+ * For a line and for a mirror, copy zero is the identity, so turning an object
+ * into a pattern does not move the thing you already placed and everything
+ * after it is measured from there. A ring is the exception and centres itself
+ * on the origin instead, for the reason spelled out below.
+ *
+ * @returns {THREE.Matrix4[]} one matrix per copy, in the pattern's local frame
+ */
+export function patternTransforms(params = {}) {
+  const mode = params.mode || 'linear';
+  const out = [];
+  if (mode === 'mirror') {
+    // A mirror is two copies and a reflection, not a count you choose. The
+    // second copy is the first one flipped through a plane at the origin.
+    out.push(new THREE.Matrix4());
+    const s = { x: [-1, 1, 1], y: [1, -1, 1], z: [1, 1, -1] }[params.plane || 'x'];
+    out.push(new THREE.Matrix4().makeScale(s[0], s[1], s[2]));
+    return out;
+  }
+  const count = Math.max(1, Math.min(512, Math.round(params.count ?? 1)));
+  if (mode === 'circular') {
+    const axis = new THREE.Vector3().fromArray(PATTERN_AXIS[params.axis] || PATTERN_AXIS.y);
+    const r = params.radius ?? 0;
+    const sweepDeg = clamp(params.sweep ?? 360, 1, 360);
+    // A full circle wants the last copy NOT to land on the first, so the step
+    // is the sweep over the count. A partial arc wants both ends occupied, so
+    // it is the sweep over one less. Getting this backwards is what makes a
+    // twelve tooth gear come out with two teeth in the same place.
+    const closed = sweepDeg >= 359.999;
+    const step = (sweepDeg * Math.PI / 180) / (closed ? count : Math.max(1, count - 1));
+    // The ring is centred on the pattern's OWN origin, and the radius pushes the
+    // copies out from it. That is the one decision in this function worth
+    // arguing about, because it means a ring pattern moves the part it was made
+    // from, which linear and mirror deliberately do not.
+    //
+    // It is right anyway, because of what a ring pattern is for. Put a bolt in
+    // the middle of a plate, ask for eight of them on a 30mm ring, and what you
+    // want is a bolt circle centred on the plate. Pinning copy zero instead
+    // gives a ring centred 30mm off to one side of the part, which was the
+    // first thing that looked wrong on screen and is wrong for every bolt
+    // circle, spoke and gear anyone would build with this.
+    const out0 = new THREE.Matrix4().makeTranslation(r, 0, 0);
+    for (let i = 0; i < count; i++) {
+      const rot = new THREE.Matrix4().makeRotationAxis(axis, i * step);
+      const m = new THREE.Matrix4().multiplyMatrices(rot, out0);
+      if (params.follow === 0 || params.follow === false) {
+        // Copies travel round the ring but keep the orientation they started
+        // with, which is what a row of identical labels or feet wants.
+        const pos = new THREE.Vector3().setFromMatrixPosition(m);
+        m.makeTranslation(pos.x, pos.y, pos.z);
+      }
+      out.push(m);
+    }
+    return out;
+  }
+  const dx = params.dx ?? 0, dy = params.dy ?? 0, dz = params.dz ?? 0;
+  for (let i = 0; i < count; i++) out.push(new THREE.Matrix4().makeTranslation(dx * i, dy * i, dz * i));
+  return out;
+}
+
+/** The geometry of the thing being repeated, from its recipe or its bake. */
+export function patternSourceGeometry(params = {}) {
+  const src = params.src;
+  if (!src) return new THREE.BoxGeometry(20, 20, 20).translate(0, 10, 0);
+  if (src.geo && src.geo.position) {
+    // A baked group has no scalar recipe to rebuild from, so the pattern keeps
+    // the arrays. Patterning an assembly is a real thing to want and refusing
+    // it because the source is not parametric would be a poor trade.
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(src.geo.position), 3));
+    if (src.geo.index) g.setIndex(new THREE.BufferAttribute(new Uint32Array(src.geo.index), 1));
+    g.computeVertexNormals();
+    return g;
+  }
+  return buildGeometry(src.kind, src.params);
+}
+
+/**
+ * A reflected copy has its triangles wound backwards, so every face points
+ * into the solid. Three does not fix that for you, and the kernel reads
+ * winding as inside and outside, so a mirror without this produces a body with
+ * negative volume that unions into nothing.
+ */
+function flipWinding(geo) {
+  const idx = geo.getIndex();
+  if (idx) {
+    const a = idx.array;
+    for (let i = 0; i < a.length; i += 3) { const t = a[i]; a[i] = a[i + 2]; a[i + 2] = t; }
+    idx.needsUpdate = true;
+  } else {
+    const pos = geo.getAttribute('position').array;
+    for (let i = 0; i < pos.length; i += 9) {
+      for (let k = 0; k < 3; k++) {
+        const t = pos[i + k]; pos[i + k] = pos[i + 6 + k]; pos[i + 6 + k] = t;
+      }
+    }
+    geo.getAttribute('position').needsUpdate = true;
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** One copy of a pattern's source, already placed. Shared with the kernel. */
+export function patternCopyGeometry(srcGeo, matrix) {
+  const g = srcGeo.clone();
+  g.applyMatrix4(matrix);
+  if (matrix.determinant() < 0) flipWinding(g);
+  return g;
+}
+
+function buildPattern(params) {
+  const src = patternSourceGeometry(params);
+  const mats = patternTransforms(params);
+  const parts = mats.map((m) => patternCopyGeometry(src, m));
+  src.dispose();
+  if (parts.length === 1) return parts[0];
+  const merged = mergeGeometries(parts, false);
+  parts.forEach((p) => p.dispose());
+  // mergeGeometries returns null when the sources disagree about attributes.
+  // They never should here, since every copy came from one geometry, but a
+  // silent null would surface as an invisible object rather than as an error.
+  if (!merged) throw new Error('Pattern copies could not be merged.');
+  return merged;
+}
+
 export function buildGeometry(kind, params) {
   let geo;
   // Back-compat: the old standalone "Rounded Box" is now Box + a `round` param.
@@ -812,6 +984,9 @@ export function buildGeometry(kind, params) {
       break;
     case 'supports':
       geo = buildSupportStack(params);
+      break;
+    case 'pattern':
+      geo = buildPattern(params);
       break;
     case 'sketch': {
       const prof = (params.profile && params.profile.length >= 3) ? params.profile : DEFAULT_PARAMS.sketch.profile;

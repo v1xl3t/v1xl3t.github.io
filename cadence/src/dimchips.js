@@ -6,7 +6,7 @@
 // object as the camera orbits. Each edit is a real history step, so it lands on
 // the Recipe Timeline too.
 
-import { PARAM_SCHEMA } from './primitives.js';
+import { PARAM_SCHEMA, PATTERN_FIELDS } from './primitives.js';
 import * as THREE from 'three';
 
 const ABBR = {
@@ -48,6 +48,10 @@ const SCALE_AXIS = {
   prism:    { radius: 'x', height: 'y' },
   loft:     { width: 'x', depth: 'z', topWidth: 'x', topDepth: 'z', height: 'y' },
   sketch:   { depth: 'y', depth2: 'y', start: 'y' },   // the extrusion runs up Y
+  // A pattern's step and ring radius really are lengths, and they get stretched
+  // by the scale tool along with everything else the pattern draws. A count and
+  // a sweep angle are not lengths, so they stay raw.
+  pattern:  { dx: 'x', dy: 'y', dz: 'z', radius: 'x' },
 };
 
 // How much a given recipe number has been stretched by the scale tool. Always
@@ -86,7 +90,14 @@ export class DimChips {
     this.obj = obj;
     // Only primitives carry editable dimensions; a baked group has none.
     if (!this.enabled || !obj || obj.kind === 'boolean') { this.layer.style.display = 'none'; return; }
-    const schema = (PARAM_SCHEMA[obj.kind] || []).filter((f) => !f.advanced);
+    // A pattern carries the fields for all three of its modes, and only one
+    // mode's worth of them describe the shape on screen. Floating a linear step
+    // over a ring of bolt holes is a number the picture does not contain.
+    const modeFields = obj.kind === 'pattern'
+      ? (PATTERN_FIELDS[obj.params.mode] || PATTERN_FIELDS.linear)
+      : null;
+    const schema = (PARAM_SCHEMA[obj.kind] || [])
+      .filter((f) => !f.advanced && (!modeFields || modeFields.includes(f.key)));
     if (!schema.length) { this.layer.style.display = 'none'; return; }
     this.layer.style.display = '';
     for (const f of schema) {

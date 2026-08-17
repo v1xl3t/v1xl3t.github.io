@@ -14,7 +14,7 @@
 
 import * as THREE from 'three';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
-import { buildGeometry, DEFAULT_PARAMS } from './primitives.js';
+import { buildGeometry, DEFAULT_PARAMS, patternTransforms, patternSourceGeometry, patternCopyGeometry } from './primitives.js';
 
 const MANIFOLD_URL = 'https://cdn.jsdelivr.net/npm/manifold-3d@3.0.1/manifold.js';
 
@@ -40,12 +40,41 @@ export function warmKernel() { getManifold().catch(() => {}); }
 // Three.js mesh (with its world transform) -> a Manifold solid.
 function meshToManifold(wasm, threeMesh) {
   threeMesh.updateWorldMatrix(true, false);
+  // A pattern is not one body, it is N bodies made from one rule, and the
+  // merged display geometry is only safe to hand the kernel while the copies
+  // stay apart. Overlapping copies merged into one mesh are self intersecting,
+  // which is exactly the input a CSG kernel is entitled to get wrong. So a
+  // pattern is rebuilt copy by copy and unioned properly, and then overlapping
+  // copies are simply a solid, which is what anyone drawing them meant.
+  const pat = threeMesh.userData.patternParams;
+  if (pat) return patternToManifold(wasm, threeMesh, pat);
+  return geoToManifold(wasm, threeMesh.geometry, threeMesh.matrixWorld);
+}
+
+function patternToManifold(wasm, threeMesh, params) {
+  const src = patternSourceGeometry(params);
+  const mats = patternTransforms(params);
+  const solids = [];
+  try {
+    for (const m of mats) {
+      const g = patternCopyGeometry(src, m);
+      solids.push(geoToManifold(wasm, g, threeMesh.matrixWorld));
+      g.dispose();
+    }
+  } finally {
+    src.dispose();
+  }
+  if (solids.length === 1) return solids[0];
+  const u = wasm.Manifold.union(solids);
+  solids.forEach((s) => s.delete?.());
+  return u;
+}
+
+function geoToManifold(wasm, geometry, matrix) {
   // Non-indexed positions in WORLD space; Manifold.merge() welds the seams so
   // the result is a valid closed solid even though primitives share corners.
-  const geo = threeMesh.geometry.index
-    ? threeMesh.geometry.toNonIndexed()
-    : threeMesh.geometry.clone();
-  geo.applyMatrix4(threeMesh.matrixWorld);
+  const geo = geometry.index ? geometry.toNonIndexed() : geometry.clone();
+  if (matrix) geo.applyMatrix4(matrix);
 
   const pos = geo.getAttribute('position').array; // Float32Array, flat xyz
   const vertCount = pos.length / 3;

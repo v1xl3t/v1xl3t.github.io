@@ -52,6 +52,27 @@
 //   * Any primitive kind whose defaults this table does not know, so adding a
 //     primitive to DEFAULT_PARAMS makes links fall back rather than encode
 //     something wrong.
+//   * A PATTERN OF A BAKED GROUP. The rule packs, the baked mesh underneath it
+//     does not, so those fall back the way a group carrying a mesh does.
+//
+// PATTERNS, and why they get their own code rather than a KIND_CODE slot.
+//
+// A pattern is the case this format was always going to be best at: six bolt
+// holes are one instruction, and an instruction is what a link should carry.
+// Measured before it was taught, the same seven boxes cost 117 characters
+// spelled out one at a time and 360 as a pattern, because a pattern fell all
+// the way back to deflate. Adding the feature made sharing WORSE, which is not
+// a trade worth shipping.
+//
+// It does not join KIND_CODE, for the same reason BOOLEAN_CODE does not. Kinds
+// in that map are hashed into SCHEMA_FINGERPRINT, and changing that byte
+// refuses every `t` link already sent. A pattern instead takes a code that was
+// already unused, so no existing payload changes meaning and the fingerprint
+// does not move. The asymmetry is forwards only: a not-yet-updated build
+// meeting a link containing a pattern throws on a kind code it does not know,
+// which tryLoadSharedLink turns into a refusal to load. Loud and empty, never a
+// model with the wrong shape in it. That is the same trade the raw-double
+// rotation mode made above, for the same reason.
 //   * Positions, scales or params that do not survive quantisation bit-for-bit
 //     (see QUANTISATION below). Rotation is NOT in this list any more. Since the
 //     raw-double mode landed, every finite rotation is representable exactly, so
@@ -171,6 +192,27 @@ const SCHEMA_FINGERPRINT = (() => {
 })();
 
 const CODE_KIND = new Map([...KIND_CODE].map(([k, c]) => [c, k]));
+
+/**
+ * The kind code a pattern is written under.
+ *
+ * Taken from its own slot in KIND_LIST, which the loop above skipped because a
+ * pattern's defaults are not all plain numbers. That leaves the code free and
+ * unclaimed, so using it adds a kind without disturbing any other one, and
+ * without touching SCHEMA_FINGERPRINT. If it were ever to collide with a kind
+ * the loop DID claim, every existing link would start decoding into the wrong
+ * shape in silence, so that is checked here rather than hoped for.
+ */
+const PATTERN_CODE = KIND_LIST.indexOf('pattern');
+if (PATTERN_CODE < 0 || PATTERN_CODE >= BOOLEAN_CODE || CODE_KIND.has(PATTERN_CODE)) {
+  throw new Error('tinylink: the pattern kind code collides with a packed primitive, which would corrupt every existing link');
+}
+
+// The three repeat rules, and the three axes a ring or a mirror can use. Both
+// tables are index-into-a-list rather than strings on the wire, and both are
+// two bits with a spare value, so a fourth mode later costs nothing.
+const PATTERN_MODES = ['linear', 'circular', 'mirror'];
+const PATTERN_AXES = ['x', 'y', 'z'];
 
 /* ------------------------------------------------------------- bit plumbing */
 
@@ -331,13 +373,25 @@ export function encodeTiny(data) {
 function writeObj(w, o, taken, prev, isChild) {
   const kind = o && o.kind;
   const isBool = kind === 'boolean';
-  const code = isBool ? BOOLEAN_CODE : KIND_CODE.get(kind);
+  const isPattern = kind === 'pattern';
+  const code = isBool ? BOOLEAN_CODE : isPattern ? PATTERN_CODE : KIND_CODE.get(kind);
   if (code === undefined) {
     // Sketches land here, and so does any primitive added to DEFAULT_PARAMS
     // that this format has not been taught. Both fall back rather than guess.
     throw refuse(`${kind === 'sketch' ? 'a sketch profile' : `kind "${kind}"`} cannot be packed`);
   }
   w.bits(code, 4);
+
+  // A pattern's rule and the kind it repeats go early, before the flag block,
+  // because the auto-name prediction below needs the source kind and the
+  // decoder has to be able to make the same prediction at the same point in
+  // the stream. Same reason the boolean operation goes where it does.
+  let pat = null;
+  if (isPattern) {
+    pat = planPattern(o.params);
+    w.bits(pat.mode, 2);
+    w.bits(pat.srcCode, 4);
+  }
 
   // The operation goes first for booleans, because the auto-name prediction
   // below depends on it ("Group" vs "Intersection") and the decoder has to be
@@ -376,13 +430,15 @@ function writeObj(w, o, taken, prev, isChild) {
   if (scl.some((q) => q === null)) throw refuse(`scale ${o.scale.join(', ')} is finer than 0.001`);
 
   // --- params
+  // A pattern's params are the rule, which has its own section below, so the
+  // generic param block is skipped for it rather than being fed a string mode.
   let paramPlan = null;
-  if (!isBool) {
+  if (!isBool && !isPattern) {
     paramPlan = planParams(kind, o.params);
     if (!paramPlan) throw refuse(`params on a ${kind} do not fit the 0.01 grid`);
   }
 
-  const expectName = predictName(baseNameFor(kind, op), taken);
+  const expectName = predictName(isPattern ? baseNameFor(pat.srcKind) + ' pattern' : baseNameFor(kind, op), taken);
   const expectColor = defaultColor(kind, o.role);
   const nameBytes = new TextEncoder().encode(o.name);
 
@@ -427,6 +483,18 @@ function writeObj(w, o, taken, prev, isChild) {
   if (f.nam) { w.varint(nameBytes.length); for (const b of nameBytes) w.bits(b, 8); }
 
   taken.add(o.name);
+
+  if (isPattern) {
+    // The rule, then the recipe it repeats. Everything that matches its default
+    // costs one bit of mask and nothing else, which is why the common pattern,
+    // a handful of copies with one step changed, fits in a couple of bytes.
+    w.bits(pat.axis, 2);
+    w.bits(pat.plane, 2);
+    w.bits(pat.mask, PATTERN_NUM_KEYS.length);
+    for (const d of pat.deltas) w.zigzag(d);
+    w.bits(pat.src.mask, pat.src.keys.length);
+    for (const d of pat.src.deltas) w.zigzag(d);
+  }
 
   if (isBool) {
     writeBaseMatrix(w, o.baseMatrix, o.position);
@@ -525,6 +593,98 @@ function planRotation(rot) {
 // One bit per param saying whether it deviates from the app's own default, then
 // only the deviations. A cylinder with a changed radius pays for one number,
 // not for `height`, `segments` and `round` as well.
+// The numeric half of a pattern's rule, in a fixed order, so a mask bit each
+// says which ones differ from the default. Deliberately ALL of them and not
+// just the ones the current mode reads: a ring pattern still carries the linear
+// step it had before the mode was switched, and dropping fields the document
+// really contains would make the encoder's own verification fail and send the
+// whole thing down the long path for nothing.
+const PATTERN_NUM_KEYS = ['count', 'dx', 'dy', 'dz', 'radius', 'sweep', 'follow'];
+const PATTERN_ENUM_KEYS = ['mode', 'axis', 'plane'];
+
+/**
+ * Work out whether a pattern can be written exactly, and how.
+ *
+ * Refuses rather than rounds, like everything else here. The rule is a handful
+ * of numbers on the same 0.01 grid as any other param, plus three small enums,
+ * plus the recipe of the thing being repeated, which is packed exactly the way
+ * that thing would be if it were sitting on the plate by itself.
+ */
+function planPattern(params) {
+  const p = params || {};
+  const def = DEFAULT_PARAMS.pattern;
+
+  const known = new Set([...PATTERN_NUM_KEYS, ...PATTERN_ENUM_KEYS, 'src']);
+  for (const k of Object.keys(p)) if (!known.has(k)) throw refuse(`a pattern carrying an extra param "${k}"`);
+  for (const k of known) if (!(k in p)) throw refuse(`a pattern missing "${k}"`);
+
+  const mode = PATTERN_MODES.indexOf(p.mode);
+  if (mode < 0) throw refuse(`a pattern mode "${p.mode}" this format does not know`);
+  const axis = PATTERN_AXES.indexOf(p.axis);
+  if (axis < 0) throw refuse(`a ring axis "${p.axis}" this format does not know`);
+  const plane = PATTERN_AXES.indexOf(p.plane);
+  if (plane < 0) throw refuse(`a mirror plane "${p.plane}" this format does not know`);
+
+  const src = p.src;
+  if (!src || typeof src !== 'object') throw refuse('a pattern with no source recipe');
+  if (src.geo || src.children) throw refuse('a pattern of a baked group');
+  const srcCode = KIND_CODE.get(src.kind);
+  if (srcCode === undefined) throw refuse(`a pattern of a ${src.kind}, which cannot be packed on its own either`);
+  const srcPlan = planParams(src.kind, src.params);
+  if (!srcPlan) throw refuse(`the ${src.kind} inside a pattern does not fit the 0.01 grid`);
+
+  let mask = 0;
+  const deltas = [];
+  for (let i = 0; i < PATTERN_NUM_KEYS.length; i++) {
+    const k = PATTERN_NUM_KEYS[i];
+    const v = p[k];
+    if (typeof v !== 'number' || !Number.isFinite(v)) throw refuse(`a pattern ${k} of ${v}`);
+    if (v === def[k]) continue;
+    const q = exactQ(v, PARAM_MUL);
+    if (q === null) throw refuse(`a pattern ${k} of ${v} is finer than the 0.01 grid`);
+    const base = Math.round(def[k] * PARAM_MUL);
+    if ((q - base + base) / PARAM_MUL !== v) throw refuse(`a pattern ${k} of ${v} does not survive the grid`);
+    mask |= 1 << (PATTERN_NUM_KEYS.length - 1 - i);
+    deltas.push(q - base);
+  }
+
+  return { mode, axis, plane, srcCode, srcKind: src.kind, src: srcPlan, mask, deltas };
+}
+
+/** The inverse of planPattern, reading straight off the stream. */
+function readPattern(r, mode, srcCode) {
+  const srcKind = CODE_KIND.get(srcCode);
+  if (!srcKind) throw new Error(`tinylink: unknown pattern source kind code ${srcCode}`);
+  const def = DEFAULT_PARAMS.pattern;
+  const params = {};
+  for (const k of PATTERN_NUM_KEYS) params[k] = def[k];
+
+  params.mode = PATTERN_MODES[mode];
+  params.axis = PATTERN_AXES[r.bits(2)];
+  params.plane = PATTERN_AXES[r.bits(2)];
+  if (!params.axis || !params.plane) throw new Error('tinylink: unknown pattern axis or plane');
+
+  const mask = r.bits(PATTERN_NUM_KEYS.length);
+  for (let i = 0; i < PATTERN_NUM_KEYS.length; i++) {
+    if (!(mask & (1 << (PATTERN_NUM_KEYS.length - 1 - i)))) continue;
+    const k = PATTERN_NUM_KEYS[i];
+    params[k] = (r.zigzag() + Math.round(def[k] * PARAM_MUL)) / PARAM_MUL;
+  }
+
+  const keys = PARAM_KEYS.get(srcKind);
+  const sdef = DEFAULT_PARAMS[srcKind];
+  const srcParams = {};
+  for (const k of keys) srcParams[k] = sdef[k];
+  const smask = r.bits(keys.length);
+  for (let i = 0; i < keys.length; i++) {
+    if (!(smask & (1 << (keys.length - 1 - i)))) continue;
+    const k = keys[i];
+    srcParams[k] = (r.zigzag() + Math.round(sdef[k] * PARAM_MUL)) / PARAM_MUL;
+  }
+  params.src = { kind: srcKind, params: srcParams };
+  return params;
+}
+
 function planParams(kind, params) {
   const keys = PARAM_KEYS.get(kind);
   const def = DEFAULT_PARAMS[kind];
@@ -583,11 +743,15 @@ export function decodeTiny(bytes) {
 function readObj(r, taken, prev, isChild, ctx) {
   const code = r.bits(4);
   const isBool = code === BOOLEAN_CODE;
-  const kind = isBool ? 'boolean' : CODE_KIND.get(code);
+  const isPattern = code === PATTERN_CODE;
+  const kind = isBool ? 'boolean' : isPattern ? 'pattern' : CODE_KIND.get(code);
   if (!kind) throw new Error(`tinylink: unknown kind code ${code}`);
 
   let op = null;
   if (isBool) op = r.bit() ? 'intersect' : 'combine';
+
+  let patMode = 0, patSrcCode = 0;
+  if (isPattern) { patMode = r.bits(2); patSrcCode = r.bits(4); }
 
   const f = {};
   for (const k of ['pos', 'rot', 'scl', 'par', 'col', 'nam', 'hole', 'hid']) f[k] = !!r.bit();
@@ -628,6 +792,7 @@ function readObj(r, taken, prev, isChild, ctx) {
 
   let params;
   if (isBool) params = { op };
+  else if (isPattern) params = null;        // read after the name, see below
   else {
     const keys = PARAM_KEYS.get(kind);
     const def = DEFAULT_PARAMS[kind];
@@ -655,9 +820,13 @@ function readObj(r, taken, prev, isChild, ctx) {
     for (let i = 0; i < len; i++) buf[i] = r.bits(8);
     name = new TextDecoder().decode(buf);
   } else {
-    name = predictName(baseNameFor(kind, op), taken);
+    name = predictName(isPattern ? baseNameFor(CODE_KIND.get(patSrcCode) || 'box') + ' pattern' : baseNameFor(kind, op), taken);
   }
   taken.add(name);
+
+  // The rule sits after the name because the source kind, which the name
+  // prediction needs, was written up front with the mode.
+  if (isPattern) params = readPattern(r, patMode, patSrcCode);
 
   const out = { id: `obj-${++ctx.nextId}`, kind, role, name, color, params, position, rotation, scale };
   if (!isChild) out.visible = !f.hid;
