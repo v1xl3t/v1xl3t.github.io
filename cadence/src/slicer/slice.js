@@ -39,6 +39,67 @@ const SNAP = 1e-4;
 const key = (x, y) => `${Math.round(x / SNAP)},${Math.round(y / SNAP)}`;
 
 /**
+ * How steep the model is, sampled up its height.
+ *
+ * The number an adaptive plan needs is the CUSP: the little terrace left where
+ * a sloped surface meets a stack of flat layers. For a surface lying at angle a
+ * from horizontal, that terrace is `layerHeight × cos(a)`, and `cos(a)` is
+ * exactly the vertical component of the surface normal. A vertical wall has a
+ * normal pointing sideways, `nz` is zero, and no layer height leaves a terrace
+ * on it at all. A shallow dome has `nz` near one and shows every layer.
+ *
+ * So this returns, per thin band of Z, the largest `|nz|` of anything crossing
+ * it, which is the shallowest slope there and therefore the one that decides
+ * how fine that band has to be.
+ *
+ * Facets flatter than `FLAT` are ignored on purpose. A perfectly horizontal top
+ * is one layer and has no terrace to smooth, and counting it would drive the
+ * whole region to the minimum layer height to improve a surface that is already
+ * as good as it can get.
+ */
+const SLOPE_BAND = 0.05;      // mm, fine enough that a 0.4mm layer sees several
+const FLAT = 0.98;            // |nz| above this is a flat face, not a slope
+
+export function slopeProfile(positions, zMin, zMax) {
+  const n = Math.max(1, Math.ceil((zMax - zMin) / SLOPE_BAND) + 1);
+  const bands = new Float32Array(n);   // max |nz| per band, 0 = nothing steep here
+  for (let t = 0; t + 8 < positions.length; t += 9) {
+    const ax = positions[t], ay = positions[t + 1], az = positions[t + 2];
+    const bx = positions[t + 3], by = positions[t + 4], bz = positions[t + 5];
+    const cx = positions[t + 6], cy = positions[t + 7], cz = positions[t + 8];
+    // Cross product of two edges, z component only, then normalised by the
+    // full length. Only |nz| is wanted, so the other two are needed just to
+    // normalise.
+    const ux = bx - ax, uy = by - ay, uz = bz - az;
+    const vx = cx - ax, vy = cy - ay, vz = cz - az;
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    const len = Math.hypot(nx, ny, nz);
+    if (!(len > 1e-12)) continue;
+    const az_ = Math.abs(nz) / len;
+    if (az_ >= FLAT) continue;
+    const lo = Math.min(az, bz, cz), hi = Math.max(az, bz, cz);
+    let i0 = Math.floor((lo - zMin) / SLOPE_BAND), i1 = Math.ceil((hi - zMin) / SLOPE_BAND);
+    if (i1 < 0 || i0 > n - 1) continue;
+    i0 = Math.max(0, i0); i1 = Math.min(n - 1, i1);
+    for (let i = i0; i <= i1; i++) if (az_ > bands[i]) bands[i] = az_;
+  }
+  return bands;
+}
+
+/** The height a band of Z can take without leaving a terrace bigger than `cusp`. */
+function heightFor(bands, zMin, from, to, cfg) {
+  const lo = Math.max(0, Math.floor((from - zMin) / SLOPE_BAND));
+  const hi = Math.min(bands.length - 1, Math.ceil((to - zMin) / SLOPE_BAND));
+  let steepest = 0;
+  for (let i = lo; i <= hi; i++) if (bands[i] > steepest) steepest = bands[i];
+  // Nothing sloped in this band, so nothing to be gained by going fine.
+  if (steepest <= 1e-6) return cfg.adaptiveMax;
+  return Math.max(cfg.adaptiveMin, Math.min(cfg.adaptiveMax, cfg.adaptiveCusp / steepest));
+}
+
+/**
  * Where each layer gets cut, and how thick it is.
  *
  * The plane sits at the MIDDLE of the layer, not its top or bottom. Cutting at
@@ -61,12 +122,20 @@ const key = (x, y) => `${Math.round(x / SNAP)},${Math.round(y / SNAP)}`;
  * @param {number} zMax top of the model, mm
  * @param {{layerHeight:number, firstLayerHeight:number}} cfg
  * @returns {{index:number, z:number, height:number, bottom:number, top:number}[]}
+ *
+ * `positions` is optional and only used when adaptive layers are on, where the
+ * thickness is decided by the model's slope rather than by one setting.
  */
-export function layerPlan(zMin, zMax, cfg) {
+export function layerPlan(zMin, zMax, cfg, positions = null) {
   const lh = cfg.layerHeight;
   const flh = cfg.firstLayerHeight ?? lh;
   const height = zMax - zMin;
   if (!(height > 0) || !(lh > 0)) return [];
+
+  // Adaptive layers need the geometry, not just its extent, so a caller that
+  // has not got it falls back to the uniform plan rather than guessing.
+  const adaptive = cfg.adaptiveLayers && positions && positions.length >= 9;
+  if (adaptive) return adaptivePlan(zMin, zMax, cfg, positions);
 
   // Below this, a final sliver is not worth printing.
   const minSliver = Math.max(0.04, lh * 0.2);
@@ -88,6 +157,63 @@ export function layerPlan(zMin, zMax, cfg) {
     bottom = top;
     i++;
     if (i > 100000) break;    // a runaway guard; 100k layers is 20m of print
+  }
+  return layers;
+}
+
+/**
+ * A layer plan that thins out where the model is shallow and thickens where it
+ * is vertical.
+ *
+ * The trade this makes is the one worth making on a curved part: a sphere or a
+ * fillet shows every layer line, and a straight wall shows none, so spending
+ * fine layers on the wall buys nothing and spending coarse ones on the curve
+ * costs the whole surface. Uniform layers have to pick one number for both.
+ *
+ * The height of each layer is chosen from the slope of what that layer will
+ * actually cut through, and then it is not allowed to change by more than
+ * `adaptiveStep` from the one below it. That last rule is not cosmetic: a jump
+ * from 0.08mm to 0.28mm between neighbours is a visible band on the part and it
+ * is also a sudden change in flow that a pressure-advance-less machine cannot
+ * follow cleanly.
+ */
+function adaptivePlan(zMin, zMax, cfg, positions) {
+  const bands = slopeProfile(positions, zMin, zMax);
+  const flh = cfg.firstLayerHeight ?? cfg.layerHeight;
+  const minSliver = Math.max(0.04, cfg.adaptiveMin * 0.2);
+  const layers = [];
+  let bottom = zMin;
+  let prev = flh;
+  let i = 0;
+
+  while (bottom < zMax - 1e-9) {
+    let h;
+    if (i === 0) {
+      h = flh;                       // the first layer is about the bed, not the surface
+    } else {
+      // Ask what the coarsest allowed layer would cut through, then ask again
+      // against the height that answer suggests. Two passes is enough: the
+      // window only shrinks, so the second answer cannot ask for a taller one.
+      h = heightFor(bands, zMin, bottom, bottom + cfg.adaptiveMax, cfg);
+      h = heightFor(bands, zMin, bottom, bottom + h, cfg);
+      const step = cfg.adaptiveStep ?? 0.04;
+      h = Math.max(prev - step, Math.min(prev + step, h));
+      h = Math.max(cfg.adaptiveMin, Math.min(cfg.adaptiveMax, h));
+      // Land on a whole number of microns, so the Z moves in the file are the
+      // kind of numbers a person reading the G-code can check.
+      h = Math.round(h * 1000) / 1000;
+    }
+    const remaining = zMax - bottom;
+    if (remaining < h - 1e-9) {
+      if (remaining < minSliver) break;
+      layers.push({ index: i, bottom, top: zMax, height: remaining, z: bottom + remaining / 2 });
+      break;
+    }
+    layers.push({ index: i, bottom, top: bottom + h, height: h, z: bottom + h / 2 });
+    bottom += h;
+    prev = h;
+    i++;
+    if (i > 100000) break;
   }
   return layers;
 }
@@ -238,7 +364,9 @@ export function sliceMesh(positions, cfg, onProgress) {
   const bnds = meshBounds(positions);
   if (!bnds) return { layers: [], bounds: null, warnings: ['the model has no geometry'] };
 
-  const plan = layerPlan(bnds.minZ, bnds.maxZ, cfg);
+  // The geometry is handed to the planner as well as its extent, because an
+  // adaptive plan is decided by the model's slope and not only by its height.
+  const plan = layerPlan(bnds.minZ, bnds.maxZ, cfg, positions);
   if (!plan.length) return { layers: [], bounds: bnds, warnings: ['the model has no height to slice'] };
 
   // Bucket triangles by the layers they span, so each plane only tests the

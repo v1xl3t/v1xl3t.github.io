@@ -351,6 +351,15 @@ export const BASE = {
   seam: 'nearest',                 // nearest | rear | random
 
   // Solid surfaces
+  // Adaptive layers spend thin layers where the model is shallow, which is where
+  // every layer line shows, and thick ones where it is vertical, which is where
+  // none of them do. Uniform layers have to pick one number for both.
+  adaptiveLayers: false,
+  adaptiveCusp: 0.05,              // mm, the biggest terrace a sloped surface may keep
+  adaptiveMin: 0.08,
+  adaptiveMax: 0.28,
+  adaptiveStep: 0.04,              // how much one layer may differ from the one below
+
   skinAngles: [45, 135],           // alternate so layers cross-hatch and bond
   // Ironing runs the hot nozzle back over a finished top surface at a fraction
   // of the normal spacing, extruding almost nothing, so the ridges between
@@ -526,6 +535,13 @@ export function validate(s) {
     w.push('ironing spaced a whole line apart flattens the ridges and leaves the valleys, so keep it well under the line width');
   }
   if (s.ironing && s.ironingFlow > 40) w.push('ironing above 40% flow adds plastic rather than smoothing what is there');
+  if (s.adaptiveLayers) {
+    if (s.adaptiveMin >= s.adaptiveMax) w.push('the adaptive layer range has its smallest layer at or above its largest, so nothing can adapt');
+    if (s.adaptiveMax > s.nozzleDiameter * 0.8) {
+      w.push(`adaptive layers reaching ${s.adaptiveMax}mm go past 80% of the ${s.nozzleDiameter}mm nozzle, so the thick ones will bond weakly`);
+    }
+    if (s.adaptiveMin < 0.04) w.push('adaptive layers under 0.04mm are below what the Z axis can reliably position');
+  }
   if (s.materialId === 'tpu' && s.extruder === 'bowden' && s.retractLength > 2) {
     w.push('flexible filament buckles in a Bowden tube, so keep retraction under 2mm');
   }

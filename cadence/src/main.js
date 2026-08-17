@@ -32,6 +32,7 @@ import { buildShareLink, tryLoadSharedLink } from './sharelink.js';
 import { encodeTiny, decodeTiny, encodeVerified } from './tinylink.js';
 import { warmKernel, kernelSelfTest } from './kernel.js';
 import { ROLE_LABELS, patternTransforms } from './primitives.js';
+import { nestOnPlate } from './nest.js';
 import { loadSettings, saveSettings, UI_STYLES, RENDER_MODES, UNITS, CONTROL_PRESETS, NAV_VERBS, EXPERIMENTAL_FEATURES, controlMap, unitLabel } from './settings.js';
 import { zipSync } from 'fflate';
 
@@ -782,6 +783,7 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
       else flash('Nothing printable to export. Add a solid first.');
       break;
     case 'drop-floor':   dropToFloor(); break;
+    case 'nest':         nestOnBuildPlate(); break;
     case 'sketch':       toggleSketch(); break;
     case 'timeline':
       if (!experimentalOn()) flash('The Recipe Timeline is an experimental feature. Turn it on in Settings.');
@@ -3166,6 +3168,54 @@ function dropToFloor() {
   flash(`Dropped ${objs.length} to the floor (Y=0).`);
 }
 
+/**
+ * Lay every part out on the build plate so none of them overlap.
+ *
+ * The bed comes from whichever machine the slicer is set to, because a plate
+ * this arranges for must be the plate it will be printed on. Parts are measured
+ * by their WORLD bounding boxes, so a rotated or scaled part is packed as it
+ * actually stands rather than as its recipe describes it.
+ */
+function nestOnBuildPlate() {
+  const objs = doc.selectedObjects.length > 1 ? doc.selectedObjects : doc.list;
+  const solids = objs.filter((o) => o.role !== 'hole' && o.mesh.visible);
+  if (solids.length < 2) { flash('Select two or more parts, or have two or more in the scene, to arrange them on the plate.'); return; }
+
+  const s = sliceView.settings || {};
+  const bed = { width: s.bedWidth || 220, depth: s.bedDepth || 220, gap: 3, margin: 3 };
+
+  const parts = solids.map((o) => {
+    const b = worldBox(o);
+    return { id: o.id, w: b.max.x - b.min.x, d: b.max.z - b.min.z, cx: (b.min.x + b.max.x) / 2, cz: (b.min.z + b.max.z) / 2 };
+  });
+
+  const r = nestOnPlate(parts, bed);
+  if (!r.placed.length) { flash(`Nothing fitted on a ${bed.width} by ${bed.depth}mm plate. ${r.skipped[0]?.reason || ''}`); return; }
+
+  doc.commit('Arrange on the plate');
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  for (const p of r.placed) {
+    const o = doc.objects.get(p.id);
+    if (!o) continue;
+    // A quarter turn about up, when the packer took one, before the move: the
+    // footprint it planned for is the turned one.
+    if (p.turned) o.mesh.rotation.y += Math.PI / 2;
+    o.mesh.updateMatrixWorld(true);
+    // Measured again after any turn, because turning moves the centre whenever
+    // the part is not symmetric about its own origin.
+    const b = worldBox(o);
+    const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
+    o.mesh.position.x += p.x - cx;
+    o.mesh.position.z += p.z - cz;
+    doc.touch(o);
+  }
+  setStatus();
+  const turned = r.placed.filter((p) => p.turned).length;
+  flash(r.skipped.length
+    ? `Arranged ${r.placed.length} on the plate in ${r.rows} row${r.rows === 1 ? '' : 's'}. ${r.skipped.length} did not fit, because ${r.skipped[0].reason}.`
+    : `Arranged ${r.placed.length} on the plate in ${r.rows} row${r.rows === 1 ? '' : 's'}${turned ? `, turning ${turned} a quarter turn to fit` : ''}.`);
+}
+
 // ---------------------------------------------------------------- shortcuts overlay
 function toggleShortcuts(force) {
   const ov = document.getElementById('shortcuts-overlay');
@@ -3729,6 +3779,9 @@ window.cadence = {
   // The pattern rule, exposed so the harness asserts against the same function
   // the geometry is built from rather than a copy of the arithmetic.
   patternTransforms,
+  // The plate packer, exposed so the harness asserts against the same function
+  // the button calls rather than a copy of the arithmetic.
+  nestOnPlate,
   // The transform gizmo and the one function allowed to change its mode, so the
   // harness drives the same path the buttons do rather than a copy of it.
   gizmo, setMode, cycleMode,

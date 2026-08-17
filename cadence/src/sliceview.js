@@ -307,6 +307,8 @@ export class SliceView {
         <div class="hint">A skirt primes the nozzle, a brim widens the footprint so a tall thin part is not knocked over, and a raft lifts the whole print onto a disposable slab when the bed itself is the problem.</div>
 
         <div class="sl-sec">Finish</div>
+        <label class="check"><input type="checkbox" id="sl-adaptive"> Adaptive layer height</label>
+        <div class="hint">Thin layers where the model is shallow, which is where every layer line shows, and thick ones where it is vertical, which is where none of them do. One layer height has to be a compromise between those two, and this stops being one.</div>
         <label class="check"><input type="checkbox" id="sl-ironing"> Iron the top surfaces</label>
         <div class="hint">Runs the hot nozzle back over each flat top at a tenth of a bead, melting the ridges between lines flat. It adds time to the top layers only, and it is the difference between a striped top and a moulded one.</div>
 
@@ -527,6 +529,7 @@ export class SliceView {
         supportAngle: +$('sl-angle').value,
         adhesion: $('sl-adhesion').value,
         ironing: !!$('sl-ironing').checked,
+        adaptiveLayers: !!$('sl-adaptive').checked,
       },
     });
     return this.settings;
