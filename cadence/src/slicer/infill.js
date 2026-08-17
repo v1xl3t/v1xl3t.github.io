@@ -312,6 +312,33 @@ export function solidFill(region, { lineWidth, angle = 45, overlap = 0 }) {
   return clipLines(lineFamily(bbox, angle, lineWidth), inner);
 }
 
+/**
+ * Ironing passes over a finished top surface.
+ *
+ * Not a fill. The plastic is already there; this runs the hot nozzle back over
+ * it at a fraction of the normal spacing, extruding almost nothing, so the
+ * ridges between beads are melted flat. What comes out is a top surface that
+ * looks moulded rather than striped, which on a flat-topped part is the single
+ * most visible difference between a print and a product.
+ *
+ * The spacing is deliberately much finer than a line width, so these lines
+ * overlap heavily. That is the point: a pass that only touched the ridges would
+ * flatten them and leave the valleys.
+ *
+ * @param {number[][][]} region the top surface, already printed
+ * @param {{lineWidth:number, spacing:number, angle:number}} o
+ */
+export function ironingLines(region, { lineWidth, spacing, angle = 45 }) {
+  if (!region || !region.length) return [];
+  // Kept a full bead inside the boundary rather than half of one. Ironing over
+  // the wall would drag melted plastic onto the outside of the part, which is
+  // worse than the ridges it was trying to remove.
+  const inner = offset(region, -lineWidth);
+  if (!inner.length) return [];
+  const bbox = bounds(inner);
+  return clipLines(lineFamily(bbox, angle, Math.max(0.02, spacing)), inner);
+}
+
 /** Successive insets, each emitted as a closed loop. Good for round parts and
  *  for the top surface of anything you want to look turned rather than milled. */
 export function concentricFill(region, spacing) {

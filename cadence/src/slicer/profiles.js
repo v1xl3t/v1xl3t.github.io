@@ -352,7 +352,14 @@ export const BASE = {
 
   // Solid surfaces
   skinAngles: [45, 135],           // alternate so layers cross-hatch and bond
+  // Ironing runs the hot nozzle back over a finished top surface at a fraction
+  // of the normal spacing, extruding almost nothing, so the ridges between
+  // beads melt flat. It costs time on the top layers only and it is the most
+  // visible quality setting there is on a flat topped part.
   ironing: false,
+  ironingFlow: 10,                 // percent of a normal bead, so it smooths rather than adds
+  ironingSpacing: 0.1,             // mm between passes, deliberately far under a line width
+  ironingSpeed: 20,                // mm/s, slow enough for the heat to do the work
 
   // Infill
   infillPattern: 'grid',           // lines | grid | triangles | gyroid | concentric
@@ -388,8 +395,15 @@ export const BASE = {
   skirtGap: 3,
   skirtMinLength: 250,             // keep priming until the nozzle is flowing
   brimWidth: 5,
+  // A raft lifts the model off the bed onto a disposable slab. The gap is the
+  // number people actually tune: too small and the part welds to the raft, too
+  // large and the first layer has nothing to hold on to.
   raftGap: 0.25,
   raftLayers: 2,
+  raftMargin: 4,                   // how far the raft runs past the part, mm
+  raftBaseDensity: 70,             // fat lines with air between them grip better than a sheet
+  raftBaseWidthFactor: 2.2,        // multiples of the nozzle, for the first fat layer
+  raftBaseHeightFactor: 1.5,       // multiples of the first layer height
 
   // Retraction and travel
   retractEnable: true,
@@ -504,6 +518,14 @@ export function validate(s) {
     w.push('a top gap under half a layer will fuse the support to the part');
   }
   if (s.retractLength > 8) w.push('retracting more than 8mm risks pulling molten filament back into the cold end');
+  if (s.adhesion === 'raft') {
+    if (s.raftGap < s.layerHeight * 0.5) w.push('a raft gap under half a layer will weld the part to its raft');
+    if (s.raftGap > s.layerHeight * 2) w.push('a raft gap over two layers leaves the first layer bridging thin air');
+  }
+  if (s.ironing && s.ironingSpacing >= s.lineWidth) {
+    w.push('ironing spaced a whole line apart flattens the ridges and leaves the valleys, so keep it well under the line width');
+  }
+  if (s.ironing && s.ironingFlow > 40) w.push('ironing above 40% flow adds plastic rather than smoothing what is there');
   if (s.materialId === 'tpu' && s.extruder === 'bowden' && s.retractLength > 2) {
     w.push('flexible filament buckles in a Bowden tube, so keep retraction under 2mm');
   }

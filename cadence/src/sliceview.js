@@ -40,6 +40,13 @@ const COLORS = {
   'support-interface': 0x8fe9cd,
   'skirt': 0x7bd634,
   'brim': 0x7bd634,
+  // A raft is scaffolding, so it reads as a duller version of the skirt it
+  // replaces rather than competing with the part for attention.
+  'raft': 0x5f9e2a,
+  // Ironing sits exactly on top of the skin it is smoothing, so it is drawn a
+  // shade lighter than the skin rather than a different hue. A separate colour
+  // would look like a separate feature in a place where nothing new was added.
+  'ironing': 0xfff0a8,
 };
 const TRAVEL_COLOR = 0x3c5f9e;
 
@@ -47,6 +54,7 @@ const LEGEND = [
   ['wall-outer', 'Outer wall'], ['wall-inner', 'Inner walls'], ['skin', 'Solid surface'],
   ['bridge', 'Bridge'], ['infill', 'Infill'], ['gap', 'Gap fill'],
   ['support', 'Support'], ['support-interface', 'Support top'], ['skirt', 'Skirt / brim'],
+  ['raft', 'Raft'], ['ironing', 'Ironing'],
 ];
 
 // The slicer keeps its own key rather than sharing the app's settings object.
@@ -292,9 +300,15 @@ export class SliceView {
           <select id="sl-adhesion">
             <option value="skirt" selected>Skirt</option>
             <option value="brim">Brim</option>
+            <option value="raft">Raft</option>
             <option value="none">None</option>
           </select>
         </div>
+        <div class="hint">A skirt primes the nozzle, a brim widens the footprint so a tall thin part is not knocked over, and a raft lifts the whole print onto a disposable slab when the bed itself is the problem.</div>
+
+        <div class="sl-sec">Finish</div>
+        <label class="check"><input type="checkbox" id="sl-ironing"> Iron the top surfaces</label>
+        <div class="hint">Runs the hot nozzle back over each flat top at a tenth of a bead, melting the ridges between lines flat. It adds time to the top layers only, and it is the difference between a striped top and a moulded one.</div>
 
         <div id="sl-advice" hidden></div>
         <button id="sl-run" class="primary sl-run" title="Work out the toolpaths for this model and build the layer preview. Nothing is sent anywhere until you ask.">Slice</button>
@@ -512,6 +526,7 @@ export class SliceView {
         supportType: support === 'tree' ? 'tree' : 'normal',
         supportAngle: +$('sl-angle').value,
         adhesion: $('sl-adhesion').value,
+        ironing: !!$('sl-ironing').checked,
       },
     });
     return this.settings;

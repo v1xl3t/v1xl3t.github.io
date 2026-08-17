@@ -138,12 +138,15 @@ export function emitGcode(plan, s, meta = {}) {
   };
 
   /** A printing move. */
-  const extrudeTo = (px, py, width, height, speed) => {
+  const extrudeTo = (px, py, width, height, speed, pathFlow = 1) => {
     const L = Math.hypot(px - x, py - y);
     if (L < 1e-9) return;
     unretract();
     const volume = L * width * height;
-    const de = (volume / eArea) * flow;
+    // `pathFlow` is per path rather than global. Ironing is the reason it
+    // exists: those passes lay roughly a tenth of a bead, because their job is
+    // to melt what is already there rather than to add anything.
+    const de = (volume / eArea) * flow * pathFlow;
     e += de;
     if (curType) filamentByType[curType] = (filamentByType[curType] || 0) + de;
     const F = Math.round(speed * 60);
@@ -207,7 +210,7 @@ export function emitGcode(plan, s, meta = {}) {
       let runLength = 0;
       curType = path.type;
       for (let i = 1; i < pts.length; i++) {
-        extrudeTo(pts[i][0], pts[i][1], path.width, layer.height, speed);
+        extrudeTo(pts[i][0], pts[i][1], path.width, layer.height, speed, path.flow ?? 1);
         runLength += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
       }
       curType = null;
@@ -268,6 +271,10 @@ function gcodeType(type) {
     case 'support': return 'SUPPORT';
     case 'support-interface': return 'SUPPORT-INTERFACE';
     case 'skirt': case 'brim': return 'SKIRT';
+    // Common previewers know RAFT and SKIN. Ironing has no standard type, and
+    // calling it SKIN is honest: it is a pass over the skin.
+    case 'raft': return 'RAFT';
+    case 'ironing': return 'SKIN';
     case 'gap': return 'FILL';
     default: return 'FILL';
   }

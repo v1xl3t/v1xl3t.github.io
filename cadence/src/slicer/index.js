@@ -25,20 +25,25 @@
 import { sliceMesh, meshBounds } from './slice.js';
 import { generateWalls, fillGaps, infillRegion } from './walls.js';
 import { classifyAll, skinAngle } from './skin.js';
-import { infillFill, solidFill, bridgeAngle } from './infill.js';
+import { infillFill, solidFill, bridgeAngle, ironingLines } from './infill.js';
 import { buildSupports } from './supports.js';
 import { buildAdhesion, supportBrim } from './adhesion.js';
-import { orderByGroups } from './order.js';
+import { orderByGroups, orderByIslands, splitIslands } from './order.js';
+import { buildRaft, liftLayers } from './raft.js';
 import { emitGcode, estimateLayerTime, coolingFactor, formatDuration } from './gcode.js';
 import { buildSettings, validate } from './profiles.js';
 import { offset, area, ringToLoop, union, difference, bounds, pointInRegion } from './clip.js';
 
 // What gets printed before what, within a layer.
 const GROUP_ORDER = [
-  'skirt', 'brim',
+  'raft', 'skirt', 'brim',
   'support', 'support-interface',
   'wall-inner', 'wall-outer',
   'gap', 'bridge', 'skin', 'infill',
+  // Ironing goes last on purpose. It is a pass over a surface that has to
+  // already exist, so anything that would still be laying plastic on this
+  // layer has to have finished first.
+  'ironing',
 ];
 
 /**
@@ -194,8 +199,13 @@ export function sliceModel(positions, settings, onProgress = () => {}) {
   const sup = buildSupports(layers, s, (f) => onProgress({ stage: 'supports', frac: 0.55 + f * 0.1 }));
 
   // ---- adhesion -----------------------------------------------------------
-  const adhesion = buildAdhesion(layers[0].polys, sup.regions[0], s);
-  const supBrim = supportBrim(sup.regions[0], layers[0].polys, s);
+  // A raft replaces the skirt and the brim rather than joining them. It IS the
+  // adhesion, and a skirt around a raft is two loops of wasted plastic around
+  // something already stuck down.
+  const wantRaft = s.adhesion === 'raft';
+  const raft = wantRaft ? buildRaft(layers[0].polys, sup.regions[0], s) : { layers: [], height: 0, lift: 0 };
+  const adhesion = wantRaft ? { loops: [], type: 'raft', length: 0 } : buildAdhesion(layers[0].polys, sup.regions[0], s);
+  const supBrim = wantRaft ? [] : supportBrim(sup.regions[0], layers[0].polys, s);
 
   // ---- fill and assemble the plan ----------------------------------------
   onProgress({ stage: 'filling', frac: 0.65 });
@@ -287,8 +297,44 @@ export function sliceModel(positions, settings, onProgress = () => {}) {
       }
     }
 
+    // Ironing, once everything else on this layer is down.
+    //
+    // NOT `k.top`. That region means "solid because it is near the top", which
+    // on a 4-top-layer profile is true of the top four layers, and three of
+    // those get buried by the one above. Ironing them is invisible and it is
+    // not cheap: measured on a 20mm cube it was 645 seconds on a 1277 second
+    // print, half the print time spent polishing surfaces nobody will ever see.
+    //
+    // What ironing wants is the surface EXPOSED to air, which is this layer's
+    // area minus whatever the next layer covers. On the last layer there is no
+    // next layer, so all of it is exposed.
+    const exposed = i === layers.length - 1
+      ? (inners[i] || [])
+      : difference(inners[i] || [], layers[i + 1].polys);
+    if (s.ironing && exposed.length) {
+      const lines = ironingLines(exposed, {
+        lineWidth: lw,
+        spacing: s.ironingSpacing ?? 0.1,
+        angle: skinAngle(i, s.skinAngles) + 90,   // across the skin, not along it
+      });
+      for (const line of lines) {
+        if (!line || line.length < 2) continue;
+        paths.push({
+          type: 'ironing', points: line, closed: false, width: lw,
+          speed: s.ironingSpeed ?? 20,
+          flow: Math.max(0, (s.ironingFlow ?? 10) / 100),
+        });
+      }
+    }
+
     // Route, then work out whether the layer needs slowing to cool.
-    const routed = orderByGroups(paths, GROUP_ORDER, nozzleAt, { seam: s.seam, seed: i });
+    // On a plate with more than one part, finish each part before travelling to
+    // the next rather than doing all the walls everywhere, then all the skin
+    // everywhere, crossing the plate once per group.
+    const islands = splitIslands(layers[i].polys);
+    const routed = islands.length > 1
+      ? orderByIslands(paths, GROUP_ORDER, nozzleAt, { seam: s.seam, seed: i, islands })
+      : orderByGroups(paths, GROUP_ORDER, nozzleAt, { seam: s.seam, seed: i });
     if (s.combing) markCombing(routed.paths, layers[i].polys, nozzleAt, s);
     nozzleAt = routed.end;
     const bare = estimateLayerTime(routed.paths, s);
@@ -317,10 +363,35 @@ export function sliceModel(positions, settings, onProgress = () => {}) {
     ? layers.map((l, i) => ({ z: l.z, height: l.height, polys: sup.regions[i] || [] }))
       .filter((l) => l.polys.length)
     : [];
-  const plan = { layers: planLayers, bounds: sliced.bounds, placement: placed, supportShape };
+  // The raft goes under everything, and everything moves up by its height plus
+  // the air gap above it. Done here rather than during slicing so the raft
+  // never affects what the model's own layers contain: they are the same
+  // toolpaths at a different Z, which is the only way the two can be trusted to
+  // agree.
+  let allLayers = planLayers;
+  if (wantRaft && raft.layers.length) {
+    liftLayers(planLayers, raft.lift, raft.layers.length);
+    allLayers = [...raft.layers, ...planLayers];
+    notes.push(`a ${raft.layers.length} layer raft under the part, with the model starting ${raft.lift.toFixed(2)}mm up`);
+  } else if (wantRaft) {
+    warnings.push('a raft was asked for and the first layer gave nothing to build one on');
+  }
+
+  const plan = { layers: allLayers, bounds: sliced.bounds, placement: placed, supportShape, raftHeight: raft.lift };
   const { gcode, stats } = emitGcode(plan, s, { name: s.modelName });
 
   if (!placed.fits) warnings.push('this will not fit the printer, so the file is for inspection only');
+  // A raft makes the whole print taller, and the height check ran before the
+  // raft existed. A part that fitted by two millimetres does not fit on a raft.
+  if (wantRaft && raft.lift && placed.size && placed.size.h + raft.lift > s.bedHeight) {
+    warnings.push(`the raft adds ${raft.lift.toFixed(2)}mm and takes the print past this machine's ${s.bedHeight}mm reach`);
+  }
+  const ironed = planLayers.filter((l) => l.paths.some((p) => p.type === 'ironing')).length;
+  if (s.ironing) {
+    notes.push(ironed
+      ? `${ironed} top surface${ironed === 1 ? '' : 's'} ironed flat, at ${s.ironingFlow ?? 10}% flow`
+      : 'ironing is on and this model has no upward facing flat surface to iron');
+  }
   const slowed = planLayers.filter((l) => l.speedFactor < 0.999).length;
   if (slowed) notes.push(`${slowed} layer${slowed === 1 ? ' was' : 's were'} slowed down so the plastic has time to set`);
   // Supports get their own line in the result panel rather than only a note,

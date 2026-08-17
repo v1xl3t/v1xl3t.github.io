@@ -126,6 +126,134 @@ export function orderPaths(paths, start, opts = {}) {
  * backing and bulges. So the routing optimiser is only ever allowed to reorder
  * within a group, never across one.
  */
+/**
+ * Print each island completely before travelling to the next one.
+ *
+ * Grouping by type across the WHOLE layer is right when there is one part on
+ * the plate and wrong the moment there are two. Six parts at 20% infill means
+ * the head does six sets of walls, crossing the plate five times, then six sets
+ * of skin, crossing it five more, and so on for every group in the order. The
+ * geometry constraint is only ever within one island: an outer wall needs its
+ * own inner walls behind it, not somebody else's.
+ *
+ * So the group order is preserved inside each island, and the islands
+ * themselves are visited nearest first. On a plate of six 20mm cubes this cuts
+ * the between-path travel by most of what the crossings cost.
+ *
+ * Paths that belong to no island, which is the skirt, the brim and the raft,
+ * are printed first and in the order they were given, because those are laid
+ * around everything rather than on any one part.
+ *
+ * @param {object[]} paths
+ * @param {string[]} groupOrder
+ * @param {[number,number]} start
+ * @param {{seam?:string, seed?:number, islands?:number[][][][]}} opts
+ *        `islands` is a list of regions, one per separate part on this layer.
+ */
+export function orderByIslands(paths, groupOrder, start, opts = {}) {
+  const islands = opts.islands || [];
+  if (islands.length < 2) return orderByGroups(paths, groupOrder, start, opts);
+
+  // Which island each path belongs to, decided by its first point. A path that
+  // lands in none of them is loose, which is what a skirt is.
+  const buckets = islands.map(() => []);
+  const loose = [];
+  for (const p of paths) {
+    const pt = (p.ring || p.points)[0];
+    let found = -1;
+    for (let k = 0; k < islands.length; k++) {
+      if (pointInIsland(pt, islands[k])) { found = k; break; }
+    }
+    if (found < 0) loose.push(p); else buckets[found].push(p);
+  }
+
+  let cur = start;
+  let travel = 0;
+  const out = [];
+
+  if (loose.length) {
+    const r = orderByGroups(loose, groupOrder, cur, opts);
+    out.push(...r.paths); travel += r.travel; cur = r.end;
+  }
+
+  const left = buckets.map((b, k) => ({ paths: b, k })).filter((b) => b.paths.length);
+  while (left.length) {
+    // Nearest island next, measured to the first point of anything in it.
+    let bestI = 0, bestD = Infinity;
+    for (let i = 0; i < left.length; i++) {
+      for (const p of left[i].paths) {
+        const pt = (p.ring || p.points)[0];
+        const d = dist2(pt, cur);
+        if (d < bestD) { bestD = d; bestI = i; }
+      }
+    }
+    const island = left.splice(bestI, 1)[0];
+    const r = orderByGroups(island.paths, groupOrder, cur, { ...opts, seed: (opts.seed ?? 0) + island.k });
+    out.push(...r.paths);
+    travel += r.travel + Math.sqrt(bestD);
+    cur = r.end;
+  }
+
+  return { paths: out, end: cur, travel };
+}
+
+/** Even-odd point in region, over one island's rings. */
+function pointInIsland(pt, region) {
+  let inside = false;
+  for (const ring of region) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const yi = ring[i][1], yj = ring[j][1];
+      if ((yi > pt[1]) !== (yj > pt[1])) {
+        const x = ring[i][0] + ((pt[1] - yi) / (yj - yi)) * (ring[j][0] - ring[i][0]);
+        if (pt[0] < x) inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+
+/**
+ * Split a layer's outline into separate parts.
+ *
+ * A region is a flat list of rings, outers wound one way and holes the other,
+ * with nothing saying which hole belongs to which outer. An island is one outer
+ * ring plus every hole inside it, and telling them apart is what lets the
+ * router know that two rings on opposite sides of the plate are two parts
+ * rather than one shape.
+ */
+export function splitIslands(region) {
+  if (!region || !region.length) return [];
+  const outers = [], holes = [];
+  for (const ring of region) {
+    let a = 0;
+    for (let i = 0, n = ring.length; i < n; i++) {
+      const p = ring[i], q = ring[(i + 1) % n];
+      a += p[0] * q[1] - q[0] * p[1];
+    }
+    (a >= 0 ? outers : holes).push(ring);
+  }
+  if (outers.length < 2) return outers.length ? [region] : [];
+  const islands = outers.map((o) => [o]);
+  for (const h of holes) {
+    const pt = h[0];
+    // Smallest containing outer wins, which is what makes a hole inside a part
+    // that sits inside another part's bounding box land on the right one.
+    let best = -1, bestArea = Infinity;
+    for (let k = 0; k < outers.length; k++) {
+      if (!pointInIsland(pt, [outers[k]])) continue;
+      let a = 0;
+      for (let i = 0, n = outers[k].length; i < n; i++) {
+        const p = outers[k][i], q = outers[k][(i + 1) % n];
+        a += p[0] * q[1] - q[0] * p[1];
+      }
+      a = Math.abs(a) / 2;
+      if (a < bestArea) { bestArea = a; best = k; }
+    }
+    if (best >= 0) islands[best].push(h);
+  }
+  return islands;
+}
+
 export function orderByGroups(paths, groupOrder, start, opts = {}) {
   let cur = start;
   const out = [];
