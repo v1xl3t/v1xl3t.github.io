@@ -35,6 +35,16 @@
     </div>
     <p id="status" class="status" role="status" aria-live="polite">Ready when you are.</p>
     <p id="honesty" class="note" hidden></p>
+    <!-- Shown only when a saved chart looks like it belongs to the file just
+         loaded. It is an offer and never an action, because a wrong guess that
+         silently replaced a fresh analysis would be maddening. -->
+    <div class="offer" id="match-offer" hidden>
+      <p id="match-text">A saved chart matches this track.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="match-use">Use my saved chart</button>
+        <button type="button" class="btn" id="match-skip">Keep the fresh one</button>
+      </div>
+    </div>
   </section>
 
   <section class="card" aria-labelledby="chart-h">
@@ -46,31 +56,55 @@
       </div>
     </div>
     <p id="summary" class="summary">Nothing loaded yet.</p>
+    <p id="tempo-note" class="note" hidden></p>
     <canvas id="chart" width="800" height="260" role="img" aria-label="Scrolling drum chart, four lanes for hi hat, snare, tom and kick"></canvas>
 
     <div class="row transport">
       <button type="button" class="btn primary" id="play" disabled>Play</button>
       <button type="button" class="btn" id="restart" disabled>Back to start</button>
       <span class="clock" id="clock">0:00 / 0:00</span>
+      <!-- A drummer counts bars, not seconds. This also makes a wrong time
+           signature obvious straight away rather than as a vague feeling that
+           the chart looks off. -->
+      <span class="clock bars" id="barclock">Bar 1, beat 1</span>
       <span class="note kbd">Space plays and stops.</span>
     </div>
-    <label class="seekwrap">
-      <span class="visually-hidden">Position in the track</span>
-      <input type="range" id="seek" min="0" max="1000" value="0" step="1" disabled />
-    </label>
 
-    <!-- Tempo and meter live here, in the transport, because that is where a
-         hand goes looking for them. Both are labelled in beats per minute and
-         in percent at once, so a beginner and a producer read the same control
-         without either having to translate. -->
+    <!-- Position, with the loop region marked on the bar it refers to. Setting
+         a section used to be two buttons and a sentence, which meant reading
+         text to find out what a control had done. -->
+    <div class="seekstack">
+      <div class="looprail" id="looprail" data-armed="false" role="group" aria-label="Loop region">
+        <div class="loopfill" id="loopfill"></div>
+        <div class="loophead" id="loophead"></div>
+        <button type="button" class="loophandle" data-end="a" id="loop-h-a" role="slider"
+                aria-label="Loop start" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></button>
+        <button type="button" class="loophandle" data-end="b" id="loop-h-b" role="slider"
+                aria-label="Loop end" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></button>
+      </div>
+      <label class="seekwrap">
+        <span class="visually-hidden">Position in the track</span>
+        <input type="range" id="seek" min="0" max="1000" value="0" step="1" disabled />
+      </label>
+      <div class="row looprow">
+        <button type="button" class="btn small" id="loop-a">Start here</button>
+        <button type="button" class="btn small" id="loop-b">End here</button>
+        <button type="button" class="btn small" id="loop-off">Clear loop</button>
+        <span class="note" id="loop-note">No loop set. Drag either handle on the bar above to mark a section.</span>
+      </div>
+    </div>
+
+    <!-- Speed and meter sit in the transport rather than in a collapsed panel.
+         Both are labelled twice on purpose, so a beginner reads the left half
+         and a producer grabs the right half. -->
     <div class="transbar">
       <label class="field">
         <span>Speed <output id="rate-out">100%</output></span>
         <input type="range" id="rate" min="40" max="120" step="5" value="100" />
         <span class="note">Slow it down to learn a part. The pitch is held steady, so it stays in the right key.</span>
       </label>
-      <label class="field">
-        <span>Time signature <output id="sig-out">4/4</output></span>
+      <div class="field">
+        <label for="timesig">Time signature <output id="sig-out">4/4</output></label>
         <select id="timesig">
           <option value="auto" selected>Detected</option>
           <option value="2">2/4</option>
@@ -80,8 +114,50 @@
           <option value="6">6/8</option>
           <option value="7">7/8</option>
         </select>
+        <!-- The app works out how many beats are in a bar and where the bar
+             starts, and used to offer only the first of those. On a track with
+             a pickup the count is right and the phase is wrong, and there was
+             no way to nudge it. -->
+        <div class="row">
+          <button type="button" class="btn small" id="bar-back">Bar line back</button>
+          <button type="button" class="btn small" id="bar-fwd">Bar line on</button>
+        </div>
         <span class="note" id="sig-note">Counted in four unless the track clearly says otherwise. Change it here if the bar lines look wrong.</span>
+      </div>
+    </div>
+
+    <!-- The practice controls, out of the drawer they were buried in. Quieten
+         the center is the feature that makes you the drummer, and it used to be
+         three clicks deep. -->
+    <div class="transbar2">
+      <label class="field">
+        <span>Quieten the center <output id="duck-out">off</output></span>
+        <input type="range" id="duck" min="0" max="100" step="5" value="0" />
+        <span class="note" id="duck-note">Pulls down whatever sits dead center, usually the kick, snare and lead vocal, so you get to be the drummer. Rough, and it needs a stereo file.</span>
       </label>
+      <div class="field">
+        <label for="countin">Count in</label>
+        <select id="countin">
+          <option value="0">None</option>
+          <option value="1" selected>One bar</option>
+          <option value="2">Two bars</option>
+        </select>
+        <span class="note">Counted in bars, so a waltz gets three and not four.</span>
+      </div>
+      <div class="field">
+        <span>Click</span>
+        <button type="button" class="btn" id="metro" aria-pressed="false">Click on the detected beat, off</button>
+        <span class="note">A steady click on the beat the app found.</span>
+      </div>
+      <div class="field">
+        <span>Chart zoom <output id="zoom-out">100%</output></span>
+        <div class="row">
+          <button type="button" class="btn small" id="zoom-wider">Wider</button>
+          <button type="button" class="btn small" id="zoom-closer">Closer</button>
+          <button type="button" class="btn small" id="zoom-reset">Reset</button>
+        </div>
+        <span class="note">Stretch the chart out when fast hits are packed together. Pinch the chart on a phone, or hold Control and scroll.</span>
+      </div>
     </div>
 
     <div class="row editbar" id="editbar" hidden>
@@ -124,46 +200,63 @@
       <div><dt>Timing</dt><dd id="sc-bias">no data yet</dd></div>
     </dl>
     <p class="note" id="sc-counts">Perfect 0, great 0, good 0, missed 0</p>
+    <div class="row">
+      <button type="button" class="btn" id="run-end">Finish this run</button>
+      <span class="note">Ends the run, shows how it went and saves the result.</span>
+    </div>
   </section>
 
-  <details class="card" id="practice">
-    <summary><h2>Practice tools</h2></summary>
-    <div class="fields">
-      <label class="field">
-        <span>Quieten the center <output id="duck-out">off</output></span>
-        <input type="range" id="duck" min="0" max="100" step="5" value="0" />
-        <span class="note" id="duck-note">Pulls down whatever is panned dead center, which is usually the kick, the snare and the lead vocal. Rough, but it lets you be the drummer. Needs a stereo file.</span>
-      </label>
-      <div class="field">
-        <span>Metronome</span>
-        <div class="row">
-          <button type="button" class="btn" id="metro" aria-pressed="false">Click on the detected beat, off</button>
-        </div>
+  <!-- The results screen. A running accuracy number tells you how you are
+       doing, and nothing else. This tells you which limb is behind and whether
+       you are rushing, which is the part you can actually practise. -->
+  <section class="card" id="results" aria-labelledby="res-h" hidden>
+    <div class="cardhead">
+      <h2 id="res-h">How that run went</h2>
+      <button type="button" class="btn small" id="res-close">Hide this</button>
+    </div>
+    <p class="lead" id="res-headline">No run yet.</p>
+    <dl class="scoreboard">
+      <div><dt>Accuracy</dt><dd id="res-acc">0%</dd></div>
+      <div><dt>Best combo</dt><dd id="res-combo">0</dd></div>
+      <div><dt>Timing</dt><dd id="res-bias">no data</dd></div>
+      <div><dt>Consistency</dt><dd id="res-spread">no data</dd></div>
+    </dl>
+
+    <h3 class="sub">Where your hits landed</h3>
+    <ul class="hist" id="res-hist"></ul>
+    <p class="note">Everything to the left of center is early, everything to the right is late. A tall middle bar is the goal, and a wide flat spread means the timing is inconsistent rather than simply offset.</p>
+
+    <h3 class="sub">Lane by lane</h3>
+    <table class="lanes" id="res-lanes">
+      <caption class="visually-hidden">Accuracy, timing and misses for each drum</caption>
+      <thead><tr><th scope="col">Drum</th><th scope="col">Played</th><th scope="col">Accuracy</th><th scope="col">Timing</th><th scope="col">Missed</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="note" id="res-best"></p>
+  </section>
+
+  <details class="card" id="librarycard">
+    <summary><h2>Your charts and your history</h2></summary>
+    <p class="note">Saved in this browser on this device. Nothing is uploaded, which also means clearing your browser data clears these.</p>
+    <div class="field">
+      <label for="save-name">Name for this chart</label>
+      <div class="row">
+        <input type="text" id="save-name" placeholder="Track name" autocomplete="off" />
+        <button type="button" class="btn primary" id="save-chart">Save this chart</button>
       </div>
-      <label class="field">
-        <span>Count in</span>
-        <!-- Bars, not beats. A bar is however many beats the time signature
-             says, so a waltz gets counted in three and not four. -->
-        <select id="countin">
-          <option value="0">None</option>
-          <option value="1" selected>One bar</option>
-          <option value="2">Two bars</option>
-        </select>
-      </label>
-      <div class="field">
-        <span>Loop a section</span>
-        <div class="row">
-          <button type="button" class="btn" id="loop-a">Set start</button>
-          <button type="button" class="btn" id="loop-b">Set end</button>
-          <button type="button" class="btn" id="loop-off">Clear loop</button>
-        </div>
-        <span class="note" id="loop-note">No loop set.</span>
-      </div>
+      <span class="note" id="save-note">Your edits are kept automatically as you work. Saving under a name is how you keep more than one.</span>
+    </div>
+    <h3 class="sub">Saved charts</h3>
+    <ul class="library" id="library-list"><li class="note">Nothing saved yet.</li></ul>
+    <h3 class="sub">Recent runs</h3>
+    <ul class="runs" id="runs-list"><li class="note">No runs yet.</li></ul>
+    <div class="row">
+      <button type="button" class="btn small" id="runs-clear">Clear run history</button>
     </div>
   </details>
 
   <details class="card" id="exportcard">
-    <summary><h2>Export and save</h2></summary>
+    <summary><h2>Export and save to a file</h2></summary>
     <div class="row">
       <button type="button" class="btn primary" id="ex-midi">Export drum MIDI</button>
       <button type="button" class="btn" id="ex-midi-q">Export quantised MIDI</button>
@@ -171,7 +264,7 @@
       <button type="button" class="btn" id="im-chart">Open chart file</button>
       <input type="file" id="chartfile" accept=".json,application/json" class="visually-hidden" />
     </div>
-    <p class="note">The MIDI lands on channel 10 with General MIDI drum notes, so any DAW will read it. The chart file keeps your edits so a session is not lost.</p>
+    <p class="note">The MIDI lands on channel 10 with General MIDI drum notes, so any DAW will read it. A chart file is the one to send someone else, since your library only lives in this browser.</p>
   </details>
 
   <details class="card" id="setupcard">
@@ -208,8 +301,8 @@
     <ul class="plain">
       <li>It finds drum hits with spectral flux onset detection, then sorts them into kick, snare and hi hat by where their energy sits in the spectrum. That is classic signal processing, not machine learning, so there is no model to download and the analysis takes a couple of seconds.</li>
       <li>Toms and cymbals are not detected as such. They land in the nearest of the three lanes and usually come through with low confidence. Notes the detector was unsure about are drawn with a dashed outline, and the editor is there so you can fix them.</li>
-      <li>It does not separate the drums from the rest of the mix. The center cut in the practice tools is a rough stand in. Real separation means tens of megabytes of model weights, which is a fair upgrade one day but not something to make you wait for now.</li>
-      <li>Your file never leaves this device. There is no account, no upload, no analytics.</li>
+      <li>It does not separate the drums from the rest of the mix. The center cut in the transport is a rough stand in. Real separation means tens of megabytes of model weights, which is a fair upgrade one day but not something to make you wait for now.</li>
+      <li>Your file never leaves this device. There is no account, no upload, no analytics. Your charts and your run history are kept in this browser and go no further.</li>
     </ul>
   </section>
 </main>

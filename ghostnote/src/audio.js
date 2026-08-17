@@ -58,6 +58,7 @@ export class Player {
     this.countInBeats = 0;
     this._nextClick = 0;
     this._countingIn = false;
+    this._clock = null;        // {raw, at} anchor for the interpolated clock
   }
 
   ensureCtx() {
@@ -190,8 +191,47 @@ export class Player {
   }
 
   get rate() { return this.el ? this.el.playbackRate : 1; }
-  get time() { return this.el ? this.el.currentTime : 0; }
-  set time(t) { if (this.el) this.el.currentTime = Math.max(0, t); }
+
+  /** The element's own clock, unsmoothed. What a seek writes and reads back. */
+  get mediaTime() { return this.el ? this.el.currentTime : 0; }
+
+  /**
+   * Playback position, interpolated between the element's own updates.
+   *
+   * `HTMLMediaElement.currentTime` only moves when the browser decides to move
+   * it, which in practice is about once per frame and on some browsers less
+   * often than that. Judging a hit to 25ms off a clock that only ticks every
+   * 16ms or worse charges the drummer for the browser's laziness, and it is
+   * felt hardest by the players who are actually close.
+   *
+   * So the last observed value is remembered along with the wall time it
+   * arrived, and the gap since is added on, scaled by the playback rate because
+   * media time advances slower than real time at 60%. The estimate is capped at
+   * one frame's worth ahead of the last real reading, so a stalled element can
+   * never make the play head run away from the audio.
+   *
+   * This changes nothing about how the chart is stored. Note times are still
+   * media time, which is the coordinate system the audio is already in.
+   */
+  get time() {
+    if (!this.el) return 0;
+    const raw = this.el.currentTime;
+    if (!this.playing) { this._clock = null; return raw; }
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (!this._clock || this._clock.raw !== raw) {
+      this._clock = { raw, at: now };
+      return raw;
+    }
+    const rate = this.el.playbackRate || 1;
+    const ahead = ((now - this._clock.at) / 1000) * rate;
+    return raw + Math.min(ahead, 0.05 * rate);
+  }
+
+  set time(t) {
+    if (!this.el) return;
+    this._clock = null;      // a seek invalidates the interpolation anchor
+    this.el.currentTime = Math.max(0, t);
+  }
   get duration() { return this.el && isFinite(this.el.duration) ? this.el.duration : (this.buffer ? this.buffer.duration : 0); }
   get playing() { return !!this.el && !this.el.paused; }
 

@@ -230,6 +230,242 @@ canvas#chart {
 
 .kbd { margin: 0; }
 
+.bars { color: var(--ink); font-weight: 600; }
+
+/* A second row of transport controls, holding the practice tools that used to
+   sit three clicks deep inside a collapsed panel. Quieten the center is the
+   feature that makes you the drummer, so it belongs where a hand can find it. */
+.transbar2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 560px) {
+  .transbar2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+
+@media (min-width: 860px) {
+  .transbar2 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* A narrower button, never a shorter one. The 44px floor on a coarse pointer
+   is a standing rule here and a compact row is not a reason to break it. */
+.btn.small {
+  padding: 0 10px;
+  font-size: 0.86rem;
+}
+
+/* ------------------------------------------------ the position and loop bar */
+
+.seekstack { margin-top: 12px; }
+
+.looprail {
+  position: relative;
+  height: 44px;
+  margin: 0 0 2px;
+  border-radius: 8px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  touch-action: none;
+}
+
+.loopfill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: rgba(143, 211, 255, 0.14);
+  border-left: 2px solid var(--focus);
+  border-right: 2px solid var(--focus);
+  pointer-events: none;
+}
+
+/* Ghosted until a loop exists, so the handles read as an invitation rather
+   than as a region that is already doing something. */
+.looprail[data-armed="false"] .loopfill { opacity: 0.35; }
+
+.loophead {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 2px;
+  background: var(--ink);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.loophandle {
+  position: absolute;
+  top: 50%;
+  width: var(--tap);
+  height: var(--tap);
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: ew-resize;
+  touch-action: none;
+  border-radius: 8px;
+}
+
+/* The visible grip is small, the target around it is not. Fingers need 44px
+   and the picture does not. */
+.loophandle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--focus);
+  border: 2px solid var(--bg);
+}
+
+.looprail[data-armed="false"] .loophandle::before { background: var(--ink-dim); }
+
+.loophandle:hover::before { background: var(--accent); }
+
+.looprow { margin-top: 4px; }
+.looprow .note { margin: 0; flex: 1 1 12ch; min-width: 0; }
+
+/* The offer to reuse a saved chart. It is a question the app is asking, so it
+   is styled as a prompt and never as a warning. */
+.offer {
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--focus);
+  border-radius: var(--radius);
+  background: var(--panel2);
+}
+
+.offer p { margin: 0 0 10px; }
+
+/* -------------------------------------------------------------- the results */
+
+.lead { margin: 10px 0 12px; font-size: 1rem; }
+
+h3.sub {
+  font-size: 0.95rem;
+  margin: 18px 0 8px;
+  color: var(--ink);
+}
+
+.hist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.hist li {
+  display: grid;
+  grid-template-columns: minmax(9ch, 14ch) 1fr minmax(3ch, auto);
+  gap: 8px;
+  align-items: center;
+  font-size: 0.86rem;
+  color: var(--ink-dim);
+}
+
+.hist .bartrack {
+  background: var(--panel2);
+  border-radius: 4px;
+  height: 14px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.hist .barfill {
+  height: 100%;
+  background: var(--hat);
+  border-radius: 4px;
+}
+
+.hist li.mid .barfill { background: var(--accent); }
+.hist .count { font-variant-numeric: tabular-nums; text-align: right; color: var(--ink); }
+
+table.lanes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+table.lanes th,
+table.lanes td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+table.lanes th { color: var(--ink-dim); font-weight: 600; }
+table.lanes td { font-variant-numeric: tabular-nums; }
+table.lanes tr.weak td { color: var(--warn); }
+
+/* A table is the right shape for this and it is also the one thing that can
+   push a narrow screen sideways, so it scrolls inside its own box. */
+table.lanes { display: block; overflow-x: auto; }
+
+/* ------------------------------------------------------------- the library */
+
+.library, .runs {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.library li, .runs li {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.library li.note, .runs li.note {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.library .meta, .runs .meta {
+  color: var(--ink-dim);
+  font-size: 0.84rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.library .name { font-weight: 650; overflow-wrap: anywhere; }
+
+input[type="text"] {
+  min-height: var(--tap);
+  flex: 1 1 16ch;
+  min-width: 0;
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  font: inherit;
+}
+
+input[type="text"]::placeholder { color: var(--ink-dim); }
+
 input[type="range"] {
   width: 100%;
   min-height: var(--tap);

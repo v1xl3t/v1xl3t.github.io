@@ -207,6 +207,12 @@ export const WINDOWS = [
 ];
 export const MISS_WINDOW = 0.14;
 
+/** How the timing histogram is cut up, in milliseconds either side of the note. */
+export const HIST_EDGES = [-140, -90, -50, -25, 25, 50, 90, 140];
+export const HIST_LABELS = [
+  'very early', 'early', 'a little early', 'on it', 'a little late', 'late', 'very late',
+];
+
 export class Scorer {
   constructor() { this.reset(); }
 
@@ -218,6 +224,29 @@ export class Scorer {
     this.judged = new Set();
     this.offsets = [];
     this.last = null;
+    // Per lane, because "78% accurate" hides the fact that the hi hat is fine
+    // and the kick is where the run falls apart. Knowing which limb is behind
+    // is the difference between a score and a practice tool.
+    this.byLane = {};
+    // A distribution rather than a median. A drummer who is 20ms late on
+    // everything has a different problem from one who is dead on half the time
+    // and 100ms out on the rest, and a single number reads the same for both.
+    this.hist = new Array(HIST_LABELS.length).fill(0);
+    this.startedAt = null;
+  }
+
+  _lane(lane) {
+    if (!this.byLane[lane]) this.byLane[lane] = { perfect: 0, great: 0, good: 0, miss: 0, offsets: [] };
+    return this.byLane[lane];
+  }
+
+  /** Which histogram bucket an offset in seconds falls in. */
+  bucketOf(deltaSec) {
+    const ms = deltaSec * 1000;
+    for (let i = 0; i < HIST_EDGES.length - 1; i++) {
+      if (ms >= HIST_EDGES[i] && ms < HIST_EDGES[i + 1]) return i;
+    }
+    return ms < HIST_EDGES[0] ? 0 : HIST_LABELS.length - 1;
   }
 
   /**
@@ -232,9 +261,11 @@ export class Scorer {
       const d = t - n.t;
       if (Math.abs(d) < Math.abs(bestD)) { bestD = d; best = n; }
     }
+    if (this.startedAt == null) this.startedAt = Date.now();
     if (!best || Math.abs(bestD) > MISS_WINDOW) {
       this.combo = 0;
       this.counts.miss++;
+      this._lane(lane).miss++;
       this.last = { grade: 'miss', delta: null, lane };
       return this.last;
     }
@@ -246,6 +277,10 @@ export class Scorer {
     this.best = Math.max(this.best, this.combo);
     this.score += points + Math.min(50, this.combo) * 2;
     this.counts[grade]++;
+    const L = this._lane(lane);
+    L[grade]++;
+    L.offsets.push(bestD);
+    this.hist[this.bucketOf(bestD)]++;
     this.last = { grade, delta: bestD, lane, id: best.id };
     return this.last;
   }
@@ -257,17 +292,76 @@ export class Scorer {
       if (now - n.t > MISS_WINDOW) {
         this.judged.add(n.id);
         this.counts.miss++;
+        this._lane(n.lane).miss++;
         this.combo = 0;
       }
     }
   }
 
+  /** Median of a list of offsets in seconds, reported in milliseconds. */
+  static medianMs(list) {
+    if (!list.length) return null;
+    const s = [...list].sort((a, b) => a - b);
+    const mid = s.length % 2 ? s[(s.length - 1) >> 1] : 0.5 * (s[s.length / 2 - 1] + s[s.length / 2]);
+    return +(mid * 1000).toFixed(1);
+  }
+
+  /** How spread out the hits are, in milliseconds. Consistency, not average. */
+  spreadMs() {
+    if (this.offsets.length < 4) return null;
+    const s = [...this.offsets].sort((a, b) => a - b);
+    const q = (f) => s[Math.min(s.length - 1, Math.max(0, Math.round(f * (s.length - 1))))];
+    return +((q(0.9) - q(0.1)) * 1000).toFixed(1);
+  }
+
+  /** Accuracy on one lane, on the same weighting as the whole run. */
+  laneAccuracy(lane) {
+    const L = this.byLane[lane];
+    if (!L) return null;
+    const total = L.perfect + L.great + L.good + L.miss;
+    if (!total) return null;
+    return (L.perfect + L.great * 0.7 + L.good * 0.4) / total;
+  }
+
+  /** Everything a results screen needs, computed once rather than per element. */
+  summary() {
+    const total = this.counts.perfect + this.counts.great + this.counts.good + this.counts.miss;
+    const lanes = {};
+    for (const lane of Object.keys(this.byLane)) {
+      const L = this.byLane[lane];
+      const n = L.perfect + L.great + L.good + L.miss;
+      lanes[lane] = {
+        played: n,
+        accuracy: this.laneAccuracy(lane),
+        biasMs: Scorer.medianMs(L.offsets),
+        miss: L.miss,
+      };
+    }
+    // The weakest lane is the single most useful sentence a results screen can
+    // produce, so it gets worked out here rather than left to the reader.
+    let weakest = null;
+    for (const [lane, v] of Object.entries(lanes)) {
+      if (v.played < 4 || v.accuracy == null) continue;
+      if (!weakest || v.accuracy < weakest.accuracy) weakest = { lane, ...v };
+    }
+    return {
+      total,
+      score: this.score,
+      bestCombo: this.best,
+      accuracy: this.accuracy(),
+      counts: { ...this.counts },
+      biasMs: this.bias(),
+      spreadMs: this.spreadMs(),
+      hist: [...this.hist],
+      lanes,
+      weakest,
+    };
+  }
+
   /** Are you consistently early or late, in milliseconds. */
   bias() {
     if (this.offsets.length < 4) return null;
-    const s = [...this.offsets].sort((a, b) => a - b);
-    const mid = s.length % 2 ? s[(s.length - 1) >> 1] : 0.5 * (s[s.length / 2 - 1] + s[s.length / 2]);
-    return +(mid * 1000).toFixed(1);
+    return Scorer.medianMs(this.offsets);
   }
 
   accuracy() {

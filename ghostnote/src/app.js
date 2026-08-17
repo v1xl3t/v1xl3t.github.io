@@ -9,8 +9,10 @@ import { renderHits, rockPattern, demoBuffer } from './synth.js';
 import { Chart, LANES, LANE_LABEL } from './chart.js';
 import { writeMidi, readMidi } from './midi.js';
 import { Player, bufferToWav } from './audio.js';
-import { InputHub, Calibrator, Scorer, KEY_MAP } from './input.js';
-import { Highway } from './view.js';
+import { InputHub, Calibrator, Scorer, KEY_MAP, HIST_LABELS } from './input.js';
+import { Highway, DEFAULT_ZOOM } from './view.js';
+import { LoopRail } from './seekbar.js';
+import * as library from './library.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -30,6 +32,39 @@ const hub = new InputHub();
 const scorer = new Scorer();
 const calibrator = new Calibrator(player, hub);
 const view = new Highway($('chart'));
+const rail = new LoopRail($('looprail'), { onchange: (loop, info) => onRailChange(loop, info) });
+
+/**
+ * The loop, in the one place that owns it.
+ *
+ * The region existed in three copies before this. The player ran it, a line of
+ * text described it, and the chart did not know about it at all, so any control
+ * that forgot to update one of the three left the other two lying. Everything
+ * that changes a loop now goes through here.
+ */
+function applyLoop(loop) {
+  player.loop = loop && loop.b > loop.a ? { a: loop.a, b: loop.b } : null;
+  player._nextClick = 0;
+  view.loop = player.loop;
+  rail.setLoop(player.loop);
+  updateLoopNote();
+}
+
+function onRailChange(loop, info) {
+  if (loop) {
+    applyLoop(loop);
+    setStatus(`Looping ${fmt(loop.a)} to ${fmt(loop.b)}.`);
+    // Dropping the play head into a section you just marked is what everyone
+    // wants next, and jumping only when the head is outside means marking a
+    // loop around where you already are does not yank you backwards.
+    if (player.time < loop.a || player.time > loop.b) player.seek(loop.a);
+  } else {
+    applyLoop(null);
+    if (info && info.tooShort) {
+      setStatus('That section is under a fifth of a second, so no loop was set. Drag the handles further apart.', 'bad');
+    }
+  }
+}
 
 // ------------------------------------------------------------------ analysis
 
@@ -111,7 +146,27 @@ export async function loadBlob(blob, name = 'track') {
   }
   applyAnalysis(a);
   setStatus(`Ready. ${state.chart.notes.length} hits found in ${name}.`);
+  offerSavedChart(name, buffer.duration);
   return state.chart;
+}
+
+/**
+ * If a saved chart looks like it belongs to this file, offer it.
+ *
+ * An offer, never an action. A fresh analysis is what was asked for, and
+ * silently replacing it with an old chart because two files happen to be the
+ * same length would be the worst kind of clever.
+ */
+let pendingMatch = null;
+function offerSavedChart(name, duration) {
+  const el = $('match-offer');
+  if (!el) return;
+  const hit = library.matchChart(name, duration);
+  pendingMatch = hit;
+  if (!hit) { el.hidden = true; return; }
+  $('match-text').textContent =
+    `You have a saved chart called ${hit.name} that matches this track, with ${hit.notes} notes and your edits in it. Use it instead of the fresh analysis?`;
+  el.hidden = false;
 }
 
 /** Analyse the buffer already loaded again, with the current sensitivity. */
@@ -147,8 +202,7 @@ export async function reanalyse() {
 function resetForNewTrack() {
   player.pause();
   player.cancelCountIn();
-  player.loop = null;
-  player._nextClick = 0;
+  applyLoop(null);
   state.countingIn = false;
   view.selectedId = null;
   view._drag = null;
@@ -157,29 +211,50 @@ function resetForNewTrack() {
   player.seek(0);
   $('seek').value = '0';
   seeking = false;
-  updateLoopNote();
+  rail.setDuration(player.duration || 0);
+  $('results').hidden = true;
   if ($('ed-note')) describeSelection();
 }
 
-function applyAnalysis(a) {
-  state.analysis = a;
+/**
+ * Put a chart on screen, wherever it came from.
+ *
+ * Three doors lead here: a fresh analysis, a chart file, and the library. They
+ * used to each do their own version of this and the differences between them
+ * were bugs waiting to happen, since a chart loaded by one door would arrive
+ * with a live loop region or a stale selection that the other door cleared.
+ */
+function installChart(chart, opts = {}) {
   resetForNewTrack();
-  state.chart = Chart.fromAnalysis(a);
-  state.chart.onchange = () => { updateSummary(); };
-  view.chart = state.chart;
+  state.chart = chart;
+  chart.onchange = () => { updateSummary(); scheduleAutosave(); };
+  view.chart = chart;
   state.ready = true;
-  $('play').disabled = false;
-  $('restart').disabled = false;
-  $('seek').disabled = false;
-  $('reanalyse').disabled = false;
+  // A chart with no audio behind it is a real thing, from a chart file or from
+  // the library, and a Play button that does nothing is worse than one that is
+  // plainly unavailable.
+  const playable = !!(player.el && state.lastBuffer);
+  $('play').disabled = !playable;
+  $('restart').disabled = !playable;
+  $('seek').disabled = !playable;
+  $('reanalyse').disabled = !state.lastBuffer;
+  rail.setDuration(player.duration || chart.duration || 0);
   // A fresh track gets a fresh reading of the meter, so the manual override goes
   // back to following the detector rather than pinning the previous track's.
-  $('timesig').value = 'auto';
+  if (opts.keepMeter !== true) $('timesig').value = 'auto';
   applyMeterChoice();
   updateSummary();
   updateScore();
   updateRateLabel();
   updateDuckAvailability();
+  updateTempoNote();
+  if ($('save-name') && !$('save-name').value) $('save-name').value = baseName();
+  if (opts.autosave !== false) scheduleAutosave();
+}
+
+function applyAnalysis(a) {
+  state.analysis = a;
+  installChart(Chart.fromAnalysis(a));
 }
 
 /** 6 beats to a bar is written 6/8, everything else over a quarter. */
@@ -228,6 +303,293 @@ function updateSummary() {
     h.hidden = c.notes.length === 0;
     h.textContent = 'Every note came through with decent confidence. Edit mode is still there if something is wrong.';
   }
+}
+
+/**
+ * Say when the tempo is a guess.
+ *
+ * `tempoConfidence` has always been measured and never shown. On a track with
+ * rubato, a long quiet intro or a loose drummer it comes out low, and the grid
+ * that everything else is drawn against is then shaky in a way nothing on
+ * screen admitted to. Snap all to grid on a track like that makes the chart
+ * worse, so the warning has to arrive before the button does.
+ */
+function updateTempoNote() {
+  const c = state.chart;
+  const el = $('tempo-note');
+  if (!el) return;
+  if (!c || !c.notes.length) { el.hidden = true; return; }
+  const conf = c.tempoConfidence || 0;
+  el.hidden = false;
+  el.classList.toggle('warnline', conf < TEMPO_SHAKY);
+  if (conf >= TEMPO_SURE) {
+    el.textContent = `The beat reads clearly here, so the grid and the bar lines can be trusted.`;
+  } else if (conf >= TEMPO_SHAKY) {
+    el.textContent = `The tempo is a fair guess rather than a certainty. If the bar lines drift against the track, the grid is the thing to distrust first.`;
+  } else {
+    el.textContent = `The tempo did not come through clearly on this track, so treat the grid and the bar lines as a rough guide. Snap all to grid is likely to make this chart worse, not better.`;
+  }
+}
+
+const TEMPO_SURE = 0.45;
+const TEMPO_SHAKY = 0.2;
+
+/** Move which beat counts as beat one, for tracks with a pickup. */
+function shiftBarLine(by) {
+  const c = state.chart;
+  if (!c) return;
+  c.setMeter(c.beatsPerBar, c.barOffset + by);
+  applyMeterChoice();
+  updateSummary();
+  const at = ((c.barOffset % c.beatsPerBar) + c.beatsPerBar) % c.beatsPerBar;
+  setStatus(at === 0
+    ? 'Bar one is back where the detector put it.'
+    : `Bar one moved ${at} ${at === 1 ? 'beat' : 'beats'} along.`);
+}
+
+function updateZoomLabel() {
+  $('zoom-out').textContent = Math.round((view.pxPerSec / DEFAULT_ZOOM) * 100) + '%';
+}
+
+// ---------------------------------------------------------------- the library
+
+/**
+ * Write the working chart back to local storage, coalesced.
+ *
+ * Every drag of a note fires a change, and a chart of a five minute song is
+ * tens of kilobytes of JSON. Serialising that on every pointermove would be
+ * felt. Half a second after the last edit is soon enough to survive a closed
+ * tab and cheap enough to never notice.
+ */
+let autosaveTimer = null;
+function scheduleAutosave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    if (!state.chart) return;
+    library.saveWorking(state.chart.toJSON(), {
+      name: state.fileName,
+      fingerprint: library.fingerprint(state.fileName, state.chart.duration || player.duration),
+    });
+  }, 500);
+}
+
+function timeAgo(ms) {
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 90) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} minutes ago`;
+  const h = Math.round(m / 60);
+  if (h < 36) return `${h} hours ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+function renderLibrary() {
+  const ul = $('library-list');
+  if (!ul) return;
+  const rows = library.sortedCharts();
+  ul.textContent = '';
+  if (!rows.length) {
+    const li = document.createElement('li');
+    li.className = 'note';
+    li.textContent = 'Nothing saved yet. Load a track, fix up the chart, then save it here.';
+    ul.appendChild(li);
+    return;
+  }
+  for (const r of rows) {
+    const li = document.createElement('li');
+    const left = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = r.name;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const bpm = r.bpm ? `${Math.round(r.bpm)} BPM` : 'tempo unclear';
+    meta.textContent = `${r.notes} notes, ${bpm}, saved ${timeAgo(r.saved)}`;
+    left.appendChild(name);
+    left.appendChild(meta);
+    const btns = document.createElement('div');
+    btns.className = 'row';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'btn small';
+    open.textContent = 'Open';
+    open.addEventListener('click', () => openSaved(r.id));
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn small';
+    del.textContent = 'Delete';
+    del.addEventListener('click', () => {
+      library.deleteChart(r.id);
+      renderLibrary();
+      setStatus(`Deleted the saved chart ${r.name}.`);
+    });
+    btns.appendChild(open);
+    btns.appendChild(del);
+    li.appendChild(left);
+    li.appendChild(btns);
+    ul.appendChild(li);
+  }
+}
+
+function openSaved(id) {
+  const row = library.getChart(id);
+  if (!row) return;
+  try {
+    installChart(Chart.fromJSON(row.chart));
+    setStatus(`Opened the saved chart ${row.name}. Bring the same audio back in to play along to it.`);
+  } catch (err) {
+    setStatus(`That saved chart could not be opened (${err.message || err}).`, 'bad');
+  }
+}
+
+function renderRuns() {
+  const ul = $('runs-list');
+  if (!ul) return;
+  const rows = library.listRuns().slice(0, 12);
+  ul.textContent = '';
+  if (!rows.length) {
+    const li = document.createElement('li');
+    li.className = 'note';
+    li.textContent = 'No runs yet. Play a chart through and press Finish this run.';
+    ul.appendChild(li);
+    return;
+  }
+  for (const r of rows) {
+    const li = document.createElement('li');
+    const left = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = r.name || 'a track';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const bias = r.biasMs == null ? 'timing unmeasured'
+      : Math.abs(r.biasMs) < 6 ? 'right in the pocket'
+      : r.biasMs < 0 ? `${Math.abs(Math.round(r.biasMs))} ms early` : `${Math.round(r.biasMs)} ms late`;
+    meta.textContent = `${Math.round(r.accuracy * 100)}% accurate, best combo ${r.bestCombo}, ${bias}, ${timeAgo(r.at)}`;
+    left.appendChild(name);
+    left.appendChild(meta);
+    li.appendChild(left);
+    ul.appendChild(li);
+  }
+}
+
+// ---------------------------------------------------------------- the results
+
+const BIAS_WORDS = (ms) => ms == null ? 'no data'
+  : Math.abs(ms) < 6 ? 'right in the pocket'
+  : ms < 0 ? `${Math.abs(Math.round(ms))} ms early` : `${Math.round(ms)} ms late`;
+
+/**
+ * The sentence at the top of the results.
+ *
+ * A number nobody knows what to do with is not feedback. The most useful thing
+ * a practice tool can say is which limb is behind and whether the problem is an
+ * offset or a wobble, because those have different fixes. An offset is fixed by
+ * calibration or by moving where you feel the beat. A wobble is fixed by
+ * playing slower.
+ */
+function headline(s, best) {
+  if (!s.total) return 'Nothing was judged in that run, so there is nothing to report.';
+  const acc = Math.round(s.accuracy * 100);
+  const bits = [`${acc}% accurate over ${s.total} judged hits.`];
+  if (s.spreadMs != null && s.biasMs != null) {
+    if (Math.abs(s.biasMs) > 18 && s.spreadMs < 70) {
+      bits.push(`You are steady but consistently ${s.biasMs < 0 ? 'ahead of' : 'behind'} the beat, which calibration or a small change of feel will fix.`);
+    } else if (s.spreadMs >= 70) {
+      bits.push('Your hits are scattered rather than simply offset, so slowing the track down will do more than any setting here.');
+    } else {
+      bits.push('Timing is both centred and tight, which is the hard one.');
+    }
+  }
+  if (s.weakest) bits.push(`The ${LANE_LABEL[s.weakest.lane].toLowerCase()} is the lane holding this back.`);
+  if (best && s.accuracy > best.accuracy) bits.push('That is your best run on this track.');
+  return bits.join(' ');
+}
+
+function renderResults(s, name, best = library.personalBest(name)) {
+  $('res-headline').textContent = headline(s, best);
+  $('res-acc').textContent = Math.round(s.accuracy * 100) + '%';
+  $('res-combo').textContent = String(s.bestCombo);
+  $('res-bias').textContent = BIAS_WORDS(s.biasMs);
+  $('res-spread').textContent = s.spreadMs == null ? 'no data' : `${Math.round(s.spreadMs)} ms spread`;
+
+  const ul = $('res-hist');
+  ul.textContent = '';
+  const peak = Math.max(1, ...s.hist);
+  s.hist.forEach((n, i) => {
+    const li = document.createElement('li');
+    if (HIST_LABELS[i] === 'on it') li.className = 'mid';
+    const label = document.createElement('span');
+    label.textContent = HIST_LABELS[i];
+    const track = document.createElement('span');
+    track.className = 'bartrack';
+    const fill = document.createElement('span');
+    fill.className = 'barfill';
+    fill.style.width = Math.round((n / peak) * 100) + '%';
+    track.appendChild(fill);
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = String(n);
+    li.appendChild(label);
+    li.appendChild(track);
+    li.appendChild(count);
+    ul.appendChild(li);
+  });
+
+  const tbody = $('res-lanes').querySelector('tbody');
+  tbody.textContent = '';
+  for (const lane of LANES) {
+    const v = s.lanes[lane];
+    const tr = document.createElement('tr');
+    if (s.weakest && s.weakest.lane === lane) tr.className = 'weak';
+    const cells = [
+      LANE_LABEL[lane],
+      v ? String(v.played) : '0',
+      v && v.accuracy != null ? Math.round(v.accuracy * 100) + '%' : 'not played',
+      v ? BIAS_WORDS(v.biasMs) : 'no data',
+      v ? String(v.miss) : '0',
+    ];
+    cells.forEach((text, i) => {
+      const cell = document.createElement(i === 0 ? 'th' : 'td');
+      if (i === 0) cell.scope = 'row';
+      cell.textContent = text;
+      tr.appendChild(cell);
+    });
+    tbody.appendChild(tr);
+  }
+
+  $('res-best').textContent = best
+    ? `Your best on this track so far is ${Math.round(best.accuracy * 100)}% accurate, from ${timeAgo(best.at)}.`
+    : 'This is the first run recorded for this track.';
+  $('results').hidden = false;
+}
+
+/** End the run, report it, keep it, and reset for the next one. */
+function finishRun() {
+  const s = scorer.summary();
+  const name = baseName();
+  // Read the previous best BEFORE this run joins the history, or the run is
+  // compared against itself and can never be a personal best.
+  const prevBest = library.personalBest(name);
+  if (s.total) {
+    library.addRun({
+      name,
+      accuracy: s.accuracy,
+      score: s.score,
+      bestCombo: s.bestCombo,
+      biasMs: s.biasMs,
+      spreadMs: s.spreadMs,
+      total: s.total,
+    });
+  }
+  renderResults(s, name, prevBest);
+  renderRuns();
+  player.pause();
+  scorer.reset();
+  updateScore();
+  $('results').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  return s;
 }
 
 // ------------------------------------------------------------------- scoring
@@ -366,9 +728,31 @@ function frame() {
   }
   syncTransport();
   $('clock').textContent = `${fmt(t)} / ${fmt(player.duration)}`;
+  updateBarClock(t);
+  rail.setTime(t);
   if (!seeking && player.duration) $('seek').value = String(Math.round((t / player.duration) * 1000));
   view.render();
   requestAnimationFrame(frame);
+}
+
+/**
+ * Bars and beats beside the clock.
+ *
+ * A drummer thinks in bars, not in seconds, and this also makes a wrong time
+ * signature obvious immediately rather than as a vague feeling that the chart
+ * looks off. Written only when it changes, since this runs every frame.
+ */
+let lastBarText = '';
+function updateBarClock(t) {
+  const c = state.chart;
+  let text = 'Bar 1, beat 1';
+  if (c && c.period) {
+    const b = c.beatAt(t);
+    text = `Bar ${b.bar}, beat ${b.beat}`;
+  }
+  if (text === lastBarText) return;
+  lastBarText = text;
+  $('barclock').textContent = text;
 }
 
 // ---------------------------------------------------------------------- edit
@@ -552,7 +936,46 @@ function wire() {
 
   $('loop-a').addEventListener('click', () => setLoop(player.time, player.loop ? player.loop.b : player.duration));
   $('loop-b').addEventListener('click', () => setLoop(player.loop ? player.loop.a : 0, player.time));
-  $('loop-off').addEventListener('click', () => { player.loop = null; updateLoopNote(); setStatus('Loop cleared.'); });
+  $('loop-off').addEventListener('click', () => { applyLoop(null); setStatus('Loop cleared.'); });
+
+  $('bar-back').addEventListener('click', () => shiftBarLine(-1));
+  $('bar-fwd').addEventListener('click', () => shiftBarLine(1));
+
+  $('zoom-wider').addEventListener('click', () => { view.zoomBy(1 / 1.35); updateZoomLabel(); });
+  $('zoom-closer').addEventListener('click', () => { view.zoomBy(1.35); updateZoomLabel(); });
+  $('zoom-reset').addEventListener('click', () => { view.setZoom(DEFAULT_ZOOM); updateZoomLabel(); });
+  view.onzoom = () => updateZoomLabel();
+
+  $('run-end').addEventListener('click', () => finishRun());
+  $('res-close').addEventListener('click', () => { $('results').hidden = true; });
+
+  $('match-use').addEventListener('click', () => {
+    if (pendingMatch) openSaved(pendingMatch.id);
+    $('match-offer').hidden = true;
+    pendingMatch = null;
+  });
+  $('match-skip').addEventListener('click', () => {
+    $('match-offer').hidden = true;
+    pendingMatch = null;
+    setStatus('Keeping the fresh analysis. Your saved chart is still in the library.');
+  });
+
+  $('save-chart').addEventListener('click', () => {
+    if (!state.chart) { setStatus('There is no chart to save yet.', 'bad'); return; }
+    const name = ($('save-name').value || '').trim() || baseName();
+    const r = library.saveChart(name, state.chart.toJSON(), {
+      fingerprint: library.fingerprint(state.fileName, state.chart.duration || player.duration),
+    });
+    if (!r.ok) { setStatus(r.reason, 'bad'); return; }
+    renderLibrary();
+    setStatus(`Saved ${name} to this browser.`);
+  });
+
+  $('runs-clear').addEventListener('click', () => {
+    library.clearRuns();
+    renderRuns();
+    setStatus('Run history cleared.');
+  });
 
   $('ex-midi').addEventListener('click', () => {
     const bytes = exportMidiBytes(false);
@@ -570,18 +993,11 @@ function wire() {
   $('chartfile').addEventListener('change', async (ev) => {
     const f = ev.target.files && ev.target.files[0];
     if (!f) return;
+    ev.target.value = '';
     try {
-      const c = Chart.fromJSON(JSON.parse(await f.text()));
       // Same clean slate a new audio file gets. A chart swapped in under a live
       // loop region and a stale selection is the same desync, by another door.
-      resetForNewTrack();
-      state.chart = c;
-      c.onchange = () => updateSummary();
-      view.chart = c;
-      $('timesig').value = 'auto';
-      applyMeterChoice();
-      updateSummary();
-      updateRateLabel();
+      installChart(Chart.fromJSON(JSON.parse(await f.text())));
       setStatus('Chart loaded. Bring the same audio back in to play along to it.');
     } catch (err) {
       setStatus(String(err.message || err), 'bad');
@@ -661,14 +1077,11 @@ function setLoop(a, b) {
   let lo = Math.max(0, Math.min(a, b));
   let hi = Math.min(dur || Math.max(a, b), Math.max(a, b));
   if (hi - lo < MIN_LOOP) {
-    player.loop = null;
-    updateLoopNote();
+    applyLoop(null);
     setStatus('That loop would be shorter than a fifth of a second, so it was not set. Move the play head and mark the other end.', 'bad');
     return false;
   }
-  player.loop = { a: lo, b: hi };
-  player._nextClick = 0;
-  updateLoopNote();
+  applyLoop({ a: lo, b: hi });
   setStatus(`Looping ${fmt(lo)} to ${fmt(hi)}.`);
   return true;
 }
@@ -676,8 +1089,8 @@ function setLoop(a, b) {
 function updateLoopNote() {
   const l = player.loop;
   $('loop-note').textContent = l && l.b > l.a
-    ? `Looping ${fmt(l.a)} to ${fmt(l.b)}.`
-    : 'No loop set.';
+    ? `Looping ${fmt(l.a)} to ${fmt(l.b)}, which is ${(l.b - l.a).toFixed(1)} seconds.`
+    : 'No loop set. Drag either handle on the bar above to mark a section.';
 }
 
 function updateDuckAvailability() {
@@ -692,17 +1105,43 @@ hub.attachKeyboard();
 wire();
 view.resize();
 $('cal-out').textContent = `${hub.offsetMs} ms`;
+updateZoomLabel();
+renderLibrary();
+renderRuns();
+
+/**
+ * Bring back whatever was on screen last time.
+ *
+ * The audio cannot come back, since keeping someone's music in local storage
+ * would be both rude and far too large, but the chart is the part that took
+ * work. Restoring it means the second session on a song starts where the first
+ * one stopped rather than at a blank drop zone.
+ */
+(function restoreWorking() {
+  const w = library.loadWorking();
+  if (!w) return;
+  try {
+    const c = Chart.fromJSON(w.chart);
+    if (!c.notes.length) return;
+    state.fileName = w.name || '';
+    installChart(c, { autosave: false });
+    setStatus(`Picked up the chart you were working on${w.name ? ` for ${w.name}` : ''}. Bring the audio back in to play along to it.`);
+  } catch { /* a chart from an older format is not worth an error message */ }
+})();
+
 requestAnimationFrame(frame);
 
 // Everything the tests drive, and anything a curious user wants in the console.
 window.playalong = {
-  state, player, hub, scorer, view, calibrator,
+  state, player, hub, scorer, view, calibrator, rail, library,
   analyse, analyseBuffer, runAnalysis, estimateMeter,
   renderHits, rockPattern,
   writeMidi, readMidi, exportMidiBytes,
   Chart, LANES, LANE_LABEL, KEY_MAP, DEFAULTS,
   loadBlob, reanalyse, setMode, restart, togglePlay,
   setLoop, signatureLabel, applyMeterChoice, updateSummary,
+  openSaved, offerSavedChart, finishRun, shiftBarLine, installChart,
+  renderLibrary, renderRuns,
   get chart() { return state.chart; },
   /** Push raw samples through the whole pipeline, the way a real file goes. */
   async loadSamples(samples, sampleRate = 44100, name = 'fixture.wav') {
