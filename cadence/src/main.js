@@ -536,6 +536,57 @@ wireSketchBar();
 // Recipe Timeline — the multiverse history strip. Clicking a tile time-travels;
 // acting from a past tile forks a new branch (5D-chess style).
 const timeline = new Timeline(doc, { onGoto: (id) => doc.goToHistory(id) });
+
+// ---------------------------------------------------------------- propagation
+//
+// Stage 3 Phase 3. Editing from a past step has always forked a branch and kept
+// the old one, which is right, but the new branch started with a single step on
+// it and everything built on top of the thing you changed had to be built again
+// by hand. The offer below re-runs those steps against the edit.
+
+function syncReplayOffer() {
+  const row = document.getElementById('tl-replay');
+  if (!row) return;
+  const offer = doc.replayOffer;
+  row.hidden = !offer;
+  if (!offer) return;
+  const n = offer.steps;
+  document.getElementById('tl-replay-text').textContent =
+    `${n} step${n === 1 ? '' : 's'} came after this one, ${offer.labels.slice(0, 3).join(', ')}${n > 3 ? ' and more' : ''}. They are still on the old branch.`;
+  // The timeline is where this makes sense, so open it rather than putting a
+  // banner somewhere the user has to go looking for the context.
+  if (!timeline.visible && experimentalOn()) timeline.toggle(true);
+}
+
+doc.addEventListener('history', syncReplayOffer);
+
+document.getElementById('tl-replay-no').addEventListener('click', () => {
+  doc.dismissReplay();
+  flash('Left as it was. The old branch still has those steps if you want them.');
+});
+
+document.getElementById('tl-replay-go').addEventListener('click', async () => {
+  const btn = document.getElementById('tl-replay-go');
+  const offer = doc.replayOffer;
+  if (!offer) return;
+  btn.disabled = true;
+  flash(`Rebuilding ${offer.steps} step${offer.steps === 1 ? '' : 's'} against the change.`);
+  try {
+    // Only fetch the exact kernel if one of the abandoned steps actually needs
+    // it. Most chains are booleans and moves, and those must not cost 11.5MB.
+    const needsExact = offer.labels.some((l) => /round|bevel/i.test(l));
+    const kernels = needsExact ? await getBrep('Rebuilding a rounded part') : {};
+    const r = await doc.replayForward(needsExact ? { brep: kernels.mod, R: kernels.R } : {});
+    if (r.ok) flash(`Rebuilt ${r.rebuilt} step${r.rebuilt === 1 ? '' : 's'} on this branch, against the part as you changed it.`);
+    else flash(`Rebuilt ${r.rebuilt} of ${r.steps} and stopped, because ${r.reason}.`);
+  } catch (err) {
+    console.error('[CADence] replay failed:', err);
+    flash(`That rebuild stopped early (${err && err.message || err}). The old branch still has every step.`);
+  } finally {
+    btn.disabled = false;
+    syncReplayOffer();
+  }
+});
 // The slicer owns its own preview group in the scene and its own panel. It is
 // handed `flash` rather than reaching for the status bar itself, so every
 // message in the app still goes through one place.

@@ -18,6 +18,7 @@ import { buildGeometry, DEFAULT_PARAMS, resolveSketch, computeExtrudeReach, comp
 import { cloneSketch, addConstraint, removeConstraint } from './sketch.js';
 import { booleanCombine, booleanIntersect } from './kernel.js';
 import { History } from './history.js';
+import { chainBetween, canReplay, bakeOf } from './replay.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 
@@ -160,6 +161,8 @@ export class CadDocument extends EventTarget {
     this._timer = null;
     this._restoring = false;              // true while applying a snapshot (don't re-record)
     this._thumb = null;                   // optional () => dataURL provided by the view
+    this._travel = null;                  // the future walked away from, if any
+    this.pendingReplay = null;            // an offer to bring that future forward
 
     // A burst of 'change' events (a gizmo drag, rapid field edits) should settle
     // into ONE node: each change pushes the capture out to just after the last one.
@@ -822,8 +825,165 @@ export class CadDocument extends EventTarget {
     this._armed = false;
     clearTimeout(this._timer);
     const thumb = this._thumb ? this._thumb() : null;
-    this.history.record(this._armedLabel, this.toJSON(), thumb);
+    const parentId = this.history.currentId;
+    const node = this.history.record(this._armedLabel, this.toJSON(), thumb);
+    // An edit made from a past step has just forked. The steps that used to
+    // follow are still there on the old branch, and they are almost certainly
+    // what the user wants brought forward. Offered, never done automatically,
+    // because a replay rebuilds real geometry and doing that without being
+    // asked is the kind of helpfulness nobody wants.
+    if (this._travel && this._travel.from === parentId && this._travel.tip !== node.id) {
+      this.pendingReplay = { from: parentId, tip: this._travel.tip, landedOn: node.id };
+    }
+    this._travel = null;
     this._emit('history');
+  }
+
+  /** How many abandoned steps could be brought forward, or null if none. */
+  get replayOffer() {
+    if (!this.pendingReplay) return null;
+    const chain = chainBetween(this.history, this.pendingReplay.from, this.pendingReplay.tip);
+    if (!chain || !chain.length) return null;
+    return { steps: chain.length, labels: chain.map((c) => c.label) };
+  }
+
+  dismissReplay() { this.pendingReplay = null; this._emit('history'); }
+
+  /**
+   * Re-run the steps that were abandoned when this branch forked.
+   *
+   * Each step is re-applied as the field-level difference it originally made,
+   * so an edit to a past dimension survives every step after it instead of
+   * being pasted over. Steps that BAKED something, a group or an exact solid,
+   * are re-run through their kernel rather than pasted, because their input is
+   * exactly what changed.
+   *
+   * @param {{brep?:object, R?:object}} kernels the exact kernel, if it is
+   *        loaded. Passed in rather than imported so replaying a model with no
+   *        fillets in it never pulls an eleven megabyte download.
+   * @returns {Promise<{ok:boolean, steps:number, reason?:string, rebuilt:number}>}
+   */
+  async replayForward(kernels = {}) {
+    const p = this.pendingReplay;
+    if (!p) return { ok: false, steps: 0, rebuilt: 0, reason: 'there is nothing to bring forward' };
+    const chain = chainBetween(this.history, p.from, p.tip);
+    if (!chain || !chain.length) {
+      this.pendingReplay = null;
+      return { ok: false, steps: 0, rebuilt: 0, reason: 'those steps are no longer in the timeline' };
+    }
+    const check = canReplay(chain);
+    if (!check.ok) return { ok: false, steps: chain.length, rebuilt: 0, reason: check.reason };
+
+    this.pendingReplay = null;
+    let rebuilt = 0;
+    // A bake makes a NEW object with a NEW id, and every step after it refers to
+    // the one the old branch made. Without this map, "group these two, then move
+    // the group" replays the group and silently drops the move, because the id
+    // the move names no longer exists. Found by the suite doing exactly that.
+    const remap = new Map();
+    for (const step of chain) {
+      const done = await this._applyStep(step, kernels, remap);
+      if (!done.ok) {
+        this._emit('history');
+        return { ok: false, steps: chain.length, rebuilt, reason: `${done.reason}, at the step called "${step.label}"` };
+      }
+      rebuilt++;
+      this.commit(step.label);
+      this._flush();
+    }
+    this._emit('history');
+    return { ok: true, steps: chain.length, rebuilt };
+  }
+
+  /** Apply one recovered step to the live scene. */
+  async _applyStep(step, kernels, remap = new Map()) {
+    const d = step.diff;
+    // Every id in a recovered step is an id from the OLD branch. Anything a
+    // bake has already rebuilt answers to a different one now.
+    const live = (id) => remap.get(id) ?? id;
+
+    // Field level changes first, so anything a bake is about to consume is
+    // already carrying this step's edits.
+    for (const c of d.changed) {
+      const obj = this.objects.get(live(c.id));
+      if (!obj) continue;                       // the step edited something the edit removed
+      if (c.fields.name != null) obj.name = c.fields.name;
+      if (c.fields.role != null) obj.setRole(c.fields.role);
+      if (c.fields.color != null) obj.setColor(c.fields.color);
+      if (c.fields.position) obj.mesh.position.fromArray(c.fields.position);
+      if (c.fields.rotation) obj.mesh.rotation.set(...c.fields.rotation);
+      if (c.fields.scale) obj.mesh.scale.fromArray(c.fields.scale);
+      if (c.fields.visible != null) obj.mesh.visible = c.fields.visible;
+      if (c.params) {
+        Object.assign(obj.params, deepParams(c.params));
+        if (obj.kind === 'sketch') resolveSketch(obj.params);
+        obj.rebuild();
+      }
+      obj.mesh.updateMatrixWorld(true);
+      this._emit('change', obj);
+    }
+
+    const bake = bakeOf(d);
+    if (bake) {
+      // The inputs as they stand NOW, which is the whole point: they carry the
+      // edit made further back.
+      const ids = bake.consumed.map(live).filter((id) => this.objects.has(id));
+      if (bake.type === 'boolean') {
+        if (ids.length < 2) return { ok: false, reason: 'the parts that group consumed are not all here any more' };
+        const grp = bake.op === 'intersect' ? await this.intersect(ids) : await this.group(ids);
+        if (!grp) return { ok: false, reason: 'the kernel produced nothing from those parts' };
+        grp.name = bake.node.name;
+        remap.set(bake.node.id, grp.id);
+        return { ok: true };
+      }
+      if (bake.type === 'pattern') {
+        if (ids.length !== 1) return { ok: false, reason: 'the part that pattern repeats is not here any more' };
+        const pat = this.makePattern(ids[0], bake.params.mode);
+        if (!pat) return { ok: false, reason: 'that pattern could not be rebuilt' };
+        // The rule is data and comes across whole. Only the SOURCE had to be
+        // rebuilt from the live object, which is what carries the edit.
+        for (const k of ['count', 'dx', 'dy', 'dz', 'radius', 'sweep', 'follow', 'axis', 'plane', 'mode']) {
+          if (bake.params[k] !== undefined) pat.params[k] = bake.params[k];
+        }
+        pat.rebuild();
+        pat.name = bake.node.name;
+        remap.set(bake.node.id, pat.id);
+        this._emit('change', pat);
+        return { ok: true };
+      }
+      if (bake.type === 'exact') {
+        if (!kernels.brep || !kernels.R) {
+          return { ok: false, reason: 'that step rounded an edge and the exact kernel is not loaded' };
+        }
+        if (ids.length !== 1) return { ok: false, reason: 'the part that rounding was applied to is not here any more' };
+        let out = await this.applyExactOp(ids[0], bake.ops[0], kernels.brep, kernels.R);
+        if (!out) return { ok: false, reason: 'that rounding could not be rebuilt' };
+        for (let i = 1; i < bake.ops.length; i++) {
+          out = await this.applyExactOp(out.id, bake.ops[i], kernels.brep, kernels.R) || out;
+        }
+        remap.set(bake.node.id, out.id);
+        return { ok: true };
+      }
+    }
+
+    // Not a bake: plain additions and removals.
+    for (const id of d.removed) {
+      const real = live(id);
+      const obj = this.objects.get(real);
+      if (!obj) continue;
+      obj.mesh.geometry.dispose(); obj.mesh.material.dispose();
+      this.objects.delete(real); this.selection.delete(real);
+      if (this.selectedId === real) this.selectedId = null;
+      this._emit('remove', obj);
+    }
+    for (const o of d.added) {
+      if (this.objects.has(o.id)) continue;
+      const obj = deserializeObject(o);
+      this.objects.set(obj.id, obj);
+      this._emit('add', obj);
+    }
+    if (d.removed.length || d.added.length) this._emit('regroup');
+    return { ok: true };
   }
 
   // Ctrl+Z = step to the parent node (non-destructive: the children remain, so
@@ -871,9 +1031,27 @@ export class CadDocument extends EventTarget {
     if (!node) return;
     this._flush();
     this._redoHint = null;            // any deliberate jump retires the breadcrumb
+    // Remember the future being walked away from. Going back to step three to
+    // change something is almost never a wish to throw away steps four to ten,
+    // and until the next step is actually taken there is no way to know whether
+    // this is a look around or the start of an edit. So the tip is remembered
+    // cheaply here and only turned into an offer once an edit really happens.
+    const leaving = this.history.currentId;
+    this._travel = (leaving && leaving !== id && this._isDescendant(leaving, id))
+      ? { from: id, tip: leaving }
+      : null;
     this.history.goto(id);
     this._restoreSnapshot(node.snapshot);
     this._emit('history');
+  }
+
+  _isDescendant(id, ancestorId) {
+    let cur = this.history.get(id);
+    while (cur && cur.parentId != null) {
+      if (cur.parentId === ancestorId) return true;
+      cur = this.history.get(cur.parentId);
+    }
+    return false;
   }
 
   // Apply a serialized scene without recording a step (used by time-travel and

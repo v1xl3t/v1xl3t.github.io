@@ -401,6 +401,13 @@ body.slicer-open #timeline { right: calc(12px + min(300px, 34vw) + 14px); }
   position: absolute;
   left: calc(12px + var(--toolbar-w, 200px) + 14px);
   right: calc(12px + var(--side-w, 200px) + 14px);
+  /* `top: auto` is doing real work. `.panel` sets `top: 12px` for the side
+     panels, and an absolutely positioned box given BOTH a top and a bottom and
+     a height is over-constrained, so the browser keeps the top and throws the
+     bottom away. The timeline is a bottom strip and was being drawn at the top
+     of the viewport, underneath the floating toolbar, which is why its header
+     read through a row of icons. */
+  top: auto;
   bottom: 28px;
   z-index: 20;
   padding: 8px 10px 10px;
@@ -418,6 +425,31 @@ body.slicer-open #timeline { right: calc(12px + min(300px, 34vw) + 14px); }
   color: var(--muted); cursor: pointer;
 }
 #tl-close:hover { color: var(--text); border-color: var(--accent); }
+/* The offer to bring an abandoned future forward. It sits above the strip
+   rather than inside it because it is about the branch you just made, not about
+   any one tile, and it has to be readable without hunting for the tile it
+   refers to. */
+/* `:not([hidden])`, for the same reason `#timeline` above needs it: a flex rule
+   out-specifies the browser's own `[hidden] { display: none }`, so the offer
+   would sit on screen permanently while the JS politely pretended to toggle it. */
+.tl-replay:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: var(--panel-solid);
+  font-size: 12px;
+  color: var(--text);
+}
+.tl-replay .row { display: flex; gap: 6px; flex: none; }
+.tl-replay button { padding: 4px 10px; font-size: 12px; }
+.tl-replay #tl-replay-text { flex: 1; min-width: 16ch; }
+
 .tl-scroll { overflow: auto; flex: 1; min-height: 96px; }
 .tl-canvas { position: relative; }
 .tl-svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }

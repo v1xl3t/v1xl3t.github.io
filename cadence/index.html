@@ -346,6 +346,17 @@
         <span class="tl-hint">click a step to time-travel · acting from the past forks a branch</span>
         <button id="tl-close" title="Hide timeline (T)">✕</button>
       </div>
+      <!-- Shown only after an edit made from a past step. Going back to step
+           three to change something is almost never a wish to throw away steps
+           four to ten, and until now the new branch started with one step on it
+           and everything built on top had to be built again by hand. -->
+      <div class="tl-replay" id="tl-replay" hidden>
+        <span id="tl-replay-text">The steps that came after this are still on the old branch.</span>
+        <div class="row">
+          <button id="tl-replay-go" class="primary" title="Re-run those steps on this branch, against the part as you have just changed it">Rebuild them here</button>
+          <button id="tl-replay-no" title="Leave them where they are. The old branch keeps them either way">No thanks</button>
+        </div>
+      </div>
       <div class="tl-scroll"><div class="tl-canvas"><svg class="tl-svg"></svg></div></div>
     </aside>
 
