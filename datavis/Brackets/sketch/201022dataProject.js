@@ -153,7 +153,7 @@ function setup()
 }
 
 // Build the note arrays from the current `table`. Factored out of setup() so a
-// lab CSV upload can rebuild everything from a new dataset. Behaviour for the
+// lab CSV upload can rebuild everything from a new dataset. Behavior for the
 // built-in dataset is identical to the original inline loop.
 function processTable()
 {

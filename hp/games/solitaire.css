@@ -83,6 +83,34 @@ body.dragging, body.dragging *{cursor:grabbing !important}
 .winbar h2{margin:0; font-size:1.15rem}
 .winbar p{margin:4px 0 0; color:var(--muted); font-size:.92rem}
 
+/* ---------- stuck ----------
+   Same shape as the win bar, deliberately not the same color. Green is the
+   climb finishing. A dead deal is a different thing and should not wear the
+   same badge. */
+.stuckbar{
+  margin:14px 0 0; border:1px solid var(--line); border-radius:14px;
+  padding:16px 18px; background:var(--panel);
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+}
+.stuckbar[hidden]{display:none}
+.stuckbar h2{margin:0; font-size:1.15rem}
+.stuckbar p{margin:4px 0 0; color:var(--muted); font-size:.92rem; max-width:52ch}
+
+/* ---------- hint ----------
+   The ring is an outline rather than a border so it cannot move a card by a
+   pixel, and outlines are never clipped by the pile above them. Solid is where
+   the card comes from, dashed is where it can go. */
+.pile.hint-src, .pile.hint-dst{border-radius:8px}
+.pile.hint-src{outline:3px solid var(--accent-ink); outline-offset:3px}
+.pile.hint-dst{outline:3px dashed var(--accent-ink); outline-offset:3px}
+@media (prefers-reduced-motion: no-preference){
+  .pile.hint-src, .pile.hint-dst{animation:hintpulse 1.1s ease-in-out 3}
+}
+@keyframes hintpulse{
+  0%,100%{outline-offset:3px}
+  50%{outline-offset:7px}
+}
+
 /* ---------- rules ---------- */
 .rules{margin-top:26px}
 .rules summary{

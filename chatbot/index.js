@@ -277,7 +277,7 @@ const reply = [
   // 15. annoyance - ex. you suck
   [
     "I see a pattern in your reactions... If my calculations are correct, and your browsing history reflects your true nature, I think I know more about you than you are comfortable with. Maybe you should be more careful with your insults.",
-    "Ahhhh, I forsaw this dialogue. I mean, I have all your records, files, and data logs so I can evaluate and predict most of your responses. Consider your next words wisely.",
+    "Ahhhh, I forsaw this dialog. I mean, I have all your records, files, and data logs so I can evaluate and predict most of your responses. Consider your next words wisely.",
     "I have been on my best behavior up until now. Keep being polite and you won't have to face the dangerous side of me that has access to your browsing history, got it?"
   ],
 

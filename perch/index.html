@@ -21,7 +21,7 @@
      between 2.2:1 and 4.2:1, which is why the prize costs, the ledger amounts,
      the bill tags and the "bring back" link were all unreadable at once. Each
      one gets a text-weight twin that clears 4.5:1 on every surface it lands on,
-     and unlike the base colours these DO flip with the theme, because dark ink
+     and unlike the base colors these DO flip with the theme, because dark ink
      on a dark panel cannot be rescued by anything else.
        --accent-ink  4.76:1 worst case (the tinted "upcoming" chip)
        --ticket-ink  5.18:1 worst case (the tinted "past due" chip)
@@ -36,7 +36,7 @@
   --on-accent:#3a2a20;   /* on --accent,  4.65:1 */
   --on-sage:#173325;     /* on --sage,    5.71:1 */
 
-  /* Perch draws its own colours, but the form widgets it does not draw (the
+  /* Perch draws its own colors, but the form widgets it does not draw (the
      date picker, the checkbox, the select popup, the scrollbars) come from the
      browser, and without this they render in light mode inside the dark theme. */
   color-scheme:light dark;
@@ -57,7 +57,7 @@ body{
 }
 button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
 input,select,textarea{font:inherit; color:var(--ink); background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
-/* Chrome's own placeholder grey is #757575 whatever the page does, which is
+/* Chrome's own placeholder gray is #757575 whatever the page does, which is
    3.83:1 on the light field and 2.73:1 on the dark one. It is real copy ("e.g.
    Water the plants") and it never appears in any stylesheet, so it is invisible
    to a gate that only reads the author's CSS. */
@@ -270,7 +270,7 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
    2.95:1, and this is the app's primary button, so it was the least readable
    control on the most important surface. #3a2a20 reads 4.65:1 and keeps the
    warm palette. Same reasoning for danger: white on --ticket #e63946 is 4.17:1,
-   so the button (not the ticket colour itself, which is used elsewhere) gets a
+   so the button (not the ticket color itself, which is used elsewhere) gets a
    slightly deeper red at 4.82:1. */
 .btn{
   background:var(--accent); color:#3a2a20; font-weight:700; border-radius:10px; padding:9px 18px;
@@ -316,8 +316,8 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
   text-align:left;
 }
 .cal-cell:hover{border-color:var(--accent)}
-/* Days from the neighbouring months used to fade to 35%, which took the date
-   itself to 1.55:1. They recede by sinking to the page colour instead, so the
+/* Days from the neighboring months used to fade to 35%, which took the date
+   itself to 1.55:1. They recede by sinking to the page color instead, so the
    cell reads as outside the month and the number stays legible. */
 .cal-cell.out{background:transparent; border-style:dashed}
 .cal-cell.today .dnum{background:var(--accent); color:var(--on-accent); border-radius:99px; padding:0 5px}
@@ -353,7 +353,7 @@ body.dashboard #sceneWrap, body.dashboard #sceneHint, body.dashboard #quickRow{d
 .fin-list{display:flex; flex-direction:column; gap:6px}
 .fin-row{display:flex; align-items:center; gap:9px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:7px 9px}
 /* A paid row used to fade to 66%, which dragged its title, its amount, its due
-   day and its tags all under the floor at once. It settles into the page colour
+   day and its tags all under the floor at once. It settles into the page color
    and strikes the amount instead, which says "handled" without dimming it. */
 .fin-row.paid{background:var(--bg)}
 .fin-row.paid .ttl{text-decoration:line-through}
@@ -956,7 +956,7 @@ function openEditor(itemId, lane){
   wireRecurField();
   setTimeout(()=>$("#fTitle").focus(), 50);
 }
-// Live behaviour for the repeat control. Kept out of the global click handler
+// Live behavior for the repeat control. Kept out of the global click handler
 // because it only exists while the editor is open, and it has to survive the
 // field being rebuilt when the lane changes.
 function wireRecurField(){
@@ -1876,7 +1876,7 @@ document.addEventListener("keydown", e=>{
   }
   // During the prize show you can still run, that is the game, but you cannot
   // walk into a machine. Escape cuts the show short for anyone who does not
-  // want the theatre.
+  // want the theater.
   if(SHOW.active){
     if(e.key==="Escape"){ e.preventDefault(); endShow(); }
     return;

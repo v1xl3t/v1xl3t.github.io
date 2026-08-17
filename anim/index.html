@@ -208,7 +208,7 @@
       </div>
       <div class="statebar" id="transbar">
         <b class="hint" style="text-transform:uppercase;letter-spacing:.08em">Transition</b>
-        <select id="transSel" title="Transitions defined on this layer (from-state to to-state)" style="max-width:150px"></select>
+        <select id="transSel" title="Transitions defined on this layer, from one state to the next" style="max-width:150px"></select>
         <button class="mini" id="trans-add" title="Define a transition sheet from the active state to the next state">＋ Def</button>
         <button class="mini" id="trans-edit" title="Edit the selected transition's frames in the canvas / frame strip">Edit sheet</button>
         <button class="mini" id="trans-try" title="Preview the transition once on the canvas (does not change the document)">▶ Try</button>
@@ -235,8 +235,8 @@
     <div class="tl-h">
       <b class="hint" style="text-transform:uppercase;letter-spacing:.08em">Loop frames</b>
       <span class="hint" id="frameLabel">1 / 1</span>
-      <button class="mini" id="frame-prev" title="Previous frame ( , or ← )">◀</button>
-      <button class="mini" id="frame-next" title="Next frame ( . or → )">▶</button>
+      <button class="mini" id="frame-prev" title="Previous frame, comma or the left arrow key">◀</button>
+      <button class="mini" id="frame-next" title="Next frame, period or the right arrow key">▶</button>
       <div class="sep"></div>
       <button class="mini" id="frame-dup" title="Duplicate current frame">⧉ Duplicate</button>
       <button class="mini" id="frame-copy" title="Copy current frame">Copy</button>
@@ -1036,19 +1036,19 @@ function _unb64url(s){ const b=atob(s.replace(/-/g,'+').replace(/_/g,'/')); cons
 async function _pipe(bytes,Ctor,mode){ const st=new Blob([bytes]).stream().pipeThrough(new Ctor(mode)); return new Uint8Array(await new Response(st).arrayBuffer()); }
 // --- packed payload (2026-08-11) -------------------------------------------
 //
-// The colour grids ARE the project — everything else is a rounding error — and
-// they were travelling as JSON text, every cell either `null` (4 characters) or
+// The color grids ARE the project — everything else is a rounding error — and
+// they were traveling as JSON text, every cell either `null` (4 characters) or
 // `"#7c5cff"` (10). Measured on real pixel art, not noise: a 3-layer 8-frame
 // 32x32 sprite made a 4,160-character link and a 64x64 one made 17,106, against
 // Discord's 2,000 character paste limit.
 //
-// So a cell leaves as ONE BYTE, an index into a palette of the colours actually
+// So a cell leaves as ONE BYTE, an index into a palette of the colors actually
 // used (0 means empty), and every grid in the project is deflated together as a
 // single block. That second part matters as much as the first: frame N+1 of an
 // animation is nearly frame N, and deflate can only exploit that when the two
 // sit next to each other as bytes instead of being separated by JSON syntax.
 //
-// The saved project and localStorage keep the readable colour arrays. This
+// The saved project and localStorage keep the readable color arrays. This
 // packing exists only for the trip through a URL.
 
 // Every grid-bearing sheet, in a fixed order both sides agree on. States first,
@@ -1082,7 +1082,7 @@ function packProject(P, delta){
         if (c == null) continue;                       // 0 = empty, already zeroed
         let n = index.get(c);
         if (n === undefined){
-          if (colors.length >= 255) return null;       // 255 colours + empty is the byte's budget
+          if (colors.length >= 255) return null;       // 255 colors + empty is the byte's budget
           colors.push(c); n = colors.length; index.set(c, n);
         }
         b[i] = n;

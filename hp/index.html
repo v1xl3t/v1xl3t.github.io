@@ -16,7 +16,7 @@
    ============================================================ */
 :root{
   --ink:#ece7fb; --muted:#c6bfe2; --accent:#b9a6f5; --accent-2:#8b7bd8;
-  /* accent for TEXT only. Same colour as the diver on the dark descent, but it
+  /* accent for TEXT only. Same color as the diver on the dark descent, but it
      is overridden down in the bright paradise where neon green on near-white is
      unreadable. Splitting it from --diver-accent keeps the artwork untouched. */
   --accent-ink:var(--diver-accent);
@@ -358,12 +358,12 @@ body.light .member{background:rgba(124,95,224,.05)}
   background:rgba(255,255,255,.02)}
 body.light .bucket{background:rgba(124,95,224,.05)}
 .bucket .bk-h{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
-/* THE CROSSFADE INKS. These four used fixed per-theme colours, so halfway through
+/* THE CROSSFADE INKS. These four used fixed per-theme colors, so halfway through
    the descent-to-paradise crossfade they sat at almost exactly the background
    luminance and dropped to 1.26:1. The -safe tokens are recomputed from the live
    background on every scroll frame (see safeInk in the script), which is what makes
    them take part in the crossfade the rest of the palette already takes part in.
-   The var() fallbacks are the old colours, for the no-JS case. */
+   The var() fallbacks are the old colors, for the no-JS case. */
 .bucket .bk-n{font-family:var(--mono); font-size:.8rem; color:var(--accent-safe,var(--accent-ink))}
 /* size deliberately left alone. Bumping it to 1.2rem would clear the WCAG large-text
    line and buy a lower required ratio, but --ink-safe already clears 4.5:1 on its own,
@@ -452,7 +452,7 @@ body.light .member .handle{color:#1a8f45}
 body.light .member .links a:hover, body.light .chip:hover{color:#1a8f45; border-color:#1a8f45}
 
 /* no opacity here any more: a .85 alpha quietly lowers the REAL contrast below the
-   ratio any audit reads off the colour, which is exactly the kind of gap that lets
+   ratio any audit reads off the color, which is exactly the kind of gap that lets
    invisible text pass a gate. The muted ink alone carries the de-emphasis. */
 .note{font-family:var(--mono); font-size:.72rem; color:var(--muted-safe,var(--muted)); margin-top:18px}
 
@@ -933,13 +933,13 @@ footer a{color:var(--accent); text-decoration:none}
   }
   // ===== crossfade-aware inks =====
   // The page palette moves continuously from abyss to paradise, but a few section
-  // colours (the project headings, their descriptions, the block numbers and the
+  // colors (the project headings, their descriptions, the block numbers and the
   // SoundCloud link) were fixed per theme. Halfway through the crossfade the
   // background passes straight through their luminance and they drop to as low as
   // 1.26:1, which is invisible text, not low-contrast text. These helpers push a
-  // colour toward black or white by the smallest amount that clears the target
+  // color toward black or white by the smallest amount that clears the target
   // ratio against whatever the background actually is at this scroll depth, so at
-  // the top and bottom of the page the designed colours are untouched and only the
+  // the top and bottom of the page the designed colors are untouched and only the
   // crossfade band gets corrected.
   function srgb(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
   function lumOf(c){ return 0.2126*srgb(c[0]) + 0.7152*srgb(c[1]) + 0.0722*srgb(c[2]); }
@@ -967,7 +967,7 @@ footer a{color:var(--accent); text-decoration:none}
     inkMemo[memo] = css;
     return css;
   }
-  // targets are [dark-theme colour, light-theme colour], matching the CSS tokens
+  // targets are [dark-theme color, light-theme color], matching the CSS tokens
   var INK_T = [[236,231,251],[42,36,64]];
   var MUTED_T = [[198,191,226],[90,83,119]];
   var GREEN_T = [[61,255,110],[26,143,69]];
@@ -1034,7 +1034,7 @@ footer a{color:var(--accent); text-decoration:none}
       // Flip the ink at the true crossover, where dark text starts beating light
       // text on this background, rather than at an eyeballed threshold. That puts
       // the worst moment of the crossfade at its best possible contrast. The band
-      // still cannot reach AA with any flat colour: at bg luminance ~0.199 the best
+      // still cannot reach AA with any flat color: at bg luminance ~0.199 the best
       // achievable is 3.5:1, so this is the optimum, not a pass.
       var isLight = (c[0]+c[1]+c[2]) > 369;
       document.body.classList.toggle("light", isLight);
