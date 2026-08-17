@@ -2,7 +2,7 @@
 //
 // Slicing a real part is seconds of solid arithmetic. On the main thread that
 // is seconds of a frozen canvas, a spinner that does not spin, and a browser
-// offering to kill the tab. There is nothing to optimise about that; it simply
+// offering to kill the tab. There is nothing to optimize about that; it simply
 // has to happen somewhere else.
 //
 // IMPORTANT: a module worker does NOT inherit the page's import map. Every

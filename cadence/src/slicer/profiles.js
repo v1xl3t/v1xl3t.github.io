@@ -32,9 +32,9 @@ export const MACHINES = {
     bedDepth: 220,
     bedHeight: 250,
     // The Ender's origin is the front-left corner of the bed, not its middle.
-    // CADence models are centred on the origin, so the slicer shifts them by
-    // half the bed. Printers that home to the centre set this true instead.
-    originCentre: false,
+    // CADence models are centered on the origin, so the slicer shifts them by
+    // half the bed. Printers that home to the center set this true instead.
+    originCenter: false,
     nozzleDiameter: 0.4,
     filamentDiameter: 1.75,
     heatedBed: true,
@@ -63,7 +63,7 @@ export const MACHINES = {
     id: 'generic-direct',
     name: 'Generic direct drive (0.4mm)',
     bedWidth: 250, bedDepth: 210, bedHeight: 210,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     heatedBed: true, maxBedTemp: 110, maxNozzleTemp: 300,
     firmware: 'marlin',
@@ -87,7 +87,7 @@ export const MACHINES = {
   // repeating them in every entry.
   //
   // ORIGIN. Front-left, like the Ender. Bambu print coordinates run from zero
-  // to the bed size, not from minus half the bed to plus half, so originCentre
+  // to the bed size, not from minus half the bed to plus half, so originCenter
   // is false and placeOnBed shifts a CADence model by half the plate.
   //
   // EXTRUDER. Direct drive, every one of them. That single word is what makes
@@ -107,7 +107,7 @@ export const MACHINES = {
   // themselves apart taking a corner at speed.
   //
   // FIRMWARE. Not Marlin. Nothing in CADence reads this field today, so it is
-  // documentation rather than behaviour, but writing 'marlin' here would be a
+  // documentation rather than behavior, but writing 'marlin' here would be a
   // false fact sitting in a table of true ones.
   //
   // START SCRIPT. Plain on purpose. See bambuStart() at the bottom of this file
@@ -117,7 +117,7 @@ export const MACHINES = {
     id: 'bambu-a1-mini',
     name: 'Bambu Lab A1 mini',
     bedWidth: 180, bedDepth: 180, bedHeight: 180,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     // The A1 mini's bed stops at 80C, which is the one spec that really
     // separates it from its bigger sibling. ABS wants 100 and will say so.
@@ -135,7 +135,7 @@ export const MACHINES = {
     id: 'bambu-a1',
     name: 'Bambu Lab A1',
     bedWidth: 256, bedDepth: 256, bedHeight: 256,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     heatedBed: true, maxBedTemp: 100, maxNozzleTemp: 300,
     firmware: 'bambu',
@@ -153,7 +153,7 @@ export const MACHINES = {
     id: 'bambu-p1s',
     name: 'Bambu Lab P1S',
     bedWidth: 256, bedDepth: 256, bedHeight: 256,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     heatedBed: true, maxBedTemp: 100, maxNozzleTemp: 300,
     firmware: 'bambu',
@@ -174,7 +174,7 @@ export const MACHINES = {
     id: 'bambu-p1p',
     name: 'Bambu Lab P1P',
     bedWidth: 256, bedDepth: 256, bedHeight: 256,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     heatedBed: true, maxBedTemp: 100, maxNozzleTemp: 300,
     firmware: 'bambu',
@@ -190,7 +190,7 @@ export const MACHINES = {
     id: 'bambu-x1c',
     name: 'Bambu Lab X1 Carbon',
     bedWidth: 256, bedDepth: 256, bedHeight: 256,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     // The hottest bed in the table, shared with the P2S below, and the one
     // number that lets an enclosed X1C take ABS without an argument.
@@ -206,14 +206,14 @@ export const MACHINES = {
 
   // The P2S is the enclosed CoreXY the P1S grew into, same 256mm cube of build
   // volume and the same hardened 0.4mm nozzle, so most of this entry is its
-  // neighbour's. The one field that actually moves is the bed, which reaches
+  // neighbor's. The one field that actually moves is the bed, which reaches
   // 110C here rather than the P1S's 100C. That puts it level with the X1C and
   // means ABS slices on a P2S without the bed warning a P1S earns.
   'bambu-p2s': {
     id: 'bambu-p2s',
     name: 'Bambu Lab P2S',
     bedWidth: 256, bedDepth: 256, bedHeight: 256,
-    originCentre: false,
+    originCenter: false,
     nozzleDiameter: 0.4, filamentDiameter: 1.75,
     heatedBed: true, maxBedTemp: 110, maxNozzleTemp: 300,
     firmware: 'bambu',
@@ -420,7 +420,7 @@ export const BASE = {
   zhop: 0.2,
   zhopEnable: true,
   retractOnLayerChange: true,
-  combing: true,                   // prefer travelling inside the part
+  combing: true,                   // prefer traveling inside the part
 
   // Cooling
   minSpeed: 10,                    // the floor when a layer is slowed for cooling
@@ -429,7 +429,7 @@ export const BASE = {
   flowRate: 100,                   // percent, the global fudge factor
 
   // Safety and placement
-  centreOnBed: true,
+  centerOnBed: true,
   skipFirstLayerFan: true,
 };
 
@@ -463,7 +463,7 @@ export function buildSettings({ machine = 'ender3pro', material = 'pla', quality
     // machine
     machineId: M.id, machineName: M.name,
     bedWidth: M.bedWidth, bedDepth: M.bedDepth, bedHeight: M.bedHeight,
-    originCentre: M.originCentre,
+    originCenter: M.originCenter,
     nozzleDiameter: M.nozzleDiameter, filamentDiameter: M.filamentDiameter,
     heatedBed: M.heatedBed, firmware: M.firmware,
     maxFeedrateXY: M.maxFeedrateXY, maxFeedrateZ: M.maxFeedrateZ, maxFeedrateE: M.maxFeedrateE,
@@ -475,7 +475,7 @@ export function buildSettings({ machine = 'ender3pro', material = 'pla', quality
     // takes one line at a time and answers "ok"? A Bambu cannot: it is a
     // network and SD card machine, and its USB port is not a print console.
     // Absent means yes, so every machine written before this field existed
-    // keeps the behaviour it had.
+    // keeps the behavior it had.
     usbPrintable: M.usbPrintable !== false,
     // material
     materialId: F.id, materialName: F.name,
@@ -517,7 +517,7 @@ export function validate(s) {
   if (s.lineWidth < s.nozzleDiameter * 0.85) {
     w.push(`a ${s.lineWidth}mm line is narrower than the ${s.nozzleDiameter}mm nozzle can lay down`);
   }
-  if (s.lineWidth > s.nozzleDiameter * 2.5) w.push('a line wider than 2.5 nozzles will not stick to its neighbour');
+  if (s.lineWidth > s.nozzleDiameter * 2.5) w.push('a line wider than 2.5 nozzles will not stick to its neighbor');
   if (s.nozzleTemp > s.maxNozzleTemp) w.push(`${s.nozzleTemp}C is above this hotend's ${s.maxNozzleTemp}C limit`);
   if (s.bedTemp > s.maxBedTemp) w.push(`${s.bedTemp}C is above this bed's ${s.maxBedTemp}C limit`);
   if (!s.heatedBed && s.bedTemp > 0) w.push('this machine has no heated bed, so the bed temperature is ignored');
@@ -603,7 +603,7 @@ function enderStart(s) {
     'M104 S' + hot + '            ; start heating the nozzle',
     'M190 S' + bed + '            ; wait for the bed',
     'M109 S' + hot + '            ; wait for the nozzle',
-    'G21                          ; millimetres',
+    'G21                          ; millimeters',
     'G90                          ; absolute positioning',
     'M82                          ; absolute extrusion',
     'M107                         ; fan off for the first layer',
@@ -615,7 +615,7 @@ function enderStart(s) {
     'G1 X0.4 Y' + y2 + ' Z0.3 F5000',
     `G1 X0.4 Y20 Z0.3 F1500 E30   ; and back, to wipe`,
     'G92 E0                       ; zero the extruder again',
-    'G1 Z2.0 F3000                ; lift before travelling to the part',
+    'G1 Z2.0 F3000                ; lift before traveling to the part',
   ];
   if (!s.heatedBed) return lines.filter((l) => !/^M1[49]0/.test(l)).join('\n');
   return lines.join('\n');
@@ -652,9 +652,9 @@ function enderEnd(s) {
  * driven to coordinates this file cannot vouch for. So this script attempts
  * none of it.
  *
- * WHAT IT DOES. Heats both heaters and waits for them, sets millimetres and
- * absolute positioning, homes, and draws a prime line ten millimetres in from
- * the left edge. Ten millimetres in is safe by construction: it is inside the
+ * WHAT IT DOES. Heats both heaters and waits for them, sets millimeters and
+ * absolute positioning, homes, and draws a prime line ten millimeters in from
+ * the left edge. Ten millimeters in is safe by construction: it is inside the
  * printable area on every Bambu in the table, because the printable area is
  * what the bed dimensions above describe.
  *
@@ -675,7 +675,7 @@ function bambuStart(s) {
   const zf = Math.round((s.maxFeedrateZ || 10) * 60);
   const y1 = 20;
   const y2 = Math.min(s.bedDepth - 20, 140);
-  // Roughly the filament per millimetre the Ender line above lays down, which
+  // Roughly the filament per millimeter the Ender line above lays down, which
   // is a fat, deliberately over-extruded bead. A prime line that is thin has
   // not primed anything.
   const lines = [
@@ -685,7 +685,7 @@ function bambuStart(s) {
     'M104 S' + hot + '            ; start heating the nozzle',
     'M190 S' + bed + '            ; wait for the bed',
     'M109 S' + hot + '            ; wait for the nozzle',
-    'G21                          ; millimetres',
+    'G21                          ; millimeters',
     'G90                          ; absolute positioning',
     'M82                          ; absolute extrusion',
     'M107                         ; fan off for the first layer',
@@ -697,7 +697,7 @@ function bambuStart(s) {
     `G1 X10.5 Y${y2} Z0.3 F5000`,
     `G1 X10.5 Y${y1} Z0.3 F1200 E18  ; and back, to wipe`,
     'G92 E0                       ; zero the extruder again',
-    `G1 Z5 F${zf}                 ; lift before travelling to the part`,
+    `G1 Z5 F${zf}                 ; lift before traveling to the part`,
   ];
   if (!s.heatedBed) return lines.filter((l) => !/^M1[49]0/.test(l)).join('\n');
   return lines.join('\n');

@@ -1,11 +1,11 @@
 // sliceview.js — the slicer's face: settings, progress, and the layer preview.
 //
 // The preview is not a rendering of the G-code. It is a rendering of the PLAN,
-// the same object the emitter serialises, which is why scrubbing to layer 47
+// the same object the emitter serializes, which is why scrubbing to layer 47
 // and reading layer 47 in the file always agree. A preview built by parsing the
 // file back would drift the moment the emitter learned a new trick.
 //
-// Everything is drawn as one LineSegments buffer with vertex colours, ordered
+// Everything is drawn as one LineSegments buffer with vertex colors, ordered
 // by layer and then by print order. That ordering is what makes scrubbing free:
 // showing the first N layers is a contiguous range of that buffer, and so is
 // showing the first M moves of one layer, so both are a drawRange call rather
@@ -13,7 +13,7 @@
 // at all.
 //
 // Coordinates come back from the slicer in PRINTER space: Z up, origin at the
-// front-left corner of the bed. The viewport is Y up and centred on the model.
+// front-left corner of the bed. The viewport is Y up and centered on the model.
 // toCad() below is the exact inverse of the transform io.js applied on the way
 // out, so the toolpaths land on the model they came from.
 
@@ -25,7 +25,7 @@ import {
 import { formatDuration } from './slicer/gcode.js';
 import { connectPrinter, PrinterLink } from './printer.js';
 
-// Feature colours. Chosen to stay apart from each other on the dark viewport
+// Feature colors. Chosen to stay apart from each other on the dark viewport
 // and to keep the two most important ones, the outer wall and a bridge, the
 // easiest to pick out: the outer wall is the surface you will touch, and a
 // bridge is the thing most likely to fail.
@@ -44,7 +44,7 @@ const COLORS = {
   // replaces rather than competing with the part for attention.
   'raft': 0x5f9e2a,
   // Ironing sits exactly on top of the skin it is smoothing, so it is drawn a
-  // shade lighter than the skin rather than a different hue. A separate colour
+  // shade lighter than the skin rather than a different hue. A separate color
   // would look like a separate feature in a place where nothing new was added.
   'ironing': 0xfff0a8,
 };
@@ -235,7 +235,7 @@ export class SliceView {
    * everything so the toolpaths can be seen, and those two facts together mean
    * that opening the slicer makes the scene look empty to the slicer. Undoing
    * only this class's own hiding, and only for the length of the call, keeps
-   * both behaviours intact.
+   * both behaviors intact.
    */
   withModelShown(fn) {
     const hidden = this.hiddenMeshes;
@@ -310,7 +310,7 @@ export class SliceView {
         <label class="check"><input type="checkbox" id="sl-adaptive"> Adaptive layer height</label>
         <div class="hint">Thin layers where the model is shallow, which is where every layer line shows, and thick ones where it is vertical, which is where none of them do. One layer height has to be a compromise between those two, and this stops being one.</div>
         <label class="check"><input type="checkbox" id="sl-ironing"> Iron the top surfaces</label>
-        <div class="hint">Runs the hot nozzle back over each flat top at a tenth of a bead, melting the ridges between lines flat. It adds time to the top layers only, and it is the difference between a striped top and a moulded one.</div>
+        <div class="hint">Runs the hot nozzle back over each flat top at a tenth of a bead, melting the ridges between lines flat. It adds time to the top layers only, and it is the difference between a striped top and a molded one.</div>
 
         <div id="sl-advice" hidden></div>
         <button id="sl-run" class="primary sl-run" title="Work out the toolpaths for this model and build the layer preview. Nothing is sent anywhere until you ask.">Slice</button>
@@ -379,7 +379,7 @@ export class SliceView {
     $('sl-angle').addEventListener('input', (e) => { $('sl-angle-val').textContent = `${e.target.value}°`; });
 
     // One listener for the lot. Every control that feeds a slice re-checks the
-    // settings and remembers them, so neither behaviour has to be wired up
+    // settings and remembers them, so neither behavior has to be wired up
     // again the next time a control is added to the panel.
     for (const el of this.el.querySelectorAll('select[id], input[id]')) {
       if (el.id === 'sl-scrub' || el.id === 'sl-moves') { el.addEventListener('change', () => this.savePanel()); continue; }

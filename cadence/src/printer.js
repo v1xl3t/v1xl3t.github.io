@@ -18,7 +18,7 @@
 // unacknowledged lines is kept in flight, which is what keeps the buffer full
 // without overrunning the firmware's receive buffer.
 //
-// LINE NUMBERS AND CHECKSUMS. USB serial over a metre of unshielded cable next
+// LINE NUMBERS AND CHECKSUMS. USB serial over a meter of unshielded cable next
 // to a stepper driver does corrupt bytes. With N<line>...*<checksum>, Marlin
 // detects the corruption and asks for a resend instead of executing whatever
 // the noise turned the command into. That is the difference between a garbled

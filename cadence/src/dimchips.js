@@ -55,7 +55,7 @@ const SCALE_AXIS = {
 };
 
 // How much a given recipe number has been stretched by the scale tool. Always
-// a positive factor: a mirrored object is still that many millimetres across.
+// a positive factor: a mirrored object is still that many millimeters across.
 export function scaleFactor(obj, key) {
   const axis = SCALE_AXIS[obj?.kind]?.[key];
   if (!axis || !obj.mesh) return 1;
@@ -156,7 +156,7 @@ export class DimChips {
     }
   }
 
-  // Called every frame: park the chip cluster just above the object's top-centre
+  // Called every frame: park the chip cluster just above the object's top-center
   // in screen space, so it rides along as the camera moves.
   update() {
     if (!this.enabled || !this.obj || !this.chips.length) return;

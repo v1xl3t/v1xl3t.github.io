@@ -10,7 +10,7 @@
 //     filament consumed = volume / cross-section of the filament
 //     E = L * w * h / (pi * (d/2)^2)
 //
-// The bead is modelled as a plain rectangle, width by layer height, rather than
+// The bead is modeled as a plain rectangle, width by layer height, rather than
 // as the rounded-cornered shape its free surface really takes. That is a
 // deliberate choice to match Cura, because the profiles in profiles.js are
 // tuned against the numbers a Cura-sliced Ender 3 Pro produces, and mixing a
@@ -261,7 +261,7 @@ export function emitGcode(plan, s, meta = {}) {
 }
 
 /** Feature names in the dialect Cura uses, so existing G-code previewers and
- *  OctoPrint plugins colour a CADence file correctly without being taught. */
+ *  OctoPrint plugins color a CADence file correctly without being taught. */
 function gcodeType(type) {
   switch (type) {
     case 'wall-outer': return 'WALL-OUTER';

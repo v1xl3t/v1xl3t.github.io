@@ -5,14 +5,14 @@
 // inward by half a bead, then by a whole bead for each wall after that.
 //
 // The half-bead matters and is the most common thing to get wrong. G-code moves
-// the CENTRE of the nozzle, but the model boundary is the OUTSIDE of the
-// plastic. Putting the first wall's centreline on the outline makes every part
+// the CENTER of the nozzle, but the model boundary is the OUTSIDE of the
+// plastic. Putting the first wall's centerline on the outline makes every part
 // come out one bead too big in every direction, which on a 0.4mm nozzle is
 // 0.4mm of interference on any hole meant to fit a shaft. So wall n sits at
 // (n + 0.5) line widths in from the boundary, and what is left over in the
 // middle belongs to the infill.
 //
-//   boundary  |<-- lw/2 -->| wall 0 centre |<-- lw -->| wall 1 centre | ...
+//   boundary  |<-- lw/2 -->| wall 0 center |<-- lw -->| wall 1 center | ...
 //
 // After N walls the region has lost exactly N line widths all round, and that
 // remainder is handed on untouched.
@@ -93,7 +93,7 @@ export function fillGaps(gaps, o) {
     const piece = [ring];
     if (Math.abs(area(piece)) < 0.02) continue;
     // A narrower nominal bead and a smaller setback, so a 0.3mm sliver still
-    // gets a centre line instead of vanishing at the inset.
+    // gets a center line instead of vanishing at the inset.
     const lines = solidFill(piece, { lineWidth: lw * 0.8, angle: o.angle ?? 45, overlap: lw * 0.25 });
     for (const l of lines) out.push(l);
   }

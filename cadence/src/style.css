@@ -256,7 +256,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .oname { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* --muted is tuned to sit on a PANEL. These two sit on a button fill, which is
    lighter in the dark skins, and the eye measured as low as 2.38:1 there. They
-   are controls rather than prose, so they take the full text colour. */
+   are controls rather than prose, so they take the full text color. */
 .eye { width: auto; margin: 0; padding: 0 4px; background: none; border: none; color: var(--text); font-size: 13px; }
 .eye:hover { background: none; color: var(--text); }
 .badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; flex: none; }
@@ -311,7 +311,7 @@ html[data-ui="blueprint"] .group-label { color: #4fc3f7; }
 
 /* The light twin of the graphite problem, found by the same gate. --accent was
    #2f6df6, which scraped 4.53:1 on pure white and then fell to 3.96:1 on the
-   grey --bg, so accent-coloured labels failed anywhere off a panel. Darkened to
+   gray --bg, so accent-colored labels failed anywhere off a panel. Darkened to
    5.18:1 on --bg. */
 html[data-ui="paper"] {
   --bg: #eef0f3; --panel: #ffffffe6; --panel-solid: #ffffff;
@@ -489,7 +489,7 @@ body.slicer-open #timeline { right: calc(12px + min(300px, 34vw) + 14px); }
 
 /* ---------------------------------------------------------------- dimension chips */
 /* Editable dimension pills that float on the selected part in the viewport. The
-   layer is anchored at the object's top-centre (JS sets left/top each frame). */
+   layer is anchored at the object's top-center (JS sets left/top each frame). */
 #dimchips {
   position: absolute; z-index: 8;
   transform: translate(-50%, -100%);
@@ -617,7 +617,7 @@ body.no-experimental [data-experimental] { display: none !important; }
 #cm-card .cm-btns .cm-next:hover { color: #0c1108; filter: brightness(1.08); }
 /* Bottom-center, clear of the toolbar (left), inspector (top-right) and outliner
    (bottom-right). Sits just above the status bar. */
-/* Undo, Tips, Redo travel together as one centred strip. Undo is a reflex, so
+/* Undo, Tips, Redo travel together as one centered strip. Undo is a reflex, so
    it belongs in the spot a thumb already rests, not behind a panel. */
 /* The strip rides the top of the bottom stack (see the tokens at the top of the
    file) instead of a fixed 38px, so it clears the status line and the mobile
@@ -667,7 +667,7 @@ body.stage-active #tips-row {
    label shows on hover (desktop) or press (touch). Buttons proxy
    their clicks to the real toolbar buttons (see main.js).
    ============================================================ */
-/* Centred by auto margins between left:0 and right:0, NOT by left:50% plus a
+/* Centered by auto margins between left:0 and right:0, NOT by left:50% plus a
    translate. With left:50% the shrink-to-fit width a browser offers is only
    half the viewport, and a row of nowrap buttons simply overflows that box —
    which is how the Render control ended up 17px off the right edge of a 390px
@@ -739,7 +739,7 @@ body.drawer-active #topbar { opacity: 0; pointer-events: none; }
    ============================================================ */
 @media (max-width: 640px) {
   /* The bottom bar is the floor of the bottom stack on a phone. Everything that
-     sits above it reads this, so the safe-area inset is honoured once. */
+     sits above it reads this, so the safe-area inset is honored once. */
   :root { --dock-h: calc(52px + env(safe-area-inset-bottom, 0px)); }
   /* Resize handles make no sense for full-width drawers. */
   .resize-handle { display: none !important; }
@@ -811,7 +811,7 @@ body.drawer-active #topbar { opacity: 0; pointer-events: none; }
   #mobile-bar button:active { background: #ffffff14; }
   #mobile-bar button.active { color: var(--accent); }
   /* The cycle button is a readout as much as a control, so it is never the
-     muted grey the drawer tabs use when they are closed. */
+     muted gray the drawer tabs use when they are closed. */
   #mobile-bar .mode-cycle { color: var(--text); }
 
   /* Scrim behind an open drawer; tap it to dismiss. */
@@ -902,7 +902,7 @@ body.render-view #tips-row { display: none !important; }
 /* ---- parametric sketch ---------------------------------------------------
    The inspector block for a constrained sketch, plus the on-canvas sketcher
    toolbar. The state pill is the important bit: a sketch that is not fully
-   constrained is not wrong, it just still has freedom, and the colour says
+   constrained is not wrong, it just still has freedom, and the color says
    which of the two you are looking at. */
 
 .sketch-field { border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
@@ -932,7 +932,7 @@ body.render-view #tips-row { display: none !important; }
 .sk-note { margin-top: 8px; line-height: 1.4; }
 
 /* On-canvas sketcher */
-/* Centred between two zero offsets rather than by left:50% + translate: the
+/* Centered between two zero offsets rather than by left:50% + translate: the
    half-viewport shrink-to-fit box that left:50% produces squeezed this bar into
    a 195px column four rows tall on a phone. Its `bottom` comes from the bottom
    stack so it sits above the status line and the mobile bar instead of under
@@ -981,10 +981,10 @@ body.render-view #tips-row { display: none !important; }
    drawing as a number, and let you overwrite that number to get an exact one.
    Deliberately small and low-contrast until a field is focused, so it informs
    without fighting the geometry underneath it. */
-/* Opaque, and text-coloured rather than muted. Both are contrast decisions: the
+/* Opaque, and text-colored rather than muted. Both are contrast decisions: the
    translucent panel puts whatever is behind it under the text, and --muted over
    --panel drops below 4.5:1 in the graphite skin. Hierarchy comes from size and
-   weight here instead of from colour. */
+   weight here instead of from color. */
 #sk-hud {
   position: absolute; z-index: 45; pointer-events: none;
   display: flex; align-items: center; gap: 4px;
@@ -1014,7 +1014,7 @@ body.render-view #tips-row { display: none !important; }
 #sk-hud .hud-f.locked .hud-v { border-color: var(--accent); color: var(--accent); }
 #sk-hud .hud-u { color: var(--text); }
 /* Supplementary, but still held to the same contrast floor: it is set apart by
-   being lighter in weight, not lighter in colour. */
+   being lighter in weight, not lighter in color. */
 #sk-hud .hud-tip { color: var(--text); font-weight: 400; margin-left: 4px; }
 
 /* ---------------------------------------------------------------- view cube
@@ -1265,7 +1265,7 @@ body.render-view #viewcube-wrap { display: none; }
 button.primary {
   background: var(--accent-dim); border-color: var(--accent); color: var(--text); font-weight: 600;
 }
-/* Mixed from the tokens, not a fixed colour. A hardcoded navy hover was legible
+/* Mixed from the tokens, not a fixed color. A hardcoded navy hover was legible
    in the four dark skins and 1.79:1 in Plush, and hover states are easy to miss
    because a screenshot never has the pointer in it. Blending accent-dim toward
    accent lifts the fill by the same amount in every skin and keeps --text

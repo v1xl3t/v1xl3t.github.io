@@ -6,15 +6,15 @@
 // the head crosses the part repeatedly, and every crossing is a retraction, a
 // travel, an unretract, and a small blob where the pressure came back.
 //
-// Nearest-neighbour is used rather than anything cleverer. It is O(n^2) in the
+// Nearest-neighbor is used rather than anything cleverer. It is O(n^2) in the
 // paths of one layer, which is nothing, it captures nearly all the available
-// win, and unlike a proper tour optimiser it never reorders things into a
+// win, and unlike a proper tour optimizer it never reorders things into a
 // sequence that violates what has to be printed before what.
 //
 // SEAM PLACEMENT is the other half. Every closed loop has to start somewhere,
 // and that somewhere leaves a small scar where the nozzle stopped and started.
 // Stacking those scars in a line down the part is the single most visible
-// artefact on an otherwise good print.
+// artifact on an otherwise good print.
 
 const dist2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
 
@@ -123,11 +123,11 @@ export function orderPaths(paths, start, opts = {}) {
  *
  * The grouping is not cosmetic. Skin printed before the sparse infill under it
  * has nothing to sit on; an outer wall printed before the inner ones has no
- * backing and bulges. So the routing optimiser is only ever allowed to reorder
+ * backing and bulges. So the routing optimizer is only ever allowed to reorder
  * within a group, never across one.
  */
 /**
- * Print each island completely before travelling to the next one.
+ * Print each island completely before traveling to the next one.
  *
  * Grouping by type across the WHOLE layer is right when there is one part on
  * the plate and wrong the moment there are two. Six parts at 20% infill means

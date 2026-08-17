@@ -10,7 +10,7 @@
 // Clipper is the reference implementation of those four, so it does the work.
 // This file is the boundary between Clipper's world and CADence's: Clipper
 // wants integers and its own point objects, everything else here speaks
-// millimetres as plain [x, y] arrays, exactly like src/profile.js does.
+// millimeters as plain [x, y] arrays, exactly like src/profile.js does.
 //
 // TERMS used throughout the slicer:
 //   ring    a closed loop, [[x, y], ...], no repeated last point.
@@ -40,7 +40,7 @@ export const SCALE = 1000;
 // hair UNDER the true circle-cornered value, and tests have to expect that.
 //
 // Clipper internally caps this at 0.25 * |delta|, so small offsets get
-// proportionally coarser arcs. That is the right behaviour: the arc on a 0.2mm
+// proportionally coarser arcs. That is the right behavior: the arc on a 0.2mm
 // bead radius does not deserve the same vertex budget as a 5mm brim.
 const ARC_TOLERANCE = 10;
 
@@ -144,7 +144,7 @@ export function pointInRegion(pt, region) {
 // cleanup
 // ---------------------------------------------------------------------------
 
-/** Drop rings that enclose nothing worth extruding, and normalise winding so a
+/** Drop rings that enclose nothing worth extruding, and normalize winding so a
  *  ring's sign is the truth about whether it is material or void. */
 export function prune(region, minArea = MIN_AREA) {
   const out = [];
@@ -235,7 +235,7 @@ export function offset(region, delta, opts = {}) {
 }
 
 /**
- * Thicken open polylines into closed regions, `width` mm wide, centred on the
+ * Thicken open polylines into closed regions, `width` mm wide, centered on the
  * line. Used to turn a support rib or a bridge path back into an area, and to
  * work out what a bead of plastic actually covers.
  */
@@ -330,7 +330,7 @@ export function ringToLoop(ring, target = null) {
 }
 
 /** Drop vertices that sit within `tol` mm of the straight line between their
- *  neighbours. Fewer G1 moves means a smaller file and a printer whose planner
+ *  neighbors. Fewer G1 moves means a smaller file and a printer whose planner
  *  is not starved by 0.02mm segments. */
 export function simplifyLine(line, tol = 0.01) {
   if (!line || line.length <= 2) return line;

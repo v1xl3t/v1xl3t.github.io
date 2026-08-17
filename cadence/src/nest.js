@@ -23,7 +23,7 @@
 // pretends it is. It is predictable, it is fast, it never overlaps, and its
 // failure mode is leaving a gap rather than producing a plate that looks packed
 // and is not. On a 220mm plate with a handful of parts, the difference between
-// this and an optimal pack is a few millimetres nobody will use.
+// this and an optimal pack is a few millimeters nobody will use.
 
 /**
  * Work out where each part should sit.
@@ -33,12 +33,12 @@
  * measured as it actually stands rather than as its recipe describes it.
  *
  * @param {{id:string, w:number, d:number, cx:number, cz:number}[]} parts
- *        `w` and `d` are the footprint size, `cx`/`cz` its current centre.
+ *        `w` and `d` are the footprint size, `cx`/`cz` its current center.
  * @param {{width:number, depth:number, gap?:number, margin?:number}} bed
  * @returns {{placed: {id:string, x:number, z:number, turned:boolean}[],
  *            skipped: {id:string, reason:string}[], rows:number,
  *            used:{w:number,d:number}}}
- *          `x`/`z` are where the part's CENTRE should move to.
+ *          `x`/`z` are where the part's CENTER should move to.
  */
 export function nestOnPlate(parts, bed) {
   const gap = bed.gap ?? 3;
@@ -113,9 +113,9 @@ export function nestOnPlate(parts, bed) {
       rows = 1;
     }
 
-    // Centre of the part, in plate coordinates measured from the front left
+    // Center of the part, in plate coordinates measured from the front left
     // corner, then shifted into the model space the app works in, which has the
-    // plate centred on the origin.
+    // plate centered on the origin.
     const cx = cursorX + choice.w / 2;
     const cz = rowZ + choice.d / 2;
     placed.push({

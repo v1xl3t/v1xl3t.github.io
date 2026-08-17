@@ -59,7 +59,7 @@ export function selfIntersects(ring) {
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       if (i === j) continue;
-      if ((j + 1) % n === i || (i + 1) % n === j) continue;   // neighbours share a point
+      if ((j + 1) % n === i || (i + 1) % n === j) continue;   // neighbors share a point
       const [a1, a2] = seg(i), [b1, b2] = seg(j);
       if (straddles(a1, a2, b1, b2)) return true;
     }
@@ -68,7 +68,7 @@ export function selfIntersects(ring) {
 }
 
 /**
- * Normalise a drawn outline into extrudable regions.
+ * Normalize a drawn outline into extrudable regions.
  *
  * @param {number[][]} points  the closed loop as drawn, [[x, y], ...]
  * @returns {{regions: {outer:number[][], holes:number[][][]}[], repaired:boolean, reason:string}}

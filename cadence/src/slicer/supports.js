@@ -180,10 +180,10 @@ function disc(cx, cy, r, sides = 16) {
  * rules, applied in this order every layer, produce the branching:
  *
  *   1. MERGE. Nodes closer than their combined radii become one node at their
- *      weighted centre. The merged radius is sqrt(r1^2 + r2^2), not r1 + r2,
+ *      weighted center. The merged radius is sqrt(r1^2 + r2^2), not r1 + r2,
  *      because what has to be conserved going down a trunk is cross-sectional
  *      AREA. Adding radii makes trunks that could hold up a car.
- *   2. LEAN. Each node moves toward its cluster's centre, but never further
+ *   2. LEAN. Each node moves toward its cluster's center, but never further
  *      than layerHeight * tan(treeAngle) in one layer. That cap is the whole
  *      reason a tree stands up: exceed it and the branch is an overhang that
  *      would itself need support.
@@ -232,7 +232,7 @@ export function treeSupport(layers, overhangs, s) {
         if (d > 1e-9) {
           const step = Math.min(d, maxMove);
           const nx = node.x + (dx / d) * step, ny = node.y + (dy / d) * step;
-          // Branches converge toward each other, but the centre of a ring of
+          // Branches converge toward each other, but the center of a ring of
           // branches is the middle of the part they are standing around. Moving
           // into the model is refused rather than clipped afterwards, because a
           // branch that has burrowed inside has no route back out and simply
@@ -285,8 +285,8 @@ export function treeSupport(layers, overhangs, s) {
  * Move a branch out of the part's clearance band, as far as one layer's lean
  * allows.
  *
- * Sixteen candidate directions rather than "away from the centre", because
- * away-from-the-centre is only correct on a convex part. Inside the mouth of a
+ * Sixteen candidate directions rather than "away from the center", because
+ * away-from-the-center is only correct on a convex part. Inside the mouth of a
  * C-shaped part it points at the far wall. Trying real directions and taking
  * one that actually escapes handles concave shapes without needing to know
  * anything about them, and falling back to the outward radial keeps a branch
@@ -336,7 +336,7 @@ function mergeNodes(nodes, maxR) {
   return merged;
 }
 
-/** For each node, the centre of the nodes near it, so branches converge. */
+/** For each node, the center of the nodes near it, so branches converge. */
 function clusterOf(nodes, radius) {
   const map = new Map();
   for (const node of nodes) {

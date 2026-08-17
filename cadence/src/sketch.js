@@ -6,7 +6,7 @@
 // *rules* relating them. Change a dimension and the solver moves the geometry to
 // obey the rules again, which is exactly what "driven by dimensions" means.
 //
-// Coordinates are millimetres in the sketch plane. Nothing here imports THREE or
+// Coordinates are millimeters in the sketch plane. Nothing here imports THREE or
 // touches the DOM, so the whole engine is testable headless.
 
 import { solveLM, numericJacobian, matrixRank } from './solver.js';
@@ -46,7 +46,7 @@ export function addCircle(sk, c, r) {
   return e;
 }
 
-/** Arc from p1 to p2 about centre c. Radius is derived, not a free variable. */
+/** Arc from p1 to p2 about center c. Radius is derived, not a free variable. */
 export function addArc(sk, c, p1, p2, ccw = true) {
   const e = { id: nid('e'), type: 'arc', c, p1, p2, ccw };
   sk.entities.push(e);
@@ -133,7 +133,7 @@ const cross = (a, b) => a.x * b.y - a.y * b.x;
 const len = (a) => Math.hypot(a.x, a.y);
 
 // Each entry returns its residuals. A residual of zero means satisfied. Where a
-// choice exists, prefer a formulation whose magnitude is in millimetres so the
+// choice exists, prefer a formulation whose magnitude is in millimeters so the
 // solver weights every constraint comparably.
 export const CONSTRAINTS = {
   coincident: {
@@ -212,7 +212,7 @@ export const CONSTRAINTS = {
       let err = deg - c.value;
       while (err > 180) err -= 360;
       while (err < -180) err += 360;
-      return [err * 0.05];   // degrees scaled toward millimetre magnitudes
+      return [err * 0.05];   // degrees scaled toward millimeter magnitudes
     },
   },
   pointOnLine: {
@@ -230,7 +230,7 @@ export const CONSTRAINTS = {
   },
   tangent: {
     // Line tangent to a circle or arc: the perpendicular distance from the
-    // centre to the line equals the radius.
+    // center to the line equals the radius.
     label: () => 'Tangent',
     f: ({ P, E, R }, c) => {
       const line = E(c.e), circ = E(c.c);
@@ -278,7 +278,7 @@ export function isDimension(c) {
 // ---------------------------------------------------------------- solving
 
 function buildResidualFn(sk, idx) {
-  // Arcs need their two endpoints equidistant from the centre, otherwise the
+  // Arcs need their two endpoints equidistant from the center, otherwise the
   // "arc" is not an arc. The user never sees this one, so it is implicit.
   const implicit = sk.entities
     .filter((e) => e.type === 'arc')
@@ -421,7 +421,7 @@ export function filletCorner(sk, pointId, size, { mode = 'fillet' } = {}) {
 
   // How far back along each edge the corner has to be cut.
   const setback = mode === 'chamfer' ? size : size / Math.tan(theta / 2);
-  // Leave a sliver of the original edge, otherwise the neighbouring corner has
+  // Leave a sliver of the original edge, otherwise the neighboring corner has
   // nothing left to attach to.
   const room = Math.min(d1, d2) * 0.98;
   if (setback > room) {
@@ -450,7 +450,7 @@ export function filletCorner(sk, pointId, size, { mode = 'fillet' } = {}) {
       value: Math.hypot(T2.x - T1.x, T2.y - T1.y), auto: false,
     });
   } else {
-    // Centre sits along the bisector, at r / sin(θ/2) from the corner. That is
+    // Center sits along the bisector, at r / sin(θ/2) from the corner. That is
     // the one point equidistant from both edges by exactly r.
     const bis = { x: u1.x + u2.x, y: u1.y + u2.y };
     const bl = len(bis);

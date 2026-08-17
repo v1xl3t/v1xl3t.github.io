@@ -43,9 +43,9 @@ const BREP_COLOR = '#9ad29a';
  */
 const BAKED_KINDS = new Set(['boolean', 'brep']);
 
-// The same three colours, exported so the tiny share-link format can predict
-// them instead of keeping a second copy that could drift. A colour a link does
-// not carry is a colour the app already knows.
+// The same three colors, exported so the tiny share-link format can predict
+// them instead of keeping a second copy that could drift. A color a link does
+// not carry is a color the app already knows.
 export const DEFAULT_COLORS = { solid: SOLID_COLOR, hole: HOLE_COLOR, boolean: GROUP_COLOR };
 
 export class CadObject {
@@ -180,7 +180,7 @@ export class CadDocument extends EventTarget {
    * the STEP exporter can build without a viewport), so the scene question is
    * answered here and handed to the builder as data.
    *
-   * Call it before rebuild whenever the object or its neighbours move. It is a
+   * Call it before rebuild whenever the object or its neighbors move. It is a
    * no-op for every other end type, so calling it liberally is cheap.
    */
   resolveExtrudeReach(obj) {
@@ -454,7 +454,7 @@ export class CadDocument extends EventTarget {
    * The object does not move. Copy zero is the identity, so this reads as an
    * edit to the thing already on the plate rather than as a new thing appearing
    * somewhere else, and the pattern inherits its place, its role and its
-   * colour.
+   * color.
    */
   makePattern(id, mode = 'linear') {
     const src = this.objects.get(id);
@@ -601,7 +601,7 @@ export class CadDocument extends EventTarget {
       ? new THREE.Matrix4().copy(obj.baseMatrix).invert().premultiply(obj.mesh.matrixWorld)
       : null;
 
-    // Recentre on the body, exactly as _bakeGroup does, so the pivot sits on
+    // Recenter on the body, exactly as _bakeGroup does, so the pivot sits on
     // the part and the world position is unchanged.
     geometry.computeBoundingBox();
     const center = new THREE.Vector3();
@@ -1000,7 +1000,7 @@ export class CadDocument extends EventTarget {
   //
   // In a branching history "forward" is ambiguous the moment a node has more
   // than one child, so undo leaves a breadcrumb and redo follows it. That makes
-  // undo then redo land you exactly where you were, which is the only behaviour
+  // undo then redo land you exactly where you were, which is the only behavior
   // people actually expect. With no breadcrumb we take the newest child, since
   // that is the branch the user was most recently working in.
   redo() {
@@ -1265,7 +1265,7 @@ async function rebakeNode(node, failed) {
       : await booleanCombine(built.map((o) => ({ mesh: o.mesh, role: o.role })));
     if (!result?.geometry) throw new Error(`kernel returned nothing for op ${node.params.op}`);
 
-    // Recentre exactly as _bakeGroup did, so the rebuilt mesh sits in the same
+    // Recenter exactly as _bakeGroup did, so the rebuilt mesh sits in the same
     // local space the saved position/rotation/scale were recorded against.
     const geometry = result.geometry;
     geometry.computeBoundingBox();

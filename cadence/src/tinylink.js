@@ -22,7 +22,7 @@
 // On top of that, three observations about what people actually draw:
 //
 //   A. GRID. Nobody positions a part at 12.7431mm. Coordinates land on whole
-//      millimetres almost always and on 0.1mm nearly all the rest of the time,
+//      millimeters almost always and on 0.1mm nearly all the rest of the time,
 //      so each object picks the coarsest of 1 / 0.1 / 0.01mm that is LOSSLESS
 //      for it and spends 2 bits saying which.
 //   B. ANGLES. Rotations are overwhelmingly 0, ±90, 180 or ±45 degrees. Three
@@ -30,7 +30,7 @@
 //      none of the cheap shapes pays for its raw double rather than costing the
 //      whole document the long format, which is what a gizmo drag needs (see
 //      planAxis for why the gizmo does not land on any grid).
-//   C. NEIGHBOURS. Designs are built by duplicating and nudging, so a position
+//   C. NEIGHBORS. Designs are built by duplicating and nudging, so a position
 //      is stored as a delta from the previous object when that is cheaper and
 //      exact, and absolutely when it is not.
 //
@@ -73,15 +73,15 @@
 // which tryLoadSharedLink turns into a refusal to load. Loud and empty, never a
 // model with the wrong shape in it. That is the same trade the raw-double
 // rotation mode made above, for the same reason.
-//   * Positions, scales or params that do not survive quantisation bit-for-bit
-//     (see QUANTISATION below). Rotation is NOT in this list any more. Since the
+//   * Positions, scales or params that do not survive quantization bit-for-bit
+//     (see QUANTIZATION below). Rotation is NOT in this list any more. Since the
 //     raw-double mode landed, every finite rotation is representable exactly, so
 //     an angle can no longer be the reason a document takes the long way.
 //   * Booleans that still carry a baked mesh, that have no `op`, that have
 //     fewer than two parts, or whose baseMatrix is not a pure translation.
 //   * Imported meshes and anything else with fields this format has no slot for.
 //
-// QUANTISATION. The format is lossless WITHIN these grids, and refuses outside
+// QUANTIZATION. The format is lossless WITHIN these grids, and refuses outside
 // them — a value is only accepted when decoding it reproduces the original
 // double exactly (===), not approximately:
 //
@@ -97,7 +97,7 @@
 // A rotation of 12.7431 radians, by contrast, now costs eleven characters and
 // arrives exact, because rotation has a mode with no grid under it at all.
 //
-// THE LAST LINE OF DEFENCE. buildShareLink does not trust this encoder. It
+// THE LAST LINE OF DEFENSE. buildShareLink does not trust this encoder. It
 // encodes, immediately DECODES the result back, and compares the decoded
 // document field by field against the one it started with. Only an exact match
 // ships as a tiny link; anything else takes the old path. That makes a silent
@@ -287,7 +287,7 @@ function refuse(reason) {
 
 const finite3 = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => typeof v === 'number' && Number.isFinite(v));
 
-// Quantise on a multiplier, but only accept it when decoding gives back the
+// Quantize on a multiplier, but only accept it when decoding gives back the
 // EXACT double we started from. This is the whole lossless guarantee.
 function exactQ(v, mul) {
   const q = Math.round(v * mul);
@@ -295,7 +295,7 @@ function exactQ(v, mul) {
   return q / mul === v ? q : null;
 }
 
-// A quantised 3-vector, written as "which axes moved" and then only those.
+// A quantized 3-vector, written as "which axes moved" and then only those.
 // A zigzag varint costs five bits even to say zero, and a row of parts nudged
 // along one axis would otherwise pay ten bits per object for two untouched
 // ones. Three bits of mask is cheaper than three zeros from two axes on.
@@ -342,7 +342,7 @@ function predictName(base, taken) {
   return `${base} ${i}`;
 }
 
-/* ------------------------------------------------------------------ colour */
+/* ------------------------------------------------------------------ color */
 
 const HEX6 = /^#[0-9a-f]{6}$/;
 
@@ -409,7 +409,7 @@ function writeObj(w, o, taken, prev, isChild) {
   if (o.role !== 'solid' && o.role !== 'hole') throw refuse(`unknown role "${o.role}"`);
   if (!finite3(o.position) || !finite3(o.rotation) || !finite3(o.scale)) throw refuse('a non-finite transform');
   if (typeof o.name !== 'string') throw refuse('a missing name');
-  if (typeof o.color !== 'string' || !HEX6.test(o.color)) throw refuse(`colour "${o.color}" is not #rrggbb`);
+  if (typeof o.color !== 'string' || !HEX6.test(o.color)) throw refuse(`color "${o.color}" is not #rrggbb`);
 
   // --- position: relative to the previous sibling when that works, else absolute
   const base = prev ? prev.position : [0, 0, 0];

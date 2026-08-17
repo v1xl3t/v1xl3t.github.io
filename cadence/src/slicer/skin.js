@@ -11,11 +11,11 @@
 //   BOTTOM skin  the material here is NOT sitting on every one of the previous
 //                `bottomLayers` layers.
 //
-// Intersecting the neighbours before differencing is what gives the thickness:
+// Intersecting the neighbors before differencing is what gives the thickness:
 // one layer of solid over a hole would sag, so the rule asks for a run of
 // layers to agree, and the skin grows to however many layers it takes.
 //
-// A missing neighbour (off the top or bottom of the model) intersects to
+// A missing neighbor (off the top or bottom of the model) intersects to
 // nothing, so the very first and last layers come out fully solid without
 // needing to be special-cased.
 //
@@ -73,7 +73,7 @@ export function classifySkin(layers, i, inner, s) {
 /**
  * Precompute skin for the whole stack.
  *
- * Done as one pass rather than lazily because the neighbour intersections
+ * Done as one pass rather than lazily because the neighbor intersections
  * overlap heavily between adjacent layers, and because the caller wants the
  * totals for an estimate before it commits to generating any toolpaths.
  */

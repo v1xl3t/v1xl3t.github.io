@@ -19,7 +19,7 @@
 // The PLAN is the thing worth caring about. It is a plain data structure of
 // typed paths with coordinates and speeds, produced before any G-code exists.
 // The preview draws the plan, the estimates measure the plan, and the emitter
-// serialises the plan. That is why the layer preview always agrees with the
+// serializes the plan. That is why the layer preview always agrees with the
 // file: they are the same object, not two renderings of the same intent.
 
 import { sliceMesh, meshBounds } from './slice.js';
@@ -49,7 +49,7 @@ const GROUP_ORDER = [
 /**
  * Move the model onto the bed.
  *
- * CADence models are centred on the origin and the Ender's origin is the front
+ * CADence models are centered on the origin and the Ender's origin is the front
  * left corner of its bed, so without this every print would be quartered off
  * the front left of the plate. The model is also dropped so its lowest point
  * is exactly zero, because a model floating 0.02mm above the bed slices into a
@@ -64,9 +64,9 @@ export function placeOnBed(positions, s) {
 
   const w = b.maxX - b.minX, d = b.maxY - b.minY, h = b.maxZ - b.minZ;
   let dx = 0, dy = 0;
-  if (s.centreOnBed) {
-    const cx = s.originCentre ? 0 : s.bedWidth / 2;
-    const cy = s.originCentre ? 0 : s.bedDepth / 2;
+  if (s.centerOnBed) {
+    const cx = s.originCenter ? 0 : s.bedWidth / 2;
+    const cy = s.originCenter ? 0 : s.bedDepth / 2;
     dx = cx - (b.minX + b.maxX) / 2;
     dy = cy - (b.minY + b.maxY) / 2;
   }
@@ -154,7 +154,7 @@ function linesOf(lines, type, width, speed) {
 /**
  * Slice a model all the way to G-code.
  *
- * @param {Float32Array} positions Z-up millimetre triangle soup, 9 floats per triangle
+ * @param {Float32Array} positions Z-up millimeter triangle soup, 9 floats per triangle
  * @param {object} settings  from buildSettings()
  * @param {(p:{stage:string, frac:number})=>void} [onProgress]
  * @returns {{plan, stats, gcode, warnings, settings}}
@@ -328,7 +328,7 @@ export function sliceModel(positions, settings, onProgress = () => {}) {
     }
 
     // Route, then work out whether the layer needs slowing to cool.
-    // On a plate with more than one part, finish each part before travelling to
+    // On a plate with more than one part, finish each part before traveling to
     // the next rather than doing all the walls everywhere, then all the skin
     // everywhere, crossing the plate once per group.
     const islands = splitIslands(layers[i].polys);
@@ -382,7 +382,7 @@ export function sliceModel(positions, settings, onProgress = () => {}) {
 
   if (!placed.fits) warnings.push('this will not fit the printer, so the file is for inspection only');
   // A raft makes the whole print taller, and the height check ran before the
-  // raft existed. A part that fitted by two millimetres does not fit on a raft.
+  // raft existed. A part that fitted by two millimeters does not fit on a raft.
   if (wantRaft && raft.lift && placed.size && placed.size.h + raft.lift > s.bedHeight) {
     warnings.push(`the raft adds ${raft.lift.toFixed(2)}mm and takes the print past this machine's ${s.bedHeight}mm reach`);
   }

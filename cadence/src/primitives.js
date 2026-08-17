@@ -1,6 +1,6 @@
 // primitives.js — the parametric primitive library.
 //
-// Each entry maps a recipe (kind + params, in millimetres) to a Three.js
+// Each entry maps a recipe (kind + params, in millimeters) to a Three.js
 // BufferGeometry. Params are the *precise* definition; geometry is derived.
 // Keeping this table-driven is deliberate — adding a primitive later (cone,
 // torus, wedge) is one entry here, and the rest of the app picks it up for
@@ -204,14 +204,14 @@ export function isParametricSketch(obj) {
 // The extrude feature, in the shape people expect from a CAD package.
 //
 //   endType 'blind'      pull one way by `depth`, sitting on the sketch plane
-//   endType 'symmetric'  centre `depth` on the sketch plane, half each way
+//   endType 'symmetric'  center `depth` on the sketch plane, half each way
 //   endType 'twoSided'   pull `depth` up and `depth2` down, independently
 //
 // plus a `start` offset that lifts or sinks the whole extrusion off its plane.
-// Blind starting at zero is the old behaviour exactly, so existing sketches are
+// Blind starting at zero is the old behavior exactly, so existing sketches are
 // untouched.
 //
-// The profile is normalised first, which is what makes a self-crossing outline
+// The profile is normalized first, which is what makes a self-crossing outline
 // (and any hole it encloses) build a real solid instead of a torn one.
 
 // ---- sketch planes ----------------------------------------------------------
@@ -375,7 +375,7 @@ export function computeExtrudeReach(planeParam, others, opts = {}) {
   let top = null, bottom = null;
   for (const box of others) {
     if (!box || box.isEmpty()) continue;
-    // Every corner, not the centre: that is what keeps this correct when the
+    // Every corner, not the center: that is what keeps this correct when the
     // sketch plane is not axis-aligned with the body it has to pass through.
     for (const h of boxHeights(box, planeParam, opts.worldInv)) {
       if (h > start && (top === null || h > top)) top = h;
@@ -749,7 +749,7 @@ function buildSupportStack(params) {
   const merged = parts.length === 1 ? parts[0] : mergeGeometries(parts, false);
   for (const p of parts) if (p !== merged) p.dispose();
   // `grow` thickens the whole stack in place. Scaling about the bounding-box
-  // centre is a crude dilation, but supports are scaffolding and this is the
+  // center is a crude dilation, but supports are scaffolding and this is the
   // one knob people actually reach for.
   if (grow && merged) {
     merged.computeBoundingBox();
@@ -776,7 +776,7 @@ const PATTERN_AXIS = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
  *
  * For a line and for a mirror, copy zero is the identity, so turning an object
  * into a pattern does not move the thing you already placed and everything
- * after it is measured from there. A ring is the exception and centres itself
+ * after it is measured from there. A ring is the exception and centers itself
  * on the origin instead, for the reason spelled out below.
  *
  * @returns {THREE.Matrix4[]} one matrix per copy, in the pattern's local frame
@@ -803,15 +803,15 @@ export function patternTransforms(params = {}) {
     // twelve tooth gear come out with two teeth in the same place.
     const closed = sweepDeg >= 359.999;
     const step = (sweepDeg * Math.PI / 180) / (closed ? count : Math.max(1, count - 1));
-    // The ring is centred on the pattern's OWN origin, and the radius pushes the
+    // The ring is centered on the pattern's OWN origin, and the radius pushes the
     // copies out from it. That is the one decision in this function worth
     // arguing about, because it means a ring pattern moves the part it was made
     // from, which linear and mirror deliberately do not.
     //
     // It is right anyway, because of what a ring pattern is for. Put a bolt in
     // the middle of a plate, ask for eight of them on a 30mm ring, and what you
-    // want is a bolt circle centred on the plate. Pinning copy zero instead
-    // gives a ring centred 30mm off to one side of the part, which was the
+    // want is a bolt circle centered on the plate. Pinning copy zero instead
+    // gives a ring centered 30mm off to one side of the part, which was the
     // first thing that looked wrong on screen and is wrong for every bolt
     // circle, spoke and gear anyone would build with this.
     const out0 = new THREE.Matrix4().makeTranslation(r, 0, 0);

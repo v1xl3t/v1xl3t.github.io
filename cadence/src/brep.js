@@ -247,7 +247,7 @@ function primitiveSolid(R, kind, params = {}) {
         .cut(t(R.makeCylinder(Math.min(p.inner, p.outer - 0.1), p.height))));
 
     case 'wedge': {
-      // Right triangle in XZ, extruded along depth, centred on it, matching the
+      // Right triangle in XZ, extruded along depth, centered on it, matching the
       // mesh half's `translate(-width/2, 0, -depth/2)`.
       const tri = R.draw([-p.width / 2, 0]).lineTo([p.width / 2, 0]).lineTo([-p.width / 2, p.height]).close();
       s = t(t(tri.sketchOnPlane('XZ').extrude(p.depth)).translate([0, p.depth / 2, 0]));

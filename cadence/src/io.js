@@ -3,7 +3,7 @@
 // We export world-space geometry: each object's mesh is baked with its world
 // matrix, then serialized. Two formats:
 //   - STL  (binary)  — universal, geometry only.
-//   - 3MF  (zip/OPC) — modern: declares millimetre units, single clean container.
+//   - 3MF  (zip/OPC) — modern: declares millimeter units, single clean container.
 //
 // Loose holes (role 'hole') are skipped — a bare negative-space part isn't a
 // printable solid; holes only mean something once consumed by a Group.
@@ -92,12 +92,12 @@ function gatherWorldMesh(objects, scale = 1) {
 }
 
 /**
- * Every printable solid as one Z-up triangle soup in millimetres, 9 floats per
+ * Every printable solid as one Z-up triangle soup in millimeters, 9 floats per
  * triangle, ready for the slicer.
  *
  * Deliberately NOT unit-scaled. The display unit is a preference about how
- * numbers are shown and how exported files are labelled; a printer works in
- * millimetres and nothing else, so a slicer that respected an inch setting
+ * numbers are shown and how exported files are labeled; a printer works in
+ * millimeters and nothing else, so a slicer that respected an inch setting
  * would produce a part 25 times too big. The same Z-up rotation the exporters
  * bake in is applied here, because the slicer's world is the printer's world.
  */

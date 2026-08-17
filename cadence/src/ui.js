@@ -169,7 +169,7 @@ export class Inspector {
   }
 
   // How far the extrusion goes, and which way. Three end types cover almost
-  // everything people reach for: one direction, centred on the plane, or a
+  // everything people reach for: one direction, centered on the plane, or a
   // different distance each way. Each is one tap, which matters on a phone.
   /**
    * The pattern rule: which way the copies go, around which axis, and a plain
@@ -213,7 +213,7 @@ export class Inspector {
       says = "The original and one reflection of it, through a plane at this object's own origin.";
     } else if (mode === 'circular') {
       const step = (p.sweep >= 359.999 ? p.sweep / count : p.sweep / Math.max(1, count - 1));
-      says = `${count} copies on a ${round(p.radius)}mm ring, one every ${round(step, 1)}°, centred on this object's own origin.`;
+      says = `${count} copies on a ${round(p.radius)}mm ring, one every ${round(step, 1)}°, centered on this object's own origin.`;
     } else {
       const span = Math.hypot((p.dx || 0) * (count - 1), (p.dy || 0) * (count - 1), (p.dz || 0) * (count - 1));
       says = `${count} copies, ${round(span, 1)}mm from the first to the last.`;
@@ -313,7 +313,7 @@ export class Inspector {
         <label>Extrude</label>
         <div class="seg seg-3">
           ${btn('blind', 'Up', 'Pull the profile one way from the sketch plane')}
-          ${btn('symmetric', 'Centred', 'Centre the depth on the sketch plane, half each way')}
+          ${btn('symmetric', 'Centered', 'Center the depth on the sketch plane, half each way')}
           ${btn('twoSided', 'Both', 'Pull a different distance each way')}
         </div>
         ${scene}

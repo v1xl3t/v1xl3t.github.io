@@ -49,7 +49,7 @@ function lineFamily(bbox, angle, spacing, phase = 0) {
   for (let t = start; t <= pMax + 1e-9; t += spacing) {
     // A point on this line, then run it out past both ends of the box.
     const px = nx * t, py = ny * t;
-    const ox = cx * dx + cy * dy;   // centre projected along the line direction
+    const ox = cx * dx + cy * dy;   // center projected along the line direction
     lines.push([
       [px + dx * (ox - R), py + dy * (ox - R)],
       [px + dx * (ox + R), py + dy * (ox + R)],
@@ -141,9 +141,9 @@ function marchingSquares(bbox, f, step) {
         // Saddles: two contours pass through one cell and the corner values
         // alone cannot say whether the two positive corners are joined through
         // the middle or pinched apart. Guessing splits the contour wherever the
-        // guess disagrees with the neighbouring cell, which is what turns a
+        // guess disagrees with the neighboring cell, which is what turns a
         // gyroid into confetti. The asymptotic decider settles it by asking
-        // what the function does at the centre of the cell.
+        // what the function does at the center of the cell.
         case 5: {
           if ((v00 + v10 + v11 + v01) > 0) segs.push([B(), R2()], [T(), L()]);
           else segs.push([B(), L()], [T(), R2()]);
@@ -161,7 +161,7 @@ function marchingSquares(bbox, f, step) {
   // Join the segment soup into runs, so the printer draws long strokes instead
   // of thousands of two-point moves with a travel between each.
   //
-  // Chains have to grow in BOTH directions, and this is not an optimisation.
+  // Chains have to grow in BOTH directions, and this is not an optimization.
   // Cells are visited in raster order, but a contour travels whichever way its
   // own geometry says. For a contour heading downward, the cell holding its
   // continuation was already visited and turned into its own chain, so a
@@ -303,7 +303,7 @@ export function infillFill(region, o) {
  */
 export function solidFill(region, { lineWidth, angle = 45, overlap = 0 }) {
   if (!region || !region.length) return [];
-  // Beads are laid centre to centre one width apart, and the outermost bead
+  // Beads are laid center to center one width apart, and the outermost bead
   // sits half a width inside the boundary, otherwise solid fill overruns the
   // wall it is supposed to butt against.
   const inner = offset(region, -lineWidth / 2 + overlap);
@@ -318,7 +318,7 @@ export function solidFill(region, { lineWidth, angle = 45, overlap = 0 }) {
  * Not a fill. The plastic is already there; this runs the hot nozzle back over
  * it at a fraction of the normal spacing, extruding almost nothing, so the
  * ridges between beads are melted flat. What comes out is a top surface that
- * looks moulded rather than striped, which on a flat-topped part is the single
+ * looks molded rather than striped, which on a flat-topped part is the single
  * most visible difference between a print and a product.
  *
  * The spacing is deliberately much finer than a line width, so these lines

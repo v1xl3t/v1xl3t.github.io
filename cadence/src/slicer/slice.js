@@ -27,7 +27,7 @@
 //   as being just above the plane. Consistency is what matters: every triangle
 //   touching that vertex makes the same call, so the contour stays closed.
 //
-// Input is a Z-up, millimetre triangle soup, which is exactly what the printer
+// Input is a Z-up, millimeter triangle soup, which is exactly what the printer
 // coordinate system wants. No THREE, no DOM.
 
 import { normalize, ringArea, area } from './clip.js';
@@ -67,9 +67,9 @@ export function slopeProfile(positions, zMin, zMax) {
     const ax = positions[t], ay = positions[t + 1], az = positions[t + 2];
     const bx = positions[t + 3], by = positions[t + 4], bz = positions[t + 5];
     const cx = positions[t + 6], cy = positions[t + 7], cz = positions[t + 8];
-    // Cross product of two edges, z component only, then normalised by the
+    // Cross product of two edges, z component only, then normalized by the
     // full length. Only |nz| is wanted, so the other two are needed just to
-    // normalise.
+    // normalize.
     const ux = bx - ax, uy = by - ay, uz = bz - az;
     const vx = cx - ax, vy = cy - ay, vz = cz - az;
     const nx = uy * vz - uz * vy;
@@ -111,7 +111,7 @@ function heightFor(bands, zMin, from, to, cfg) {
  * A model's height is almost never a whole number of layers. The leftover at
  * the top is handled rather than ignored: if it is thick enough to extrude it
  * becomes a genuinely thinner final layer, and the G-code scales that layer's
- * extrusion to match, so the part comes out its modelled height. If it is
+ * extrusion to match, so the part comes out its modeled height. If it is
  * thinner than the extruder can meaningfully meter, it is dropped, because
  * truncating by a few microns is invisible and squeezing out a 5-micron layer
  * is not. Letting the last layer run past the top of the model instead would
@@ -173,7 +173,7 @@ export function layerPlan(zMin, zMax, cfg, positions = null) {
  * The height of each layer is chosen from the slope of what that layer will
  * actually cut through, and then it is not allowed to change by more than
  * `adaptiveStep` from the one below it. That last rule is not cosmetic: a jump
- * from 0.08mm to 0.28mm between neighbours is a visible band on the part and it
+ * from 0.08mm to 0.28mm between neighbors is a visible band on the part and it
  * is also a sudden change in flow that a pressure-advance-less machine cannot
  * follow cleanly.
  */
@@ -404,7 +404,7 @@ export function sliceMesh(positions, cfg, onProgress) {
   }
   if (degenerate) warnings.push(`${degenerate} triangle${degenerate === 1 ? '' : 's'} had non-finite coordinates and were skipped`);
 
-  // A crack narrower than a fifth of a layer is float noise or a modelling
+  // A crack narrower than a fifth of a layer is float noise or a modeling
   // hairline, and closing it is right. Anything wider is a real hole.
   const gapTolerance = Math.max(cfg.layerHeight * 0.2, 0.05);
 
@@ -442,7 +442,7 @@ export function layerAreas(layers) {
 }
 
 /** Approximate model volume from the slices, mm^3. A cube sliced correctly
- *  reproduces its own volume to within one layer of quantisation, which makes
+ *  reproduces its own volume to within one layer of quantization, which makes
  *  this the single best end-to-end check that slicing is not lying. */
 export function slicedVolume(layers) {
   let v = 0;

@@ -64,7 +64,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0e1116);
 
 // Far plane way out so there's effectively no build limit — you can model and
-// fly kilometres from origin without anything clipping or the camera "sticking".
+// fly kilometers from origin without anything clipping or the camera "sticking".
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 1_000_000);
 camera.position.set(70, 60, 90);
 
@@ -80,7 +80,7 @@ scene.add(sun);
 
 // Build plate + grid (units = mm). Grid is 1000mm wide, 10mm divisions —
 // generous working area; building beyond it is fine, it's just visual reference.
-// GridHelper bakes its colours into vertex colours, so a skin change has to
+// GridHelper bakes its colors into vertex colors, so a skin change has to
 // rebuild it rather than tint a material. Cheap: it happens on skin swap only.
 let grid = null;
 function setGrid(major, minor) {
@@ -139,7 +139,7 @@ scene.add(gizmo);
 // wherever that origin happens to sit, and the face you are dragging away from
 // slides out from under your finger.
 //
-// Our primitives sit base-at-y=0 and centred on X and Z, which is exactly why
+// Our primitives sit base-at-y=0 and centered on X and Z, which is exactly why
 // Vi saw what she saw: the up handle looked right (the bottom face is already
 // on the origin, so it could not move), the down handle grew the box UPWARD,
 // and every X/Z handle grew it both ways at once.
@@ -150,7 +150,7 @@ scene.add(gizmo);
 // along the object's OWN axis. Doing it along the rotated axis rather than the
 // world axis is what makes this hold for a rotated part.
 //
-// The uniform handles are left alone. Scaling about the centre is what they are
+// The uniform handles are left alone. Scaling about the center is what they are
 // for, and Vi asked for that one to stay as it is.
 const AXIS_VEC = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 let scaleDrag = null;
@@ -160,7 +160,7 @@ function beginScaleDrag() {
   const mesh = gizmo.object;
   const axis = gizmo.axis;
   // The uniform handles carry XYZ in their name, and those are the ones that
-  // should keep scaling about the centre. Matching on the name rather than a
+  // should keep scaling about the center. Matching on the name rather than a
   // list survives three.js adding another one.
   if (!mesh || !axis || axis.includes('XYZ')) return null;
   const axes = ['x', 'y', 'z'].filter((a) => axis.includes(a.toUpperCase()));
@@ -347,7 +347,7 @@ async function exactEdgeOp(type) {
   if (!(await precheckExact(obj, word))) return;
 
   const size = parseFloat(document.getElementById('brep-size').value);
-  if (!Number.isFinite(size) || size <= 0) { flash('Set a size in millimetres first.'); return; }
+  if (!Number.isFinite(size) || size <= 0) { flash('Set a size in millimeters first.'); return; }
   const select = document.getElementById('brep-edges').value;
 
   try {
@@ -595,7 +595,7 @@ const sliceView = new SliceView(scene, doc, {
   flash: (m) => flash(m),
   onOpen: () => { if (COARSE_POINTER) closeDrawers(); },
   // A finished slice is a new thing to look at, and the toolpaths of a small
-  // part are a few millimetres of thin line in a viewport scaled for modelling.
+  // part are a few millimeters of thin line in a viewport scaled for modeling.
   // Framing them is the difference between seeing the preview and being told it
   // is there.
   onSliced: (group) => frameBox(new THREE.Box3().setFromObject(group)),
@@ -1377,7 +1377,7 @@ function disposeSketchPreview() {
 
 function setSketch(on) {
   sketchOn = on;
-  // The empty-scene prompt sits dead centre, which is where the drawing goes.
+  // The empty-scene prompt sits dead center, which is where the drawing goes.
   // It only refreshes on document events, so entering a sketch has to say so.
   updateEmptyState();
   // Sketching means drawing onto the model, and the slicer hides every solid so
@@ -1460,7 +1460,7 @@ function aimAt(e) {
 // Why this exists. The sketcher used to draw on whatever plane you picked while
 // the camera stayed at its 3/4 view, about 28 degrees above the ground. On that
 // view the sketch plane is foreshortened roughly 4:1 and rotated relative to the
-// screen, so a 300x300 pixel square drawn dead centre came out as a 29 x 7 mm
+// screen, so a 300x300 pixel square drawn dead center came out as a 29 x 7 mm
 // sliver. That is not a precision bug you can polish away, it is the geometry of
 // drawing on a surface you are looking at edge-on, and it is why sketching felt
 // imprecise and why the resulting extrude never looked like what was drawn.
@@ -1615,10 +1615,10 @@ function snapValue(v) { return skSnap > 0 ? Math.round(v / skSnap) * skSnap : v;
 // to the user. Re-deriving anything here (rounding to the grid, re-testing a
 // separate reuse radius) can only disagree with that promise, and a click that
 // lands somewhere other than the readout said is the whole "points land wrong"
-// complaint. So: honour the snap exactly, and never round it a second time.
+// complaint. So: honor the snap exactly, and never round it a second time.
 function pointAt(snap, { allowReuse = true } = {}) {
   // The snap already identified a specific existing point. Reuse that one, not
-  // whatever happens to be nearest in millimetres.
+  // whatever happens to be nearest in millimeters.
   if (allowReuse && snap.ref && POINT_SNAPS.has(snap.kind)) {
     const p = skPoint(snap.ref);
     if (p) return p;
@@ -1636,11 +1636,11 @@ function pointAt(snap, { allowReuse = true } = {}) {
 }
 
 // Snap kinds that name an existing point rather than a position in space.
-const POINT_SNAPS = new Set(['endpoint', 'origin', 'centre']);
+const POINT_SNAPS = new Set(['endpoint', 'origin', 'center']);
 
 // ------------------------------------------------------------ snap inference
 //
-// Grid snap alone rounds to the nearest millimetre, which is precise but not
+// Grid snap alone rounds to the nearest millimeter, which is precise but not
 // meaningful: it cannot land you exactly on the corner you are aiming at, only
 // near it. Real sketchers infer what you meant from the geometry already there,
 // and say so, so you can trust the click before you make it. That is the whole
@@ -1663,7 +1663,7 @@ const dist2 = (ax, ay, bx, by) => (ax - bx) ** 2 + (ay - by) ** 2;
 /**
  * Work out what the cursor is really pointing at.
  * Returns { x, y, kind, label } and never null: with nothing nearby it falls
- * back to the grid, which is the old behaviour.
+ * back to the grid, which is the old behavior.
  */
 function inferSnap(x, y, { anchor = null } = {}) {
   const tol = snapTolMm();
@@ -1681,11 +1681,11 @@ function inferSnap(x, y, { anchor = null } = {}) {
     offer(5, p.x, p.y, p.id === 'origin' ? 'origin' : 'endpoint', p.id === 'origin' ? 'Origin' : 'Endpoint', p.id);
   }
 
-  // 4, circle centres.
+  // 4, circle centers.
   for (const e of skDoc.entities) {
     if (e.type !== 'circle') continue;
     const c = skPoint(e.c);
-    if (c) offer(4, c.x, c.y, 'centre', 'Centre', c.id);
+    if (c) offer(4, c.x, c.y, 'center', 'Center', c.id);
   }
 
   // 3, line midpoints.
@@ -1842,14 +1842,14 @@ function placeSketchPoint(snap) {
   }
 
   else if (skTool === 'circle') {
-    // Keep the whole snap, not just its coordinates, so a centre placed on an
+    // Keep the whole snap, not just its coordinates, so a center placed on an
     // existing corner reuses that corner's point instead of stacking a second
     // one on top of it.
     if (!skPending.length) { skPending.push({ ...snap }); }
     else {
       const c = skPending.pop();
       const r = Math.hypot(x - c.x, y - c.y);
-      if (r < 0.5) { flash('That circle has no radius. Click further from the centre.'); return; }
+      if (r < 0.5) { flash('That circle has no radius. Click further from the center.'); return; }
       const cp = pointAt(c);
       const circ = addCircle(skDoc, cp.id, round1(r));
       addConstraint(skDoc, { type: 'radius', e: circ.id, value: round1(r), auto: true });
@@ -1977,7 +1977,7 @@ function dimAnchor(c) {
     const e = skDoc.entities.find((k) => k.id === c.e);
     const ctr = e && P(e.c);
     if (!ctr) return null;
-    // Park it on the rim rather than the centre, so two concentric circles do
+    // Park it on the rim rather than the center, so two concentric circles do
     // not stack their dimensions on top of each other.
     const r = e.type === 'circle' ? e.r : 0;
     return {
@@ -2240,7 +2240,7 @@ function updateHud() {
       <span class="hud-f" data-k="${f.key}">
         <span class="hud-k">${f.label}</span>
         <input class="hud-v" type="number" step="any" inputmode="decimal"
-               aria-label="${f.label} in ${f.unit === '°' ? 'degrees' : 'millimetres'}" />
+               aria-label="${f.label} in ${f.unit === '°' ? 'degrees' : 'millimeters'}" />
         <span class="hud-u">${f.unit}</span>
       </span>`).join('') + `<span class="hud-tip">type to set · Enter</span>`;
     for (const input of el.querySelectorAll('.hud-v')) wireHudField(input);
@@ -2463,7 +2463,7 @@ function drawSnapHint() {
   }
 
   // A square for a point you can land exactly on, a diamond for everything else.
-  const square = h.kind === 'endpoint' || h.kind === 'origin' || h.kind === 'centre' || h.kind === 'midpoint';
+  const square = h.kind === 'endpoint' || h.kind === 'origin' || h.kind === 'center' || h.kind === 'midpoint';
   const pts = square
     ? [[-r, -r], [r, -r], [r, r], [-r, r], [-r, -r]]
     : [[0, -r * 1.3], [r * 1.3, 0], [0, r * 1.3], [-r * 1.3, 0], [0, -r * 1.3]];
@@ -2553,7 +2553,7 @@ function setSkTool(t) {
   const HINT = {
     line: 'Line: click a chain of points. Click the first point again to close it.',
     rect: 'Rectangle: click two opposite corners. Right angles and both dimensions come for free.',
-    circle: 'Circle: click the centre, then a point on the rim.',
+    circle: 'Circle: click the center, then a point on the rim.',
     dim: 'Dimension: click two points, then type the distance you want.',
     fillet: 'Fillet: type the radius at the cursor, then click a corner to round it.',
     chamfer: 'Chamfer: type the setback at the cursor, then click a corner to bevel it.',
@@ -2569,7 +2569,7 @@ function openDimInput() {
   closeDimInput();
   const wrap = document.createElement('span');
   wrap.id = 'sk-dim-entry';
-  wrap.innerHTML = `<input type="number" step="0.5" value="${skDimPair.measured}" style="width:82px" aria-label="Distance in millimetres" /><button type="button" data-skapply>Set</button>`;
+  wrap.innerHTML = `<input type="number" step="0.5" value="${skDimPair.measured}" style="width:82px" aria-label="Distance in millimeters" /><button type="button" data-skapply>Set</button>`;
   bar.appendChild(wrap);
   const input = wrap.querySelector('input');
   input.focus(); input.select();
@@ -2821,9 +2821,9 @@ function cancelExtrude() {
     viewPlaneNormal(skPlane);
     syncSketchBar();
     solveAndDraw();
-    flash('Extrude cancelled, back in the sketch.');
+    flash('Extrude canceled, back in the sketch.');
   } else {
-    flash('Extrude cancelled.');
+    flash('Extrude canceled.');
   }
 }
 
@@ -2847,7 +2847,7 @@ function extrudeDragMove(e) {
   const dy = exDragging.y - e.clientY;         // up = thicker
   if (Math.abs(dy) > 2) exDragging.moved = true;
   let d = exDragging.depth + dy * extrudeMmPerPixel();
-  // Snap to whole millimetres unless a fine drag is asked for, so the number
+  // Snap to whole millimeters unless a fine drag is asked for, so the number
   // lands somewhere a person would have typed.
   if (!e.shiftKey) d = Math.round(d);
   setExtrudeDepth(Math.max(0.1, d));
@@ -3201,7 +3201,7 @@ function nestOnBuildPlate() {
     // footprint it planned for is the turned one.
     if (p.turned) o.mesh.rotation.y += Math.PI / 2;
     o.mesh.updateMatrixWorld(true);
-    // Measured again after any turn, because turning moves the centre whenever
+    // Measured again after any turn, because turning moves the center whenever
     // the part is not symmetric about its own origin.
     const b = worldBox(o);
     const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
@@ -3298,8 +3298,8 @@ function fillSelect(id, items, current) {
   sel.value = current;
 }
 
-// Each skin owns three colours in the viewport: the background, and the grid's
-// major and minor lines. The grid used to be blue-grey for every skin, which is
+// Each skin owns three colors in the viewport: the background, and the grid's
+// major and minor lines. The grid used to be blue-gray for every skin, which is
 // why the pink skin still read as cold and blue (Vi, 2026-08-07).
 const SKIN_VIEWPORT = {
   paper:     { bg: 0xdfe3e8, major: 0x9aa4b0, minor: 0xc3cad2 },
@@ -3313,7 +3313,7 @@ const SKIN_DEFAULT = { bg: 0x0e1116, major: 0x3a4654, minor: 0x232b34 };
 function applyUiStyle(id) {
   document.documentElement.dataset.ui = id;
   // Tie the viewport background AND the grid to the palette, so the scene reads
-  // as the same colour family as the panels rather than a cold hole in them.
+  // as the same color family as the panels rather than a cold hole in them.
   const skin = SKIN_VIEWPORT[id] ?? SKIN_DEFAULT;
   scene.background = new THREE.Color(skin.bg);
   setGrid(skin.major, skin.minor);
@@ -3680,7 +3680,7 @@ function setupUndoRedo(row, tips) {
   const redoBtn = mk('redo-btn', 'Redo', '↷', 'Redo the step you undid (Ctrl+Y)', () => doc.redo());
   row.append(undoBtn, tips, redoBtn);
 
-  // Greyed out rather than hidden: a control that vanishes teaches nothing, and
+  // Grayed out rather than hidden: a control that vanishes teaches nothing, and
   // the disabled state is what tells you there is nothing left to take back.
   syncUndoRedo = () => {
     undoBtn.disabled = !doc.canUndo;
@@ -3794,7 +3794,7 @@ window.cadence = {
   // rather than a copy that could drift away from the ones the button calls.
   tinylink: { encode: encodeTiny, decode: decodeTiny, verify: encodeVerified },
   // The slicer, exposed so the headless harness can drive it and read back the
-  // plan rather than screenshot-diffing a pile of coloured lines.
+  // plan rather than screenshot-diffing a pile of colored lines.
   slicer: sliceView,
   // Sketcher internals, exposed so the headless harness can drive and inspect
   // the constrained sketcher the same way a person does.
