@@ -1,4 +1,4 @@
-// chart.js — the chart the analyser produced, and every edit you make to it.
+// chart.js — the chart the analyzer produced, and every edit you make to it.
 //
 // The detector will get things wrong. That is not a reason to hide the result,
 // it is the reason this file exists. A wrong note you can drag or delete in two
@@ -117,7 +117,7 @@ export class Chart {
   add(t, lane, vel = 0.8) {
     this.begin();
     const n = { id: nextId++, t: Math.max(0, t), lane, vel, conf: 1, gridConf: 1, source: 'user' };
-    n.tq = this.quantiseTime(n.t);
+    n.tq = this.quantizeTime(n.t);
     this.notes.push(n);
     this.sort();
     this.changed();
@@ -139,7 +139,7 @@ export class Chart {
     this.begin();
     n.t = Math.max(0, t);
     if (lane) n.lane = lane;
-    n.tq = this.quantiseTime(n.t);
+    n.tq = this.quantizeTime(n.t);
     n.source = 'user';
     n.conf = 1;
     this.sort();
@@ -147,19 +147,19 @@ export class Chart {
     return true;
   }
 
-  quantiseTime(t) {
+  quantizeTime(t) {
     const s = this.step;
     if (!s) return t;
     return this.phase + Math.round((t - this.phase) / s) * s;
   }
 
   /** Snap every note to the grid. One undo step, so it is safe to try. */
-  quantiseAll() {
+  quantizeAll() {
     if (!this.step) return 0;
     this.begin();
     let moved = 0;
     for (const n of this.notes) {
-      const q = this.quantiseTime(n.t);
+      const q = this.quantizeTime(n.t);
       if (Math.abs(q - n.t) > 1e-6) moved++;
       n.t = q; n.tq = q; n.gridConf = 1;
     }

@@ -2,9 +2,9 @@
 //
 // Playback goes through an <audio> element rather than an AudioBufferSourceNode
 // for one specific reason. Slowing a buffer source down drops its pitch, and a
-// play along that transposes the song when you practise slowly is useless. A
+// play along that transposes the song when you practice slowly is useless. A
 // media element gives real time stretching through preservesPitch, and it still
-// routes into the Web Audio graph so the centre channel trick below can work.
+// routes into the Web Audio graph so the center channel trick below can work.
 //
 // Nothing here uploads anything. The file becomes an object URL in this tab and
 // that is as far as it ever travels.
@@ -137,9 +137,9 @@ export class Player {
   whenPlayable() { return this.ready || Promise.resolve('no-element'); }
 
   /**
-   * Source, then an optional centre cut, then out.
-   * The centre cut is the old karaoke trick. Kick and snare are almost always
-   * panned dead centre, so subtracting the mid signal pulls most of the drums
+   * Source, then an optional center cut, then out.
+   * The center cut is the old karaoke trick. Kick and snare are almost always
+   * panned dead center, so subtracting the mid signal pulls most of the drums
    * down and lets you be the drummer. It also pulls down anything else in the
    * middle, usually the lead vocal, which is why the label says so plainly.
    */
@@ -176,7 +176,7 @@ export class Player {
     this.clickGain.connect(ctx.destination);
   }
 
-  /** 0 keeps the mix untouched, 1 removes as much of the centre as this trick can. */
+  /** 0 keeps the mix untouched, 1 removes as much of the center as this trick can. */
   setDuck(amount) {
     this.duckAmount = amount;
     if (this.midToOut) this.midToOut.gain.value = -amount;

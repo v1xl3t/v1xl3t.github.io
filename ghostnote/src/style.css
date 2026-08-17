@@ -1,6 +1,6 @@
 /* style.css — one dark palette, high contrast, thumb sized controls.
    Deliberately dark only. A half finished second theme is worse than one theme
-   that is right, and every colour below is checked by the contrast harness. */
+   that is right, and every color below is checked by the contrast harness. */
 
 :root {
   --bg: #0b0e12;
@@ -507,7 +507,7 @@ input[type="range"] {
 .pad[data-lane="tom"] { border-left: 5px solid var(--tom); }
 .pad[data-lane="kick"] { border-left: 5px solid var(--kick); }
 
-/* The unrecognised-pad prompt. It only ever appears because something the user
+/* The unrecognized-pad prompt. It only ever appears because something the user
    did produced nothing, so it has to read as a question the app is asking,
    not as an error the user caused. */
 .learn-row {

@@ -131,7 +131,7 @@ export class InputHub {
     this.emit({ lane, vel: d2 / 127, source: 'midi', note: d1 });
   }
 
-  /** Point a note number at a lane, so an unrecognised pad becomes usable. */
+  /** Point a note number at a lane, so an unrecognized pad becomes usable. */
   learn(note, lane) {
     this.noteMap[note] = lane;
     this.unmapped.delete(note);

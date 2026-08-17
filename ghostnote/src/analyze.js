@@ -1,4 +1,4 @@
-// analyse.js — audio to drum chart, with no model download and no server.
+// analyze.js — audio to drum chart, with no model download and no server.
 //
 // The whole pipeline is deliberately classic DSP rather than machine learning.
 // A Demucs-class separator is tens of megabytes of weights before a phone plays
@@ -58,11 +58,11 @@ export function downmix(channels, length) {
 }
 
 /** Convenience wrapper for a decoded Web Audio AudioBuffer. */
-export function analyseBuffer(audioBuffer, opts = {}) {
+export function analyzeBuffer(audioBuffer, opts = {}) {
   const chans = [];
   for (let c = 0; c < audioBuffer.numberOfChannels; c++) chans.push(audioBuffer.getChannelData(c));
   const mono = chans.length === 1 ? chans[0] : downmix(chans, audioBuffer.length);
-  return analyse(mono, audioBuffer.sampleRate, opts);
+  return analyze(mono, audioBuffer.sampleRate, opts);
 }
 
 // ---------------------------------------------------------------- onset stage
@@ -221,12 +221,12 @@ function hatPass(x, sr, o) {
  */
 function refineOnset(x, sr, frameIndex, o, prevSample = -Infinity, nextFrame = Infinity) {
   const { hop, frame } = o;
-  // The search window must not spill into the neighbouring hits. A fixed window
+  // The search window must not spill into the neighboring hits. A fixed window
   // of two hops back and one frame forward is 35ms wide, which is wider than the
   // gap between the notes of a fast roll, so on dense passages the walk found
   // the PREVIOUS hit's attack first and reported this hit at that earlier time.
   // That is why rolls came back about 10ms early while everything slower was
-  // accurate to under a millisecond. Bound the window by the neighbours and the
+  // accurate to under a millisecond. Bound the window by the neighbors and the
   // error goes away without touching anything about sparse material.
   const guard = Math.round(sr * 0.004);
   const lo = isFinite(prevSample) ? Math.ceil(prevSample) + guard : 0;
@@ -381,7 +381,7 @@ export function estimateTempo(flux, sr, o) {
     let s = 0;
     for (let i = 0; i + lag < n; i++) s += x[i] * x[i + lag];
     s /= (n - lag);
-    // log normal prior centred on 0.5s per beat, that is 120 bpm
+    // log normal prior centered on 0.5s per beat, that is 120 bpm
     const secs = lag / fps;
     const w = Math.exp(-0.5 * (Math.log2(secs / 0.5) / 0.9) ** 2);
     raw[lag] = s * w;
@@ -532,7 +532,7 @@ export function estimatePhase(hits, period, duration) {
  * @param {number} sr sample rate
  * @returns {{bpm,period,phase,div,duration,hits,tempoConfidence,settings}}
  */
-export function analyse(x, sr, opts = {}) {
+export function analyze(x, sr, opts = {}) {
   const o = { ...DEFAULTS, ...opts };
   const sg = spectrogram(x, o);
   const flux = spectralFlux(sg);
@@ -643,7 +643,7 @@ export function analyse(x, sr, opts = {}) {
     ? { beatsPerBar: o.beatsPerBar, barOffset: o.barOffset || 0, confidence: 1, detected: true }
     : estimateMeter(hits, tempo.period, phase, duration);
 
-  // Quantise against the grid, and record how far off each hit was. That number
+  // Quantize against the grid, and record how far off each hit was. That number
   // is shown in the editor, it is not used to move anything without consent.
   const step = tempo.period ? tempo.period / o.div : 0;
   for (const h of hits) {

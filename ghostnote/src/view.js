@@ -7,14 +7,14 @@
 
 import { LANES, LANE_LABEL } from './chart.js';
 
-const LANE_COLOUR = {
+const LANE_COLOR = {
   hat: '#8fd3ff',
   snare: '#ffd479',
   tom: '#c9a2ff',
   kick: '#7ee787',
 };
 
-const GRADE_COLOUR = {
+const GRADE_COLOR = {
   perfect: '#7ee787',
   great: '#8fd3ff',
   good: '#ffd479',
@@ -136,7 +136,7 @@ export class Highway {
       return { x: ev.clientX - r.left, y: ev.clientY - r.top };
     };
     c.addEventListener('pointerdown', (ev) => {
-      // Capture is an optimisation, not a requirement. It throws when the
+      // Capture is an optimization, not a requirement. It throws when the
       // pointer has already been released, and letting that throw abandon the
       // rest of this handler would drop the gesture entirely.
       try { c.setPointerCapture(ev.pointerId); } catch { /* carry on without it */ }
@@ -221,7 +221,7 @@ export class Highway {
    *
    * Returned as {notes, dense} groups in time order, so the renderer draws each
    * group in one style and there is no per note decision that could disagree
-   * with its neighbour. Kept out of render so the rule can be tested rather
+   * with its neighbor. Kept out of render so the rule can be tested rather
    * than eyeballed against a trap track.
    */
   runsOf(notes) {
@@ -246,7 +246,7 @@ export class Highway {
   }
 
   /** One note at full size, the way it is drawn whenever there is room. */
-  _drawNote(ctx, n, y, laneH, colour) {
+  _drawNote(ctx, n, y, laneH, color) {
     const x = this.xAt(n.t);
     const nh = Math.min(26, laneH - 10);
     const nw = 22;
@@ -262,7 +262,7 @@ export class Highway {
     ctx.arcTo(x0, y0, x0 + nw, y0, r);
     ctx.closePath();
     ctx.globalAlpha = 0.35 + 0.65 * Math.max(0.25, sure);
-    ctx.fillStyle = colour;
+    ctx.fillStyle = color;
     ctx.fill();
     ctx.globalAlpha = 1;
     if (sure < 0.5) {
@@ -289,13 +289,13 @@ export class Highway {
    * so the count survives and any one of them can be selected and dragged, and
    * the number over the beam saves anyone from counting two pixel ticks.
    */
-  _drawRun(ctx, run, y, laneH, colour) {
+  _drawRun(ctx, run, y, laneH, color) {
     const nh = Math.min(26, laneH - 10);
     const top = y - nh / 2;
     const span = Math.max(4, run.lastX - run.firstX + 4);
     ctx.save();
     ctx.globalAlpha = 0.9;
-    ctx.fillStyle = colour;
+    ctx.fillStyle = color;
     ctx.fillRect(run.firstX - 2, top, span, 4);
     const pitch = (run.lastX - run.firstX) / Math.max(1, run.notes.length - 1);
     const tickW = Math.max(2, Math.min(8, pitch - 2));
@@ -303,7 +303,7 @@ export class Highway {
       const x = this.xAt(n.t);
       const sure = n.conf == null ? 1 : n.conf;
       ctx.globalAlpha = 0.45 + 0.55 * Math.max(0.25, sure);
-      ctx.fillStyle = colour;
+      ctx.fillStyle = color;
       ctx.fillRect(x - tickW / 2, top + 5, tickW, nh - 5);
       if (n.id === this.selectedId) {
         ctx.globalAlpha = 1;
@@ -336,7 +336,7 @@ export class Highway {
       const y = 22 + i * laneH;
       ctx.fillStyle = i % 2 ? '#161b23' : '#131820';
       ctx.fillRect(0, y, w, laneH);
-      ctx.fillStyle = LANE_COLOUR[lane];
+      ctx.fillStyle = LANE_COLOR[lane];
       ctx.fillRect(0, y, 4, laneH);
       ctx.fillStyle = '#e8edf3';
       ctx.font = '600 12px system-ui, sans-serif';
@@ -409,10 +409,10 @@ export class Highway {
         const list = visible[lane];
         if (!list.length) continue;
         const y = this.yAt(lane);
-        const colour = LANE_COLOUR[lane] || '#ccc';
+        const color = LANE_COLOR[lane] || '#ccc';
         for (const g of this.runsOf(list)) {
-          if (g.dense) this._drawRun(ctx, g, y, laneH, colour);
-          else for (const n of g.notes) this._drawNote(ctx, n, y, laneH, colour);
+          if (g.dense) this._drawRun(ctx, g, y, laneH, color);
+          else for (const n of g.notes) this._drawNote(ctx, n, y, laneH, color);
         }
       }
     }
@@ -431,7 +431,7 @@ export class Highway {
     for (const f of this.flashes) {
       const age = (now - f.at) / 700;
       ctx.globalAlpha = 1 - age;
-      ctx.fillStyle = GRADE_COLOUR[f.grade] || '#fff';
+      ctx.fillStyle = GRADE_COLOR[f.grade] || '#fff';
       ctx.font = '700 13px system-ui, sans-serif';
       ctx.fillText(f.grade, headX + 8, this.yAt(f.lane) - 14 - age * 12);
       ctx.globalAlpha = 1;

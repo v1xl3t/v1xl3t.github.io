@@ -1,6 +1,6 @@
 // fft.js — a small iterative radix-2 FFT.
 //
-// Pure maths, no DOM and no Web Audio, so the analyser that sits on top of it
+// Pure maths, no DOM and no Web Audio, so the analyzer that sits on top of it
 // can be run under `bun test` against a synthetic signal instead of only being
 // eyeballed in a browser.
 

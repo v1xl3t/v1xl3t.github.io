@@ -23,13 +23,17 @@
 
 <main id="main" class="wrap">
 
-  <section class="card" aria-labelledby="load-h">
+  <section class="card" aria-labeledby="load-h">
     <h2 id="load-h">1. Bring a track</h2>
     <div id="drop" class="drop">
       <p class="drop-msg">Drop an audio file here, or choose one below. MP3, WAV, M4A, OGG, FLAC, whatever your browser plays.</p>
       <div class="row">
         <button type="button" class="btn primary" id="pick">Choose a file</button>
-        <input type="file" id="file" accept="audio/*" class="visually-hidden" />
+        <!-- Driven by the Choose a file button beside it, never reached
+             directly. `visually-hidden` keeps a control in the accessibility
+             tree, so without these two attributes a screen reader announces an
+             unnamed file input that does nothing on its own. -->
+        <input type="file" id="file" accept="audio/*" class="visually-hidden" aria-hidden="true" tabindex="-1" />
         <button type="button" class="btn" id="demo">Try a demo groove</button>
       </div>
     </div>
@@ -47,7 +51,7 @@
     </div>
   </section>
 
-  <section class="card" aria-labelledby="chart-h">
+  <section class="card" aria-labeledby="chart-h">
     <div class="cardhead">
       <h2 id="chart-h">2. The chart</h2>
       <div class="seg" role="group" aria-label="Chart mode">
@@ -95,7 +99,7 @@
     </div>
 
     <!-- Speed and meter sit in the transport rather than in a collapsed panel.
-         Both are labelled twice on purpose, so a beginner reads the left half
+         Both are labeled twice on purpose, so a beginner reads the left half
          and a producer grabs the right half. -->
     <div class="transbar">
       <label class="field">
@@ -172,7 +176,7 @@
     </div>
   </section>
 
-  <section class="card" aria-labelledby="play-h">
+  <section class="card" aria-labeledby="play-h">
     <h2 id="play-h">3. Play it</h2>
     <div class="pads" id="pads">
       <button type="button" class="pad" data-lane="hat"><span class="pad-name">Hi hat</span><span class="pad-key">D</span></button>
@@ -180,7 +184,7 @@
       <button type="button" class="pad" data-lane="tom"><span class="pad-name">Tom</span><span class="pad-key">J</span></button>
       <button type="button" class="pad" data-lane="kick"><span class="pad-name">Kick</span><span class="pad-key">K</span></button>
     </div>
-    <!-- Appears only when a kit sends a pad this app does not recognise. Not
+    <!-- Appears only when a kit sends a pad this app does not recognize. Not
          every kit follows General MIDI, so the honest move is to ask rather
          than to ignore the hit and look broken. -->
     <div class="learn-row" id="learn-row" hidden>
@@ -208,8 +212,8 @@
 
   <!-- The results screen. A running accuracy number tells you how you are
        doing, and nothing else. This tells you which limb is behind and whether
-       you are rushing, which is the part you can actually practise. -->
-  <section class="card" id="results" aria-labelledby="res-h" hidden>
+       you are rushing, which is the part you can actually practice. -->
+  <section class="card" id="results" aria-labeledby="res-h" hidden>
     <div class="cardhead">
       <h2 id="res-h">How that run went</h2>
       <button type="button" class="btn small" id="res-close">Hide this</button>
@@ -259,10 +263,10 @@
     <summary><h2>Export and save to a file</h2></summary>
     <div class="row">
       <button type="button" class="btn primary" id="ex-midi">Export drum MIDI</button>
-      <button type="button" class="btn" id="ex-midi-q">Export quantised MIDI</button>
+      <button type="button" class="btn" id="ex-midi-q">Export quantized MIDI</button>
       <button type="button" class="btn" id="ex-chart">Save chart file</button>
       <button type="button" class="btn" id="im-chart">Open chart file</button>
-      <input type="file" id="chartfile" accept=".json,application/json" class="visually-hidden" />
+      <input type="file" id="chartfile" accept=".json,application/json" class="visually-hidden" aria-hidden="true" tabindex="-1" />
     </div>
     <p class="note">The MIDI lands on channel 10 with General MIDI drum notes, so any DAW will read it. A chart file is the one to send someone else, since your library only lives in this browser.</p>
   </details>
@@ -291,12 +295,12 @@
         <span class="note">Higher finds quieter hits and more mistakes. Re analyze after changing it.</span>
       </label>
       <div class="row">
-        <button type="button" class="btn" id="reanalyse" disabled>Analyze again</button>
+        <button type="button" class="btn" id="reanalyze" disabled>Analyze again</button>
       </div>
     </div>
   </details>
 
-  <section class="card" aria-labelledby="honest-h">
+  <section class="card" aria-labeledby="honest-h">
     <h2 id="honest-h">What this actually does, and what it does not</h2>
     <ul class="plain">
       <li>It finds drum hits with spectral flux onset detection, then sorts them into kick, snare and hi hat by where their energy sits in the spectrum. That is classic signal processing, not machine learning, so there is no model to download and the analysis takes a couple of seconds.</li>

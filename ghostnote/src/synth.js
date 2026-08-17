@@ -2,7 +2,7 @@
 //
 // Two jobs. It gives the app a demo groove so you can try the whole loop with
 // no file of your own, and it gives the test suite a click track whose hit
-// times are known exactly, which is the only way to say the analyser works
+// times are known exactly, which is the only way to say the analyzer works
 // rather than that it looked about right.
 //
 // Pure maths so it runs identically under Bun and in the browser.

@@ -6,7 +6,7 @@
 // with room to spare, and keeping it there means the second session on a song
 // starts where the first one stopped.
 //
-// Everything here stays local, the same promise the analyser makes. There is no
+// Everything here stays local, the same promise the analyzer makes. There is no
 // account and nothing is uploaded, so "your library" means the library in this
 // browser on this machine, which is worth saying plainly in the UI.
 

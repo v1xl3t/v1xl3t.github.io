@@ -31,7 +31,7 @@ function be16(n) { return [(n >> 8) & 255, n & 255]; }
 
 /**
  * @param {import('./chart.js').Chart} chart
- * @param {{quantised?:boolean, name?:string}} opts
+ * @param {{quantized?:boolean, name?:string}} opts
  * @returns {Uint8Array}
  */
 /**
@@ -39,7 +39,7 @@ function be16(n) { return [(n >> 8) & 255, n & 255]; }
  * with it.
  *
  * Six beats to a bar is read as 6/8, because that is what six almost always
- * means and because the beat the analyser locked onto in that case is the
+ * means and because the beat the analyzer locked onto in that case is the
  * eighth. A quarter is then two of those beats, so the tempo written into the
  * file is half the beat rate the app works in, and an eighth still lands on 240
  * ticks. Every other count is written over a quarter, so five beats is 5/4.
@@ -55,7 +55,7 @@ export function writeMidi(chart, opts = {}) {
   const sig = signature(chart.beatsPerBar || 4, beatBpm);
   const bpm = sig.quarterBpm;
   const secPerTick = 60 / bpm / PPQ;
-  const useQ = !!opts.quantised;
+  const useQ = !!opts.quantized;
 
   const events = [];
   for (const n of chart.notes) {

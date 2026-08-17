@@ -4,7 +4,7 @@
 // CADence exposes window.cadence, so the suite can push a synthetic click track
 // through the real pipeline instead of a pretend one.
 
-import { analyse, analyseBuffer, downmix, estimateMeter, DEFAULTS } from './analyse.js';
+import { analyze, analyzeBuffer, downmix, estimateMeter, DEFAULTS } from './analyze.js';
 import { renderHits, rockPattern, demoBuffer } from './synth.js';
 import { Chart, LANES, LANE_LABEL } from './chart.js';
 import { writeMidi, readMidi } from './midi.js';
@@ -81,10 +81,10 @@ function getWorker() {
   return worker;
 }
 
-/** Analyse mono samples, off thread when the browser allows it. */
+/** Analyze mono samples, off thread when the browser allows it. */
 export function runAnalysis(samples, sampleRate, opts = {}) {
   const w = getWorker();
-  if (!w) return Promise.resolve(analyse(samples, sampleRate, opts));
+  if (!w) return Promise.resolve(analyze(samples, sampleRate, opts));
   return new Promise((resolve) => {
     const id = ++workerSeq;
     let settled = false;
@@ -92,7 +92,7 @@ export function runAnalysis(samples, sampleRate, opts = {}) {
       if (ev.data.id !== id) return;
       settled = true;
       w.removeEventListener('message', done);
-      if (ev.data.error) resolve(analyse(samples, sampleRate, opts));
+      if (ev.data.error) resolve(analyze(samples, sampleRate, opts));
       else resolve(ev.data.result);
     };
     w.addEventListener('message', done);
@@ -102,7 +102,7 @@ export function runAnalysis(samples, sampleRate, opts = {}) {
     setTimeout(() => {
       if (settled) return;
       w.removeEventListener('message', done);
-      resolve(analyse(samples, sampleRate, opts));
+      resolve(analyze(samples, sampleRate, opts));
     }, 30000);
   });
 }
@@ -119,7 +119,7 @@ function setStatus(text, kind = '') {
   el.className = 'status' + (kind ? ' ' + kind : '');
 }
 
-/** Load a blob, analyse it, build a chart. The whole pipeline in one call. */
+/** Load a blob, analyze it, build a chart. The whole pipeline in one call. */
 export async function loadBlob(blob, name = 'track') {
   state.fileName = name;
   state.ready = false;
@@ -141,7 +141,7 @@ export async function loadBlob(blob, name = 'track') {
   try {
     a = await runAnalysis(monoOf(buffer), buffer.sampleRate, { sensitivity: state.sensitivity });
   } catch (err) {
-    setStatus(`The analyser failed on that track${err && err.message ? ` (${err.message})` : ''}. Please tell Vi what the file was.`, 'bad');
+    setStatus(`The analyzer failed on that track${err && err.message ? ` (${err.message})` : ''}. Please tell Vi what the file was.`, 'bad');
     return null;
   }
   applyAnalysis(a);
@@ -169,11 +169,11 @@ function offerSavedChart(name, duration) {
   el.hidden = false;
 }
 
-/** Analyse the buffer already loaded again, with the current sensitivity. */
-export async function reanalyse() {
+/** Analyze the buffer already loaded again, with the current sensitivity. */
+export async function reanalyze() {
   if (!state.lastBuffer) return null;
-  setStatus('Analysing again.', 'busy');
-  // Re analysing is about the hits, not about the meter, so a signature the
+  setStatus('Analyzing again.', 'busy');
+  // Re analyzing is about the hits, not about the meter, so a signature the
   // user set by hand survives it. Having to choose 3/4 again every time the
   // sensitivity moves would be its own small glitch.
   const chosen = $('timesig').value;
@@ -237,7 +237,7 @@ function installChart(chart, opts = {}) {
   $('play').disabled = !playable;
   $('restart').disabled = !playable;
   $('seek').disabled = !playable;
-  $('reanalyse').disabled = !state.lastBuffer;
+  $('reanalyze').disabled = !state.lastBuffer;
   rail.setDuration(player.duration || chart.duration || 0);
   // A fresh track gets a fresh reading of the meter, so the manual override goes
   // back to following the detector rather than pinning the previous track's.
@@ -357,7 +357,7 @@ function updateZoomLabel() {
  * Write the working chart back to local storage, coalesced.
  *
  * Every drag of a note fires a change, and a chart of a five minute song is
- * tens of kilobytes of JSON. Serialising that on every pointermove would be
+ * tens of kilobytes of JSON. Serializing that on every pointermove would be
  * felt. Half a second after the last edit is soon enough to survive a closed
  * tab and cheap enough to never notice.
  */
@@ -499,7 +499,7 @@ function headline(s, best) {
     } else if (s.spreadMs >= 70) {
       bits.push('Your hits are scattered rather than simply offset, so slowing the track down will do more than any setting here.');
     } else {
-      bits.push('Timing is both centred and tight, which is the hard one.');
+      bits.push('Timing is both centered and tight, which is the hard one.');
     }
   }
   if (s.weakest) bits.push(`The ${LANE_LABEL[s.weakest.lane].toLowerCase()} is the lane holding this back.`);
@@ -608,7 +608,7 @@ hub.on((e) => {
   updateScore();
 });
 
-// A pad the app does not recognise. "MIDI drum kit" is not a standard: the
+// A pad the app does not recognize. "MIDI drum kit" is not a standard: the
 // General MIDI table covers a stock Alesis or Roland, but pad controllers, older
 // modules and home-built kits send whatever they were told to. Rather than let
 // someone conclude the app is broken, name the note and let them claim it for a
@@ -619,7 +619,7 @@ function offerToLearn(note) {
   const row = $('learn-row');
   $('learn-note').textContent = String(note);
   row.hidden = false;
-  setStatus(`Unrecognised pad, MIDI note ${note}. Pick the drum it should count as.`, 'busy');
+  setStatus(`Unrecognized pad, MIDI note ${note}. Pick the drum it should count as.`, 'busy');
 }
 
 function bindLearnRow() {
@@ -781,7 +781,7 @@ function describeSelection() {
     return;
   }
   const conf = n.source === 'user' ? 'yours' : `${Math.round((n.conf || 0) * 100)}% confident`;
-  const off = state.chart.step ? `${Math.round((n.t - state.chart.quantiseTime(n.t)) * 1000)} ms off the grid` : 'no grid';
+  const off = state.chart.step ? `${Math.round((n.t - state.chart.quantizeTime(n.t)) * 1000)} ms off the grid` : 'no grid';
   el.textContent = `${LANE_LABEL[n.lane]} at ${n.t.toFixed(3)} s, ${conf}, ${off}.`;
 }
 
@@ -826,9 +826,9 @@ function baseName() {
   return (state.fileName || 'chart').replace(/\.[^.]+$/, '').replace(/[^\w -]+/g, '') || 'chart';
 }
 
-export function exportMidiBytes(quantised = false) {
+export function exportMidiBytes(quantized = false) {
   if (!state.chart) return null;
-  return writeMidi(state.chart, { quantised, name: baseName() });
+  return writeMidi(state.chart, { quantized, name: baseName() });
 }
 
 // ----------------------------------------------------------------------- UI
@@ -851,7 +851,7 @@ function wire() {
   $('demo').addEventListener('click', async () => {
     const ctx = player.ensureCtx();
     const { buffer } = demoBuffer(ctx, { bpm: 100, bars: 12 });
-    // Two channels so the centre cut has something to work with.
+    // Two channels so the center cut has something to work with.
     const stereo = ctx.createBuffer(2, buffer.length, buffer.sampleRate);
     stereo.copyToChannel(buffer.getChannelData(0), 0);
     stereo.copyToChannel(buffer.getChannelData(0), 1);
@@ -897,7 +897,7 @@ function wire() {
   $('ed-earlier').addEventListener('click', () => nudge(-10));
   $('ed-later').addEventListener('click', () => nudge(10));
   $('ed-snap').addEventListener('click', () => {
-    const moved = state.chart ? state.chart.quantiseAll() : 0;
+    const moved = state.chart ? state.chart.quantizeAll() : 0;
     setStatus(`Snapped ${moved} notes to the grid. Undo is right there if you hate it.`);
   });
   $('ed-clean').addEventListener('click', () => {
@@ -983,7 +983,7 @@ function wire() {
   });
   $('ex-midi-q').addEventListener('click', () => {
     const bytes = exportMidiBytes(true);
-    if (bytes) download(baseName() + ' quantised.mid', new Blob([bytes], { type: 'audio/midi' }));
+    if (bytes) download(baseName() + ' quantized.mid', new Blob([bytes], { type: 'audio/midi' }));
   });
   $('ex-chart').addEventListener('click', () => {
     if (!state.chart) return;
@@ -1035,7 +1035,7 @@ function wire() {
     $('sens-out').textContent = v === 100 ? 'normal' : v > 100 ? 'high' : 'low';
   });
 
-  $('reanalyse').addEventListener('click', () => reanalyse());
+  $('reanalyze').addEventListener('click', () => reanalyze());
 
   window.addEventListener('keydown', (ev) => {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(ev.target.tagName)) return;
@@ -1096,7 +1096,7 @@ function updateLoopNote() {
 function updateDuckAvailability() {
   const stereo = player.channels >= 2;
   $('duck').disabled = !stereo;
-  if (!stereo) $('duck-note').textContent = 'This file is mono, so there is no centre to remove. Load a stereo track to use this.';
+  if (!stereo) $('duck-note').textContent = 'This file is mono, so there is no center to remove. Load a stereo track to use this.';
 }
 
 // -------------------------------------------------------------------- start
@@ -1134,11 +1134,11 @@ requestAnimationFrame(frame);
 // Everything the tests drive, and anything a curious user wants in the console.
 window.playalong = {
   state, player, hub, scorer, view, calibrator, rail, library,
-  analyse, analyseBuffer, runAnalysis, estimateMeter,
+  analyze, analyzeBuffer, runAnalysis, estimateMeter,
   renderHits, rockPattern,
   writeMidi, readMidi, exportMidiBytes,
   Chart, LANES, LANE_LABEL, KEY_MAP, DEFAULTS,
-  loadBlob, reanalyse, setMode, restart, togglePlay,
+  loadBlob, reanalyze, setMode, restart, togglePlay,
   setLoop, signatureLabel, applyMeterChoice, updateSummary,
   openSaved, offerSavedChart, finishRun, shiftBarLine, installChart,
   renderLibrary, renderRuns,
@@ -1152,9 +1152,9 @@ window.playalong = {
     buf.copyToChannel(f32, 1);
     return loadBlob(bufferToWav(buf), name);
   },
-  /** Analyse without touching playback, for measuring detection on its own. */
-  analyseSamples(samples, sampleRate = 44100, opts = {}) {
+  /** Analyze without touching playback, for measuring detection on its own. */
+  analyzeSamples(samples, sampleRate = 44100, opts = {}) {
     const f32 = samples instanceof Float32Array ? samples : Float32Array.from(samples);
-    return analyse(f32, sampleRate, opts);
+    return analyze(f32, sampleRate, opts);
   },
 };
