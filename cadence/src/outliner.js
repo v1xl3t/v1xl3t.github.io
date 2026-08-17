@@ -42,8 +42,11 @@ export class Outliner {
     this.root.innerHTML = objs.map((o) => {
       const sel = this.doc.selection.has(o.id) ? ' sel' : '';
       const isBool = o.kind === 'boolean';
-      const label = isBool ? 'group' : o.role === 'hole' ? ROLE_LABELS.hole : ROLE_LABELS.solid;
-      const cls = isBool ? 'b-group' : o.role === 'hole' ? 'b-cut' : 'b-add';
+      const isExact = o.kind === 'brep';
+      // An exact solid reads as its own thing rather than as a group, because
+      // what it is made of and what can be done to it are both different.
+      const label = isExact ? 'exact' : isBool ? 'group' : o.role === 'hole' ? ROLE_LABELS.hole : ROLE_LABELS.solid;
+      const cls = (isBool || isExact) ? 'b-group' : o.role === 'hole' ? 'b-cut' : 'b-add';
       return `<div class="orow${sel}" data-id="${o.id}">
         <button class="eye" data-eye="${o.id}" title="Show / hide">${o.mesh.visible ? '◉' : '◯'}</button>
         <span class="oname">${esc(o.name)}</span>

@@ -15,9 +15,13 @@ const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export class Inspector {
-  constructor(doc, { onChange, units, onNotice } = {}) {
+  constructor(doc, { onChange, units, onNotice, onExactEdit } = {}) {
     this.doc = doc;
     this.onChange = onChange || (() => {});
+    // Retyping the radius of an exact operation re-runs the whole chain through
+    // the B-rep kernel, which lives behind a lazy import, so the owner of that
+    // import handles it rather than this file reaching for it.
+    this.onExactEdit = onExactEdit || (() => {});
     // How the inspector tells the user something without a dialog, e.g. a
     // dimension the sketch's constraints will not allow.
     this.onNotice = onNotice || (() => {});
@@ -130,7 +134,7 @@ export class Inspector {
       <div class="field">
         <label>${isPattern ? 'The rule' : 'Dimensions (mm)'}</label>
         ${dimFields}
-      </div>` : (partsRow || `<div class="meta">A group's shape comes from its parts. <b>Ungroup</b> to edit them, then regroup.</div>`);
+      </div>` : (partsRow || this._exactRow(obj) || `<div class="meta">A group's shape comes from its parts. <b>Ungroup</b> to edit them, then regroup.</div>`);
 
     this.body.innerHTML = `
       <div class="meta">${meta}</div>
@@ -227,6 +231,35 @@ export class Inspector {
       ${axisRow}
       ${planeRow}
       <div class="meta">${esc(says)} <b>Release</b> in the toolbar gives the single part back.</div>`;
+  }
+
+  /**
+   * What an exact solid is made of: the recipe underneath, and the list of
+   * roundings on top of it, in the order they were applied.
+   *
+   * A rounded part looks like a mesh and is not one, and the difference matters
+   * enough to say on screen. It also matters that the list is a LIST: each
+   * radius is still a thing that happened rather than a change baked into
+   * triangles, which is why Undo the rounding can give the original part back.
+   */
+  _exactRow(obj) {
+    if (obj.kind !== 'brep') return '';
+    const ops = obj.params.ops || [];
+    if (obj.params.imported) {
+      return `<div class="meta">Opened from <b>${esc(obj.params.imported)}</b>. It came in as a solid and is tessellated for the screen. There is no recipe behind it, so it cannot be rounded or written back out exactly.</div>`;
+    }
+    const src = obj.params.src;
+    const rows = ops.map((o, i) => `
+      <div class="axis">
+        <span>${i + 1}. ${o.type === 'chamfer' ? 'Bevel' : 'Round'}, ${esc(String(o.select === 'all' ? 'every edge' : o.select === 'vertical' ? 'upright edges' : `${o.select} edges`))}</span>
+        <input type="number" data-exact="${i}" value="${round(o.size)}" step="0.5" min="0.1" />
+      </div>`).join('');
+    return `
+      <div class="field">
+        <label>Exact operations <span class="hint">(edits re-run the whole chain)</span></label>
+        ${rows || '<div class="muted">none yet</div>'}
+      </div>
+      <div class="meta">Built from a <b>${esc(src ? src.kind : 'part')}</b> through the exact kernel, so its rounded faces are real curved surfaces and a STEP export carries them as such. <b>Undo the rounding</b> in the toolbar gives the original part back.</div>`;
   }
 
   _extrudeRow(obj) {
@@ -425,6 +458,15 @@ export class Inspector {
         this.doc.touch(obj);
         this.onChange(obj);
         this.render();           // reflect color + active state
+      });
+    });
+    this.body.querySelectorAll('input[data-exact]').forEach((input) => {
+      input.addEventListener('change', async () => {
+        const v = parseFloat(input.value);
+        if (!Number.isFinite(v) || v <= 0) { this.render(); return; }
+        input.disabled = true;
+        try { await this.onExactEdit(obj, +input.dataset.exact, v); }
+        finally { input.disabled = false; }
       });
     });
     // The pattern rule. Three controls, one path: set the key, rebuild, re-render

@@ -178,6 +178,30 @@
         <button data-action="ungroup" title="Break a grouped body back into its parts">Ungroup</button>
       </div>
 
+      <!-- The exact kernel. Everything in here needs OpenCascade, which is an
+           11.5MB download, so the size is on the label rather than sprung on
+           anyone mid-click. The mesh half above never loads it. -->
+      <div class="group" data-experimental="brep">
+        <div class="group-label">Exact <span class="hint">(loads an 11.5MB kernel once)</span></div>
+        <div class="snaprow">
+          <label>size mm <input type="number" id="brep-size" value="2" min="0.1" step="0.5" /></label>
+        </div>
+        <label class="brep-edges">edges
+          <select id="brep-edges">
+            <option value="all" selected>Every edge</option>
+            <option value="vertical">Upright edges</option>
+            <option value="top">Top edges</option>
+            <option value="bottom">Bottom edges</option>
+          </select>
+        </label>
+        <button data-action="fillet" title="Round the selected edges for real. This is a true fillet, a new curved surface tangent to the two faces it joins, which a mesh kernel cannot do at any radius">Round edges</button>
+        <button data-action="chamfer" title="Bevel the selected edges for real, cutting a flat face across the corner">Bevel edges</button>
+        <button data-action="release-exact" title="Throw the rounding away and give the original part back">Undo the rounding</button>
+        <button data-action="export-step" title="Download a STEP file. Rounded edges land as real curved surfaces, so a machinist or Fusion or FreeCAD gets a genuine part rather than a scan of one">Download STEP</button>
+        <button data-action="import-step" title="Open a STEP file from another CAD package and bring it in as a solid">Open a STEP file</button>
+        <input type="file" id="step-input" accept=".step,.stp,model/step" hidden />
+      </div>
+
       <div class="group" data-experimental="pattern">
         <div class="group-label">Repeat <span class="hint">(one rule, not six copies)</span></div>
         <button data-action="pattern" title="Pattern: turn the selection into a repeat of itself. Six bolt holes become one instruction with a count you can change afterwards, not six objects to keep in step">Pattern</button>

@@ -88,8 +88,10 @@ export class DimChips {
     this.chips = [];
     const obj = this.doc.selected;
     this.obj = obj;
-    // Only primitives carry editable dimensions; a baked group has none.
-    if (!this.enabled || !obj || obj.kind === 'boolean') { this.layer.style.display = 'none'; return; }
+    // A baked body has no scalar recipe to float over it. A group's shape comes
+    // from its parts and an exact solid's from a chain of kernel operations, and
+    // neither is a number you can drag in the viewport.
+    if (!this.enabled || !obj || obj.kind === 'boolean' || obj.kind === 'brep') { this.layer.style.display = 'none'; return; }
     // A pattern carries the fields for all three of its modes, and only one
     // mode's worth of them describe the shape on screen. Floating a linear step
     // over a ring of bolt holes is a number the picture does not contain.

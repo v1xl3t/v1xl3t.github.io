@@ -164,6 +164,32 @@ button[data-add] { width: calc(50% - 3px); text-align: center; padding: 7px 4px;
 .snaprow label { flex: 1; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .snaprow input { width: 100%; padding: 3px 4px; background: #0c1014; color: var(--text); border: 1px solid var(--border); border-radius: 5px; font: inherit; }
 
+/* The exact kernel's edge picker. A bare <select> in the toolbar renders as the
+   browser's own white control, which is legible but reads as a piece of another
+   application dropped into a dark panel. Same treatment as the settings rows,
+   restated here because this one lives in a toolbar group rather than a
+   .setrow. */
+.brep-edges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.brep-edges select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px;
+  background: #0c1014;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+.brep-edges select:focus { outline: none; border-color: var(--accent); }
+
 .muted { color: var(--muted); font-size: 12px; }
 
 /* Inspector numeric rows */
@@ -272,7 +298,7 @@ html[data-ui="graphite"] {
 }
 html[data-ui="graphite"] button,
 html[data-ui="graphite"] .panel,
-html[data-ui="graphite"] .setrow select { border-radius: 4px; }
+html[data-ui="graphite"] .setrow select, html[data-ui="graphite"] .brep-edges select { border-radius: 4px; }
 
 html[data-ui="blueprint"] {
   --bg: #0a1622; --panel: #0f2236cc; --panel-solid: #0f2236;
@@ -280,7 +306,7 @@ html[data-ui="blueprint"] {
   --accent: #4fc3f7; --accent-dim: #15466b;
 }
 html[data-ui="blueprint"] button,
-html[data-ui="blueprint"] .setrow select { border-radius: 3px; }
+html[data-ui="blueprint"] .setrow select, html[data-ui="blueprint"] .brep-edges select { border-radius: 3px; }
 html[data-ui="blueprint"] .group-label { color: #4fc3f7; }
 
 /* The light twin of the graphite problem, found by the same gate. --accent was
@@ -297,6 +323,7 @@ html[data-ui="paper"] button:hover { background: #e9edf3; }
 html[data-ui="paper"] input[type="number"],
 html[data-ui="paper"] input[type="text"],
 html[data-ui="paper"] .setrow select,
+html[data-ui="paper"] .brep-edges select,
 html[data-ui="paper"] .snaprow input { background: #fbfcfe; }
 html[data-ui="paper"] button.mode.active,
 html[data-ui="paper"] button.tool.active { color: #0b2f8a; }
@@ -308,7 +335,7 @@ html[data-ui="neon"] {
 }
 html[data-ui="neon"] button,
 html[data-ui="neon"] .panel,
-html[data-ui="neon"] .setrow select { border-radius: 12px; }
+html[data-ui="neon"] .setrow select, html[data-ui="neon"] .brep-edges select { border-radius: 12px; }
 html[data-ui="neon"] button.mode.active,
 html[data-ui="neon"] button.tool.active { box-shadow: 0 0 10px -2px var(--accent); }
 
@@ -326,12 +353,13 @@ html[data-ui="plush"] button:hover { background: #f5cbe4; }
 html[data-ui="plush"] input[type="number"],
 html[data-ui="plush"] input[type="text"],
 html[data-ui="plush"] .setrow select,
+html[data-ui="plush"] .brep-edges select,
 html[data-ui="plush"] .snaprow input { background: #fdf1f8; }
 html[data-ui="plush"] button.mode.active,
 html[data-ui="plush"] button.tool.active { color: #8f1f61; box-shadow: 0 0 10px -3px var(--accent); }
 html[data-ui="plush"] button,
 html[data-ui="plush"] .panel,
-html[data-ui="plush"] .setrow select { border-radius: 14px; }
+html[data-ui="plush"] .setrow select, html[data-ui="plush"] .brep-edges select { border-radius: 14px; }
 html[data-ui="plush"] .group-label { color: #b32d7d; }
 html[data-ui="plush"] kbd { background: #fbe0f0; }
 
@@ -1330,7 +1358,7 @@ button.wants-attention {
   #sketch-bar button, #extrude-bar button {
     min-height: var(--touch);
   }
-  .setrow select, .btnmap select, .sl-grid input, .snaprow input,
+  .setrow select, .btnmap select, .brep-edges select, .sl-grid input, .snaprow input,
   input[type="number"], input[type="text"], #slicer select {
     min-height: var(--touch);
   }

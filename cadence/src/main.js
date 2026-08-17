@@ -12,7 +12,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { initRenderView } from './renderview.js';
 
-import { CadDocument } from './model.js';
+import { CadDocument, CadObject } from './model.js';
 import {
   createSketch, addPoint, addLine, addCircle, addConstraint, addRectangle,
   solveSketch, sketchProfile, cloneSketch,
@@ -289,6 +289,196 @@ function releaseSelectedPattern() {
   } else flash('Select a pattern to release.');
 }
 
+// ------------------------------------------------------------- exact solids
+//
+// The module is imported the first time one of these runs and never before, so
+// a visitor who only drags boxes around never downloads an eleven megabyte CAD
+// kernel. Everything that can be checked WITHOUT the download is checked first,
+// for the same reason: nobody should wait for eleven megabytes to be told their
+// part contains a twisted loft.
+
+let _brep = null;
+async function getBrep(why) {
+  if (_brep) return _brep;
+  const mod = await import('./brep.js');
+  if (mod.brepStatus() !== 'ready') {
+    flash(`${why} needs the exact kernel, about ${mod.BREP_DOWNLOAD_MB}MB. Fetching it once now.`);
+  }
+  const { R } = await mod.loadBrep((msg) => flash(msg));
+  _brep = { mod, R };
+  return _brep;
+}
+
+/**
+ * The recipe node behind an object, whatever wrapper it is wearing.
+ *
+ * An already-rounded part hands back the recipe it was rounded FROM, so a
+ * second fillet re-runs the chain instead of filleting a tessellation. A part
+ * opened from a STEP file has no recipe at all, and says so by name rather than
+ * by crashing three calls later.
+ */
+function recipeNodeOf(obj) {
+  if (!obj) return { node: null, reason: 'there is nothing selected' };
+  if (obj.kind === 'brep') {
+    return obj.params.src
+      ? { node: obj.params.src }
+      : { node: null, reason: 'it was opened from a file, so there is no recipe here to replay' };
+  }
+  if (obj.kind === 'boolean') return { node: { kind: 'boolean', children: obj.children || [] } };
+  return { node: { kind: obj.kind, params: obj.params } };
+}
+
+/** Everything that can go wrong before the download, checked before it. */
+async function precheckExact(obj, why) {
+  if (!experimentalOn()) { flash('Exact solids are an experimental feature. Turn them on in Settings.'); return null; }
+  if (!obj) { flash(doc.list.length ? `Select a part to ${why}.` : 'Nothing to work on yet. Add a shape first.'); return null; }
+  const { node, reason } = recipeNodeOf(obj);
+  if (!node) { flash(`That cannot be worked on exactly, because ${reason}.`); return null; }
+  const mod = await import('./brep.js');
+  const check = mod.canBrep(node);
+  if (!check.ok) { flash(`That will not ${why} exactly, because ${check.reason}.`); return null; }
+  return mod;
+}
+
+async function exactEdgeOp(type) {
+  const obj = doc.selected;
+  const word = type === 'chamfer' ? 'bevel' : 'round';
+  if (!(await precheckExact(obj, word))) return;
+
+  const size = parseFloat(document.getElementById('brep-size').value);
+  if (!Number.isFinite(size) || size <= 0) { flash('Set a size in millimetres first.'); return; }
+  const select = document.getElementById('brep-edges').value;
+
+  try {
+    const { mod, R } = await getBrep(type === 'chamfer' ? 'Bevelling an edge' : 'Rounding an edge');
+    flash(`${type === 'chamfer' ? 'Bevelling' : 'Rounding'} at ${size}mm.`);
+    const out = await doc.applyExactOp(obj.id, { type, size, select }, mod, R);
+    const n = out ? (out.params.ops || []).length : 0;
+    flash(out
+      ? `${type === 'chamfer' ? 'Bevelled' : 'Rounded'} at ${size}mm. ${n} exact ${n === 1 ? 'operation' : 'operations'} on this part, and they stay editable.`
+      : 'That did not produce a solid.');
+  } catch (err) {
+    console.error('[CADence] exact op failed:', err);
+    flash(String(err && err.message || err));
+  }
+}
+
+/** Retype the radius of a rounding that already happened. */
+async function editExactOp(obj, index, size) {
+  try {
+    const { mod, R } = await getBrep('Changing a rounding');
+    const out = await doc.editExactOp(obj.id, index, { size }, mod, R);
+    flash(out ? `Rounding ${index + 1} is now ${size}mm, and the rest of the chain re-ran on top of it.` : 'Could not change that rounding.');
+  } catch (err) {
+    console.error('[CADence] exact edit failed:', err);
+    flash(String(err && err.message || err));
+  }
+}
+
+function releaseSelectedExact() {
+  if (doc.selected?.kind === 'brep') {
+    const o = doc.releaseExact(doc.selectedId);
+    flash(o ? `The rounding is gone. ${o.name} is back as it was.` : 'Could not undo that rounding.');
+  } else flash('Select a rounded part first.');
+}
+
+/**
+ * Write the whole model as STEP.
+ *
+ * Every object is replayed from its recipe rather than converted from its mesh,
+ * so a rounded edge lands in the file as a real curved surface. That is the
+ * entire difference between sending someone a part and sending them a scan of
+ * one, and it is only possible because everything here remembers how it was
+ * made.
+ */
+async function exportStep() {
+  if (!experimentalOn()) { flash('STEP export is an experimental feature. Turn it on in Settings.'); return; }
+  const objs = doc.list.filter((o) => o.mesh.visible && o.role !== 'hole');
+  if (!objs.length) { flash('Nothing printable to export. Add a solid first.'); return; }
+
+  const mod = await import('./brep.js');
+  const bad = [];
+  const good = [];
+  for (const o of objs) {
+    const { node, reason } = recipeNodeOf(o);
+    const check = node ? mod.canBrep(node) : { ok: false, reason };
+    if (check.ok) good.push({ obj: o, node });
+    else bad.push(`${o.name}, because ${check.reason}`);
+  }
+  if (!good.length) { flash(`Nothing here can be written exactly. ${bad[0]}.`); return; }
+
+  try {
+    const { R } = await getBrep('STEP export');
+    // Built inside a scope so every intermediate is freed, and the finished
+    // parts are freed by hand once the file is written. OCCT shapes are not
+    // garbage collected, and exporting a ten part model would otherwise leave
+    // ten solids and all their scaffolding in the WASM heap every time.
+    let parts = [];
+    mod.scoped(() => {
+      parts = good.map(({ obj: o, node }) => {
+        let solid = mod.solidFromNode(R, node);
+        if (o.kind === 'brep') {
+          solid = mod.applyOps(solid, o.params.ops || []);
+          // Whatever the part has been dragged by SINCE it was rounded, on top
+          // of the placement its recipe already carries. Without this a part
+          // moved after rounding exports back where it started.
+          solid = mod.applyDelta(solid, o.mesh, o.baseMatrix);
+        }
+        return { shape: solid, name: o.name };
+      });
+      return parts.map((p) => p.shape);
+    });
+    const text = await mod.stepTextOf(R, parts);
+    for (const p of parts) mod.disposeSolid(p.shape);
+    downloadText(`${sceneName()}.step`, text, 'model/step');
+    flash(bad.length
+      ? `Wrote ${parts.length} exact ${parts.length === 1 ? 'part' : 'parts'} to STEP. Left out ${bad.length}, starting with ${bad[0]}.`
+      : `Wrote ${parts.length} exact ${parts.length === 1 ? 'part' : 'parts'} to STEP, with real curved surfaces.`);
+  } catch (err) {
+    console.error('[CADence] STEP export failed:', err);
+    flash(String(err && err.message || err));
+  }
+}
+
+async function importStepFile(file) {
+  try {
+    const { mod, R } = await getBrep('Opening a STEP file');
+    flash(`Reading ${file.name}.`);
+    const { geometry } = await mod.stepToGeometry(R, await file.text());
+    geometry.computeBoundingBox();
+    const center = new THREE.Vector3();
+    geometry.boundingBox.getCenter(center);
+    geometry.translate(-center.x, -center.y, -center.z);
+    doc.commit('Open STEP');
+    const obj = new CadObject({ kind: 'brep', geometry, params: { src: null, ops: [], imported: file.name } });
+    obj.name = file.name.replace(/\.[^.]+$/, '') || 'Imported part';
+    obj.mesh.position.copy(center);
+    doc.addImported(obj);
+    doc.select(obj.id);
+    frameSelection();
+    flash(`Opened ${file.name}. It came in as a solid, tessellated for the screen.`);
+  } catch (err) {
+    console.error('[CADence] STEP import failed:', err);
+    flash(`That STEP file could not be read${err && err.message ? ` (${err.message})` : ''}.`);
+  }
+}
+
+function downloadText(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function sceneName() {
+  const first = doc.list.find((o) => o.role !== 'hole');
+  return (first ? first.name : 'cadence').replace(/[^\w -]+/g, '') || 'cadence';
+}
+
 async function intersectSelected() {
   const ids = [...doc.selection];
   if (ids.length < 2) { flash('Select 2+ objects to intersect (Shift-click them).'); return; }
@@ -335,6 +525,10 @@ const inspector = new Inspector(doc, {
   onChange: () => setStatus(),
   units: () => displayUnit,
   onNotice: (msg) => flash(msg),      // a refused dimension explains itself
+  // Retyping the radius of a rounding that already happened. main.js owns this
+  // because it owns the lazy kernel, and the inspector must not be the reason
+  // eleven megabytes get downloaded.
+  onExactEdit: (obj, index, size) => editExactOp(obj, index, size),
 });
 const outliner = new Outliner(doc);
 wireSketchBar();
@@ -519,6 +713,14 @@ document.getElementById('toolbar').addEventListener('click', (e) => {
     case 'ungroup':   ungroupSelected(); break;
     case 'pattern':         patternSelected(); break;
     case 'release-pattern': releaseSelectedPattern(); break;
+    case 'fillet':          exactEdgeOp('fillet'); break;
+    case 'chamfer':         exactEdgeOp('chamfer'); break;
+    case 'release-exact':   releaseSelectedExact(); break;
+    case 'export-step':     exportStep(); break;
+    case 'import-step':
+      if (!experimentalOn()) flash('Exact solids are an experimental feature. Turn them on in Settings.');
+      else document.getElementById('step-input').click();
+      break;
     case 'undo':      doc.undo(); break;
     case 'export-stl':
       if (exportSTL(doc.list, undefined, displayUnit)) flash(`Exported STL (${unitLabel(displayUnit)} units).`);
@@ -583,6 +785,12 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
     flash('Could not load that file. See console.');
   }
   e.target.value = '';   // allow re-loading the same file
+});
+
+document.getElementById('step-input').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';   // allow re-opening the same file
+  if (file) await importStepFile(file);
 });
 
 async function runSelfTest() {

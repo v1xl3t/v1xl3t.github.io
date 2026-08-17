@@ -63,6 +63,7 @@ export const EXPERIMENTAL_FEATURES = [
   { id: 'sketch',   label: 'Sketch and Extrude', note: 'constrained 2D sketching, fillet and chamfer, extrude' },
   { id: 'loft',     label: 'Loft',               note: 'blended solids between two profiles' },
   { id: 'pattern',  label: 'Pattern and Mirror', note: 'repeat a part in a line, around a ring, or mirrored, as one editable rule' },
+  { id: 'brep',     label: 'Exact solids',       note: 'true fillet and chamfer on a finished part, and STEP in and out. Downloads an 11.5MB kernel the first time you use it' },
   { id: 'timeline', label: 'Recipe Timeline',    note: 'branching modeling history' },
   { id: 'dimchips', label: 'Dimension chips',    note: 'editable dimensions floating on the selected part' },
   { id: 'slicer',   label: 'Slicer',              note: 'model to G-code, layer preview, printing over USB' },

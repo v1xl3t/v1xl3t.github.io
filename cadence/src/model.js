@@ -29,6 +29,18 @@ const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const SOLID_COLOR = '#7aa2ff';
 const HOLE_COLOR = '#ff8a8a';
 const GROUP_COLOR = '#9ad29a';
+const BREP_COLOR = '#9ad29a';
+
+/**
+ * Kinds whose mesh is BAKED by a kernel rather than built from scalar params.
+ *
+ * A boolean's shape comes out of Manifold and an exact solid's comes out of
+ * OpenCascade, and neither can be recomputed by `buildGeometry`. Everything
+ * that treats those two differently from a box asks this set rather than
+ * naming 'boolean' and hoping someone remembers to add the next one. Forgetting
+ * one of these is not a visible bug, it is a silently empty mesh on load.
+ */
+const BAKED_KINDS = new Set(['boolean', 'brep']);
 
 // The same three colours, exported so the tiny share-link format can predict
 // them instead of keeping a second copy that could drift. A colour a link does
@@ -44,11 +56,11 @@ export class CadObject {
     this.role = role;                       // 'solid' | 'hole'
     this.children = children;               // boolean only: array of child snapshots
     this.baseMatrix = baseMatrix;           // boolean only: pivot matrix at creation (for ungroup delta)
-    this.params = kind === 'boolean' ? { ...(params || {}) } : { ...DEFAULT_PARAMS[kind], ...params };
-    this.name = name || (kind === 'boolean' ? 'Group' : cap(kind));
-    this.color = role === 'hole' ? HOLE_COLOR : kind === 'boolean' ? GROUP_COLOR : SOLID_COLOR;
+    this.params = BAKED_KINDS.has(kind) ? { ...(params || {}) } : { ...DEFAULT_PARAMS[kind], ...params };
+    this.name = name || (kind === 'boolean' ? 'Group' : kind === 'brep' ? 'Exact solid' : cap(kind));
+    this.color = role === 'hole' ? HOLE_COLOR : kind === 'boolean' ? GROUP_COLOR : kind === 'brep' ? BREP_COLOR : SOLID_COLOR;
 
-    const geo = kind === 'boolean' ? geometry : buildGeometry(kind, this.params);
+    const geo = BAKED_KINDS.has(kind) ? geometry : buildGeometry(kind, this.params);
     this.mesh = new THREE.Mesh(geo, this._material());
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
@@ -84,7 +96,7 @@ export class CadObject {
   // Re-evaluate the recipe -> rebuild geometry. Primitives only; a boolean's
   // geometry is produced by the kernel at group time, not from scalar params.
   rebuild() {
-    if (this.kind === 'boolean') return;
+    if (BAKED_KINDS.has(this.kind)) return;
     const next = buildGeometry(this.kind, this.params);
     this.mesh.geometry.dispose();
     this.mesh.geometry = next;
@@ -95,7 +107,7 @@ export class CadObject {
 
   setRole(role) {
     this.role = role;                       // groups can be holes too
-    this.color = role === 'hole' ? HOLE_COLOR : this.kind === 'boolean' ? GROUP_COLOR : SOLID_COLOR;
+    this.color = role === 'hole' ? HOLE_COLOR : this.kind === 'boolean' ? GROUP_COLOR : this.kind === 'brep' ? BREP_COLOR : SOLID_COLOR;
     this.mesh.material.dispose();
     this.mesh.material = this._material();
   }
@@ -111,7 +123,7 @@ export class CadObject {
       rotation: [rotation.x, rotation.y, rotation.z],
       scale: scale.toArray(),
     };
-    if (this.kind === 'boolean') {
+    if (BAKED_KINDS.has(this.kind)) {
       s.children = this.children ? this.children.map((c) => ({ ...c })) : null;
       s.geometryClone = this.mesh.geometry.clone();
       s.baseMatrix = this.baseMatrix ? this.baseMatrix.toArray() : null;
@@ -126,7 +138,7 @@ export class CadObject {
     this.mesh.position.fromArray(s.position);
     this.mesh.rotation.set(...s.rotation);
     this.mesh.scale.fromArray(s.scale);
-    if (this.kind !== 'boolean') { this.params = deepParams(s.params); this.rebuild(); }
+    if (!BAKED_KINDS.has(this.kind)) { this.params = deepParams(s.params); this.rebuild(); }
   }
 }
 
@@ -311,11 +323,11 @@ export class CadDocument extends EventTarget {
     this.commit('Duplicate');
 
     let copy;
-    if (src.kind === 'boolean') {
+    if (BAKED_KINDS.has(src.kind)) {
       // Clone the baked geometry, the child recipes, and the pivot matrix so the
       // duplicate is a fully independent, still-ungroupable group.
       copy = new CadObject({
-        kind: 'boolean', role: src.role, name: `${src.name} copy`,
+        kind: src.kind, role: src.role, name: `${src.name} copy`,
         params: { ...src.params },          // carries `op`, so the copy is rebakeable too
         geometry: src.mesh.geometry.clone(),
         children: src.children ? src.children.map((c) => ({ ...c, geometryClone: c.geometryClone?.clone() })) : null,
@@ -522,6 +534,124 @@ export class CadDocument extends EventTarget {
     pat.rebuild();
     this.touch(pat);
     return true;
+  }
+
+  // ---- the exact kernel -------------------------------------------------------
+  //
+  // Rounding the edge of a finished solid is the one thing the mesh half cannot
+  // do at any radius, because a fillet is a new analytic surface tangent to two
+  // old ones and a triangle soup has no analytic surfaces. So these two go
+  // through OpenCascade instead, and the result comes back as a `brep` object:
+  // a baked mesh for the screen, plus the recipe and the list of operations
+  // that produced it, so it can be re-run, undone, saved and exported to STEP
+  // as a real parametric part rather than as a scan of one.
+
+  /**
+   * Round or bevel the edges of the selected solid.
+   *
+   * @param {string} id
+   * @param {{type:'fillet'|'chamfer', size:number, select:string}} op
+   * @param {*} brep the loaded brep module, passed in so model.js never pulls
+   *        an eleven megabyte kernel into the initial load by importing it
+   * @param {*} R the replicad namespace from that module
+   */
+  async applyExactOp(id, op, brep, R) {
+    const obj = this.objects.get(id);
+    if (!obj) return null;
+
+    // Applying a second fillet re-runs the whole chain from the original recipe
+    // rather than filleting the filleted mesh. That is what makes the radius of
+    // the FIRST rounding still editable afterwards, and it is the difference
+    // between a feature list and a pile of destructive edits.
+    const src = obj.kind === 'brep' ? obj.params.src : nodeRecipe(obj);
+    const ops = obj.kind === 'brep' ? [...(obj.params.ops || []), op] : [op];
+    return this._bakeExact(obj, src, ops, brep, R, op.type === 'chamfer' ? 'Bevel edges' : 'Round edges');
+  }
+
+  /**
+   * Change one operation in an exact solid's chain and re-run the whole thing.
+   *
+   * Re-run, not patched. The chain is the definition of the part, so editing
+   * step one and replaying steps two and three is the only answer that stays
+   * true. Patching the mesh would make the second fillet depend on a shape the
+   * first one no longer produces.
+   */
+  async editExactOp(id, index, patch, brep, R) {
+    const obj = this.objects.get(id);
+    if (!obj || obj.kind !== 'brep' || !obj.params.src) return null;
+    const ops = (obj.params.ops || []).map((o, i) => (i === index ? { ...o, ...patch } : o));
+    if (!ops[index]) return null;
+    return this._bakeExact(obj, obj.params.src, ops, brep, R, 'Change a rounding');
+  }
+
+  async _bakeExact(obj, src, ops, brep, R, label) {
+    // One call, because everything it builds is freed on the way out. OCCT
+    // shapes are not garbage collected, and a modeller that leaks one solid per
+    // fillet kills the tab somewhere around the twentieth.
+    const geometry = brep.geometryFor(R, src, ops);
+
+    this.commit(label);
+
+    // A part that has been dragged since it was rounded keeps that move, or
+    // editing a radius would teleport it back to where it was first baked.
+    const drift = obj.kind === 'brep' && obj.baseMatrix
+      ? new THREE.Matrix4().copy(obj.baseMatrix).invert().premultiply(obj.mesh.matrixWorld)
+      : null;
+
+    // Recentre on the body, exactly as _bakeGroup does, so the pivot sits on
+    // the part and the world position is unchanged.
+    geometry.computeBoundingBox();
+    const center = new THREE.Vector3();
+    geometry.boundingBox.getCenter(center);
+    geometry.translate(-center.x, -center.y, -center.z);
+
+    const out = new CadObject({
+      kind: 'brep',
+      role: obj.role,
+      geometry,
+      params: { src, ops },
+      name: obj.kind === 'brep' ? obj.name : `${obj.name} rounded`,
+    });
+    out.name = obj.kind === 'brep' ? obj.name : this._uniqueName(out.name);
+    out.mesh.position.copy(center);
+    out.mesh.updateMatrix();
+    out.baseMatrix = out.mesh.matrix.clone();
+    if (drift) {
+      out.mesh.applyMatrix4(drift);
+      out.mesh.updateMatrix();
+    }
+
+    this._disband([obj]);
+    this.objects.set(out.id, out);
+    this._emit('regroup');
+    this.select(out.id);
+    return out;
+  }
+
+  /** Throw the rounding away and give the original part back. */
+  releaseExact(id) {
+    const obj = this.objects.get(id);
+    if (!obj || obj.kind !== 'brep' || !obj.params.src) return null;
+    this.commit('Undo the rounding');
+    const src = obj.params.src;
+    const back = new CadObject({
+      kind: src.kind,
+      role: obj.role,
+      params: deepParams(src.params),
+      geometry: src.kind === 'boolean' ? arraysToGeo(src.geometry) : null,
+      children: src.children ? src.children.map(reviveChild) : null,
+    });
+    back.name = this._uniqueName(src.name || back.name);
+    back.mesh.position.fromArray(src.position || [0, 0, 0]);
+    back.mesh.rotation.set(...(src.rotation || [0, 0, 0]));
+    back.mesh.scale.fromArray(src.scale || [1, 1, 1]);
+    if (back.kind === 'boolean') { back.mesh.updateMatrix(); back.baseMatrix = back.mesh.matrix.clone(); }
+
+    this._disband([obj]);
+    this.objects.set(back.id, back);
+    this._emit('regroup');
+    this.select(back.id);
+    return back;
   }
 
   _disband(objs) {
@@ -833,7 +963,7 @@ function serializeChild(s, opts = {}) {
     id: s.id, kind: s.kind, role: s.role, name: s.name, color: s.color,
     params: deepParams(s.params), position: [...s.position], rotation: [...s.rotation], scale: [...s.scale],
   };
-  if (s.kind === 'boolean') {
+  if (BAKED_KINDS.has(s.kind)) {
     c.baseMatrix = s.baseMatrix || null;                       // already an array from snapshot()
     c.children = s.children ? s.children.map((k) => serializeChild(k, opts)) : null;
     c.geometry = (opts.recipeOnly && rebakeable(c)) ? null
@@ -847,7 +977,7 @@ function reviveChild(c) {
     id: c.id, kind: c.kind, role: c.role, name: c.name, color: c.color,
     params: deepParams(c.params), position: [...c.position], rotation: [...c.rotation], scale: [...c.scale],
   };
-  if (c.kind === 'boolean') {
+  if (BAKED_KINDS.has(c.kind)) {
     s.baseMatrix = c.baseMatrix || null;
     s.geometryClone = c.geometry ? arraysToGeo(c.geometry) : null;
     s.children = c.children ? c.children.map(reviveChild) : null;
@@ -881,6 +1011,16 @@ function deepParams(p) {
   return out;
 }
 
+/**
+ * The recipe an exact solid remembers it was made from.
+ *
+ * Exactly the save format, deliberately. An exact solid has to survive being
+ * written to a file and read back, and keeping a second private shape for the
+ * same information is how the two drift apart and a reloaded part stops being
+ * re-editable.
+ */
+function nodeRecipe(o) { return serializeObject(o); }
+
 function serializeObject(o, opts = {}) {
   const d = {
     id: o.id, kind: o.kind, role: o.role, name: o.name, color: o.color,
@@ -893,7 +1033,7 @@ function serializeObject(o, opts = {}) {
     scale: o.mesh.scale.toArray(),
     visible: o.mesh.visible,
   };
-  if (o.kind === 'boolean') {
+  if (BAKED_KINDS.has(o.kind)) {
     d.baseMatrix = o.baseMatrix ? o.baseMatrix.toArray() : null;
     d.children = o.children ? o.children.map((c) => serializeChild(c, opts)) : null;
     d.geometry = (opts.recipeOnly && rebakeable(d)) ? null : geoToArrays(o.mesh.geometry);
@@ -967,9 +1107,10 @@ async function rebakeNode(node, failed) {
 
 function deserializeObject(d) {
   let obj;
-  if (d.kind === 'boolean') {
+  if (BAKED_KINDS.has(d.kind)) {
     obj = new CadObject({
-      kind: 'boolean', name: d.name, role: d.role,
+      kind: d.kind, name: d.name, role: d.role,
+      params: deepParams(d.params),
       geometry: arraysToGeo(d.geometry),
       children: d.children ? d.children.map(reviveChild) : null,
       baseMatrix: d.baseMatrix ? new THREE.Matrix4().fromArray(d.baseMatrix) : null,
