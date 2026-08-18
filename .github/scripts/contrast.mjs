@@ -25,18 +25,62 @@ const AUDIT = () => {
     return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null;
   };
   const over = (fg, bg) => [0, 1, 2].map(i => fg[i] * fg[3] + bg[i] * (1 - fg[3]));
-  const effBg = el => {
-    let n = el, acc = [255, 255, 255];
+  // A gradient sets background-IMAGE and leaves background-COLOR transparent, so a
+  // walk that reads only backgroundColor sails straight past it and measures the
+  // text against the page instead. That is how the "Vi" wordmark reported 1.14:1
+  // when it really sits between 5.24 and 12.60, and it kept CI red for two days
+  // on false positives.
+  //
+  // A gradient is not one colour, so it cannot collapse to one backdrop. The
+  // stops are returned instead and the caller checks the WORST of them, which is
+  // exactly what the gradient-TEXT branch below already does in the other
+  // direction. Same blind spot, opposite side of the glyph.
+  const gradientStops = cs => {
+    const img = cs.backgroundImage || '';
+    if (!/gradient\(/.test(img)) return null;
+    const stops = (img.match(/rgba?\([^)]*\)/g) || []).map(parse).filter(Boolean);
+    return stops.length ? stops : null;
+  };
+
+  /**
+   * Every backdrop this text could be sitting on, opaque and composited.
+   *
+   * Usually one colour. More than one only when a gradient paints behind the
+   * text, and then the caller checks the worst stop.
+   *
+   * The subtlety that matters: a gradient composites over its OWN element's
+   * background colour, not over whatever is behind that element. `body` here
+   * carries an opaque dark colour AND a 7% green glow on top of it. Compositing
+   * that glow over the page instead of over the dark colour turns a dark
+   * backdrop into a near-white one and fails every paragraph on the page. So
+   * the walk carries on to the end to build the base, and the stops are laid
+   * over that base at the finish.
+   */
+  const effBgs = el => {
+    let n = el;
+    let acc = [255, 255, 255];
     const stack = [];
+    let fan = null;
     while (n && n.nodeType === 1) {
-      const c = parse(getComputedStyle(n).backgroundColor);
+      const ncs = getComputedStyle(n);
+      // The nearest gradient wins, because it paints on top of any further out.
+      // One clipped to its own text is painting glyphs, not ground, and the
+      // gradient-text branch below handles that case instead.
+      if (!fan && ncs.backgroundClip !== 'text' && ncs.webkitBackgroundClip !== 'text') {
+        fan = gradientStops(ncs);
+      }
+      const c = parse(ncs.backgroundColor);
       if (c && c[3] > 0) stack.push(c);
       if (c && c[3] === 1) { acc = [c[0], c[1], c[2]]; break; }
       n = n.parentElement;
     }
     for (let i = stack.length - 1; i >= 0; i--) if (stack[i][3] < 1) acc = over(stack[i], acc);
-    return acc;
+    if (!fan) return [acc];
+    return fan.map(c => (c[3] < 1 ? over(c, acc) : [c[0], c[1], c[2]]));
   };
+
+  // The single-colour view, for the callers that genuinely want one.
+  const effBg = el => effBgs(el)[0];
 
   const out = [];
   document.querySelectorAll('body *').forEach(el => {
@@ -77,10 +121,16 @@ const AUDIT = () => {
       return;
     }
     if (fg[3] === 0) return;
-    const bg = effBg(el);
-    const fgc = fg[3] < 1 ? over(fg, bg) : [fg[0], fg[1], fg[2]];
-    const l1 = lum(fgc), l2 = lum(bg);
-    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    // Worst backdrop wins. On a flat colour there is only one; on a gradient the
+    // text has to stay legible over every stop, not just the flattering end.
+    const bgs = effBgs(el);
+    let ratio = Infinity, bg = bgs[0];
+    for (const cand of bgs) {
+      const c = fg[3] < 1 ? over(fg, cand) : [fg[0], fg[1], fg[2]];
+      const a = lum(c), b2 = lum(cand);
+      const r2 = (Math.max(a, b2) + 0.05) / (Math.min(a, b2) + 0.05);
+      if (r2 < ratio) { ratio = r2; bg = cand; }
+    }
     const px = parseFloat(cs.fontSize);
     const large = px >= 24 || (px >= 18.66 && +cs.fontWeight >= 700);
     const need = large ? 3 : 4.5;

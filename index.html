@@ -792,7 +792,12 @@ html[data-theme="light"] .eyebrow{ background:rgba(154,63,190,.10); color:#87309
    1px line is not text and carries no contrast requirement. */
 html[data-theme="light"] .section-label{ color:#87309f }
 html[data-theme="light"] .eyebrow .dot{ box-shadow:0 0 0 4px rgba(124,95,224,.18) }
-html[data-theme="light"] h1.hero-title .accent{ background:linear-gradient(100deg,#7c5fe0,#8b63e6 55%,#9575f5); -webkit-background-clip:text; background-clip:text }
+html[data-theme="light"] h1.hero-title .accent{ background:linear-gradient(100deg,#7c5fe0,#8b63e6 55%,#8e6fe9); -webkit-background-clip:text; background-clip:text }
+/* The lightest stop was #9575f5 and measured 2.87:1 against the painted
+   backdrop, under the 3:1 large-text floor. The old contrast gate could not
+   see the page glow behind it and scored it 3.18 against the flat body
+   colour, so it passed a real failure. 5% darker clears it at 3.14:1. The
+   other two stops were already 3.85 and 3.50. */
 /* Light theme swaps the mark to violet, matching /apps/ exactly. Vi asked for
    this on 2026-08-12 after seeing it there. The green-to-violet gradient is
    built for the dark theme and reads as a leftover on the lavender wash, where
