@@ -14,7 +14,10 @@
 -->
 <style>
   :root { --bg:#0e1116; --chrome:#161b22; --border:#2a313c; --text:#d7dde5; --muted:#7d8794;
-          --accent:#111111; --paper:#fff; --ink:#000; --ink-soft:#000; }
+          --accent:#111111; --paper:#fff; --ink:#000; --ink-soft:#000;
+          /* Panel greys sit on lighter backgrounds than the toolbar does, so --muted
+             lands under 4.5:1 there. --muted2 is the same role, one step brighter. */
+          --muted2:#8e99a8; }
   * { box-sizing:border-box; }
   html,body { margin:0; height:100%; }
   body { background:var(--bg); color:var(--text); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
@@ -87,6 +90,13 @@
   html[data-tpl="serif"] .r-name { text-align:left; letter-spacing:1px; color:var(--accent); }
   html[data-tpl="serif"] .r-contacts { text-align:left; }
   html[data-tpl="serif"] .sec > h2 { border-bottom-width:2px; }
+
+  /* A section you have not filled yet still needs its heading and its "pick from
+     library" button on screen, but a résumé with a bare EDUCATION rule and
+     nothing under it is a defect. Show it here, drop it from print and exports. */
+  .sec-empty > h2 { opacity:.5; }
+  .sec-empty .emptynote { font-size:11px; color:#6b7480; font-style:italic; }
+  @media print { .sec-empty { display:none !important; } }
 
   /* Tailoring: mark items off for a given application; hidden everywhere except
      while editing in Tailor mode (where they dim so you can switch them back). */
@@ -169,22 +179,114 @@
   /* Touch targets, from the site-wide audit: the template picker, the accent
      swatch, and every add and delete button in the editor were 34 to 39px.
      Element plus class, because the base rules are written that way and win on
-     specificity against a bare class. */
+     specificity against a b  /* ==========================================================================
+     v3: career library, variants, tag filter
+     ========================================================================== */
+
+  /* The résumé picker now holds variant names ("Divergent - AI Solutions
+     Engineer"), not four-letter template keys, so the select auto-sizes wide
+     enough to push the toolbar past a phone's width. Cap it and let the browser
+     clip, the full name is in the Variants panel. */
+  .bar label.swatch { min-width:0; max-width:100%; }
+  #tpl { max-width:220px; }
+  @media screen and (max-width: 820px) { #tpl { max-width:calc(100vw - 130px); } }
+
+  /* Slide-over panel used for the Library, the Include checklist, and Variants. */
+  .panel { position:fixed; top:0; right:0; bottom:0; width:min(430px,100vw); z-index:40;
+           background:var(--chrome); border-left:1px solid var(--border); display:none;
+           flex-direction:column; box-shadow:-12px 0 40px #0007; }
+  .panel.show { display:flex; }
+  .panel header { display:flex; align-items:center; gap:8px; padding:12px 14px;
+                  border-bottom:1px solid var(--border); }
+  .panel header h2 { margin:0; font-size:15px; font-weight:700; }
+  .panel header .spacer { flex:1; }
+  .panel .body { flex:1; overflow:auto; padding:12px 14px 24px; }
+  .panel .foot { border-top:1px solid var(--border); padding:10px 14px; display:flex; gap:8px; flex-wrap:wrap; }
+  .panel button, .panel select, .panel input[type=text], .panel input[type=search] {
+    font:inherit; color:var(--text); background:#1f262f; border:1px solid var(--border);
+    border-radius:7px; padding:6px 10px; }
+  .panel button { cursor:pointer; }
+  .panel button:hover { border-color:#4c8dff; }
+  .panel button.primary { background:#2456c6; border-color:#2456c6; color:#fff; font-weight:600; }
+  .panel button.danger { color:#ff8f83; }
+  .panel button:focus-visible, .panel select:focus-visible, .panel input:focus-visible { outline:2px solid #4c8dff; outline-offset:2px; }
+  .panel .muted { color:var(--muted2); font-size:12px; }
+  .panel .grp { margin:0 0 18px; }
+  .panel .grp > h3 { font-size:11px; text-transform:uppercase; letter-spacing:.8px;
+                     color:var(--muted2); margin:0 0 6px; display:flex; align-items:center; gap:8px; }
+  .panel .grp > h3 .spacer { flex:1; }
+
+  /* One selectable career item in the Include checklist. */
+  .pick { display:flex; gap:9px; align-items:flex-start; padding:7px 8px; border-radius:8px;
+          border:1px solid transparent; }
+  .pick:hover { background:#1f262f; }
+  .pick.on { border-color:#4468a4; background:#182234; }
+  .pick > input { margin:3px 0 0; width:16px; height:16px; flex:none; accent-color:#4c8dff; }
+  .pick .meat { flex:1; min-width:0; }
+  .pick .t { font-size:13px; font-weight:600; line-height:1.35; }
+  .pick .s { font-size:11.5px; color:var(--muted2); margin-top:1px; }
+  .pick .score { flex:none; font-size:11px; color:var(--muted2); font-variant-numeric:tabular-nums;
+                 border:1px solid var(--border); border-radius:99px; padding:1px 7px; margin-top:2px; }
+  .pick .score.hit { color:#8fd0a0; border-color:#2f5c3d; }
+  .pick .bul { margin:6px 0 0; padding:0; list-style:none; }
+  .pick .bul li { display:flex; gap:7px; align-items:flex-start; font-size:11.5px;
+                  color:var(--text); padding:2px 0; }
+  .pick .bul li input { margin:2px 0 0; width:14px; height:14px; flex:none; accent-color:#4c8dff; }
+  .pick .bul li.dim { color:var(--muted2); }
+  .pick .bul li span { flex:1; }
+
+  /* Tag chips, used in the filter and on library items. */
+  .chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+  .chip { font-size:10.5px; line-height:1.6; border:1px solid var(--border); border-radius:99px;
+          padding:0 8px; color:var(--muted2); background:#1a2029; cursor:pointer; }
+  .chip.on { background:#2456c6; border-color:#2456c6; color:#fff; }
+  .chip.ind { border-style:dashed; }
+  .chip.ro { cursor:default; }
+  .chip:focus-visible { outline:2px solid #4c8dff; outline-offset:1px; }
+
+  .fbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .fbar input[type=search] { flex:1; min-width:120px; }
+
+  /* Variant list */
+  .vrow { display:flex; gap:8px; align-items:center; padding:8px; border-radius:8px; border:1px solid var(--border); margin-bottom:7px; }
+  .vrow.cur { border-color:#2456c6; background:#182234; }
+  .vrow .meat { flex:1; min-width:0; }
+  .vrow .t { font-size:13px; font-weight:600; }
+  .vrow .s { font-size:11.5px; color:var(--muted2); }
+  .vrow button { padding:4px 8px; font-size:12px; }
+
+  .backdrop { position:fixed; inset:0; background:#0007; z-index:39; display:none; }
+  .backdrop.show { display:block; }
+
+  /* QR output */
+  .qrwrap { text-align:center; }
+  .qrwrap canvas { background:#fff; padding:12px; border-radius:10px; max-width:100%; height:auto; image-rendering:pixelated; }
+  .qrwrap .cap { font-size:12px; color:var(--muted2); margin-top:8px; word-break:break-all; }
+
+  /* The library is personal data. Make its "nothing loaded" state obvious. */
+  .empty { border:1px dashed var(--border); border-radius:10px; padding:16px; text-align:center; color:var(--muted2); font-size:12.5px; }
+
   @media (pointer: coarse) {
-    select#tpl, input#accent,
-    button.add, button.del,
-    button#ob-close, button#ob-blank { min-height: 44px; }
-    button.del { min-width: 44px; }
+    .panel button, .panel select { min-height:44px; }
+    .pick > input, .pick .bul li input { width:20px; height:20px; }
   }
+  @media print { .panel, .backdrop { display:none !important; } }
+oarse) {
+    .panel button, .panel select { min-height:44px; }
+    .pick > input, .pick .bul li input { width:20px; height:20px; }
+  }
+  @media print { .panel, .backdrop { display:none !important; } }
 </style>
 </head>
 <body>
   <div class="bar" role="toolbar" aria-label="Résumé tools">
     <div class="brand">Résumé<span>Studio</span></div>
     <button id="help" aria-label="Help and quick start" title="Help / quick start">? Help</button>
-    <label class="swatch">Template <select id="tpl" aria-label="Template"></select></label>
+    <label class="swatch">Résumé <select id="tpl" aria-label="Current résumé variant"></select></label>
+    <button id="variants" title="Create, duplicate, rename or delete résumé variants">⧉ Variants</button>
+    <button id="include" title="Choose which experiences appear on this résumé">☑ Include</button>
+    <button id="library" title="Your career library, import and tagging">🗂 Library</button>
     <button id="add-sec">+ Section</button>
-    <button id="reset">Reset template</button>
     <label class="swatch">Accent <input type="color" id="accent" value="#111111" aria-label="Accent color" /></label>
     <select id="style" aria-label="Layout style">
       <option value="classic">Classic</option>
@@ -194,7 +296,7 @@
     </select>
     <label class="swatch tailor"><input type="checkbox" id="tailor" aria-label="Tailoring mode" /> Tailor</label>
     <div class="spacer"></div>
-    <span class="hint">Underlined = editable · autosaves per template</span>
+    <span class="hint" id="hint">Underlined = editable · autosaves</span>
     <button id="print">Print / PDF</button>
     <select id="export" aria-label="Export format">
       <option value="">Export…</option>
@@ -204,10 +306,102 @@
     </select>
     <button id="save">Save JSON</button>
     <button id="load">Load</button>
-    <button id="sharelink" title="Copy a backup / sync link holding this résumé">🔗 Link</button>
+    <button id="sharelink" title="Copy a link holding this résumé">🔗 Link</button>
+    <button id="qrbtn" title="QR code for this résumé">▦ QR</button>
     <input type="file" id="file" accept="application/json,.json" hidden />
+    <input type="file" id="impfile" accept=".xlsx,.csv,.json,application/json" hidden />
   </div>
   <div class="sheet-wrap"><article class="sheet" id="sheet" aria-label="Résumé"></article></div>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- ---------------- Include checklist ---------------- -->
+  <aside class="panel" id="p-include" role="dialog" aria-modal="false" aria-labelledby="p-include-t">
+    <header><h2 id="p-include-t">Include on this résumé</h2><div class="spacer"></div>
+      <button data-close aria-label="Close">✕</button></header>
+    <div class="body">
+      <div class="fbar">
+        <input type="search" id="inc-q" placeholder="Search experiences…" aria-label="Search experiences" />
+        <select id="inc-mode" aria-label="Tag match mode">
+          <option value="or">match any tag</option>
+          <option value="and">match all tags</option>
+        </select>
+      </div>
+      <div class="grp" id="inc-tags"></div>
+      <div class="fbar">
+        <button id="inc-top" title="Check the highest scoring experiences">Select top 6</button>
+        <button id="inc-none">Clear all</button>
+        <button id="inc-all">Select all</button>
+        <span class="muted" id="inc-count"></span>
+      </div>
+      <div id="inc-list"></div>
+    </div>
+    <div class="foot"><button class="primary" data-close>Done</button>
+      <span class="muted">Unchecked items stay in your library, they just leave this résumé.</span></div>
+  </aside>
+
+  <!-- ---------------- Variants ---------------- -->
+  <aside class="panel" id="p-variants" role="dialog" aria-modal="false" aria-labelledby="p-variants-t">
+    <header><h2 id="p-variants-t">Résumé variants</h2><div class="spacer"></div>
+      <button data-close aria-label="Close">✕</button></header>
+    <div class="body"><div id="var-list"></div></div>
+    <div class="foot">
+      <button class="primary" id="var-new">+ New from library</button>
+      <button id="var-blank">+ Blank</button>
+      <button data-close>Done</button>
+    </div>
+  </aside>
+
+  <!-- ---------------- Library ---------------- -->
+  <aside class="panel" id="p-library" role="dialog" aria-modal="false" aria-labelledby="p-library-t">
+    <header><h2 id="p-library-t">Career library</h2><div class="spacer"></div>
+      <button data-close aria-label="Close">✕</button></header>
+    <div class="body">
+      <p class="muted" id="lib-stat"></p>
+      <div class="fbar">
+        <button class="primary" id="lib-import">Import .xlsx / .csv / .json</button>
+        <select id="lib-export" aria-label="Export library">
+          <option value="">Export library…</option>
+          <option value="xlsx">Spreadsheet (.xlsx)</option>
+          <option value="csv">Roles + bullets (.csv)</option>
+          <option value="json">Library (.json)</option>
+        </select>
+      </div>
+      <p class="muted">Your library never leaves this browser. Export it to keep a copy, or to sync
+        your tags back into the spreadsheet.</p>
+      <div class="fbar"><input type="search" id="lib-q" placeholder="Search library…" aria-label="Search library" /></div>
+      <div id="lib-list"></div>
+    </div>
+    <div class="foot"><button class="danger" id="lib-clear">Clear library</button>
+      <button data-close>Done</button></div>
+  </aside>
+
+  <!-- ---------------- QR ---------------- -->
+  <aside class="panel" id="p-qr" role="dialog" aria-modal="false" aria-labelledby="p-qr-t">
+    <header><h2 id="p-qr-t">QR code</h2><div class="spacer"></div>
+      <button data-close aria-label="Close">✕</button></header>
+    <div class="body">
+      <div class="fbar">
+        <select id="qr-src" aria-label="What the QR points to">
+          <option value="short">A short link I control</option>
+          <option value="full">This résumé, whole thing in the code</option>
+          <option value="custom">Custom text</option>
+        </select>
+        <select id="qr-ecc" aria-label="Error correction">
+          <option value="L">ECC L (smallest)</option>
+          <option value="M" selected>ECC M</option>
+          <option value="Q">ECC Q</option>
+          <option value="H">ECC H (toughest)</option>
+        </select>
+      </div>
+      <div class="fbar"><input type="text" id="qr-text" placeholder="YOURSITE.COM/R/CV" aria-label="QR contents" /></div>
+      <p class="muted" id="qr-note"></p>
+      <div class="qrwrap"><canvas id="qr-canvas" width="0" height="0" aria-label="QR code"></canvas>
+        <div class="cap" id="qr-cap"></div></div>
+    </div>
+    <div class="foot"><button class="primary" id="qr-png">Download PNG</button>
+      <button id="qr-svg">Download SVG</button><button data-close>Done</button></div>
+  </aside>
 
   <div class="ob-backdrop" id="onboard" role="dialog" aria-modal="true" aria-labelledby="ob-title">
     <div class="ob">
@@ -215,9 +409,10 @@
       <p class="sub">A no-install résumé editor. Your data stays in your browser, nothing is uploaded.</p>
       <ol>
         <li><b>Click any text to edit it</b>, fields highlight on hover and edits autosave locally.</li>
-        <li><b>Add or remove</b> sections, entries, bullets, and skills with the dashed <b>+</b> and <b>✕</b> buttons.</li>
-        <li><b>Save JSON</b> to keep a copy, <b>Load</b> to bring one back, <b>Print / PDF</b> to export.</li>
-        <li>Set an <b>Accent</b> color and switch <b>Classic / Modern</b> style anytime.</li>
+        <li><b>Library</b> holds every job, project and bullet you have, tagged by skill and industry.</li>
+        <li><b>Include</b> is a checklist. Filter by tag, tick what fits the job, the résumé rebuilds.</li>
+        <li><b>Variants</b> saves and duplicates whole résumés, one per role you are chasing.</li>
+        <li><b>Print / PDF</b>, <b>Export</b>, <b>Link</b> and <b>QR</b> all respect what you ticked.</li>
       </ol>
       <div class="row">
         <button class="primary" id="ob-close">Start from sample</button>
@@ -226,11 +421,195 @@
     </div>
   </div>
 
-<!-- Optional LOCAL-ONLY personal templates (not deployed). Absent on the public build. -->
+<!-- Optional LOCAL-ONLY personal data (never deployed). Absent on the public build. -->
 <script src="templates.local.js" onerror="void 0"></script>
+<script src="library.local.js" onerror="void 0"></script>
 <script>
 "use strict";
-// ---- the public placeholder template (the only data that ships in the repo) ----
+/* ============================================================================
+   Résumé Studio v3
+   ----------------------------------------------------------------------------
+   Two data stores, deliberately separate:
+
+     LIB       your career library. Every job, project, award and bullet you
+               have, each one tagged with skills and industries. Personal.
+               Never ships in the public build, never leaves the browser.
+
+     VARIANTS  one per résumé you are building. A "library" variant does not
+               copy your history, it holds a list of library item ids plus any
+               per-résumé wording overrides, so fixing a typo in one variant
+               cannot silently rewrite another. A "freeform" variant carries its
+               own sections verbatim, which is what every v2 résumé becomes on
+               upgrade and what the public sample still is.
+
+   Rendering compiles (LIB + VARIANT) into the same section shape v2 used, so the
+   sheet renderer, the four exporters and the share link all kept working.
+   ========================================================================== */
+
+/* ---------- 0. helpers ---------- */
+const LSP  = "resume-studio:v3:";
+const LSP2 = "resume-studio:v2:";
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const uid = (p) => p + Math.random().toString(36).slice(2, 8);
+const norm = (s) => String(s ?? "").trim().toLowerCase();
+const uniq = (a) => [...new Set(a.filter(x => x != null && String(x).trim() !== ""))];
+const byId = (id) => document.getElementById(id);
+
+/* ---------- 1. dates ----------
+   The spreadsheet writes dates the way a person does: "Aug 2025", "Present",
+   "Fall 2021", "Summer 2024", "circa 2012-2013". Everything becomes a single
+   sortable month number so recency ranking has something to work with. */
+const MONTHS = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,sept:8,oct:9,nov:10,dec:11 };
+const SEASONS = { spring:2, summer:5, fall:8, autumn:8, winter:11 };
+const NOW_M = new Date().getFullYear() * 12 + new Date().getMonth();
+
+function parseWhen(raw) {
+  const s = norm(raw);
+  if (!s) return { m: null, ongoing: false, text: String(raw ?? "") };
+  if (/^(present|current|ongoing|now|tbd)$/.test(s)) return { m: NOW_M, ongoing: true, text: String(raw) };
+  const year = (s.match(/\b(19|20)\d{2}\b/) || [])[0];
+  if (!year) return { m: null, ongoing: false, text: String(raw) };
+  const y = +year;
+  let mo = 0;
+  const mw = s.match(/\b([a-z]{3,9})\b/g) || [];
+  for (const w of mw) {
+    if (w in MONTHS) { mo = MONTHS[w]; break; }
+    if (w in SEASONS) { mo = SEASONS[w]; break; }
+  }
+  return { m: y * 12 + mo, ongoing: false, text: String(raw) };
+}
+/* How recent is this, as a 0..1 score. Anything ongoing counts as today.
+   Ten years is the horizon, which matches how far back a résumé usually reads. */
+function recency(item) {
+  const e = parseWhen(item.end);
+  const m = e.m == null ? parseWhen(item.start).m : e.m;
+  if (m == null) return 0.3;
+  const monthsAgo = Math.max(0, NOW_M - m);
+  return Math.max(0, 1 - monthsAgo / 120);
+}
+function dateRange(item) {
+  const a = String(item.start || "").trim(), b = String(item.end || "").trim();
+  if (a && b) return a === b ? a : `${a} to ${b}`;
+  return a || b || "";
+}
+
+/* ---------- 2. tag vocabulary ----------
+   Skills come straight out of the spreadsheet, they are already a comma list.
+   Industries do not exist there yet, so they are inferred once on import and
+   are fully editable afterwards. Inference is a starting point, not a verdict. */
+const INDUSTRIES = ["AI & Machine Learning", "Games", "Film & TV", "Music & Audio",
+  "Web & Software", "Education", "Hardware & Fabrication", "Architecture & Design",
+  "Retail & Service", "Community & Nonprofit"];
+
+const IND_HINTS = [
+  ["AI & Machine Learning", /\b(ai|llm|claude|gpt|rag|agent|machine learning|ml|gan|neural|model|prompt|eval)\b/i],
+  ["Games",                 /\b(game|unity|unreal|wwise|fmod|blueprint|level design|playtest|gdc|studios?)\b/i],
+  ["Film & TV",             /\b(film|tv|television|score|foley|adr|cinema|documentary|short|feature)\b/i],
+  ["Music & Audio",         /\b(compos|music|audio|sound|mix|master|daw|ableton|midi|orchestr|record)\b/i],
+  ["Web & Software",        /\b(web|react|node|javascript|typescript|frontend|front-end|css|html|api|database|sql|app|platform|software|python)\b/i],
+  ["Education",             /\b(teach|professor|adjunct|curriculum|student|facilitat|lecture|k-12|steam|stem|workshop|university|school)\b/i],
+  ["Hardware & Fabrication",/\b(arduino|firmware|3d print|laser|cnc|fabricat|solder|pcb|hardware|robot|kuka|bambu|microcontroller)\b/i],
+  ["Architecture & Design", /\b(architect|rhino|grasshopper|parametric|cad|onshape|fusion|design studio|generative)\b/i],
+  /* Role words, not employer names. Naming real shops here would put a user's
+     work history into a file that ships to everyone. */
+  ["Retail & Service",      /\b(retail|cashier|customer service|point of sale|pos|sales associate|sales advisor|store associate|crew member|barista|server|host|front of house|stock)\b/i],
+  /* Deliberately not the bare word "service", which made every retail job read
+     as community work. */
+  ["Community & Nonprofit", /\b(volunteer|volunteering|nonprofit|non-profit|community|relief|association|outreach|charity|mutual aid)\b/i],
+];
+function inferIndustries(...texts) {
+  const hay = texts.filter(Boolean).join(" \n ");
+  const hits = IND_HINTS.filter(([, re]) => re.test(hay)).map(([n]) => n);
+  return hits.length ? hits : [];
+}
+
+/* ---------- 3. the library ---------- */
+/* A function, not a shared constant. `LIB = EMPTY_LIB` followed by
+   `LIB.items.push(...)` would have quietly filled in the "empty" library that
+   Clear then restores from. */
+const emptyLib = () => ({ v: 3, profile: { name: "", contacts: [] }, items: [], skills: [], industries: INDUSTRIES.slice() });
+let LIB = emptyLib();
+
+/* Split a prose paragraph into résumé bullets. The spreadsheet stores
+   descriptions as writing, not as bullets, so sentences become the seed and
+   very short fragments fold back into the sentence before them rather than
+   becoming a bullet of four words. You edit them afterwards. */
+function toBullets(text) {
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  if (!t) return [];
+  if (t.includes("|")) return t.split("|").map(x => x.trim()).filter(Boolean);
+  if (/\n\s*[-•]/.test(text || "")) return String(text).split(/\n\s*[-•]\s*/).map(x => x.trim()).filter(Boolean);
+  const parts = t.split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/);
+  const out = [];
+  for (const p of parts) {
+    const s = p.trim();
+    if (!s) continue;
+    if (out.length && s.length < 45) out[out.length - 1] += " " + s;
+    else out.push(s);
+  }
+  return out;
+}
+/* A bullet is tagged with the skills it actually names. A bullet that names
+   none is a general achievement and stays in every filtered view rather than
+   inheriting the whole role's tag list and drowning the signal. */
+function tagBullet(text, roleSkills) {
+  const hay = " " + norm(text) + " ";
+  return roleSkills.filter(s => {
+    const n = norm(s);
+    if (n.length < 2) return false;
+    return hay.includes(" " + n) || hay.includes(n + " ") || hay.includes(n + ",") || hay.includes(n + ".");
+  });
+}
+function makeItem(o) {
+  const skills = uniq((o.skills || []).map(s => String(s).trim()));
+  /* Bullets arrive two ways. A spreadsheet or a fresh entry gives plain strings.
+     Anything already through this function once, a library JSON export or the
+     items packed into a saved résumé, gives {id, text, tags} objects. Treating
+     the second as the first is how every bullet became "[object Object]". */
+  const raw = (o.bullets && o.bullets.length) ? o.bullets : toBullets(o.description);
+  const bulletTexts = raw.map(b => (b && typeof b === "object") ? b : { text: String(b) });
+  return {
+    id: o.id || uid("X"),
+    kind: o.kind || "role",
+    org: o.org || "", role: o.role || "", location: o.location || "",
+    start: o.start || "", end: o.end || "", url: o.url || "",
+    skills,
+    industries: o.industries && o.industries.length ? o.industries
+      : inferIndustries(o.org, o.role, o.description, skills.join(" ")),
+    bullets: bulletTexts.map((b, i) => {
+      const text = String(b.text ?? "").trim();
+      return {
+        id: b.id || ((o.id || "X") + "-b" + (i + 1)),
+        text,
+        /* Tags already assigned by hand are kept. Only a bullet that has none
+           gets them derived from the skills its text names. */
+        tags: (b.tags && b.tags.length) ? uniq(b.tags.map(String)) : tagBullet(text, skills),
+      };
+    }),
+  };
+}
+function libItem(id) { return LIB.items.find(i => i.id === id); }
+function allSkills() { return uniq(LIB.items.flatMap(i => i.skills)).sort((a, b) => a.localeCompare(b)); }
+function allIndustries() { return uniq(LIB.items.flatMap(i => i.industries)).sort((a, b) => a.localeCompare(b)); }
+
+/* Score an item against the active filter. Tag hits dominate, recency breaks
+   ties. Both halves are shown in the checklist so a ranking you disagree with
+   is visibly wrong rather than mysteriously wrong. */
+function scoreItem(item, filter) {
+  const wantS = filter.skills || [], wantI = filter.industries || [];
+  const want = wantS.length + wantI.length;
+  const hitS = wantS.filter(s => item.skills.some(x => norm(x) === norm(s)));
+  const hitI = wantI.filter(s => item.industries.some(x => norm(x) === norm(s)));
+  const hits = hitS.length + hitI.length;
+  const bulletHits = item.bullets.filter(b => b.tags.some(t => wantS.some(s => norm(s) === norm(t)))).length;
+  const ok = want === 0 ? true : (filter.mode === "and" ? hits === want : hits > 0);
+  const rel = want === 0 ? 0 : hits / want;
+  return { hits, want, bulletHits, ok, rel, rec: recency(item),
+           score: Math.round((rel * 100) + (recency(item) * 40) + Math.min(bulletHits, 5) * 4) };
+}
+
+/* ---------- 4. variants ---------- */
 const PLACEHOLDER = {
   name: "YOUR NAME",
   contacts: ["City, ST", "you@email.com", "yoursite.com", "linkedin.com/in/you"],
@@ -241,7 +620,6 @@ const PLACEHOLDER = {
     { type:"skills", title:"Skills", rows:[ { label:"Software", value:"Tool, tool, tool" }, { label:"Technical", value:"Skill, skill, skill" } ] },
   ],
 };
-// A truly empty scaffold for users who want to start from scratch.
 const BLANK = {
   name: "YOUR NAME",
   contacts: ["City, ST", "you@email.com", "yoursite.com", "linkedin.com/in/you"],
@@ -250,85 +628,1574 @@ const BLANK = {
     { type:"skills", title:"Skills", rows:[ { label:"Category", value:"items" } ] },
   ],
 };
-// Personal templates come from an OPTIONAL local-only file (templates.local.js).
-const EXTRA = (typeof window !== "undefined" && window.RESUME_TEMPLATES) ? window.RESUME_TEMPLATES : {};
-const TEMPLATES = { sample: { label: "Sample (placeholder)", data: PLACEHOLDER }, ...EXTRA };
 
-const LSP = "resume-studio:v2:";
-let curKey = localStorage.getItem(LSP + "current");
-if (!curKey || !TEMPLATES[curKey]) curKey = Object.keys(TEMPLATES)[0];
-const clone = (o) => JSON.parse(JSON.stringify(o));
-let R = loadTpl(curKey);
+function freeformVariant(name, data) {
+  const d = clone(data);
+  return { id: uid("v"), name, kind: "freeform", layout: "classic", accent: "#111111",
+           profile: { name: d.name, contacts: d.contacts || [] },
+           sections: d.sections || [], overrides: {},
+           filter: { skills: [], industries: [], mode: "or" } };
+}
+/* A library variant starts with the standard résumé skeleton. Nothing is
+   ticked, because guessing what belongs on a résumé is exactly the judgment
+   call this tool refuses to make for you. */
+function libraryVariant(name) {
+  return {
+    id: uid("v"), name, kind: "library", layout: "classic", accent: "#111111",
+    /* The spreadsheet holds work history, not a name and a phone number, so a
+       new library résumé borrows the header from whichever résumé is open
+       rather than making you retype it. */
+    profile: clone(
+      (LIB.profile && LIB.profile.name) ? LIB.profile
+      : (V() && V().profile && V().profile.name && V().profile.name !== "YOUR NAME") ? V().profile
+      : { name: "YOUR NAME", contacts: ["City, ST", "you@email.com", "yoursite.com", "linkedin.com/in/you"] }),
+    sections: [
+      { id: uid("s"), type: "entries", title: "Education",  kinds: ["education"], itemIds: [] },
+      { id: uid("s"), type: "entries", title: "Experience", kinds: ["role"],      itemIds: [] },
+      { id: uid("s"), type: "entries", title: "Projects",   kinds: ["project"],   itemIds: [] },
+      { id: uid("s"), type: "skills",  title: "Skills",     rows: [] },
+    ],
+    overrides: {},
+    filter: { skills: [], industries: [], mode: "or" },
+  };
+}
 
-function loadTpl(key) { try { const s = localStorage.getItem(LSP + key); if (s) return JSON.parse(s); } catch {} return clone(TEMPLATES[key].data); }
-let PREVIEW = false; // previewing a résumé opened from a link; nothing persists until adopted
-function save() { if (PREVIEW) return; try { localStorage.setItem(LSP + curKey, JSON.stringify(R)); localStorage.setItem(LSP + "current", curKey); } catch {} }
+/* Which library kind a section is asking for, read off its heading. */
+const SECTION_KIND = [
+  [/education|school|degree/i, "education"],
+  [/project/i,                 "project"],
+  [/award|honou?r/i,           "award"],
+  [/credit|filmograph|discograph|selected work/i, "credit"],
+  [/volunteer|service|community|leadership/i,     "service"],
+];
+/* "City, ST | Month Year - Present" into its parts. Anything it cannot read
+   is left alone and preserved verbatim by a meta override. */
+function splitMeta(meta) {
+  const parts = String(meta || "").split("|").map(x => x.trim()).filter(Boolean);
+  let location = "", start = "", end = "";
+  for (const part of parts) {
+    const dated = /\d{4}|present|current|ongoing/i.test(part);
+    const m = part.match(/^(.*?)\s*[\u2013\u2014-]\s*(.*)$/);
+    if (dated && m && !start) { start = m[1].trim(); end = m[2].trim(); }
+    else if (dated && !start) { start = end = part; }
+    else if (!location) location = part;
+  }
+  return { location, start, end };
+}
+const kindForSection = (title) => (SECTION_KIND.find(([re]) => re.test(String(title || "")))||[])[1] || "role";
 
-function getPath(p){ return p.split(".").reduce((o,k)=>o?.[k], R); }
-function setPath(p,v){ const ks=p.split("."); let o=R; for(let i=0;i<ks.length-1;i++) o=o[ks[i]]; o[ks[ks.length-1]]=v; }
-const esc=(s)=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-const ed=(p,ph)=>`<span data-ed data-field="${p}" data-ph="${ph||""}" role="textbox" aria-label="${esc(ph||"editable field")}">${esc(getPath(p)??"")}</span>`;
+/* Turn a hand-typed résumé into a library-backed COPY of itself.
+   Two rules, both about not losing anything you wrote:
+     - an entry that matches something already in your library reuses that item,
+       and your wording rides along as a per-résumé override, so the page looks
+       identical after the conversion;
+     - an entry that matches nothing is ADDED to your library, because anything
+       good enough for a résumé belongs in your history.
+   The original variant is left exactly as it was. */
+function libraryFromFreeform(src) {
+  const out = { id: uid("v"), name: src.name + " (library)", kind: "library",
+                layout: src.layout || "classic", accent: src.accent || "#111111",
+                profile: clone(src.profile), sections: [], overrides: {},
+                filter: { skills: [], industries: [], mode: "or" } };
+  let matched = 0, added = 0;
+  const used = new Set();   // one library item cannot serve two entries
+  const vocab = uniq([...allSkills(), ...(LIB.skills || []).map(x => x.name)]);
+  for (const sec of (src.sections || [])) {
+    if (sec.type !== "entries") { out.sections.push(clone(sec)); continue; }
+    const kind = kindForSection(sec.title);
+    /* You ordered this section by hand. Ticking something new into it later
+       must not silently re-sort the rest by date. */
+    const nsec = { id: uid("s"), type: "entries", title: sec.title, off: !!sec.off, kinds: [kind], itemIds: [], manual: true };
+    for (const it of (sec.items || [])) {
+      const org = norm(it.org), role = norm(it.role);
+      if (!org && !role) continue;
+      /* Never match on employer alone. This résumé lists two different jobs at
+         one employer and a degree from the same school it later taught at, so
+         org-only matching picks the wrong item and rewrites the entry on screen.
+         When the choice is not clear, add a new library item instead: a
+         duplicate you can merge later beats a résumé that quietly changed. */
+      let pool = LIB.items.filter(x => org && norm(x.org) === org && !used.has(x.id));
+      let hit = null;
+      if (role) {
+        const exact = pool.filter(x => norm(x.role) === role);
+        const loose = pool.filter(x => norm(x.role) && (norm(x.role).includes(role) || role.includes(norm(x.role))));
+        hit = exact.length === 1 ? exact[0] : (exact.length === 0 && loose.length === 1 ? loose[0] : null);
+      } else {
+        const byKind = pool.filter(x => x.kind === kind);
+        hit = byKind.length === 1 ? byKind[0] : (pool.length === 1 ? pool[0] : null);
+      }
+      if (hit) matched++;
+      else {
+        /* Dates live in one free-text "meta" field on a hand-typed résumé.
+           Split what is splittable so the item still sorts by recency, and let
+           the meta override carry the original line verbatim if it differs. */
+        const m = splitMeta(it.meta);
+        /* Read skills off the entry's own words using the vocabulary the
+           library already knows, otherwise a converted entry carries no tags and
+           the filter never surfaces it. */
+        const words = [it.org, it.role, (it.bullets || []).join(" ")].filter(Boolean).join(" ");
+        hit = makeItem({ id: uid(kind[0].toUpperCase()), kind, org: it.org, role: it.role,
+                         location: m.location, start: m.start, end: m.end,
+                         bullets: (it.bullets || []).slice(),
+                         skills: tagBullet(words, vocab),
+                         industries: inferIndustries(it.org, it.role, (it.bullets || []).join(" ")) });
+        LIB.items.push(hit); added++;
+      }
+      used.add(hit.id);
+      nsec.itemIds.push(hit.id);
+      const o = { bullets: {}, bulletsOff: [] };
+      if (it.org  && it.org  !== hit.org)  o.org  = it.org;
+      if (it.role !== undefined && it.role !== hit.role) o.role = it.role;
+      const libMeta = [hit.location, dateRange(hit)].filter(Boolean).join(" | ");
+      if (it.meta && it.meta !== libMeta) o.meta = it.meta;
+      const mine = (it.bullets || []).map(String);
+      const theirs = hit.bullets.map(b => b.text);
+      if (mine.length && JSON.stringify(mine) !== JSON.stringify(theirs)) o.bulletsAll = mine;
+      if (it.off) o.off = true;
+      out.overrides[hit.id] = o;
+    }
+    out.sections.push(nsec);
+  }
+  dedupeVariant(out);
+  return { variant: out, matched, added };
+}
+/* Offered wherever a hand-typed résumé meets a library feature. Returns true if
+   the user went ahead, so the caller can carry on into the checklist. */
+function offerConversion(why) {
+  if (!LIB.items.length) { openLibrary(); return false; }
+  const src = V();
+  const msg = why + "\n\n" + `"${src.name}" was typed by hand, so there is nothing ticked to change.\n\n`
+    + "OK makes a library-backed copy of it. Your wording is kept exactly, entries your library has "
+    + "never heard of are added to it, and the original résumé is left untouched.\n\nCancel to leave things as they are.";
+  if (!confirm(msg)) return false;
+  const { variant, matched, added } = libraryFromFreeform(src);
+  VARIANTS.splice(VARIANTS.indexOf(src) + 1, 0, variant);
+  curId = variant.id;
+  saveAll(); render();
+  if (added) alert(`Made "${variant.name}".\n\n${matched} entr${matched === 1 ? "y" : "ies"} matched your library. ${added} did not and ${added === 1 ? "was" : "were"} added to it, so check their tags in the Library panel.`);
+  return true;
+}
 
-const sheet = document.getElementById("sheet");
+let VARIANTS = [];
+let curId = null;
+let PREVIEW = false;   // previewing a résumé opened from a link, nothing persists yet
+
+const V = () => VARIANTS.find(v => v.id === curId) || VARIANTS[0];
+/* Overrides are keyed by library item id, so the same item may appear at most
+   once on a résumé. Two placements would share one override and the second
+   would silently rewrite the first. Different jobs at the same employer are
+   different library items, so this costs nothing real. */
+function dedupeVariant(v) {
+  if (!v || v.kind !== "library") return v;
+  const seen = new Set();
+  for (const s of (v.sections || [])) {
+    if (!s.itemIds) continue;
+    s.itemIds = s.itemIds.filter(id => (seen.has(id) ? false : (seen.add(id), true)));
+  }
+  return v;
+}
+function ov(libId) {
+  const v = V();
+  if (!v.overrides[libId]) v.overrides[libId] = { bullets: {}, bulletsOff: [] };
+  const o = v.overrides[libId];
+  if (!o.bullets) o.bullets = {};
+  if (!o.bulletsOff) o.bulletsOff = [];
+  return o;
+}
+
+/* ---------- 5. storage and the v2 upgrade ---------- */
+function saveAll() {
+  if (PREVIEW) return;
+  try {
+    localStorage.setItem(LSP + "lib", JSON.stringify(LIB));
+    localStorage.setItem(LSP + "variants", JSON.stringify(VARIANTS));
+    localStorage.setItem(LSP + "current", curId || "");
+  } catch (e) { /* quota or private mode, editing still works for this session */ }
+}
+function loadAll() {
+  try {
+    const l = localStorage.getItem(LSP + "lib");
+    if (l) LIB = JSON.parse(l);
+    const v = localStorage.getItem(LSP + "variants");
+    if (v) VARIANTS = JSON.parse(v);
+    curId = localStorage.getItem(LSP + "current") || null;
+  } catch (e) { /* fall through to defaults */ }
+
+  /* Seeded personal library from the optional local-only file, only when the
+     browser has nothing yet, so it never stomps edits you already made. */
+  if ((!LIB.items || !LIB.items.length) && typeof window !== "undefined" && window.RESUME_LIBRARY) {
+    try { LIB = normaliseLib(window.RESUME_LIBRARY); } catch (e) {}
+  }
+  if (!LIB.items) LIB = emptyLib();
+
+  if (!VARIANTS.length) VARIANTS = migrateV2();
+  if (!VARIANTS.length) VARIANTS = [freeformVariant("Sample (placeholder)", PLACEHOLDER)];
+  VARIANTS.forEach(dedupeVariant);
+  if (!VARIANTS.some(v => v.id === curId)) curId = VARIANTS[0].id;
+}
+/* v2 kept one résumé per template key. Each becomes a freeform variant, edits
+   and all, so upgrading loses nothing and needs no action from you. */
+function migrateV2() {
+  const out = [];
+  const extra = (typeof window !== "undefined" && window.RESUME_TEMPLATES) ? window.RESUME_TEMPLATES : {};
+  const keys = { sample: { label: "Sample (placeholder)", data: PLACEHOLDER }, ...extra };
+  for (const [k, t] of Object.entries(keys)) {
+    let data = t.data;
+    try { const s = localStorage.getItem(LSP2 + k); if (s) data = JSON.parse(s); } catch (e) {}
+    if (data && Array.isArray(data.sections)) out.push(freeformVariant(t.label || k, data));
+  }
+  return out;
+}
+function normaliseLib(raw) {
+  const l = { v: 3, profile: raw.profile || { name: "", contacts: [] },
+              items: (raw.items || []).map(makeItem),
+              skills: raw.skills || [], industries: raw.industries || INDUSTRIES.slice() };
+  return l;
+}
+
+/* ---------- 6. compile (LIB + VARIANT) into renderable sections ----------
+   Every editable field downstream carries a target string, and COMPILED is what
+   turns that target back into the right place to write. Library entries write
+   into the variant's overrides, freeform entries write into the variant's own
+   sections. Nothing writes into LIB except the Library panel. */
+let COMPILED = [];
+function compile() {
+  const v = V();
+  COMPILED = (v.sections || []).map((s, si) => {
+    const out = { si, id: s.id || ("s" + si), title: s.title || "", type: s.type || "entries",
+                  off: !!s.off, entries: [], rows: [], items: [], body: s.body || "" };
+    if (v.kind === "freeform") {
+      if (out.type === "entries") {
+        out.entries = (s.items || []).map((it, ii) => ({
+          ref: { kind: "free", si, ii }, off: !!it.off,
+          org: it.org || "", role: it.role, meta: it.meta || "",
+          bullets: (it.bullets || []).map((b, bi) => ({ ref: { kind: "free", si, ii, bi }, text: b, off: false })),
+        }));
+      } else if (out.type === "skills") {
+        out.rows = (s.rows || []).map((r, ri) => ({ ref: { kind: "free", si, ri }, label: r.label, value: r.value, off: !!r.off }));
+      } else if (out.type === "list") {
+        out.items = (s.items || []).map((t, ii) => ({ ref: { kind: "free", si, ii }, text: t, off: false }));
+      }
+      return out;
+    }
+    /* library variant */
+    if (out.type === "entries") {
+      out.entries = (s.itemIds || []).map(id => {
+        const it = libItem(id);
+        if (!it) return null;
+        const o = v.overrides[id] || {};
+        const offB = new Set(o.bulletsOff || []);
+        return {
+          ref: { kind: "lib", libId: id }, off: !!o.off,
+          org: o.org ?? it.org,
+          role: o.role ?? (it.role || ""),
+          meta: o.meta ?? [it.location, dateRange(it)].filter(Boolean).join(" | "),
+          /* bulletsAll means this résumé words the job its own way, which is what
+             a hand-written résumé converted to a library one carries across. The
+             library item keeps its own bullets for every other résumé. */
+          bullets: o.bulletsAll
+            ? o.bulletsAll.map((t, bx) => ({ ref: { kind: "lib", libId: id, bidx: bx }, text: t, off: false }))
+            : it.bullets.filter(b => !offB.has(b.id)).map(b => ({
+                ref: { kind: "lib", libId: id, bid: b.id },
+                text: (o.bullets && o.bullets[b.id] != null) ? o.bullets[b.id] : b.text, off: false,
+              })),
+        };
+      }).filter(Boolean);
+    } else if (out.type === "skills") {
+      out.rows = (s.rows || []).map((r, ri) => ({ ref: { kind: "free", si, ri }, label: r.label, value: r.value, off: !!r.off }));
+    } else if (out.type === "list") {
+      out.items = (s.items || []).map((t, ii) => ({ ref: { kind: "free", si, ii }, text: t, off: false }));
+    }
+    return out;
+  });
+  return COMPILED;
+}
+/* Write an edit back to wherever it actually came from. */
+function setTarget(tgt, val) {
+  const v = V(), p = tgt.split(".");
+  if (p[0] === "p") {
+    if (p[1] === "name") v.profile.name = val;
+    else if (p[1] === "contact") v.profile.contacts[+p[2]] = val;
+    return;
+  }
+  const si = +p[1], s = v.sections[si];
+  if (!s) return;
+  if (p[2] === "title") { s.title = val; return; }
+  if (p[2] === "body")  { s.body  = val; return; }
+  if (p[2] === "li")    { s.items[+p[3]] = val; return; }
+  if (p[2] === "row")   { s.rows[+p[3]][p[4]] = val; return; }
+  if (p[2] === "e") {
+    const e = COMPILED[si] && COMPILED[si].entries[+p[3]];
+    if (!e) return;
+    if (e.ref.kind === "free") {
+      const it = s.items[e.ref.ii];
+      if (p[4] === "b") it.bullets[+p[5]] = val;
+      else it[p[4]] = val;
+    } else {
+      const o = ov(e.ref.libId);
+      if (p[4] === "b") {
+        const b = e.bullets[+p[5]];
+        if (!b) return;
+        if (b.ref.bidx != null) o.bulletsAll[b.ref.bidx] = val;
+        else o.bullets[b.ref.bid] = val;
+      } else o[p[4]] = val;
+    }
+  }
+}
+/* The shape the exporters and the share link consume. Tailoring "off" flags
+   and unticked library items are already gone by this point. */
+function plain() {
+  const v = V();
+  return {
+    name: v.profile.name, contacts: v.profile.contacts.slice(),
+    sections: compile().filter(s => !s.off).filter(s =>
+        s.type === "text"   ? String(s.body || "").trim()
+      : s.type === "skills" ? s.rows.some(r => !r.off)
+      : s.type === "list"   ? s.items.some(i => !i.off)
+      :                       s.entries.some(e => !e.off)
+    ).map(s => {
+      if (s.type === "text")   return { type:"text",   title:s.title, body:s.body };
+      if (s.type === "skills") return { type:"skills", title:s.title, rows:s.rows.filter(r=>!r.off).map(r=>({label:r.label,value:r.value})) };
+      if (s.type === "list")   return { type:"list",   title:s.title, items:s.items.filter(i=>!i.off).map(i=>i.text) };
+      return { type:"entries", title:s.title, items:s.entries.filter(e=>!e.off).map(e=>({
+        org:e.org, role:e.role, meta:e.meta, bullets:e.bullets.filter(b=>!b.off).map(b=>b.text) })) };
+    }),
+  };
+}
+
+/* ---------- 7. render ---------- */
+const sheet = byId("sheet");
+const ed = (tgt, ph, val) =>
+  `<span data-ed data-tgt="${tgt}" data-ph="${esc(ph || "")}" role="textbox" aria-label="${esc(ph || "editable field")}">${esc(val ?? "")}</span>`;
+
 function render() {
-  let h = `<div class="r-name" data-ed data-field="name" data-ph="YOUR NAME">${esc(R.name)}</div>`;
-  h += `<div class="r-contacts">` + R.contacts.map((c,i)=>`${ed(`contacts.${i}`,"contact")}<button class="del" data-del="contacts.${i}" title="Remove">✕</button>`).join('<span class="sep">|</span>')
-     + ` <button class="add" data-add-contact title="Add contact">+ contact</button></div>`;
+  const v = V();
+  const secs = compile();
+  let h = `<div class="r-name" data-ed data-tgt="p.name" data-ph="YOUR NAME" role="textbox" aria-label="Name">${esc(v.profile.name)}</div>`;
+  h += `<div class="r-contacts">` + v.profile.contacts.map((c, i) =>
+        `${ed(`p.contact.${i}`, "contact", c)}<button class="del" data-delcontact="${i}" title="Remove">✕</button>`
+      ).join('<span class="sep">|</span>')
+    + ` <button class="add" data-addcontact title="Add contact">+ contact</button></div>`;
 
-  R.sections.forEach((s, si) => {
-    h += `<section class="sec${s.off?" off":""}"><h2>${ed(`sections.${si}.title`,"SECTION")}<button class="tog" data-tog="sec.${si}" title="Show or hide this section in Tailor mode">${s.off?"show":"hide"}</button><button class="del secdel" data-delsec="${si}" title="Delete section">✕ section</button></h2>`;
+  secs.forEach((s) => {
+    const si = s.si;
+    const bare = (s.type === "entries" && !s.entries.length)
+              || (s.type === "skills"  && !s.rows.length)
+              || (s.type === "list"    && !s.items.length)
+              || (s.type === "text"    && !String(s.body || "").trim());
+    h += `<section class="sec${s.off ? " off" : ""}${bare ? " sec-empty" : ""}"><h2>${ed(`s.${si}.title`, "SECTION", s.title)}`
+       + `<button class="tog" data-tog="sec.${si}" title="Show or hide this section in Tailor mode">${s.off ? "show" : "hide"}</button>`
+       + `<button class="del secdel" data-delsec="${si}" title="Delete section">✕ section</button></h2>`;
+
     if (s.type === "text") {
-      h += `<div class="r-text">${ed(`sections.${si}.body`,"Text…")}</div>`;
+      h += `<div class="r-text">${ed(`s.${si}.body`, "Text…", s.body)}</div>`;
     } else if (s.type === "skills") {
-      h += (s.rows||[]).map((r,ri)=>`<div class="skill-row${r.off?" off":""}"><span class="k">${ed(`sections.${si}.rows.${ri}.label`,"Category")}:</span> ${ed(`sections.${si}.rows.${ri}.value`,"items")} <button class="tog" data-tog="row.${si}.${ri}" title="Show or hide in Tailor mode">${r.off?"show":"hide"}</button> <button class="del" data-delrow="${si}.${ri}">✕</button></div>`).join("");
+      h += s.rows.map((r, ri) =>
+        `<div class="skill-row${r.off ? " off" : ""}"><span class="k">${ed(`s.${si}.row.${ri}.label`, "Category", r.label)}:</span> `
+        + `${ed(`s.${si}.row.${ri}.value`, "items", r.value)} `
+        + `<button class="tog" data-tog="row.${si}.${ri}" title="Show or hide in Tailor mode">${r.off ? "show" : "hide"}</button> `
+        + `<button class="del" data-delrow="${si}.${ri}">✕</button></div>`).join("");
       h += `<button class="add" data-addrow="${si}">+ row</button>`;
+      if (v.kind === "library" && LIB.items.length)
+        h += `<button class="add" data-skillsfromtags="${si}" title="Build these rows from the skills your included experiences actually use">↺ from included work</button>`;
     } else if (s.type === "list") {
-      h += `<ul class="bullets">` + (s.items||[]).map((it,ii)=>`<li>${ed(`sections.${si}.items.${ii}`,"item")} <button class="del" data-dellistitem="${si}.${ii}">✕</button></li>`).join("") + `</ul><button class="add" data-addlistitem="${si}">+ item</button>`;
-    } else { // entries
-      h += (s.items||[]).map((it,ii)=>`
-        <div class="entry${it.off?" off":""}">
-          <div class="entry-top"><div class="left"><span class="entry-org">${ed(`sections.${si}.items.${ii}.org`,"Company")}</span>${it.role!==undefined?` – <span class="entry-role">${ed(`sections.${si}.items.${ii}.role`,"Role")}</span>`:""}</div>
-            <div class="entry-meta">${ed(`sections.${si}.items.${ii}.meta`,"City | Dates")} <button class="tog" data-tog="item.${si}.${ii}" title="Show or hide in Tailor mode">${it.off?"show":"hide"}</button> <button class="del" data-delitem="${si}.${ii}">✕</button></div></div>
-          <ul class="bullets">${(it.bullets||[]).map((b,bi)=>`<li>${ed(`sections.${si}.items.${ii}.bullets.${bi}`,"…")} <button class="del" data-delbul="${si}.${ii}.${bi}">✕</button></li>`).join("")}</ul>
-          <button class="add" data-addbul="${si}.${ii}">+ bullet</button>
+      h += `<ul class="bullets">` + s.items.map((it, ii) =>
+        `<li>${ed(`s.${si}.li.${ii}`, "item", it.text)} <button class="del" data-dellistitem="${si}.${ii}">✕</button></li>`).join("")
+        + `</ul><button class="add" data-addlistitem="${si}">+ item</button>`;
+    } else {
+      h += s.entries.map((e, ei) => `
+        <div class="entry${e.off ? " off" : ""}">
+          <div class="entry-top"><div class="left"><span class="entry-org">${ed(`s.${si}.e.${ei}.org`, "Company", e.org)}</span>${
+            String(e.role || "").trim()
+              ? ` – <span class="entry-role">${ed(`s.${si}.e.${ei}.role`, "Role", e.role)}</span>`
+              : ` <button class="add" data-addrole="${si}.${ei}" title="Add a role or subtitle">+ role</button>`}</div>
+            <div class="entry-meta">${ed(`s.${si}.e.${ei}.meta`, "City | Dates", e.meta)} <button class="tog" data-tog="item.${si}.${ei}" title="Show or hide in Tailor mode">${e.off ? "show" : "hide"}</button> <button class="del" data-delitem="${si}.${ei}" title="${e.ref.kind === "lib" ? "Take off this résumé, keeps it in your library" : "Remove"}">✕</button></div></div>
+          <ul class="bullets">${e.bullets.map((b, bi) => `<li>${ed(`s.${si}.e.${ei}.b.${bi}`, "…", b.text)} <button class="del" data-delbul="${si}.${ei}.${bi}" title="${e.ref.kind === "lib" ? "Drop this bullet from this résumé only" : "Remove"}">✕</button></li>`).join("")}</ul>
+          <button class="add" data-addbul="${si}.${ei}">+ bullet</button>
         </div>`).join("");
       h += `<button class="add" data-additem="${si}">+ entry</button>`;
+      if (v.kind === "library" && LIB.items.length)
+        h += `<button class="add" data-pick="${si}">☑ pick from library</button>`;
     }
+    if (bare) h += ` <span class="emptynote">empty, so it will not print</span>`;
     h += `</section>`;
   });
   sheet.innerHTML = h;
   wire();
-  save();
+  syncChrome();
+  saveAll();
+}
+
+function syncChrome() {
+  const v = V();
+  document.documentElement.dataset.tpl = v.layout || "classic";
+  document.documentElement.style.setProperty("--accent", v.accent || "#111111");
+  byId("accent").value = v.accent || "#111111";
+  byId("style").value = v.layout || "classic";
+  const sel = byId("tpl");
+  sel.innerHTML = VARIANTS.map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.kind === "library" ? " ·⧉" : ""}</option>`).join("");
+  sel.value = v.id;
+  /* Never disabled. A disabled button swallows the click and reads as broken,
+     which is exactly how this landed the first time. If the open résumé cannot
+     use the checklist, clicking says so and offers the way out. */
+  byId("include").title = v.kind === "library"
+    ? "Choose which experiences appear on this résumé"
+    : "This résumé was typed by hand. Clicking offers to make a library-backed copy of it.";
+  const n = v.kind === "library" ? (v.sections || []).reduce((a, s) => a + ((s.itemIds || []).length), 0) : 0;
+  byId("hint").textContent = v.kind === "library"
+    ? `${n} experience${n === 1 ? "" : "s"} included · ${LIB.items.length} in library`
+    : "Underlined = editable · autosaves";
 }
 
 function wire() {
   sheet.querySelectorAll("[data-ed]").forEach(el => {
     el.contentEditable = "true";
-    el.addEventListener("input", () => { setPath(el.dataset.field, el.textContent); save(); });
+    el.addEventListener("input", () => { setTarget(el.dataset.tgt, el.textContent); saveAll(); });
     el.addEventListener("keydown", e => { if (e.key === "Enter" && !el.closest(".r-text")) { e.preventDefault(); el.blur(); } });
   });
   const on = (sel, fn) => sheet.querySelectorAll(sel).forEach(b => b.onclick = () => fn(b));
-  on("[data-add-contact]", () => { R.contacts.push("new contact"); render(); });
-  on("[data-del]", b => { if (b.dataset.del) { const [arr,i] = b.dataset.del.split("."); R[arr].splice(+i,1); render(); } });
-  on("[data-delsec]", b => { R.sections.splice(+b.dataset.delsec,1); render(); });
-  on("[data-additem]", b => { const s=R.sections[+b.dataset.additem]; s.items.push({org:"Company",role:"Role",meta:"City, ST | Dates",bullets:["Accomplishment"]}); render(); });
-  on("[data-delitem]", b => { const [si,ii]=b.dataset.delitem.split("."); R.sections[+si].items.splice(+ii,1); render(); });
-  on("[data-addbul]", b => { const [si,ii]=b.dataset.addbul.split("."); R.sections[+si].items[+ii].bullets.push("New point"); render(); });
-  on("[data-delbul]", b => { const [si,ii,bi]=b.dataset.delbul.split("."); R.sections[+si].items[+ii].bullets.splice(+bi,1); render(); });
-  on("[data-addrow]", b => { R.sections[+b.dataset.addrow].rows.push({label:"Category",value:"items"}); render(); });
-  on("[data-delrow]", b => { const [si,ri]=b.dataset.delrow.split("."); R.sections[+si].rows.splice(+ri,1); render(); });
-  on("[data-addlistitem]", b => { R.sections[+b.dataset.addlistitem].items.push("item"); render(); });
-  on("[data-dellistitem]", b => { const [si,ii]=b.dataset.dellistitem.split("."); R.sections[+si].items.splice(+ii,1); render(); });
-  on("[data-tog]", b => { const p=b.dataset.tog.split(".");
-    if (p[0]==="sec") { const s=R.sections[+p[1]]; s.off=!s.off; }
-    else if (p[0]==="item") { const it=R.sections[+p[1]].items[+p[2]]; it.off=!it.off; }
-    else if (p[0]==="row") { const r=R.sections[+p[1]].rows[+p[2]]; r.off=!r.off; }
+  const v = V();
+
+  on("[data-addcontact]", () => { v.profile.contacts.push("new contact"); render(); });
+  on("[data-delcontact]", b => { v.profile.contacts.splice(+b.dataset.delcontact, 1); render(); });
+  on("[data-delsec]", b => { v.sections.splice(+b.dataset.delsec, 1); render(); });
+  on("[data-addrow]", b => { const s = v.sections[+b.dataset.addrow]; (s.rows = s.rows || []).push({ label:"Category", value:"items" }); render(); });
+  on("[data-delrow]", b => { const [si, ri] = b.dataset.delrow.split("."); v.sections[+si].rows.splice(+ri, 1); render(); });
+  on("[data-addlistitem]", b => { const s = v.sections[+b.dataset.addlistitem]; (s.items = s.items || []).push("item"); render(); });
+  on("[data-dellistitem]", b => { const [si, ii] = b.dataset.dellistitem.split("."); v.sections[+si].items.splice(+ii, 1); render(); });
+  on("[data-pick]", b => openInclude(+b.dataset.pick));
+  on("[data-addrole]", b => { setTarget(`s.${b.dataset.addrole.replace(".", ".e.")}.role`, "Role"); render(); });
+  on("[data-skillsfromtags]", b => skillsFromIncluded(+b.dataset.skillsfromtags));
+
+  on("[data-additem]", b => {
+    const si = +b.dataset.additem, s = v.sections[si];
+    if (v.kind === "library") {
+      /* Anything on the résumé belongs in your history, so a new entry becomes a
+         real library item rather than a floating one this variant alone knows. */
+      const kind = (s.kinds && s.kinds[0]) || "role";
+      const it = makeItem({ id: uid(kind[0].toUpperCase()), kind, org: "Company", role: "Role",
+                            location: "City, ST", start: "", end: "", bullets: ["Accomplishment"] });
+      LIB.items.push(it);
+      (s.itemIds = s.itemIds || []).push(it.id);
+    } else {
+      (s.items = s.items || []).push({ org:"Company", role:"Role", meta:"City, ST | Dates", bullets:["Accomplishment"] });
+    }
+    render();
+  });
+  on("[data-delitem]", b => {
+    const [si, ei] = b.dataset.delitem.split(".").map(Number);
+    const e = COMPILED[si].entries[ei];
+    if (e.ref.kind === "lib") v.sections[si].itemIds = v.sections[si].itemIds.filter(x => x !== e.ref.libId);
+    else v.sections[si].items.splice(e.ref.ii, 1);
+    render();
+  });
+  on("[data-addbul]", b => {
+    const [si, ei] = b.dataset.addbul.split(".").map(Number);
+    const e = COMPILED[si].entries[ei];
+    if (e.ref.kind === "lib") {
+      const o = ov(e.ref.libId);
+      if (o.bulletsAll) o.bulletsAll.push("New point");
+      else {
+        const it = libItem(e.ref.libId);
+        const bid = it.id + "-b" + (it.bullets.length + 1 + Math.floor(Math.random() * 1000));
+        it.bullets.push({ id: bid, text: "New point", tags: [] });
+        o.bulletsOff = o.bulletsOff.filter(x => x !== bid);
+      }
+    } else {
+      v.sections[si].items[e.ref.ii].bullets.push("New point");
+    }
+    render();
+  });
+  on("[data-delbul]", b => {
+    const [si, ei, bi] = b.dataset.delbul.split(".").map(Number);
+    const e = COMPILED[si].entries[ei], bl = e.bullets[bi];
+    if (e.ref.kind === "lib") {
+      const o = ov(e.ref.libId);
+      if (bl.ref.bidx != null) o.bulletsAll.splice(bl.ref.bidx, 1);
+      else if (!o.bulletsOff.includes(bl.ref.bid)) o.bulletsOff.push(bl.ref.bid);
+    }
+    else v.sections[si].items[e.ref.ii].bullets.splice(bl.ref.bi, 1);
+    render();
+  });
+  on("[data-tog]", b => {
+    const p = b.dataset.tog.split(".");
+    if (p[0] === "sec") { const s = v.sections[+p[1]]; s.off = !s.off; }
+    else if (p[0] === "row") { const r = v.sections[+p[1]].rows[+p[2]]; r.off = !r.off; }
+    else if (p[0] === "item") {
+      const e = COMPILED[+p[1]].entries[+p[2]];
+      /* Tailor hides an entry for this application without unticking it, which
+         is a different job from the Include checklist and works on both kinds. */
+      if (e.ref.kind === "free") { const it = v.sections[+p[1]].items[e.ref.ii]; it.off = !it.off; }
+      else { const o = ov(e.ref.libId); o.off = !o.off; }
+    }
     render();
   });
 }
 
+/* Rebuild a Skills section from the skills the included experiences actually
+   use, grouped by the category the library knows for each. Beats retyping a
+   skills list every time you swap a job in or out. */
+function skillsFromIncluded(si) {
+  const v = V();
+  const ids = new Set(v.sections.flatMap(s => s.itemIds || []));
+  const used = uniq([...ids].flatMap(id => (libItem(id) || { skills: [] }).skills));
+  if (!used.length) { alert("Nothing is included yet, so there are no skills to gather."); return; }
+  const cat = {};
+  for (const s of used) {
+    const meta = (LIB.skills || []).find(x => norm(x.name) === norm(s));
+    const c = (meta && meta.category) || "Skills";
+    (cat[c] = cat[c] || []).push(s);
+  }
+  v.sections[si].rows = Object.entries(cat).map(([label, list]) => ({ label, value: list.join(", ") }));
+  render();
+}
+
+/* ---------- 8. panels ---------- */
+const backdrop = byId("backdrop");
+function openPanel(id) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("show", p.id === id));
+  backdrop.classList.add("show");
+  const p = byId(id); const f = p.querySelector("input,select,button"); if (f) f.focus();
+}
+function closePanels() {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("show"));
+  backdrop.classList.remove("show");
+}
+backdrop.onclick = closePanels;
+document.querySelectorAll(".panel [data-close]").forEach(b => b.onclick = closePanels);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePanels(); });
+
+/* ---------- 9. the Include checklist ---------- */
+let incScope = null;   // section index, or null for every section at once
+
+function openInclude(si) {
+  if (!LIB.items.length) { openLibrary(); return; }
+  if (V().kind !== "library") {
+    if (!offerConversion("The Include checklist ticks experiences out of your career library.")) return;
+    si = null;
+  }
+  incScope = (typeof si === "number") ? si : null;
+  drawInclude();
+  openPanel("p-include");
+}
+
+function drawInclude() {
+  const v = V();
+  if (!v.filter) v.filter = { skills: [], industries: [], mode: "or" };
+  if (!Array.isArray(v.filter.skills)) v.filter.skills = [];
+  if (!Array.isArray(v.filter.industries)) v.filter.industries = [];
+  const f = v.filter;
+  byId("inc-mode").value = f.mode || "or";
+
+  /* filter chips */
+  const skillFreq = {};
+  LIB.items.forEach(i => i.skills.forEach(s => { skillFreq[s] = (skillFreq[s] || 0) + 1; }));
+  const topSkills = Object.entries(skillFreq).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([s]) => s).filter(s => !f.skills.includes(s)).slice(0, 22);
+  const showSkills = [...f.skills, ...topSkills];
+  byId("inc-tags").innerHTML =
+      `<h3>Industries<div class="spacer"></div><button class="chip" data-clearf="industries">clear</button></h3>`
+    + `<div class="chips">` + allIndustries().map(t =>
+        `<button class="chip ind${f.industries.includes(t) ? " on" : ""}" data-ax="i" data-tag="${esc(t)}" aria-pressed="${f.industries.includes(t)}">${esc(t)}</button>`).join("") + `</div>`
+    + `<h3 style="margin-top:12px">Skills<div class="spacer"></div><button class="chip" data-clearf="skills">clear</button></h3>`
+    + `<div class="chips">` + showSkills.map(t =>
+        `<button class="chip${f.skills.includes(t) ? " on" : ""}" data-ax="s" data-tag="${esc(t)}" aria-pressed="${f.skills.includes(t)}">${esc(t)}</button>`).join("")
+    + `<button class="chip" data-moreskills>+ all ${allSkills().length}…</button></div>`;
+
+  const q = norm(byId("inc-q").value);
+  const groups = v.sections.map((s, si) => ({ s, si }))
+    .filter(g => (g.s.type === "entries") && (incScope === null || g.si === incScope));
+
+  let h = "";
+  let visible = 0, ticked = 0;
+  for (const { s, si } of groups) {
+    const kinds = s.kinds && s.kinds.length ? s.kinds : null;
+    const ids = new Set(s.itemIds || []);
+    let pool = LIB.items.filter(i => !kinds || kinds.includes(i.kind));
+    if (q) pool = pool.filter(i => norm([i.org, i.role, i.skills.join(" "), i.industries.join(" "),
+                                         i.bullets.map(b => b.text).join(" ")].join(" ")).includes(q));
+    const scored = pool.map(i => ({ i, sc: scoreItem(i, f) }))
+      .filter(x => x.sc.ok)
+      .sort((a, b) => b.sc.score - a.sc.score || (recency(b.i) - recency(a.i)));
+    visible += scored.length; ticked += (s.itemIds || []).length;
+
+    h += `<div class="grp"><h3>${esc(s.title)}<div class="spacer"></div>`
+       + `<span class="muted">${(s.itemIds || []).length} of ${scored.length}</span></h3>`;
+    if (!scored.length) h += `<div class="empty">Nothing in your library matches. Loosen the tags or clear the search.</div>`;
+    h += scored.map(({ i, sc }) => {
+      const on = ids.has(i.id);
+      const o = (v.overrides[i.id] || {});
+      const offB = new Set(o.bulletsOff || []);
+      return `<div class="pick${on ? " on" : ""}">
+        <input type="checkbox" id="pk-${esc(i.id)}-${si}" data-pickitem="${esc(i.id)}" data-sec="${si}" ${on ? "checked" : ""} aria-label="Include ${esc(i.org)}" />
+        <div class="meat">
+          <label class="t" for="pk-${esc(i.id)}-${si}">${esc(i.org)}${i.role ? " · " + esc(i.role) : ""}</label>
+          <div class="s">${esc(dateRange(i))}${i.location ? " · " + esc(i.location) : ""}</div>
+          <div class="chips">${i.industries.map(t => `<span class="chip ro ind${f.industries.includes(t) ? " on" : ""}">${esc(t)}</span>`).join("")}${
+            i.skills.slice(0, 6).map(t => `<span class="chip ro${f.skills.includes(t) ? " on" : ""}">${esc(t)}</span>`).join("")}${
+            i.skills.length > 6 ? `<span class="chip ro">+${i.skills.length - 6}</span>` : ""}</div>
+          ${on && (v.overrides[i.id] || {}).bulletsAll ? `<div class="s" style="margin-top:5px">This résumé words this one its own way.
+            <button class="chip" data-revert="${esc(i.id)}">use library wording</button></div>` : ""}
+          ${on && !(v.overrides[i.id] || {}).bulletsAll ? `<ul class="bul">` + i.bullets.map(b => {
+            const bon = !offB.has(b.id);
+            const rel = !f.skills.length || !b.tags.length || b.tags.some(t => f.skills.some(s2 => norm(s2) === norm(t)));
+            return `<li class="${rel ? "" : "dim"}"><input type="checkbox" data-pickbul="${esc(b.id)}" data-item="${esc(i.id)}" ${bon ? "checked" : ""} aria-label="Include bullet" /><span>${esc(b.text.slice(0, 150))}${b.text.length > 150 ? "…" : ""}</span></li>`;
+          }).join("") + `</ul>` : ""}
+        </div>
+        <div class="score${sc.hits ? " hit" : ""}" title="${sc.want ? sc.hits + " of " + sc.want + " tags, " : ""}${Math.round(sc.rec * 100)}% recent">${sc.score}</div>
+      </div>`;
+    }).join("");
+    h += `</div>`;
+  }
+  byId("inc-list").innerHTML = h;
+  byId("inc-count").textContent = `${ticked} ticked · ${visible} shown`;
+  wireInclude();
+}
+
+function wireInclude() {
+  const v = V(), f = v.filter;
+  byId("inc-tags").querySelectorAll("[data-tag]").forEach(b => b.onclick = () => {
+    const ax = b.dataset.ax, name = b.dataset.tag;
+    const arr = ax === "i" ? f.industries : f.skills;
+    const at = arr.findIndex(x => x === name);
+    if (at >= 0) arr.splice(at, 1); else arr.push(name);
+    saveAll(); drawInclude();
+  });
+  byId("inc-tags").querySelectorAll("[data-clearf]").forEach(b => b.onclick = () => {
+    f[b.dataset.clearf] = []; saveAll(); drawInclude();
+  });
+  const more = byId("inc-tags").querySelector("[data-moreskills]");
+  if (more) more.onclick = () => {
+    const pick = prompt("Add a skill tag to the filter. Available:\n\n" + allSkills().join(", "));
+    if (!pick) return;
+    const hit = allSkills().find(s => norm(s) === norm(pick));
+    if (!hit) { alert("No skill by that name in your library."); return; }
+    if (!f.skills.includes(hit)) f.skills.push(hit);
+    saveAll(); drawInclude();
+  };
+  byId("inc-list").querySelectorAll("[data-pickitem]").forEach(cb => cb.onchange = () => {
+    const id = cb.dataset.pickitem, si = cb.dataset.sec;
+    const s = v.sections[+si];
+    s.itemIds = s.itemIds || [];
+    if (cb.checked) {
+      /* Ticking here takes the item out of any other section first, so it has
+         exactly one placement and exactly one override. */
+      v.sections.forEach(o => { if (o !== s && o.itemIds) o.itemIds = o.itemIds.filter(x => x !== id); });
+      if (!s.itemIds.includes(id)) s.itemIds.push(id);
+    } else s.itemIds = s.itemIds.filter(x => x !== id);
+    dedupeVariant(v);
+    sortSection(s);
+    render(); drawInclude();
+  });
+  byId("inc-list").querySelectorAll("[data-revert]").forEach(b => b.onclick = () => {
+    const id = b.dataset.revert, it = libItem(id);
+    if (!confirm(`Drop this résumé's own wording for "${it.org}" and use the library's ${it.bullets.length} bullet${it.bullets.length === 1 ? "" : "s"} instead?\n\nThis cannot be undone.`)) return;
+    delete ov(id).bulletsAll;
+    render(); drawInclude();
+  });
+  byId("inc-list").querySelectorAll("[data-pickbul]").forEach(cb => cb.onchange = () => {
+    const bid = cb.dataset.pickbul, id = cb.dataset.item;
+    const o = ov(id);
+    if (cb.checked) o.bulletsOff = o.bulletsOff.filter(x => x !== bid);
+    else if (!o.bulletsOff.includes(bid)) o.bulletsOff.push(bid);
+    render(); drawInclude();
+  });
+}
+/* Résumés read newest first. Keep included items in that order automatically so
+   ticking a box never drops a 2019 job above a 2025 one. */
+function sortSection(s) {
+  if (!s.itemIds || s.manual) return;
+  s.itemIds.sort((a, b) => {
+    const A = libItem(a), B = libItem(b);
+    if (!A || !B) return 0;
+    const ea = parseWhen(A.end), eb = parseWhen(B.end);
+    if (ea.ongoing !== eb.ongoing) return ea.ongoing ? -1 : 1;
+    return (eb.m ?? 0) - (ea.m ?? 0) || (parseWhen(B.start).m ?? 0) - (parseWhen(A.start).m ?? 0);
+  });
+}
+
+byId("inc-q").oninput = () => drawInclude();
+byId("inc-mode").onchange = e => { V().filter.mode = e.target.value; saveAll(); drawInclude(); };
+byId("inc-all").onclick = () => {
+  const v = V(), f = v.filter;
+  v.sections.forEach((s, si) => {
+    if (s.type !== "entries" || (incScope !== null && si !== incScope)) return;
+    const kinds = s.kinds && s.kinds.length ? s.kinds : null;
+    s.itemIds = LIB.items.filter(i => (!kinds || kinds.includes(i.kind)) && scoreItem(i, f).ok).map(i => i.id);
+    sortSection(s);
+  });
+  dedupeVariant(v);
+  render(); drawInclude();
+};
+byId("inc-none").onclick = () => {
+  const v = V();
+  v.sections.forEach((s, si) => {
+    if (s.type !== "entries" || (incScope !== null && si !== incScope)) return;
+    s.itemIds = [];
+  });
+  render(); drawInclude();
+};
+byId("inc-top").onclick = () => {
+  const v = V(), f = v.filter, N = 6;
+  v.sections.forEach((s, si) => {
+    if (s.type !== "entries" || (incScope !== null && si !== incScope)) return;
+    const kinds = s.kinds && s.kinds.length ? s.kinds : null;
+    s.itemIds = LIB.items.filter(i => !kinds || kinds.includes(i.kind))
+      .map(i => ({ i, sc: scoreItem(i, f) })).filter(x => x.sc.ok)
+      .sort((a, b) => b.sc.score - a.sc.score).slice(0, N).map(x => x.i.id);
+    sortSection(s);
+  });
+  dedupeVariant(v);
+  render(); drawInclude();
+};
+
+/* ============================================================================
+   10. spreadsheet input and output
+   ----------------------------------------------------------------------------
+   No libraries. An .xlsx is a zip of XML, and both halves of that are things the
+   browser already does, DecompressionStream for the zip and DOMParser for the
+   XML. Reading accepts two shapes, the ProfessionalHistory workbook (Roles,
+   Projects, Skills, …) and this tool's own two-sheet Items + Bullets format.
+   Writing emits the second one, so tagging done here syncs back to the file.
+   ========================================================================== */
+
+/* ---- zip ---- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(buf) { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+
+async function unzip(bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= 0 && i > bytes.length - 66000; i--) { if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; } }
+  if (eocd < 0) throw new Error("Not a zip file.");
+  const count = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const out = {};
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true);
+    const csize = dv.getUint32(p + 20, true);
+    const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    const lho = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nlen));
+    const lnlen = dv.getUint16(lho + 26, true), lelen = dv.getUint16(lho + 28, true);
+    const start = lho + 30 + lnlen + lelen;
+    const raw = bytes.subarray(start, start + csize);
+    out[name] = method === 0 ? raw
+      : new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+    p += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+/* Written with stored entries. A workbook of this size is a few tens of KB and
+   staying uncompressed keeps the writer to about thirty lines with no failure
+   mode of its own. Excel, LibreOffice and Sheets all open it. */
+function zip(files) {
+  const enc = new TextEncoder();
+  const locals = [], centrals = [];
+  let off = 0;
+  for (const [name, text] of Object.entries(files)) {
+    const nb = enc.encode(name), db = typeof text === "string" ? enc.encode(text) : text;
+    const c = crc32(db);
+    const lh = new Uint8Array(30 + nb.length); const ldv = new DataView(lh.buffer);
+    ldv.setUint32(0, 0x04034b50, true); ldv.setUint16(4, 20, true); ldv.setUint16(6, 0, true);
+    ldv.setUint16(8, 0, true); ldv.setUint16(10, 0, true); ldv.setUint16(12, 0, true);
+    ldv.setUint32(14, c, true); ldv.setUint32(18, db.length, true); ldv.setUint32(22, db.length, true);
+    ldv.setUint16(26, nb.length, true); ldv.setUint16(28, 0, true);
+    lh.set(nb, 30);
+    locals.push(lh, db);
+    const ch = new Uint8Array(46 + nb.length); const cdv = new DataView(ch.buffer);
+    cdv.setUint32(0, 0x02014b50, true); cdv.setUint16(4, 20, true); cdv.setUint16(6, 20, true);
+    cdv.setUint32(16, c, true); cdv.setUint32(20, db.length, true); cdv.setUint32(24, db.length, true);
+    cdv.setUint16(28, nb.length, true); cdv.setUint32(42, off, true);
+    ch.set(nb, 46);
+    centrals.push(ch);
+    off += lh.length + db.length;
+  }
+  const cdSize = centrals.reduce((a, b) => a + b.length, 0);
+  const end = new Uint8Array(22); const edv = new DataView(end.buffer);
+  edv.setUint32(0, 0x06054b50, true);
+  edv.setUint16(8, centrals.length, true); edv.setUint16(10, centrals.length, true);
+  edv.setUint32(12, cdSize, true); edv.setUint32(16, off, true);
+  const all = [...locals, ...centrals, end];
+  const total = all.reduce((a, b) => a + b.length, 0);
+  const buf = new Uint8Array(total); let q = 0;
+  for (const b of all) { buf.set(b, q); q += b.length; }
+  return buf;
+}
+
+/* ---- xlsx read ---- */
+const XN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+const RN = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+function colOf(ref) { return (ref.match(/^[A-Z]+/) || ["A"])[0]; }
+function colNum(c) { let n = 0; for (const ch of c) n = n * 26 + (ch.charCodeAt(0) - 64); return n; }
+
+async function readXlsx(bytes) {
+  const files = await unzip(bytes);
+  const dec = new TextDecoder();
+  const P = new DOMParser();
+  const doc = (n) => files[n] ? P.parseFromString(dec.decode(files[n]), "application/xml") : null;
+
+  const shared = [];
+  const ss = doc("xl/sharedStrings.xml");
+  if (ss) for (const si of ss.getElementsByTagNameNS(XN, "si"))
+    shared.push([...si.getElementsByTagNameNS(XN, "t")].map(t => t.textContent).join(""));
+
+  const wb = doc("xl/workbook.xml"), rels = doc("xl/_rels/workbook.xml.rels");
+  if (!wb) throw new Error("That file is not a spreadsheet.");
+  const rmap = {};
+  if (rels) for (const r of rels.getElementsByTagName("Relationship")) rmap[r.getAttribute("Id")] = r.getAttribute("Target");
+
+  const sheets = {};
+  for (const sh of wb.getElementsByTagNameNS(XN, "sheet")) {
+    const name = sh.getAttribute("name");
+    let tgt = rmap[sh.getAttributeNS(RN, "id")] || "";
+    tgt = tgt.replace(/^\//, "");
+    if (!tgt.startsWith("xl/")) tgt = "xl/" + tgt;
+    const ws = doc(tgt);
+    if (!ws) { sheets[name] = []; continue; }
+    const rows = [];
+    for (const row of ws.getElementsByTagNameNS(XN, "row")) {
+      const cells = {};
+      for (const c of row.getElementsByTagNameNS(XN, "c")) {
+        const ref = c.getAttribute("r") || "A1", t = c.getAttribute("t");
+        const is = c.getElementsByTagNameNS(XN, "is")[0];
+        const v = c.getElementsByTagNameNS(XN, "v")[0];
+        let val = "";
+        if (is) val = [...is.getElementsByTagNameNS(XN, "t")].map(x => x.textContent).join("");
+        else if (!v) val = "";
+        else if (t === "s") val = shared[+v.textContent] ?? "";
+        else val = v.textContent;
+        cells[colOf(ref)] = val;
+      }
+      rows.push(cells);
+    }
+    if (!rows.length) { sheets[name] = []; continue; }
+    const cols = Object.keys(rows[0]).sort((a, b) => colNum(a) - colNum(b));
+    const keys = cols.map(c => norm(rows[0][c]).replace(/\s+/g, "_"));
+    sheets[name] = rows.slice(1).map(r => {
+      const o = {}; cols.forEach((c, i) => o[keys[i]] = r[c] ?? "");
+      return o;
+    }).filter(o => Object.values(o).some(x => String(x).trim()));
+  }
+  return sheets;
+}
+
+/* ---- xlsx write ---- */
+function colName(ci) {
+  let c = "", n = ci + 1;
+  while (n > 0) { const m = (n - 1) % 26; c = String.fromCharCode(65 + m) + c; n = ((n - m) / 26) | 0; }
+  return c;
+}
+function sheetXml(rows) {
+  const body = rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) =>
+    `<c r="${colName(ci)}${ri + 1}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`
+  ).join("") + `</row>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="${XN}"><sheetData>${body}</sheetData></worksheet>`;
+}
+function writeXlsx(named) {
+  const names = Object.keys(named);
+  const files = {
+    "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${
+      names.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`,
+    "_rels/.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+    "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="${XN}" xmlns:r="${RN}"><sheets>${
+      names.map((n, i) => `<sheet name="${esc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets></workbook>`,
+    "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${
+      names.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}</Relationships>`,
+  };
+  names.forEach((n, i) => { files[`xl/worksheets/sheet${i + 1}.xml`] = sheetXml(named[n]); });
+  return zip(files);
+}
+
+/* ---- csv ---- */
+function parseCsv(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  const t = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) {
+      if (c === '"') { if (t[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  if (!rows.length) return [];
+  const keys = rows[0].map(k => norm(k).replace(/\s+/g, "_"));
+  return rows.slice(1).filter(r => r.some(x => String(x).trim()))
+    .map(r => { const o = {}; keys.forEach((k, i) => o[k] = r[i] ?? ""); return o; });
+}
+function toCsv(rows) {
+  const q = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  return rows.map(r => r.map(q).join(",")).join("\n") + "\n";
+}
+
+/* ============================================================================
+   11. mapping a workbook into the library
+   ----------------------------------------------------------------------------
+   Two shapes are understood. The `Items` + `Bullets` pair is what this tool
+   writes, and round-trips exactly. Anything with a `Roles` sheet is treated as
+   a ProfessionalHistory workbook and derived from.
+
+   The `notes` column is read by nothing here on purpose. It holds private
+   context, pay rates, names of colleagues, why a job ended, and none of that
+   belongs one careless tick away from a résumé.
+   ========================================================================== */
+const SPLIT = (s) => String(s || "").split(/[,;]/).map(x => x.trim()).filter(Boolean);
+
+function libFromSheets(sheets) {
+  const names = Object.keys(sheets);
+  const find = (want) => names.find(n => norm(n) === norm(want));
+  const S = (want) => sheets[find(want)] || [];
+
+  if (find("Items") && find("Bullets")) return libFromNative(S("Items"), S("Bullets"), S("Skills"));
+  if (!find("Roles") && !find("Projects")) throw new Error("No Roles or Items sheet in that file.");
+
+  const items = [];
+  const push = (o) => { if (o.org || o.role) items.push(makeItem(o)); };
+
+  S("Roles").forEach(r => push({
+    id: r.role_id || uid("R"), kind: "role",
+    org: r.employer, role: r.title, location: r.location,
+    start: r.start_date, end: r.end_date, url: r.url,
+    description: r.description_standard || r.description_short || r.description_canonical,
+    bullets: SPLIT_BULLETS(r.bullets), skills: SPLIT(r.skills_used), industries: SPLIT(r.industries),
+  }));
+  S("Projects").forEach(r => push({
+    id: r.project_id || uid("P"), kind: "project",
+    org: r.name, role: r.organization, location: "",
+    start: r.start_date, end: r.end_date, url: r.url,
+    description: r.description_standard || r.description_short || r.description_canonical,
+    bullets: SPLIT_BULLETS(r.bullets), skills: SPLIT(r.skills_used), industries: SPLIT(r.industries),
+  }));
+  S("Education").forEach(r => push({
+    id: r.education_id || uid("E"), kind: "education",
+    org: r.school, role: r.degree, location: r.location,
+    start: r.start_date, end: r.end_date,
+    description: [r.honors, r.focus_minor, r.activities, r.notable_projects].filter(Boolean).join(". "),
+    skills: SPLIT(r.skills_used), industries: SPLIT(r.industries),
+  }));
+  S("Awards").forEach(r => push({
+    id: r.award_id || uid("A"), kind: "award",
+    org: r.award_name, role: r.granting_org, start: r.year, end: r.year, url: r.url,
+    description: r.description || r.for_what, industries: SPLIT(r.industries),
+  }));
+  S("Credits").forEach(r => push({
+    id: r.credit_id || uid("C"), kind: "credit",
+    org: r.title, role: r.vi_role, start: r.year, end: r.year, url: r.url,
+    description: [r.description, r.creator_director && ("Directed by " + r.creator_director), r.platform].filter(Boolean).join(". "),
+    skills: SPLIT(r.credit_type), industries: SPLIT(r.industries),
+  }));
+  (S("Community Service").length ? S("Community Service") : S("Service")).forEach(r => push({
+    id: r.service_id || uid("S"), kind: "service",
+    org: r.organization, role: r.position, location: r.location,
+    start: r.start_date, end: r.end_date, description: r.description,
+    industries: SPLIT(r.industries),
+  }));
+
+  const skills = S("Skills").map(r => ({
+    name: r.skill_name, category: r.category, subcategory: r.subcategory,
+    proficiency: r.proficiency, lastUsed: r.last_used,
+  })).filter(s => s.name);
+
+  return { v: 3, profile: clone(LIB.profile || { name: "", contacts: [] }), items, skills,
+           industries: uniq([...INDUSTRIES, ...items.flatMap(i => i.industries)]) };
+}
+function SPLIT_BULLETS(s) { return String(s || "").split("|").map(x => x.trim()).filter(Boolean); }
+
+function libFromNative(itemRows, bulletRows, skillRows) {
+  const byItem = {};
+  bulletRows.forEach(b => { (byItem[b.item_id] = byItem[b.item_id] || []).push(b); });
+  const items = itemRows.map(r => {
+    const skills = SPLIT(r.skills);
+    const bl = (byItem[r.id] || []);
+    return {
+      id: r.id || uid("X"), kind: r.kind || "role",
+      org: r.org || "", role: r.role || "", location: r.location || "",
+      start: r.start || "", end: r.end || "", url: r.url || "",
+      skills, industries: SPLIT(r.industries),
+      bullets: bl.map((b, i) => ({ id: b.bullet_id || (r.id + "-b" + (i + 1)), text: b.text || "", tags: SPLIT(b.tags) })),
+    };
+  }).filter(i => i.org || i.role);
+  const skills = (skillRows || []).map(r => ({ name: r.skill_name || r.name, category: r.category,
+    subcategory: r.subcategory, proficiency: r.proficiency, lastUsed: r.last_used })).filter(s => s.name);
+  return { v: 3, profile: clone(LIB.profile || { name: "", contacts: [] }), items, skills,
+           industries: uniq([...INDUSTRIES, ...items.flatMap(i => i.industries)]) };
+}
+
+/* Merge keeps the tagging you did by hand. Facts from the file win, judgment
+   made in here wins, and a bullet whose text is unchanged keeps its tags. */
+function mergeLib(incoming) {
+  const out = clone(incoming);
+  for (const it of out.items) {
+    const old = LIB.items.find(x => x.id === it.id);
+    if (!old) continue;
+    it.industries = uniq([...(old.industries || []), ...it.industries]);
+    it.skills = uniq([...it.skills, ...(old.skills || [])]);
+    it.bullets = it.bullets.map(b => {
+      const ob = (old.bullets || []).find(x => x.id === b.id || norm(x.text) === norm(b.text));
+      return ob ? { ...b, tags: uniq([...(ob.tags || []), ...b.tags]) } : b;
+    });
+  }
+  /* Items you added inside Studio and that the file has never heard of stay. */
+  const seen = new Set(out.items.map(i => i.id));
+  for (const old of LIB.items) if (!seen.has(old.id)) out.items.push(old);
+  out.profile = clone(LIB.profile);
+  return out;
+}
+
+async function importFile(file) {
+  const name = norm(file.name);
+  let incoming;
+  if (name.endsWith(".xlsx")) {
+    incoming = libFromSheets(await readXlsx(new Uint8Array(await file.arrayBuffer())));
+  } else if (name.endsWith(".csv")) {
+    const rows = parseCsv(await file.text());
+    const k = Object.keys(rows[0] || {});
+    if (k.includes("bullet_id") || k.includes("text")) {
+      const itemRows = [], bulletRows = [];
+      rows.forEach(r => {
+        if (r.bullet_id || (r.text && r.item_id)) bulletRows.push(r);
+        else itemRows.push(r);
+      });
+      incoming = libFromNative(itemRows, bulletRows, []);
+    } else if (k.includes("role_id") || k.includes("employer")) incoming = libFromSheets({ Roles: rows });
+    else if (k.includes("id") && k.includes("org")) incoming = libFromNative(rows, [], []);
+    else throw new Error("That CSV has no column I recognise. Expected employer/title, or id/org.");
+  } else {
+    const j = JSON.parse(await file.text());
+    if (j.items) incoming = normaliseLib(j);
+    else if (Array.isArray(j)) incoming = libFromNative(j, [], []);
+    else if (j.sections) { /* an old single-résumé save, not a library */
+      VARIANTS.push(freeformVariant(file.name.replace(/\.[^.]+$/, ""), j));
+      curId = VARIANTS[VARIANTS.length - 1].id;
+      saveAll(); render(); closePanels();
+      alert("That file is a single résumé, not a library, so it was added as a variant.");
+      return;
+    }
+    else throw new Error("That JSON is not a library.");
+  }
+  if (!incoming.items.length) throw new Error("No experiences found in that file.");
+  const replace = LIB.items.length
+    ? !confirm(`Your library already holds ${LIB.items.length} experiences.\n\nOK merges the file in and keeps the tags you added here.\nCancel replaces the library outright.`)
+    : false;
+  LIB = replace ? incoming : (LIB.items.length ? mergeLib(incoming) : incoming);
+  saveAll(); drawLibrary(); render();
+  alert(`Library now holds ${LIB.items.length} experiences and ${LIB.items.reduce((a, i) => a + i.bullets.length, 0)} bullets.\n\nIndustries were guessed from the wording. Check them in the Library panel before you rely on the filter.`);
+  /* Importing a library and then finding no résumé can use it is the dead end
+     this build shipped with once. Offer the next step at the moment it is wanted. */
+  if (!VARIANTS.some(v => v.kind === "library")) {
+    /* Do not close the Library panel first. Declining both offers should leave
+       you where you were, and accepting either opens its own panel anyway. */
+    if (V().kind === "freeform" && (V().sections || []).some(x => (x.items || []).length)) {
+      if (offerConversion("Nothing here is built from your library yet.")) { openInclude(null); return; }
+    }
+    if (confirm("Start a new résumé built from your library?\n\nIt opens the Include checklist so you can tick what fits the job.")) {
+      const nm = prompt("Name this résumé. Something like the role you are chasing.", "New résumé");
+      if (nm && nm.trim()) {
+        const nv = libraryVariant(nm.trim());
+        VARIANTS.push(nv); curId = nv.id; saveAll(); render(); openInclude(null);
+      }
+    }
+  }
+}
+
+/* ---- library export ---- */
+function libSheets() {
+  const items = [["id","kind","org","role","location","start","end","url","skills","industries"]];
+  const bullets = [["item_id","bullet_id","text","tags"]];
+  for (const i of LIB.items) {
+    items.push([i.id, i.kind, i.org, i.role, i.location, i.start, i.end, i.url, i.skills.join(", "), i.industries.join(", ")]);
+    for (const b of i.bullets) bullets.push([i.id, b.id, b.text, (b.tags || []).join(", ")]);
+  }
+  const skills = [["skill_id","skill_name","category","subcategory","proficiency","last_used"]];
+  (LIB.skills || []).forEach((s, n) => skills.push(["S" + String(n + 1).padStart(3, "0"), s.name, s.category || "", s.subcategory || "", s.proficiency || "", s.lastUsed || ""]));
+  return { Items: items, Bullets: bullets, Skills: skills };
+}
+
+/* ---------- 12. Library panel ---------- */
+function openLibrary() { drawLibrary(); openPanel("p-library"); }
+const KIND_LABEL = { role:"Job", project:"Project", education:"Education", award:"Award", credit:"Credit", service:"Service" };
+
+function drawLibrary() {
+  byId("lib-stat").textContent = LIB.items.length
+    ? `${LIB.items.length} experiences · ${LIB.items.reduce((a, i) => a + i.bullets.length, 0)} bullets · ${allSkills().length} skills · ${allIndustries().length} industries`
+    : "Nothing here yet.";
+  const q = norm(byId("lib-q").value);
+  if (!LIB.items.length) {
+    byId("lib-list").innerHTML = `<div class="empty">Import your career spreadsheet to fill this.<br><br>
+      A <b>ProfessionalHistory</b> workbook works as is, Roles, Projects, Education, Awards, Credits and Skills all come across.
+      Bullets get split out of the descriptions and skills become tags. Industries are guessed and you correct them here.</div>`;
+    return;
+  }
+  const list = LIB.items.filter(i => !q || norm([i.org, i.role, i.skills.join(" "), i.industries.join(" ")].join(" ")).includes(q))
+    .sort((a, b) => (parseWhen(b.end).m ?? 0) - (parseWhen(a.end).m ?? 0));
+  byId("lib-list").innerHTML = list.map(i => `
+    <div class="grp" data-lib="${esc(i.id)}">
+      <h3>${esc(KIND_LABEL[i.kind] || i.kind)}<div class="spacer"></div>
+        <span class="muted">${esc(dateRange(i))}</span>
+        <button class="chip" data-libdel="${esc(i.id)}" title="Delete from library">✕</button></h3>
+      <div class="pick"><div class="meat">
+        <div class="t">${esc(i.org)}${i.role ? " · " + esc(i.role) : ""}</div>
+        <div class="s">${i.bullets.length} bullet${i.bullets.length === 1 ? "" : "s"}</div>
+        <div class="chips">${INDUSTRIES.map(t =>
+          `<button class="chip ind${i.industries.includes(t) ? " on" : ""}" data-libind="${esc(i.id)}" data-tag="${esc(t)}" aria-pressed="${i.industries.includes(t)}">${esc(t)}</button>`).join("")}</div>
+        <div style="margin-top:6px"><input type="text" value="${esc(i.skills.join(", "))}" data-libskills="${esc(i.id)}"
+          aria-label="Skills for ${esc(i.org)}" placeholder="skills, comma separated" style="width:100%" /></div>
+        <ul class="bul">${i.bullets.map(b => `<li><span>${esc(b.text)}<br><em class="muted">${b.tags.length ? esc(b.tags.join(", ")) : "no tags, always shown"}</em></span></li>`).join("")}</ul>
+      </div></div>
+    </div>`).join("");
+
+  byId("lib-list").querySelectorAll("[data-libind]").forEach(b => b.onclick = () => {
+    const id = b.dataset.libind, t = b.dataset.tag;
+    const it = libItem(id); if (!it) return;
+    const at = it.industries.indexOf(t);
+    if (at >= 0) it.industries.splice(at, 1); else it.industries.push(t);
+    saveAll(); drawLibrary();
+  });
+  byId("lib-list").querySelectorAll("[data-libskills]").forEach(inp => inp.onchange = () => {
+    const it = libItem(inp.dataset.libskills); if (!it) return;
+    it.skills = SPLIT(inp.value);
+    /* Re-derive bullet tags from the new skill list, keeping any tag that is
+       still a skill on this item so hand-tagging is not thrown away. */
+    it.bullets.forEach(b => { b.tags = uniq([...tagBullet(b.text, it.skills), ...b.tags.filter(t => it.skills.some(s => norm(s) === norm(t)))]); });
+    saveAll(); drawLibrary(); render();
+  });
+  byId("lib-list").querySelectorAll("[data-libdel]").forEach(b => b.onclick = () => {
+    const id = b.dataset.libdel, it = libItem(id);
+    const used = VARIANTS.filter(v => (v.sections || []).some(s => (s.itemIds || []).includes(id)));
+    if (!confirm(`Delete "${it.org}" from your library?${used.length ? `\n\nIt is on ${used.length} résumé${used.length === 1 ? "" : "s"} and will vanish from ${used.length === 1 ? "it" : "them"}.` : ""}`)) return;
+    LIB.items = LIB.items.filter(x => x.id !== id);
+    VARIANTS.forEach(v => {
+      (v.sections || []).forEach(s => { if (s.itemIds) s.itemIds = s.itemIds.filter(x => x !== id); });
+      if (v.overrides) delete v.overrides[id];
+    });
+    saveAll(); drawLibrary(); render();
+  });
+}
+byId("lib-q").oninput = () => drawLibrary();
+byId("library").onclick = openLibrary;
+byId("lib-import").onclick = () => byId("impfile").click();
+byId("impfile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try { await importFile(f); }
+  catch (err) { alert("Could not read that file.\n\n" + (err && err.message ? err.message : err)); }
+};
+byId("lib-export").onchange = e => {
+  const f = e.target.value; e.target.value = "";
+  if (!f) return;
+  if (!LIB.items.length) { alert("Your library is empty."); return; }
+  const sh = libSheets();
+  if (f === "xlsx") download("career-library.xlsx", writeXlsx(sh), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  else if (f === "csv") download("career-library.csv", toCsv([...sh.Items, [], ...sh.Bullets]), "text/csv;charset=utf-8");
+  else download("career-library.json", JSON.stringify(LIB, null, 2), "application/json");
+};
+byId("lib-clear").onclick = () => {
+  if (!confirm("Clear the whole career library from this browser?\n\nRésumés built from it will lose their experiences. Export first if you have not.")) return;
+  LIB = emptyLib(); saveAll(); drawLibrary(); render();
+};
+
+/* ---------- 13. Variants panel ---------- */
+function drawVariants() {
+  byId("var-list").innerHTML = VARIANTS.map(v => {
+    const n = v.kind === "library" ? (v.sections || []).reduce((a, s) => a + ((s.itemIds || []).length), 0)
+                                   : (v.sections || []).length;
+    return `<div class="vrow${v.id === curId ? " cur" : ""}">
+      <div class="meat"><div class="t">${esc(v.name)}</div>
+        <div class="s">${v.kind === "library" ? `built from library · ${n} experience${n === 1 ? "" : "s"}` : `typed by hand · ${n} section${n === 1 ? "" : "s"}`}${
+          (v.filter && (v.filter.skills.length + v.filter.industries.length)) ? ` · ${v.filter.skills.length + v.filter.industries.length} tag filter${(v.filter.skills.length + v.filter.industries.length) === 1 ? "" : "s"}` : ""}</div></div>
+      ${v.id === curId ? "" : `<button data-vuse="${v.id}">Open</button>`}
+      ${v.kind === "freeform" ? `<button data-vconv="${v.id}" title="Make a library-backed copy of this résumé">🗂</button>` : ""}
+      <button data-vdup="${v.id}" title="Duplicate">⧉</button>
+      <button data-vren="${v.id}" title="Rename">✎</button>
+      <button class="danger" data-vdel="${v.id}" title="Delete">✕</button>
+    </div>`;
+  }).join("");
+  const on = (sel, fn) => byId("var-list").querySelectorAll(sel).forEach(b => b.onclick = () => fn(b));
+  on("[data-vuse]", b => { curId = b.dataset.vuse; saveAll(); render(); drawVariants(); });
+  on("[data-vdup]", b => {
+    const src = VARIANTS.find(v => v.id === b.dataset.vdup);
+    const copy = clone(src);
+    copy.id = uid("v");
+    copy.name = src.name.replace(/ \(copy( \d+)?\)$/, "") + " (copy)";
+    let n = 2; while (VARIANTS.some(v => v.name === copy.name)) copy.name = src.name + ` (copy ${n++})`;
+    VARIANTS.splice(VARIANTS.indexOf(src) + 1, 0, copy);
+    curId = copy.id; saveAll(); render(); drawVariants();
+  });
+  on("[data-vconv]", b => {
+    curId = b.dataset.vconv;
+    render();
+    if (offerConversion("A library-backed résumé is one you build by ticking boxes.")) { drawVariants(); openInclude(null); }
+    else drawVariants();
+  });
+  on("[data-vren]", b => {
+    const v = VARIANTS.find(x => x.id === b.dataset.vren);
+    const n = prompt("Name this résumé", v.name);
+    if (n && n.trim()) { v.name = n.trim(); saveAll(); render(); drawVariants(); }
+  });
+  on("[data-vdel]", b => {
+    if (VARIANTS.length === 1) { alert("This is your only résumé. Make another one first."); return; }
+    const v = VARIANTS.find(x => x.id === b.dataset.vdel);
+    if (!confirm(`Delete the résumé "${v.name}"?${v.kind === "library" ? "\n\nYour library is untouched, only this arrangement of it goes." : "\n\nThis one was typed by hand, so its wording is gone for good."}`)) return;
+    VARIANTS = VARIANTS.filter(x => x !== v);
+    if (curId === v.id) curId = VARIANTS[0].id;
+    saveAll(); render(); drawVariants();
+  });
+}
+byId("variants").onclick = () => { drawVariants(); openPanel("p-variants"); };
+byId("var-new").onclick = () => {
+  if (!LIB.items.length) { alert("Import your career library first, then a library résumé has something to draw from."); openLibrary(); return; }
+  const n = prompt("Name this résumé. Something like the role you are chasing.", "New résumé");
+  if (!n) return;
+  const v = libraryVariant(n.trim());
+  VARIANTS.push(v); curId = v.id; saveAll(); render(); drawVariants();
+  openInclude(null);
+};
+byId("var-blank").onclick = () => {
+  const n = prompt("Name this résumé", "Blank résumé");
+  if (!n) return;
+  const v = freeformVariant(n.trim(), BLANK);
+  VARIANTS.push(v); curId = v.id; saveAll(); render(); drawVariants();
+};
+byId("include").onclick = () => openInclude(null);
+
+/* ============================================================================
+   14. QR
+   ----------------------------------------------------------------------------
+   Written out rather than pulled from a CDN because the whole point of this
+   tool is that nothing leaves the browser, and because most generators get one
+   thing wrong that matters here. A QR code has a mode for plain uppercase
+   alphanumerics that packs 5.5 bits per character, against 8 for byte mode. A
+   link in uppercase therefore fits in a visibly smaller, easier-to-scan code.
+   Most tools encode every link as bytes and skip the saving. This one checks.
+   ========================================================================== */
+const QR_ALNUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+const ECC_CW = {  // error correction codewords per block, by level, version 1..40
+  L: [0,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+  M: [0,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28],
+  Q: [0,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30,28,30,30,30,30,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+  H: [0,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28,30,24,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+};
+const ECC_BLOCKS = {
+  L: [0,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25],
+  M: [0,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49],
+  Q: [0,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68],
+  H: [0,1,1,2,4,4,4,5,6,8,8,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81],
+};
+const ECC_BITS = { L:1, M:0, Q:3, H:2 };
+
+function qrAlignPositions(ver) {
+  if (ver === 1) return [];
+  const n = Math.floor(ver / 7) + 2;
+  const step = (ver === 32) ? 26 : Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2;
+  const out = [6];
+  for (let pos = ver * 4 + 10; out.length < n; pos -= step) out.splice(1, 0, pos);
+  return out;
+}
+function qrRawDataModules(ver) {
+  let r = (16 * ver + 128) * ver + 64;
+  if (ver >= 2) { const n = Math.floor(ver / 7) + 2; r -= (25 * n - 10) * n - 55; if (ver >= 7) r -= 36; }
+  return r;
+}
+function qrCapacityBits(ver, ecl) {
+  return Math.floor(qrRawDataModules(ver) / 8) * 8 - ECC_CW[ecl][ver] * ECC_BLOCKS[ecl][ver] * 8;
+}
+
+/* --- GF(256) Reed-Solomon --- */
+function gfMul(a, b) { let z = 0; for (let i = 7; i >= 0; i--) { z = ((z << 1) ^ ((z >>> 7) * 0x11D)) & 0xFF; z ^= ((b >>> i) & 1) * a; } return z; }
+function rsDivisor(deg) {
+  const r = new Uint8Array(deg); r[deg - 1] = 1;
+  let root = 1;
+  for (let i = 0; i < deg; i++) {
+    for (let j = 0; j < deg; j++) { r[j] = gfMul(r[j], root); if (j + 1 < deg) r[j] ^= r[j + 1]; }
+    root = gfMul(root, 0x02);
+  }
+  return r;
+}
+function rsRemainder(data, div) {
+  const res = new Uint8Array(div.length);
+  for (const b of data) {
+    const factor = b ^ res[0];
+    res.copyWithin(0, 1); res[res.length - 1] = 0;
+    for (let i = 0; i < div.length; i++) res[i] ^= gfMul(div[i], factor);
+  }
+  return res;
+}
+
+/* --- bit stream --- */
+class QrBits {
+  constructor() { this.bits = []; }
+  put(val, len) { for (let i = len - 1; i >= 0; i--) this.bits.push((val >>> i) & 1); }
+  get length() { return this.bits.length; }
+}
+function qrPickMode(text) {
+  if (/^[0-9]*$/.test(text)) return "numeric";
+  if ([...text].every(c => QR_ALNUM.includes(c))) return "alnum";
+  return "byte";
+}
+function qrCountBits(mode, ver) {
+  const i = ver <= 9 ? 0 : ver <= 26 ? 1 : 2;
+  return { numeric: [10, 12, 14], alnum: [9, 11, 13], byte: [8, 16, 16] }[mode][i];
+}
+function qrDataBits(text, mode, ver) {
+  const bb = new QrBits();
+  bb.put({ numeric: 1, alnum: 2, byte: 4 }[mode], 4);
+  if (mode === "byte") {
+    const bytes = new TextEncoder().encode(text);
+    bb.put(bytes.length, qrCountBits(mode, ver));
+    for (const b of bytes) bb.put(b, 8);
+  } else if (mode === "alnum") {
+    bb.put(text.length, qrCountBits(mode, ver));
+    for (let i = 0; i + 1 < text.length; i += 2) bb.put(QR_ALNUM.indexOf(text[i]) * 45 + QR_ALNUM.indexOf(text[i + 1]), 11);
+    if (text.length % 2) bb.put(QR_ALNUM.indexOf(text[text.length - 1]), 6);
+  } else {
+    bb.put(text.length, qrCountBits(mode, ver));
+    for (let i = 0; i < text.length; i += 3) {
+      const chunk = text.substr(i, 3);
+      bb.put(parseInt(chunk, 10), chunk.length * 3 + 1);
+    }
+  }
+  return bb;
+}
+function qrCodewords(text, ecl) {
+  const mode = qrPickMode(text);
+  let ver = 0;
+  for (let v = 1; v <= 40; v++) {
+    if (qrDataBits(text, mode, v).length <= qrCapacityBits(v, ecl)) { ver = v; break; }
+  }
+  if (!ver) throw new Error("Too much text for a QR code, even at version 40.");
+  const cap = qrCapacityBits(ver, ecl);
+  const bb = qrDataBits(text, mode, ver);
+  bb.put(0, Math.min(4, cap - bb.length));
+  bb.put(0, (8 - bb.length % 8) % 8);
+  for (let pad = 0xEC; bb.length < cap; pad ^= 0xEC ^ 0x11) bb.put(pad, 8);
+  const data = new Uint8Array(bb.length / 8);
+  bb.bits.forEach((b, i) => { data[i >>> 3] |= b << (7 - (i & 7)); });
+
+  /* interleave blocks */
+  const nb = ECC_BLOCKS[ecl][ver], ecc = ECC_CW[ecl][ver];
+  const total = Math.floor(qrRawDataModules(ver) / 8);
+  const shortLen = Math.floor(total / nb) - ecc;
+  const numShort = nb - total % nb;
+  const div = rsDivisor(ecc);
+  const blocks = [], eccs = [];
+  let k = 0;
+  for (let i = 0; i < nb; i++) {
+    const len = shortLen + (i < numShort ? 0 : 1);
+    const d = data.subarray(k, k + len); k += len;
+    blocks.push(d); eccs.push(rsRemainder(d, div));
+  }
+  const out = [];
+  for (let i = 0; i < shortLen + 1; i++)
+    for (let b = 0; b < nb; b++) if (i < blocks[b].length) out.push(blocks[b][i]);
+  for (let i = 0; i < ecc; i++) for (let b = 0; b < nb; b++) out.push(eccs[b][i]);
+  return { ver, mode, bytes: Uint8Array.from(out) };
+}
+
+/* --- module placement --- */
+function qrMatrix(text, ecl) {
+  const { ver, mode, bytes } = qrCodewords(text, ecl);
+  const n = ver * 4 + 17;
+  const m = Array.from({ length: n }, () => new Int8Array(n).fill(-1));   // -1 = free
+  const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < n && y < n) m[y][x] = v; };
+
+  const finder = (cx, cy) => {
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const d = Math.max(Math.abs(dx), Math.abs(dy));
+      set(cx + dx, cy + dy, (d !== 2 && d !== 4) ? 1 : 0);
+    }
+  };
+  finder(3, 3); finder(n - 4, 3); finder(3, n - 4);
+  for (let i = 8; i < n - 8; i++) { const v = (i % 2 === 0) ? 1 : 0; set(i, 6, v); set(6, i, v); }
+  const ap = qrAlignPositions(ver);
+  for (const y of ap) for (const x of ap) {
+    if ((x === 6 && y === 6) || (x === 6 && y === n - 7) || (x === n - 7 && y === 6)) continue;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++)
+      set(x + dx, y + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1 ? 1 : 0);
+  }
+  set(8, n - 8, 1);                       // always dark
+  const reserve = () => {                 // format areas, filled in after masking
+    for (let i = 0; i <= 8; i++) { if (m[8][i] === -1) set(i, 8, 0); if (m[i][8] === -1) set(8, i, 0); }
+    for (let i = 0; i < 8; i++) { set(n - 1 - i, 8, 0); set(8, n - 1 - i, 0); }
+  };
+  reserve();
+  if (ver >= 7) {
+    let rem = ver;
+    for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+    const bits = (ver << 12) | rem;
+    for (let i = 0; i < 18; i++) {
+      const b = (bits >>> i) & 1, a = n - 11 + i % 3, bcoord = Math.floor(i / 3);
+      set(a, bcoord, b); set(bcoord, a, b);
+    }
+  }
+  const fn = m.map(r => Int8Array.from(r, v => v === -1 ? 0 : 1));   // 1 = reserved
+
+  /* zigzag data placement */
+  let i = 0;
+  for (let right = n - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < n; vert++) {
+      for (let j = 0; j < 2; j++) {
+        const x = right - j;
+        const upward = ((right + 1) & 2) === 0;
+        const y = upward ? n - 1 - vert : vert;
+        if (fn[y][x]) continue;
+        m[y][x] = (i < bytes.length * 8) ? ((bytes[i >>> 3] >>> (7 - (i & 7))) & 1) : 0;
+        i++;
+      }
+    }
+  }
+  /* mask, score, keep the best */
+  const maskFn = [
+    (x, y) => (x + y) % 2 === 0,
+    (x, y) => y % 2 === 0,
+    (x, y) => x % 3 === 0,
+    (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(y / 2) + Math.floor(x / 3)) % 2 === 0,
+    (x, y) => (x * y) % 2 + (x * y) % 3 === 0,
+    (x, y) => ((x * y) % 2 + (x * y) % 3) % 2 === 0,
+    (x, y) => ((x + y) % 2 + (x * y) % 3) % 2 === 0,
+  ];
+  let best = null, bestPen = Infinity;
+  for (let mk = 0; mk < 8; mk++) {
+    const c = m.map(r => Int8Array.from(r));
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!fn[y][x] && maskFn[mk](x, y)) c[y][x] ^= 1;
+    /* format info */
+    const fdata = (ECC_BITS[ecl] << 3) | mk;
+    let rem = fdata;
+    for (let k2 = 0; k2 < 10; k2++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+    const fbits = ((fdata << 10) | rem) ^ 0x5412;
+    for (let k2 = 0; k2 <= 5; k2++) c[k2][8] = (fbits >>> k2) & 1;
+    c[7][8] = (fbits >>> 6) & 1; c[8][8] = (fbits >>> 7) & 1; c[8][7] = (fbits >>> 8) & 1;
+    for (let k2 = 9; k2 < 15; k2++) c[8][14 - k2] = (fbits >>> k2) & 1;
+    for (let k2 = 0; k2 < 8; k2++) c[8][n - 1 - k2] = (fbits >>> k2) & 1;
+    for (let k2 = 8; k2 < 15; k2++) c[n - 15 + k2][8] = (fbits >>> k2) & 1;
+    c[n - 8][8] = 1;
+    const p = qrPenalty(c, n);
+    if (p < bestPen) { bestPen = p; best = c; }
+  }
+  return { m: best, n, ver, mode, ecl };
+}
+function qrPenalty(c, n) {
+  let p = 0;
+  const run = (get) => {
+    for (let a = 0; a < n; a++) {
+      let last = get(a, 0), len = 1, hist = [];
+      for (let b = 1; b < n; b++) {
+        const v = get(a, b);
+        if (v === last) { len++; }
+        else { if (len >= 5) p += len - 2; hist.push(len); last = v; len = 1; }
+      }
+      if (len >= 5) p += len - 2;
+    }
+  };
+  run((y, x) => c[y][x]); run((x, y) => c[y][x]);
+  for (let y = 0; y + 1 < n; y++) for (let x = 0; x + 1 < n; x++) {
+    const v = c[y][x];
+    if (v === c[y][x + 1] && v === c[y + 1][x] && v === c[y + 1][x + 1]) p += 3;
+  }
+  const pat = [1,0,1,1,1,0,1];
+  const hit = (arr, i) => pat.every((v, k) => arr[i + k] === v)
+    && ((i >= 4 && arr.slice(i - 4, i).every(v => v === 0)) || (i + 11 <= arr.length && arr.slice(i + 7, i + 11).every(v => v === 0)));
+  for (let y = 0; y < n; y++) {
+    const row = [...c[y]], col = c.map(r => r[y]);
+    for (let x = 0; x + 7 <= n; x++) { if (hit(row, x)) p += 40; if (hit(col, x)) p += 40; }
+  }
+  let dark = 0;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) dark += c[y][x];
+  p += Math.floor(Math.abs(dark * 20 - n * n * 10) / (n * n)) * 10;
+  return p;
+}
+
+/* ---------- 15. drawing a QR ---------- */
+let QR = null;
+function qrDraw() {
+  const text = byId("qr-text").value;
+  const ecl = byId("qr-ecc").value;
+  const cv = byId("qr-canvas"), note = byId("qr-note"), cap = byId("qr-cap");
+  if (!text) { cv.width = cv.height = 0; note.textContent = "Nothing to encode yet."; cap.textContent = ""; QR = null; return; }
+  try { QR = qrMatrix(text, ecl); }
+  catch (e) {
+    QR = null; cv.width = cv.height = 0; cap.textContent = "";
+    note.textContent = e.message + " Point the code at a short link instead of carrying the whole résumé.";
+    return;
+  }
+  const { m, n, ver, mode } = QR;
+  const Q = 4, S = Math.max(3, Math.floor(360 / (n + Q * 2)));
+  const W = (n + Q * 2) * S;
+  cv.width = cv.height = W;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, W);
+  ctx.fillStyle = "#000";
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (m[y][x]) ctx.fillRect((x + Q) * S, (y + Q) * S, S, S);
+
+  const MODE_LABEL = { alnum: "alphanumeric", byte: "byte", numeric: "numeric" };
+  let msg = `Version ${ver}, ${n}×${n} modules, ${MODE_LABEL[mode]} mode, error correction ${ecl}.`;
+  if (mode === "byte") {
+    const up = text.toUpperCase();
+    if ([...up].every(c => QR_ALNUM.includes(c))) {
+      try {
+        const alt = qrMatrix(up, ecl);
+        if (alt.n < n) msg += ` In capitals this would be ${alt.n}×${alt.n} instead, because uppercase links qualify for alphanumeric mode. Domains ignore case, paths may not.`;
+      } catch (e) {}
+    }
+  }
+  note.textContent = msg;
+  cap.textContent = text.length > 120 ? text.slice(0, 120) + "…" : text;
+}
+function qrSvg() {
+  if (!QR) return "";
+  const { m, n } = QR, Q = 4, W = n + Q * 2;
+  let d = "";
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (m[y][x]) d += `M${x + Q} ${y + Q}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" shape-rendering="crispEdges" width="${W * 8}" height="${W * 8}">`
+    + `<rect width="${W}" height="${W}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+function qrDefaultShort() {
+  const host = (location.host || "yoursite.com").replace(/^www\./, "").toUpperCase();
+  /* "AI Solutions Engineer" suggests AISE, not AISOLUTI. Initials read better on
+     a card and keep the code at version 1. */
+  const words = (V().name || "resume").toUpperCase().match(/[A-Z0-9]+/g) || [];
+  const s = (words.length > 1 ? words.map(w => w[0]).join("") : (words[0] || "CV")).slice(0, 8) || "CV";
+  return `${host}/R/${s}`;
+}
+byId("qrbtn").onclick = async () => {
+  const src = byId("qr-src").value;
+  byId("qr-text").value = src === "full" ? await buildShareLink() : qrDefaultShort();
+  qrDraw(); openPanel("p-qr");
+};
+byId("qr-src").onchange = async e => {
+  const v = e.target.value;
+  if (v === "full") {
+    const url = await buildShareLink();
+    byId("qr-text").value = url;
+    if (url.length > 2000) alert("Heads up, this résumé makes a long link.\n\nThe QR will be dense and slow to scan. A short link you control scans from across a room.");
+  } else if (v === "short") byId("qr-text").value = qrDefaultShort();
+  else byId("qr-text").value = "";
+  qrDraw();
+};
+byId("qr-text").oninput = qrDraw;
+byId("qr-ecc").onchange = qrDraw;
+byId("qr-png").onclick = () => {
+  if (!QR) return;
+  byId("qr-canvas").toBlob(b => {
+    const a = document.createElement("a");
+    a.download = slug() + "-qr.png"; a.href = URL.createObjectURL(b); a.click();
+    URL.revokeObjectURL(a.href);
+  }, "image/png");
+};
+byId("qr-svg").onclick = () => { if (QR) download(slug() + "-qr.svg", qrSvg(), "image/svg+xml"); };
+
 // ---- exporters (respect Tailor "off" flags; dependency-free) ----
-const slug = () => (String(R.name||"resume").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")) || "resume";
+const slug = () => (String(V().profile.name || "resume").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")) || "resume";
 function download(name, text, mime) { const a=document.createElement("a"); a.download=name; a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.click(); URL.revokeObjectURL(a.href); }
 function tidy(s){ return s.join("\n").replace(/\n{3,}/g,"\n\n").trim()+"\n"; }
 
@@ -402,61 +2269,98 @@ ul{margin:2pt 0 4pt;padding-left:18pt;} li{font-size:10pt;margin:1pt 0;}
 </style></head><body>${b}</body></html>`;
 }
 
-// ---- toolbar ----
-const tplSel = document.getElementById("tpl");
-tplSel.innerHTML = Object.entries(TEMPLATES).map(([k,t])=>`<option value="${k}">${t.label}</option>`).join("");
-tplSel.value = curKey;
-tplSel.onchange = () => { curKey = tplSel.value; R = loadTpl(curKey); render(); };
 
-document.getElementById("add-sec").onclick = () => {
+/* ---------- 16. toolbar ---------- */
+byId("tpl").onchange = e => { curId = e.target.value; saveAll(); render(); };
+byId("add-sec").onclick = () => {
   const t = prompt("Section type? entries / text / skills / list", "entries"); if (!t) return;
   const title = prompt("Section title?", "New Section") || "New Section";
   const tt = t.trim().toLowerCase();
-  const blank = tt==="text" ? {type:"text",title,body:"Text…"} : tt==="skills" ? {type:"skills",title,rows:[{label:"Category",value:"items"}]} : tt==="list" ? {type:"list",title,items:["item"]} : {type:"entries",title,items:[{org:"Company",role:"Role",meta:"City, ST | Dates",bullets:["Accomplishment"]}]};
-  R.sections.push(blank); render();
+  const v = V();
+  const blank = tt === "text"   ? { id:uid("s"), type:"text",   title, body:"Text…" }
+              : tt === "skills" ? { id:uid("s"), type:"skills", title, rows:[{ label:"Category", value:"items" }] }
+              : tt === "list"   ? { id:uid("s"), type:"list",   title, items:["item"] }
+              : v.kind === "library"
+                ? { id:uid("s"), type:"entries", title, kinds:[], itemIds:[] }
+                : { id:uid("s"), type:"entries", title, items:[{ org:"Company", role:"Role", meta:"City, ST | Dates", bullets:["Accomplishment"] }] };
+  v.sections.push(blank); render();
 };
-document.getElementById("reset").onclick = () => { if (confirm("Reset this template to its original content? Your edits to it will be lost.")) { localStorage.removeItem(LSP+curKey); R = clone(TEMPLATES[curKey].data); render(); } };
-document.getElementById("print").onclick = () => window.print();
-document.getElementById("export").onchange = e => {
-  const f = e.target.value; if (!f) return;
-  if (f==="md") download(slug()+".md", toMarkdown(R), "text/markdown;charset=utf-8");
-  else if (f==="txt") download(slug()+".txt", toPlainText(R), "text/plain;charset=utf-8");
-  else if (f==="doc") download(slug()+".doc", toDocHtml(R), "application/msword");
-  e.target.value = "";
+byId("print").onclick = () => window.print();
+byId("export").onchange = e => {
+  const f = e.target.value; e.target.value = "";
+  if (!f) return;
+  const P = plain();
+  if (f === "md") download(slug() + ".md", toMarkdown(P), "text/markdown;charset=utf-8");
+  else if (f === "txt") download(slug() + ".txt", toPlainText(P), "text/plain;charset=utf-8");
+  else if (f === "doc") download(slug() + ".doc", toDocHtml(P), "application/msword");
 };
-document.getElementById("tailor").onchange = e => { document.body.toggleAttribute("data-tailor", e.target.checked); };
-document.getElementById("save").onclick = () => { const a=document.createElement("a"); a.download=(curKey)+".resume.json"; a.href=URL.createObjectURL(new Blob([JSON.stringify(R,null,2)],{type:"application/json"})); a.click(); URL.revokeObjectURL(a.href); };
-document.getElementById("load").onclick = () => document.getElementById("file").click();
-document.getElementById("file").onchange = async e => { const f=e.target.files[0]; if(!f) return; try{ R=JSON.parse(await f.text()); render(); }catch{ alert("Could not read that file."); } e.target.value=""; };
-const accent = document.getElementById("accent");
-accent.oninput = () => document.documentElement.style.setProperty("--accent", accent.value);
-document.getElementById("style").onchange = e => document.documentElement.dataset.tpl = e.target.value;
+byId("tailor").onchange = e => document.body.toggleAttribute("data-tailor", e.target.checked);
+byId("accent").oninput = e => { V().accent = e.target.value; document.documentElement.style.setProperty("--accent", e.target.value); saveAll(); };
+byId("style").onchange = e => { V().layout = e.target.value; document.documentElement.dataset.tpl = e.target.value; saveAll(); };
+/* Save JSON keeps the whole variant plus, for a library résumé, the slice of the
+   library it actually uses. Reopening it elsewhere rebuilds the résumé exactly,
+   without shipping career history the résumé never mentions. */
+byId("save").onclick = () => {
+  const v = V();
+  const used = new Set((v.sections || []).flatMap(s => s.itemIds || []));
+  const pack = { app:"resume-studio", v:3, variant: clone(v),
+                 items: LIB.items.filter(i => used.has(i.id)),
+                 resume: plain(), savedAt: new Date().toISOString() };
+  download(slug() + ".resume.json", JSON.stringify(pack, null, 2), "application/json");
+};
+byId("load").onclick = () => byId("file").click();
+byId("file").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (j.app === "resume-studio" && j.variant) {
+      const seen = new Set(LIB.items.map(i => i.id));
+      (j.items || []).forEach(i => { if (!seen.has(i.id)) LIB.items.push(makeItem(i)); });
+      const v = clone(j.variant); v.id = uid("v");
+      let n = 1, base = v.name;
+      while (VARIANTS.some(x => x.name === v.name)) v.name = base + " (" + ++n + ")";
+      VARIANTS.push(v); curId = v.id;
+    } else if (j.sections) {
+      VARIANTS.push(freeformVariant(f.name.replace(/\.[^.]+$/, ""), j));
+      curId = VARIANTS[VARIANTS.length - 1].id;
+    } else if (j.items) {
+      LIB = LIB.items.length ? mergeLib(normaliseLib(j)) : normaliseLib(j);
+      alert(`Loaded a career library, ${LIB.items.length} experiences.`);
+    } else throw new Error("unrecognised");
+    saveAll(); render();
+  } catch (err) { alert("Could not read that file."); }
+};
 
-// ---- onboarding / help ----
+/* ---------- 17. onboarding ---------- */
 const OB_KEY = LSP + "onboarded";
-const ob = document.getElementById("onboard");
-const showOb = () => ob.classList.add("show");
-const hideOb = () => ob.classList.remove("show");
-document.getElementById("help").onclick = showOb;
-document.getElementById("ob-close").onclick = () => { try { localStorage.setItem(OB_KEY, "1"); } catch {} hideOb(); };
-document.getElementById("ob-blank").onclick = () => { try { localStorage.setItem(OB_KEY, "1"); } catch {} R = clone(BLANK); render(); hideOb(); };
-ob.addEventListener("click", e => { if (e.target === ob) hideOb(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") hideOb(); });
-/* ---------- share / backup / sync link ----------
-   The whole résumé is deflated into the URL fragment (#s=...) — nothing is
-   uploaded. Open the link on another device (or later) to carry it there, or keep
-   the link as a backup. Opening one previews it, then "Load" adopts it onto this
-   device (backing up whatever résumé was here first). */
+const ob = byId("onboard");
+byId("help").onclick = () => ob.classList.add("show");
+byId("ob-close").onclick = () => { try { localStorage.setItem(OB_KEY, "1"); } catch (e) {} ob.classList.remove("show"); };
+byId("ob-blank").onclick = () => {
+  try { localStorage.setItem(OB_KEY, "1"); } catch (e) {}
+  const v = freeformVariant("Blank résumé", BLANK);
+  VARIANTS.push(v); curId = v.id; saveAll(); render();
+  ob.classList.remove("show");
+};
+ob.addEventListener("click", e => { if (e.target === ob) ob.classList.remove("show"); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") ob.classList.remove("show"); });
+
+/* ---------- 18. share link ----------
+   The compiled résumé is deflated into the URL fragment. Nothing is uploaded and
+   nothing is stored anywhere but the link itself. Note what does NOT travel: the
+   library. A share link carries only the experiences you ticked, so sending one
+   never leaks the jobs you left off. */
 const RS_BACKUP_KEY = LSP + "backup-before-link";
 function _b64url(bytes){ let s=""; for(let i=0;i<bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function _unb64url(s){ const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")); const o=new Uint8Array(b.length); for(let i=0;i<b.length;i++) o[i]=b.charCodeAt(i); return o; }
 async function _pipe(bytes,Ctor,mode){ const st=new Blob([bytes]).stream().pipeThrough(new Ctor(mode)); return new Uint8Array(await new Response(st).arrayBuffer()); }
 async function buildShareLink(){
-  const snap = { app:"resume-studio", key:curKey, data:R, _sharedAt:Date.now() };
+  const snap = { app:"resume-studio", name:V().name, data:plain(), _sharedAt:Date.now() };
   const raw = new TextEncoder().encode(JSON.stringify(snap));
   let payload;
   try { payload = "z"+_b64url(await _pipe(raw,CompressionStream,"deflate-raw")); }
-  catch { payload = "j"+_b64url(raw); }
+  catch (e) { payload = "j"+_b64url(raw); }
   return `${location.origin}${location.pathname}#s=${payload}`;
 }
 async function tryLoadShareLink(){
@@ -469,43 +2373,43 @@ async function tryLoadShareLink(){
     else if(kind!=="j") return false;
     const snap=JSON.parse(new TextDecoder().decode(raw));
     if(!snap || snap.app!=="resume-studio" || !snap.data || !Array.isArray(snap.data.sections)) return false;
-    PREVIEW = true; R = snap.data; if(snap.key) curKey = snap.key;
+    PREVIEW = true;
+    const v = freeformVariant(snap.name || "Shared résumé", snap.data);
+    VARIANTS.push(v); curId = v.id;
     const when = snap._sharedAt ? new Date(snap._sharedAt).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "";
-    const hasOwn = !!localStorage.getItem(LSP + curKey);
     const bar=document.createElement("div"); bar.id="shareBanner";
-    bar.innerHTML=`<span>📥 This link holds a résumé${when?` saved ${when}`:""}. Load it here to keep editing${hasOwn?", your current one is backed up first":""}.</span>`+
-      `<span class="share-actions"><button id="rs-load">Load résumé</button>${hasOwn?'<button id="rs-keep" class="ghost">Keep mine</button>':''}</span>`;
+    bar.innerHTML=`<span>📥 This link holds a résumé${when?` saved ${when}`:""}. Keep it here to carry on editing.</span>`+
+      `<span class="share-actions"><button id="rs-load">Keep this résumé</button><button id="rs-keep" class="ghost">Discard</button></span>`;
     document.body.prepend(bar);
     bar.querySelector("#rs-load").onclick = () => {
-      try{ const own=localStorage.getItem(LSP+curKey); if(own) localStorage.setItem(RS_BACKUP_KEY, own); }catch{}
-      PREVIEW=false; save(); bar.remove();
+      PREVIEW=false; saveAll(); bar.remove();
       history.replaceState(null,"",location.pathname+location.search);
     };
-    const keep = bar.querySelector("#rs-keep");
-    if(keep) keep.onclick = () => { location.hash=""; location.reload(); };
+    bar.querySelector("#rs-keep").onclick = () => { location.hash=""; location.reload(); };
     return true;
   }catch(e){ console.warn("share link failed to load", e); return false; }
 }
-// Discord refuses a message over 2,000 characters. A normal résumé is nowhere
-// near it — a full two-page one measures about 750 — but a master document with
-// every role you have ever held can pass it, and a copied link that breaks when
-// pasted looks like the recipient's fault. Say so rather than hand it over.
+/* Discord refuses a message over 2,000 characters. A normal résumé is nowhere
+   near it, a full two-page one measures about 750, but a master document with
+   every role you have ever held can pass it, and a copied link that breaks when
+   pasted looks like the recipient's fault. Say so rather than hand it over. */
 const RS_PASTE_LIMIT = 2000;
-document.getElementById("sharelink").onclick = async () => {
-  const btn = document.getElementById("sharelink"), label = btn.textContent;
+byId("sharelink").onclick = async () => {
+  const btn = byId("sharelink"), label = btn.textContent;
   const url = await buildShareLink();
   if (url.length > RS_PASTE_LIMIT){
     btn.textContent = "✗ Too big";
     setTimeout(()=>{ btn.textContent = label; }, 2600);
-    alert(`This résumé is too long for a link. It comes to ${url.length.toLocaleString()} characters and chat apps cut off at ${RS_PASTE_LIMIT.toLocaleString()}.\n\nUse Save JSON to download it and send that file instead.`);
+    alert(`This résumé is too long for a link. It comes to ${url.length.toLocaleString()} characters and chat apps cut off at ${RS_PASTE_LIMIT.toLocaleString()}.\n\nUntick a few experiences, or use Save JSON and send that file instead.`);
     return;
   }
   try { await navigator.clipboard.writeText(url); btn.textContent = "✓ Copied"; setTimeout(()=>{ btn.textContent = label; }, 1600); }
-  catch { prompt("Copy this backup / sync link:", url); }
+  catch (e) { prompt("Copy this link:", url); }
 };
 
-try { if (!location.hash.includes("s=") && !localStorage.getItem(OB_KEY)) showOb(); } catch {}
-
+/* ---------- 19. boot ---------- */
+loadAll();
+try { if (!location.hash.includes("s=") && !localStorage.getItem(OB_KEY)) ob.classList.add("show"); } catch (e) {}
 (async () => { await tryLoadShareLink(); render(); })();
 </script>
 </body>
