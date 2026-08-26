@@ -78,8 +78,8 @@
   #backLegL { transform-origin: 182px 138px; animation: kickA 1.15s ease-in-out infinite; }
   #backLegR { transform-origin: 220px 140px; animation: kickB 1.15s ease-in-out infinite; }
   #tail     { transform-origin: 214px 122px; animation: swish 1.9s ease-in-out infinite; }
-  #earL     { transform-origin: 188px 308px; animation: flop 2.3s ease-in-out infinite; }
-  #earR     { transform-origin: 186px 340px; animation: flop 2.3s ease-in-out infinite .35s; }
+  #earL     { transform-box: fill-box; transform-origin: 50% 0%; animation: flop 2.3s ease-in-out infinite; }
+  #earR     { transform-box: fill-box; transform-origin: 50% 0%; animation: flop 2.3s ease-in-out infinite .35s; }
   #lid      { animation: blink 5.2s ease-in-out infinite; transform-origin: 168px 321px; }
   #ember    { animation: glow 1.5s ease-in-out infinite; transform-origin: 96px 359px; }
   .puff     { opacity: 0; transform-origin: 96px 359px; }
@@ -108,8 +108,8 @@
     50%      { transform: rotate(18deg); }
   }
   @keyframes flop {
-    0%, 100% { transform: rotate(-9deg); }
-    50%      { transform: rotate(11deg); }
+    0%, 100% { transform: rotate(-11deg); }
+    50%      { transform: rotate(13deg); }
   }
   @keyframes blink {
     0%, 92%, 100% { transform: scaleY(0); }
@@ -171,13 +171,14 @@
   <div class="stage">
     <svg viewBox="0 0 400 470" role="img" aria-labelledby="sophiaTitle sophiaDesc">
       <title id="sophiaTitle">Sophia the donkey doing a handstand</title>
-      <desc id="sophiaDesc">A cartoon grey donkey balances upside down on her front hooves, back legs kicking in the air, with a lit cigar in her mouth trailing curls of smoke.</desc>
+      <desc id="sophiaDesc">A cartoon grey donkey balances upside down on her front hooves, back legs kicking in the air, wearing a pale blue nappy over her rump, long ears flopped toward the ground, and a lit cigar in her mouth trailing curls of smoke.</desc>
 
       <defs>
         <linearGradient id="coat" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%"  stop-color="#b9bfcc"/>
           <stop offset="100%" stop-color="#8a90a0"/>
         </linearGradient>
+        <clipPath id="bodyClip"><path d="M200 110 C 248 110, 260 152, 258 200 C 256 252, 240 286, 200 288 C 160 286, 144 252, 142 200 C 140 152, 152 110, 200 110 Z"/></clipPath>
         <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0%"   stop-color="#ffb26b" stop-opacity=".85"/>
           <stop offset="45%"  stop-color="#e0698a" stop-opacity=".45"/>
@@ -243,22 +244,26 @@
         <path d="M232 150 C 250 176, 250 236, 226 274 C 246 262, 258 232, 258 200 C 258 176, 248 158, 232 150 Z" fill="#767c8c" opacity=".55"/>
         <ellipse cx="176" cy="212" rx="26" ry="58" fill="#d7dbe4" opacity=".65"/>
 
+        <!-- the diaper, clipped to the body so it hugs the rump exactly -->
+        <g clip-path="url(#bodyClip)">
+          <path d="M116 88 L284 88 L284 190 C 250 216, 150 216, 116 190 Z" fill="#fdfbf7"/>
+          <path d="M244 88 L284 88 L284 190 C 274 198, 262 204, 250 208 C 262 176, 262 122, 244 88 Z" fill="#e3e8f0"/>
+          <path d="M116 190 C 150 216, 250 216, 284 190 L284 209 C 250 236, 150 236, 116 209 Z" fill="#a9cdee"/>
+          <path d="M116 190 C 150 216, 250 216, 284 190" fill="none" stroke="#7fb2e0" stroke-width="2.5"/>
+          <circle cx="172" cy="146" r="6" fill="#bcd8f2"/>
+          <circle cx="215" cy="124" r="4.5" fill="#f4c2d3"/>
+          <circle cx="204" cy="172" r="5" fill="#bcd8f2"/>
+          <circle cx="158" cy="180" r="4" fill="#f4c2d3"/>
+          <rect x="234" y="132" width="26" height="17" rx="6" fill="#a9cdee"/>
+          <circle cx="247" cy="140.5" r="4" fill="#fdfbf7"/>
+        </g>
+
         <!-- mane, running down the neck -->
         <path d="M206 268 C 200 288, 192 300, 182 310" fill="none" stroke="#5d6270" stroke-width="12" stroke-linecap="round"/>
         <path d="M214 258 C 210 274, 204 286, 196 296" fill="none" stroke="#4d525f" stroke-width="7" stroke-linecap="round"/>
 
         <!-- neck -->
         <path d="M176 262 C 172 286, 180 296, 190 300 C 202 292, 208 276, 206 258 Z" fill="url(#coat)"/>
-
-        <!-- ears, flopping toward the floor -->
-        <g id="earL">
-          <ellipse cx="209" cy="331" rx="12" ry="31" transform="rotate(-44 209 331)" fill="#9aa0ae"/>
-          <ellipse cx="210" cy="332" rx="6" ry="21" transform="rotate(-44 210 332)" fill="#c9a3ae"/>
-        </g>
-        <g id="earR">
-          <ellipse cx="209" cy="358" rx="11" ry="29" transform="rotate(-80 209 358)" fill="#82889a"/>
-          <ellipse cx="210" cy="359" rx="5" ry="19" transform="rotate(-80 210 359)" fill="#a98894"/>
-        </g>
 
         <!-- head, muzzle pointing down and to the left -->
         <g transform="translate(160 318) rotate(125)">
@@ -272,6 +277,21 @@
         <circle cx="171.5" cy="319.5" r="1.9" fill="#fff"/>
         <ellipse id="lid" cx="168" cy="321" rx="9.6" ry="10.6" fill="#9aa0ae"/>
         <path d="M158 310 C 164 306, 173 306, 179 311" fill="none" stroke="#5d6270" stroke-width="3.4" stroke-linecap="round"/>
+
+
+        <!-- ears, long and floppy, hanging toward the floor -->
+        <g transform="translate(197 303) rotate(12) scale(1.28)">
+          <g id="earR">
+            <path d="M0 0 C -12 7, -13 27, -6 44 C -3 51, 3 51, 6 44 C 13 27, 12 7, 0 0 Z" fill="#82889a"/>
+            <path d="M0 9 C -7 15, -7 29, -3 40 C -1 44, 1 44, 3 40 C 7 29, 7 15, 0 9 Z" fill="#a98894"/>
+          </g>
+        </g>
+        <g transform="translate(187 292) rotate(-24) scale(1.38)">
+          <g id="earL">
+            <path d="M0 0 C -13 7, -14 29, -6 47 C -3 54, 3 54, 6 47 C 14 29, 13 7, 0 0 Z" fill="#a2a8b6"/>
+            <path d="M0 9 C -8 16, -8 31, -3 43 C -1 47, 1 47, 3 43 C 8 31, 8 16, 0 9 Z" fill="#cfa5b1"/>
+          </g>
+        </g>
 
         <!-- nostril and a smug little mouth -->
         <ellipse cx="136" cy="337" rx="4.4" ry="3.2" transform="rotate(35 136 337)" fill="#57505e"/>
