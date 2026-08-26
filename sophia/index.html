@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sophia the Handstanding Donkey</title>
+<meta name="description" content="A very silly donkey smokes a cigar while doing a handstand.">
+<style>
+  :root {
+    --sky-1: #180f2c;
+    --sky-2: #2c1a48;
+    --sky-3: #4a2354;
+    --sky-4: #6d2f4e;
+    --ground: #3a2352;
+    --ink: #fff6ea;
+    --ink-soft: #e5cfe0;
+    --accent: #ffd98a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100svh;
+    background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 40%, var(--sky-3) 74%, var(--sky-4) 100%);
+    color: var(--ink);
+    font: 16px/1.5 "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 16px 32px;
+    overflow-x: hidden;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(26px, 7vw, 52px);
+    letter-spacing: .02em;
+    text-shadow: 0 3px 0 rgba(0,0,0,.35);
+    animation: titleBob 3.4s ease-in-out infinite;
+  }
+  h1 .wiggle { display: inline-block; animation: letterKick 2.2s ease-in-out infinite; color: var(--accent); }
+  p.tag {
+    margin: 0;
+    font-size: clamp(14px, 3.4vw, 19px);
+    color: var(--ink-soft);
+    max-width: 34ch;
+  }
+
+  .stage {
+    position: relative;
+    width: min(92vw, 460px);
+    aspect-ratio: 400 / 470;
+    margin: 4px 0 0;
+  }
+  .stage svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  .stars i {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: .7;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+
+  footer {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  footer a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  footer a:hover, footer a:focus-visible { color: #fff; }
+
+  /* ---- animation ---- */
+  #donkey { transform-origin: 200px 396px; animation: wobble 2.6s ease-in-out infinite; }
+  #backLegL { transform-origin: 182px 138px; animation: kickA 1.15s ease-in-out infinite; }
+  #backLegR { transform-origin: 220px 140px; animation: kickB 1.15s ease-in-out infinite; }
+  #tail     { transform-origin: 214px 122px; animation: swish 1.9s ease-in-out infinite; }
+  #earL     { transform-origin: 188px 308px; animation: flop 2.3s ease-in-out infinite; }
+  #earR     { transform-origin: 186px 340px; animation: flop 2.3s ease-in-out infinite .35s; }
+  #lid      { animation: blink 5.2s ease-in-out infinite; transform-origin: 168px 321px; }
+  #ember    { animation: glow 1.5s ease-in-out infinite; transform-origin: 96px 359px; }
+  .puff     { opacity: 0; transform-origin: 96px 359px; }
+  .puff.p1  { animation: rise 3.6s ease-out infinite; }
+  .puff.p2  { animation: rise 3.6s ease-out infinite 1.2s; }
+  .puff.p3  { animation: rise 3.6s ease-out infinite 2.4s; }
+  #shadow   { animation: squish 2.6s ease-in-out infinite; transform-origin: 200px 402px; }
+  .sparkle  { transform-origin: center; animation: pop 2.8s ease-in-out infinite; }
+  .sparkle.s2 { animation-delay: .9s; }
+  .sparkle.s3 { animation-delay: 1.8s; }
+
+  @keyframes wobble {
+    0%, 100% { transform: rotate(-3.2deg) translateY(0); }
+    50%      { transform: rotate(3.2deg) translateY(-5px); }
+  }
+  @keyframes kickA {
+    0%, 100% { transform: rotate(-13deg); }
+    50%      { transform: rotate(14deg); }
+  }
+  @keyframes kickB {
+    0%, 100% { transform: rotate(15deg); }
+    50%      { transform: rotate(-12deg); }
+  }
+  @keyframes swish {
+    0%, 100% { transform: rotate(-16deg); }
+    50%      { transform: rotate(18deg); }
+  }
+  @keyframes flop {
+    0%, 100% { transform: rotate(-9deg); }
+    50%      { transform: rotate(11deg); }
+  }
+  @keyframes blink {
+    0%, 92%, 100% { transform: scaleY(0); }
+    95%           { transform: scaleY(1); }
+  }
+  @keyframes glow {
+    0%, 100% { opacity: .55; r: 5; }
+    50%      { opacity: 1; r: 7; }
+  }
+  @keyframes rise {
+    0%   { opacity: 0; transform: translate(0, 0) scale(.35); }
+    12%  { opacity: .85; }
+    100% { opacity: 0; transform: translate(-46px, -230px) scale(2.3); }
+  }
+  @keyframes squish {
+    0%, 100% { transform: scaleX(1); opacity: .32; }
+    50%      { transform: scaleX(.86); opacity: .22; }
+  }
+  @keyframes pop {
+    0%, 100% { transform: scale(.2) rotate(0deg); opacity: 0; }
+    45%      { transform: scale(1) rotate(70deg); opacity: .95; }
+  }
+  @keyframes titleBob {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50%      { transform: translateY(-6px) rotate(1deg); }
+  }
+  @keyframes letterKick {
+    0%, 100% { transform: rotate(-10deg) scale(1); }
+    50%      { transform: rotate(12deg) scale(1.16); }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: .15; transform: scale(.6); }
+    50%      { opacity: .9; transform: scale(1.3); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #donkey, #backLegL, #backLegR, #tail, #earL, #earR, #lid, #ember,
+    .puff, #shadow, .sparkle, h1, h1 .wiggle, .stars i {
+      animation: none !important;
+    }
+    .puff.p2 { opacity: .5; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="stars" aria-hidden="true">
+    <i style="left:8%;  top:9%;  animation-delay:0s"></i>
+    <i style="left:22%; top:4%;  animation-delay:.7s"></i>
+    <i style="left:38%; top:13%; animation-delay:1.4s"></i>
+    <i style="left:63%; top:6%;  animation-delay:.3s"></i>
+    <i style="left:79%; top:12%; animation-delay:2.1s"></i>
+    <i style="left:91%; top:5%;  animation-delay:1.1s"></i>
+  </div>
+
+  <h1>Sophia sticks the <span class="wiggle">landing</span></h1>
+  <p class="tag">Upside down, unbothered, and halfway through a very good cigar.</p>
+
+  <div class="stage">
+    <svg viewBox="0 0 400 470" role="img" aria-labelledby="sophiaTitle sophiaDesc">
+      <title id="sophiaTitle">Sophia the donkey doing a handstand</title>
+      <desc id="sophiaDesc">A cartoon grey donkey balances upside down on her front hooves, back legs kicking in the air, with a lit cigar in her mouth trailing curls of smoke.</desc>
+
+      <defs>
+        <linearGradient id="coat" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"  stop-color="#b9bfcc"/>
+          <stop offset="100%" stop-color="#8a90a0"/>
+        </linearGradient>
+        <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stop-color="#ffb26b" stop-opacity=".85"/>
+          <stop offset="45%"  stop-color="#e0698a" stop-opacity=".45"/>
+          <stop offset="100%" stop-color="#e0698a" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="dirt" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#c2657e"/>
+          <stop offset="100%" stop-color="#6b3352"/>
+        </linearGradient>
+        <linearGradient id="cig" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stop-color="#6b4526"/>
+          <stop offset="55%" stop-color="#8f5f34"/>
+          <stop offset="100%" stop-color="#5a3a1f"/>
+        </linearGradient>
+      </defs>
+
+      <!-- a low sun, and the ground it warms -->
+      <circle cx="200" cy="330" r="230" fill="url(#sun)"/>
+      <ellipse cx="200" cy="398" rx="150" ry="34" fill="#ffb26b" opacity=".18"/>
+      <ellipse cx="200" cy="430" rx="260" ry="46" fill="url(#dirt)" opacity=".8"/>
+      <ellipse id="shadow" cx="200" cy="402" rx="96" ry="15" fill="#1a0f2b" opacity=".32"/>
+
+      <!-- sparkles -->
+      <g fill="#ffd98a">
+        <path class="sparkle s1" d="M330 150 l6 16 16 6 -16 6 -6 16 -6 -16 -16 -6 16 -6 z"/>
+        <path class="sparkle s2" d="M62 210 l5 13 13 5 -13 5 -5 13 -5 -13 -13 -5 13 -5 z"/>
+        <path class="sparkle s3" d="M300 320 l4 11 11 4 -11 4 -4 11 -4 -11 -11 -4 11 -4 z"/>
+      </g>
+
+      <!-- smoke, drawn behind the donkey so it drifts past her -->
+      <g fill="#fff4e8">
+        <g class="puff p1"><circle cx="96" cy="359" r="9"/><circle cx="86" cy="352" r="6"/><circle cx="105" cy="351" r="5"/></g>
+        <g class="puff p2"><circle cx="96" cy="359" r="8"/><circle cx="104" cy="366" r="6"/><circle cx="88" cy="365" r="5"/></g>
+        <g class="puff p3"><circle cx="96" cy="359" r="10"/><circle cx="107" cy="355" r="5"/></g>
+      </g>
+
+      <g id="donkey">
+
+        <!-- tail -->
+        <g id="tail">
+          <path d="M214 122 C 246 98, 268 88, 290 92" fill="none" stroke="#8f95a4" stroke-width="11" stroke-linecap="round"/>
+          <ellipse cx="298" cy="96" rx="11" ry="18" transform="rotate(78 298 96)" fill="#4d525f"/>
+        </g>
+
+        <!-- back legs, kicking -->
+        <g id="backLegL">
+          <path d="M182 138 C 168 106, 150 88, 134 56" fill="none" stroke="url(#coat)" stroke-width="19" stroke-linecap="round"/>
+          <rect x="120" y="34" width="24" height="21" rx="7" transform="rotate(-28 132 44)" fill="#3d4250"/>
+        </g>
+        <g id="backLegR">
+          <path d="M220 140 C 236 110, 256 94, 272 64" fill="none" stroke="url(#coat)" stroke-width="19" stroke-linecap="round"/>
+          <rect x="262" y="42" width="24" height="21" rx="7" transform="rotate(30 274 52)" fill="#3d4250"/>
+        </g>
+
+        <!-- front legs, holding the whole ridiculous thing up -->
+        <path d="M178 268 C 168 300, 158 344, 150 390" fill="none" stroke="url(#coat)" stroke-width="17" stroke-linecap="round"/>
+        <path d="M222 270 C 232 302, 244 346, 250 390" fill="none" stroke="url(#coat)" stroke-width="17" stroke-linecap="round"/>
+        <rect x="136" y="384" width="28" height="17" rx="6" fill="#3d4250"/>
+        <rect x="236" y="384" width="28" height="17" rx="6" fill="#3d4250"/>
+
+        <!-- torso -->
+        <path d="M200 110 C 248 110, 260 152, 258 200 C 256 252, 240 286, 200 288 C 160 286, 144 252, 142 200 C 140 152, 152 110, 200 110 Z" fill="url(#coat)"/>
+        <path d="M232 150 C 250 176, 250 236, 226 274 C 246 262, 258 232, 258 200 C 258 176, 248 158, 232 150 Z" fill="#767c8c" opacity=".55"/>
+        <ellipse cx="176" cy="212" rx="26" ry="58" fill="#d7dbe4" opacity=".65"/>
+
+        <!-- mane, running down the neck -->
+        <path d="M206 268 C 200 288, 192 300, 182 310" fill="none" stroke="#5d6270" stroke-width="12" stroke-linecap="round"/>
+        <path d="M214 258 C 210 274, 204 286, 196 296" fill="none" stroke="#4d525f" stroke-width="7" stroke-linecap="round"/>
+
+        <!-- neck -->
+        <path d="M176 262 C 172 286, 180 296, 190 300 C 202 292, 208 276, 206 258 Z" fill="url(#coat)"/>
+
+        <!-- ears, flopping toward the floor -->
+        <g id="earL">
+          <ellipse cx="209" cy="331" rx="12" ry="31" transform="rotate(-44 209 331)" fill="#9aa0ae"/>
+          <ellipse cx="210" cy="332" rx="6" ry="21" transform="rotate(-44 210 332)" fill="#c9a3ae"/>
+        </g>
+        <g id="earR">
+          <ellipse cx="209" cy="358" rx="11" ry="29" transform="rotate(-80 209 358)" fill="#82889a"/>
+          <ellipse cx="210" cy="359" rx="5" ry="19" transform="rotate(-80 210 359)" fill="#a98894"/>
+        </g>
+
+        <!-- head, muzzle pointing down and to the left -->
+        <g transform="translate(160 318) rotate(125)">
+          <path d="M-30 -18 C -41 -14, -43 10, -28 18 C -10 26, 14 24, 30 16 C 41 11, 43 -6, 32 -11 C 16 -19, -12 -24, -30 -18 Z" fill="url(#coat)"/>
+          <path d="M14 -14 C 30 -16, 42 -8, 42 0 C 42 9, 30 18, 14 19 C 24 10, 24 -5, 14 -14 Z" fill="#d7dbe4"/>
+        </g>
+
+        <!-- eye -->
+        <ellipse cx="168" cy="321" rx="9" ry="10" fill="#fdfbf7"/>
+        <circle cx="169.5" cy="322" r="5.2" fill="#2a2130"/>
+        <circle cx="171.5" cy="319.5" r="1.9" fill="#fff"/>
+        <ellipse id="lid" cx="168" cy="321" rx="9.6" ry="10.6" fill="#9aa0ae"/>
+        <path d="M158 310 C 164 306, 173 306, 179 311" fill="none" stroke="#5d6270" stroke-width="3.4" stroke-linecap="round"/>
+
+        <!-- nostril and a smug little mouth -->
+        <ellipse cx="136" cy="337" rx="4.4" ry="3.2" transform="rotate(35 136 337)" fill="#57505e"/>
+        <path d="M126 348 C 132 353, 140 354, 146 351" fill="none" stroke="#57505e" stroke-width="2.8" stroke-linecap="round"/>
+
+        <!-- the cigar -->
+        <g transform="translate(136 348) rotate(165)">
+          <rect x="0" y="-5" width="40" height="10" rx="4" fill="url(#cig)"/>
+          <rect x="4" y="-5" width="6" height="10" fill="#c0894c" opacity=".8"/>
+          <rect x="38" y="-4" width="6" height="8" rx="3" fill="#4a3418"/>
+        </g>
+        <circle id="ember" cx="96" cy="359" r="5.5" fill="#ff8b3d"/>
+        <circle cx="96" cy="359" r="2.6" fill="#ffe0a1"/>
+
+      </g>
+    </svg>
+  </div>
+
+  <footer>
+    Made for Sophia. Back to <a href="/">vi-ellis.com</a>
+  </footer>
+
+</body>
+</html>
