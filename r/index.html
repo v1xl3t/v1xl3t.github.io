@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Résumé Studio</title>
+<meta name="robots" content="noindex">
+<!-- Marker. Résumé Studio looks for this exact name before it will build share
+     links through /r/, so it can use the alias where one exists without any
+     domain being hardcoded into the public build. -->
+<meta name="resume-studio-alias" content="/resume/">
+<!--
+  Short alias for Résumé Studio share links, the same trick /c/ plays for
+  CADence.
+
+  A share link carries the whole document in its fragment, so the payload itself
+  cannot be shortened. It is already deflated and base64'd, which is as close to
+  random as data gets, and compressing random data makes it longer. What CAN be
+  shortened is everything before it: `vi-ellis.com/resume/#s=` is 23 characters
+  spent before a résumé exists, and `vi-ellis.com/r/#s=` is 18. Five characters,
+  which is honest about the size of the win.
+
+  The fragment has to survive the hop and is copied across explicitly. It never
+  reaches a server, so it was never at risk, but relying on a browser's redirect
+  semantics for the one part that must not be lost would be the wrong bet.
+
+  replace() rather than assign(), so the alias does not sit in the back button
+  between the visitor and where they came from.
+-->
+<style>
+  html { color-scheme: dark light; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+         font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<p><noscript>This short link needs JavaScript. </noscript><a id="go" href="/resume/">Opening Résumé Studio…</a></p>
+<script>
+  // Keep the query too, so `?v=2` style cache-busting still works through the
+  // alias rather than being silently dropped.
+  var target = '/resume/' + (location.search || '') + (location.hash || '');
+  document.getElementById('go').href = target;
+  location.replace(target);
+</script>
+</body>
+</html>

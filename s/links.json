@@ -1,0 +1,54 @@
+{
+  "links": {
+    "CV": {
+      "url": "/resume.html",
+      "title": "Résumé, one page",
+      "added": "2026-08-26"
+    },
+    "PDF": {
+      "url": "/ViEllis_Resume.pdf",
+      "title": "Résumé PDF",
+      "added": "2026-08-26"
+    },
+    "WORK": {
+      "url": "/",
+      "title": "Portfolio",
+      "added": "2026-08-26"
+    },
+    "APPS": {
+      "url": "/apps/",
+      "title": "Everything I have built",
+      "added": "2026-08-26"
+    },
+    "CAD": {
+      "url": "/cadence/",
+      "title": "CADence, browser 3D modeller",
+      "added": "2026-08-26"
+    },
+    "PERCH": {
+      "url": "/perch/",
+      "title": "Perch",
+      "added": "2026-08-26"
+    },
+    "GN": {
+      "url": "/ghostnote/",
+      "title": "Ghost Note",
+      "added": "2026-08-26"
+    },
+    "HP": {
+      "url": "/hp/",
+      "title": "HACKING PARADISE",
+      "added": "2026-08-26"
+    },
+    "RS": {
+      "url": "/resume/",
+      "title": "Résumé Studio",
+      "added": "2026-08-26"
+    },
+    "SWE": {
+      "url": "/?for=swe",
+      "title": "Portfolio, software view",
+      "added": "2026-08-26"
+    }
+  }
+}

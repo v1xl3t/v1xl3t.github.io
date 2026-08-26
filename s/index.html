@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Short links</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { color-scheme: dark light; --ink:#e6eaf0; --bg:#0e1116; --soft:#9aa5b4; --line:#2a313c; }
+  @media (prefers-color-scheme: light) { :root { --ink:#15202b; --bg:#eef1f4; --soft:#55606d; --line:#d7dee6; } }
+  body { margin:0; background:var(--bg); color:var(--ink); padding:32px 20px;
+         font:15px/1.55 ui-sans-serif,system-ui,sans-serif; }
+  main { max-width:760px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.sub { color:var(--soft); margin:0 0 20px; font-size:13.5px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--soft); font-weight:600; }
+  td.u { color:var(--soft); font-size:13px; word-break:break-all; }
+  a { color:inherit; }
+  .wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Short links</h1>
+  <p class="sub">Generated from <code>s&#47;links.json</code>. Every entry is a real folder, so
+     <code>VI-ELLIS.COM/S/CV</code> fits the smallest QR code there is.</p>
+  <div class="wrap"><table>
+    <thead><tr><th>Link</th><th>What</th><th>Goes to</th></tr></thead>
+    <tbody>
+    <tr><td><a href="/s/APPS">/s/APPS</a></td><td>Everything I have built</td><td class="u">/apps/</td></tr>
+    <tr><td><a href="/s/CAD">/s/CAD</a></td><td>CADence, browser 3D modeller</td><td class="u">/cadence/</td></tr>
+    <tr><td><a href="/s/CV">/s/CV</a></td><td>Résumé, one page</td><td class="u">/resume.html</td></tr>
+    <tr><td><a href="/s/GN">/s/GN</a></td><td>Ghost Note</td><td class="u">/ghostnote/</td></tr>
+    <tr><td><a href="/s/HP">/s/HP</a></td><td>HACKING PARADISE</td><td class="u">/hp/</td></tr>
+    <tr><td><a href="/s/PDF">/s/PDF</a></td><td>Résumé PDF</td><td class="u">/ViEllis_Resume.pdf</td></tr>
+    <tr><td><a href="/s/PERCH">/s/PERCH</a></td><td>Perch</td><td class="u">/perch/</td></tr>
+    <tr><td><a href="/s/RS">/s/RS</a></td><td>Résumé Studio</td><td class="u">/resume/</td></tr>
+    <tr><td><a href="/s/SWE">/s/SWE</a></td><td>Portfolio, software view</td><td class="u">/?for=swe</td></tr>
+    <tr><td><a href="/s/WORK">/s/WORK</a></td><td>Portfolio</td><td class="u">/</td></tr>
+    </tbody>
+  </table></div>
+</main>
+</body>
+</html>

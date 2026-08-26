@@ -23,6 +23,12 @@ jobs:
           fi
           echo "Dash check passed."
 
+      # /s/ is generated from s/links.json. A redirect edited by hand, or a link
+      # added to the JSON without rebuilding, would ship a short link that 404s
+      # on someone else's phone after it was printed on something.
+      - name: Short links match s/links.json
+        run: node .github/scripts/shortlinks.mjs check
+
       # Patterns are salted hashes, never plaintext, because this repo is public
       # and a gate that names what it is looking for defeats itself. Hits print a
       # file and line only, so the CI log stays clean too.

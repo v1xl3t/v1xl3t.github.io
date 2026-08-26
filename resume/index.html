@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Résumé Studio</title>
 <!--
-  Résumé Studio — a no-build, single-file résumé editor with switchable TEMPLATES.
+  Résumé Studio, a no-build, single-file résumé editor with switchable TEMPLATES.
   Section-based model (text / entries / skills / list); edit in place, autosave per
   template, export JSON, print to PDF. Ships with PLACEHOLDER content only.
   PERSONAL templates load from an OPTIONAL local file `templates.local.js` (which
-  defines window.RESUME_TEMPLATES) — that file is LOCAL ONLY and must never be
+  defines window.RESUME_TEMPLATES) is LOCAL ONLY and must never be
   deployed, so no personal data ever ships in the public repo.
 -->
 <style>
@@ -394,7 +394,10 @@ oarse) {
           <option value="H">ECC H (toughest)</option>
         </select>
       </div>
-      <div class="fbar"><input type="text" id="qr-text" placeholder="YOURSITE.COM/R/CV" aria-label="QR contents" /></div>
+      <div class="fbar" id="qr-slugrow" hidden>
+        <select id="qr-slug" aria-label="Short links on this site"></select>
+      </div>
+      <div class="fbar"><input type="text" id="qr-text" placeholder="YOURSITE.COM/S/CV" aria-label="QR contents" /></div>
       <p class="muted" id="qr-note"></p>
       <div class="qrwrap"><canvas id="qr-canvas" width="0" height="0" aria-label="QR code"></canvas>
         <div class="cap" id="qr-cap"></div></div>
@@ -2150,6 +2153,21 @@ function qrDraw() {
   }
   note.textContent = msg;
   cap.textContent = text.length > 120 ? text.slice(0, 120) + "…" : text;
+  qrVerify(text, note, msg);
+}
+/* Say whether the short link in the box is real. Only meaningful when the code
+   points at this site's own /s/ namespace. */
+async function qrVerify(text, note, msg) {
+  const m = String(text).toUpperCase().match(/^(?:HTTPS?:\/\/)?([^\/]+)\/S\/([A-Z0-9]+)\/?$/);
+  if (!m) return;
+  const [, host, slug] = m;
+  if (host !== qrHost()) return;
+  const links = await loadShortlinks();
+  if (!Object.keys(links).length) return;
+  if (byId("qr-text").value !== text) return;   // typed on while we were fetching
+  note.textContent = links[slug]
+    ? `${msg} /s/${slug} is registered and goes to ${links[slug].url}`
+    : `${msg} Careful, /s/${slug} does not exist yet, so this code would land on a "not found" page. Add it first.`;
 }
 function qrSvg() {
   if (!QR) return "";
@@ -2159,31 +2177,63 @@ function qrSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" shape-rendering="crispEdges" width="${W * 8}" height="${W * 8}">`
     + `<rect width="${W}" height="${W}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
 }
+/* Short links are a folder per slug under /s/, generated from s/links.json by
+   .github/scripts/shortlinks.mjs. Read that file so the panel can offer the
+   links that actually exist rather than a slug that resolves to nothing. It is
+   absent on a local copy and on anyone else's host, which is fine. */
+let SHORTLINKS = null;
+async function loadShortlinks() {
+  if (SHORTLINKS) return SHORTLINKS;
+  try {
+    const r = await fetch("/s/links.json", { cache: "no-cache" });
+    SHORTLINKS = r.ok ? ((await r.json()).links || {}) : {};
+  } catch (e) { SHORTLINKS = {}; }
+  return SHORTLINKS;
+}
+const qrHost = () => (location.host || "yoursite.com").replace(/^www\./, "").toUpperCase();
 function qrDefaultShort() {
-  const host = (location.host || "yoursite.com").replace(/^www\./, "").toUpperCase();
   /* "AI Solutions Engineer" suggests AISE, not AISOLUTI. Initials read better on
      a card and keep the code at version 1. */
   const words = (V().name || "resume").toUpperCase().match(/[A-Z0-9]+/g) || [];
   const s = (words.length > 1 ? words.map(w => w[0]).join("") : (words[0] || "CV")).slice(0, 8) || "CV";
-  return `${host}/R/${s}`;
+  return `${qrHost()}/S/${s}`;
+}
+/* Fill the picker, and say plainly when the slug in the box is not one that
+   exists. A QR that scans perfectly and lands on a 404 is the worst outcome
+   here, because it fails on someone else's phone, after you printed it. */
+async function qrSyncSlugs() {
+  const row = byId("qr-slugrow"), sel = byId("qr-slug");
+  const isShort = byId("qr-src").value === "short";
+  const links = await loadShortlinks();
+  const slugs = Object.keys(links).sort();
+  row.hidden = !isShort || !slugs.length;
+  if (row.hidden) return;
+  const cur = (byId("qr-text").value.toUpperCase().match(/\/S\/([A-Z0-9]+)$/) || [])[1] || "";
+  sel.innerHTML = `<option value="">Short links on this site…</option>`
+    + slugs.map(k => `<option value="${esc(k)}"${k === cur ? " selected" : ""}>/s/${esc(k)} · ${esc(links[k].title || links[k].url)}</option>`).join("");
 }
 byId("qrbtn").onclick = async () => {
   const src = byId("qr-src").value;
   byId("qr-text").value = src === "full" ? await buildShareLink() : qrDefaultShort();
-  qrDraw(); openPanel("p-qr");
+  qrDraw(); await qrSyncSlugs(); openPanel("p-qr");
 };
 byId("qr-src").onchange = async e => {
   const v = e.target.value;
   if (v === "full") {
     const url = await buildShareLink();
     byId("qr-text").value = url;
-    if (url.length > 2000) alert("Heads up, this résumé makes a long link.\n\nThe QR will be dense and slow to scan. A short link you control scans from across a room.");
+    if (url.length > 2000) alert("Heads up, this résumé makes a long link.\n\nThe whole document is inside it, so the code will be dense and slow to scan, and no shortener can help: the payload is already compressed. For anything you hand to a person, point the code at a short link instead.");
   } else if (v === "short") byId("qr-text").value = qrDefaultShort();
   else byId("qr-text").value = "";
+  qrDraw(); qrSyncSlugs();
+};
+byId("qr-text").oninput = () => { qrDraw(); qrSyncSlugs(); };
+byId("qr-ecc").onchange = qrDraw;
+byId("qr-slug").onchange = e => {
+  if (!e.target.value) return;
+  byId("qr-text").value = `${qrHost()}/S/${e.target.value}`;
   qrDraw();
 };
-byId("qr-text").oninput = qrDraw;
-byId("qr-ecc").onchange = qrDraw;
 byId("qr-png").onclick = () => {
   if (!QR) return;
   byId("qr-canvas").toBlob(b => {
@@ -2355,13 +2405,32 @@ const RS_BACKUP_KEY = LSP + "backup-before-link";
 function _b64url(bytes){ let s=""; for(let i=0;i<bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function _unb64url(s){ const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")); const o=new Uint8Array(b.length); for(let i=0;i<b.length;i++) o[i]=b.charCodeAt(i); return o; }
 async function _pipe(bytes,Ctor,mode){ const st=new Blob([bytes]).stream().pipeThrough(new Ctor(mode)); return new Uint8Array(await new Response(st).arrayBuffer()); }
+/* A share link carries the whole résumé in its fragment, so the payload cannot
+   be made smaller: it is already deflated, and deflated data is as close to
+   random as data gets. What can shrink is the address in front of it. A
+   deployment may publish a one-letter alias that forwards to this app, and if
+   it does, share links go through it.
+
+   Detected rather than hardcoded. Baking a domain into this file would put
+   personal data in the public build, and a bare check for "/r/ returns 200"
+   would hijack someone else's page, so the alias has to identify itself. */
+let SHARE_BASE = null;
+async function shareBase() {
+  if (SHARE_BASE) return SHARE_BASE;
+  SHARE_BASE = location.pathname;
+  try {
+    const r = await fetch("/r/", { cache: "no-cache" });
+    if (r.ok && /name="resume-studio-alias"/.test(await r.text())) SHARE_BASE = "/r/";
+  } catch (e) { /* no alias, the full path is correct */ }
+  return SHARE_BASE;
+}
 async function buildShareLink(){
   const snap = { app:"resume-studio", name:V().name, data:plain(), _sharedAt:Date.now() };
   const raw = new TextEncoder().encode(JSON.stringify(snap));
   let payload;
   try { payload = "z"+_b64url(await _pipe(raw,CompressionStream,"deflate-raw")); }
   catch (e) { payload = "j"+_b64url(raw); }
-  return `${location.origin}${location.pathname}#s=${payload}`;
+  return `${location.origin}${await shareBase()}#s=${payload}`;
 }
 async function tryLoadShareLink(){
   const m = location.hash.match(/[#&]s=([A-Za-z0-9_\-]+)/);
@@ -2400,7 +2469,7 @@ byId("sharelink").onclick = async () => {
   if (url.length > RS_PASTE_LIMIT){
     btn.textContent = "✗ Too big";
     setTimeout(()=>{ btn.textContent = label; }, 2600);
-    alert(`This résumé is too long for a link. It comes to ${url.length.toLocaleString()} characters and chat apps cut off at ${RS_PASTE_LIMIT.toLocaleString()}.\n\nUntick a few experiences, or use Save JSON and send that file instead.`);
+    alert(`This résumé is too long for a link. It comes to ${url.length.toLocaleString()} characters and chat apps cut off at ${RS_PASTE_LIMIT.toLocaleString()}.\n\nA short link cannot rescue this one. The whole résumé travels inside the link, so shortening it would mean publishing the résumé at a fixed address instead of handing it to one person.\n\nUntick a few experiences, or use Save JSON and send that file instead.`);
     return;
   }
   try { await navigator.clipboard.writeText(url); btn.textContent = "✓ Copied"; setTimeout(()=>{ btn.textContent = label; }, 1600); }
