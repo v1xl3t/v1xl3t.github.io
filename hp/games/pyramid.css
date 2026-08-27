@@ -1,0 +1,35 @@
+/* ============================================================
+   Pyramid, only what is different, and here that is the board.
+
+   Every other game on this table is columns in a grid, which
+   sol-core.css draws. A pyramid overlaps in two directions at
+   once, so the positions are written by JS from the same --cw and
+   --ch, and this file only says how a positioned card behaves.
+   ============================================================ */
+
+.board{--cols:7}
+
+.pyramid{position:relative; margin:0 auto}
+.pyramid .pile{position:absolute; width:var(--cw); height:var(--ch)}
+
+/* An empty place in the pyramid is nothing at all. Drawing a slot
+   there would say a card could go back, and none ever does. */
+.pyramid .pile.gone{visibility:hidden}
+
+/* The only distinction that matters on this board. A free card can be
+   taken, a covered one cannot, and there are up to twenty eight of
+   them on screen at once, so the difference has to read instantly
+   without turning the pyramid into a patchwork.
+
+   The covered cards get slightly less presence rather than the free
+   ones getting more, because on a full board almost everything is
+   covered and lighting twenty of them up would be noise. */
+.board .hpc.covered{filter:saturate(.72) brightness(.94); cursor:default}
+.board .hpc.free{cursor:pointer}
+:root[data-theme="light"] .board .hpc.covered{filter:saturate(.78) brightness(.97)}
+
+/* The deck and the card showing sit under the pyramid rather than
+   above it, so the shape reads top down the way the game does. */
+.lane.bottom{margin-top:calc(var(--gap) * 3)}
+
+.pile.stock.dead .hpc.empty .hpc-slot{opacity:.18}

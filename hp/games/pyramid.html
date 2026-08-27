@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Pyramid &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Free Pyramid solitaire in the browser. Pair cards that add up to thirteen and take the stack apart from the bottom. Undo, and it keeps your game if you close the tab." />
+<meta name="theme-color" content="#0b0913" />
+<link rel="stylesheet" href="hp-cards.css" />
+<link rel="stylesheet" href="games.css" />
+<link rel="stylesheet" href="sol-core.css" />
+<link rel="stylesheet" href="pyramid.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body class="hpc-scope">
+
+<a class="skip" href="#board">Skip to the board</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main>
+  <div class="gamewrap">
+
+    <div class="controls">
+      <button class="btn primary" type="button" id="newBtn">New game</button>
+      <button class="btn" type="button" id="undoBtn">Undo</button>
+      <button class="btn" type="button" id="hintBtn">Hint</button>
+      <div class="seg" role="group" aria-label="How many times through the deck">
+        <button type="button" id="pass1" aria-pressed="false">One pass</button>
+        <button type="button" id="pass3" aria-pressed="true">Three passes</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="stat">Moves <b id="moves">0</b></span>
+      <span class="stat">On the pyramid <b id="left">28</b></span>
+      <span class="stat">In the deck <b id="deck">24</b></span>
+      <span class="stat">Pass <b id="pass">1 of 3</b></span>
+    </div>
+
+    <div class="winbar" id="winbar" hidden>
+      <div>
+        <h2>Cleared</h2>
+        <p>The whole pyramid, taken apart from the bottom up.</p>
+      </div>
+      <button class="btn primary" type="button" id="winNew">Deal again</button>
+    </div>
+
+    <div class="stuckbar" id="stuckbar" hidden>
+      <div>
+        <h2 id="stuckTitle">No moves left</h2>
+        <p id="stuckWhy">The deck is finished and nothing left uncovered adds up to thirteen.</p>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" id="stuckUndo">Undo</button>
+        <button class="btn primary" type="button" id="stuckNew">Deal again</button>
+      </div>
+    </div>
+
+    <div class="board" id="board">
+      <div class="pyramid" id="pyramid" role="group" aria-label="The pyramid"></div>
+      <div class="lane bottom">
+        <div class="pile spacer"></div>
+        <div class="pile spacer"></div>
+        <div class="pile stock" data-pile="stock"></div>
+        <div class="pile waste" data-pile="waste"></div>
+        <div class="pile spacer"></div>
+        <div class="pile spacer"></div>
+        <div class="pile spacer"></div>
+      </div>
+    </div>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ul>
+        <li>Take the whole pyramid apart. Every pair of cards that adds up to thirteen comes off together.</li>
+        <li>An ace is one, a jack is eleven, a queen is twelve, and a king is thirteen on its own, so a king leaves by itself.</li>
+        <li>A card can only be taken once both of the cards resting on it have gone. The bottom row is free from the start.</li>
+        <li>The card showing next to the deck counts as free too, so it can pair with anything on the pyramid.</li>
+        <li>Tap one card, then tap the other. Tap the same card again to put it back down.</li>
+        <li>Three passes through the deck is the friendly game. One pass is the hard one, and it decides whether a deal was ever winnable, so changing it starts a new game.</li>
+        <li>Undo walks back through your last eighty moves. Your game is saved in this browser, so closing the tab does not lose it.</li>
+      </ul>
+    </details>
+
+  </div>
+</main>
+
+<p class="live" id="live" role="status" aria-live="polite"></p>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">More games</a></p>
+</div></footer>
+
+<script src="hp-cards.js"></script>
+<script src="games.js"></script>
+<script src="sol-core.js"></script>
+<script src="pyramid.js"></script>
+</body>
+</html>
