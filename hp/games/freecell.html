@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="hp-cards.css" />
 <link rel="stylesheet" href="games.css" />
 <link rel="stylesheet" href="sol-core.css" />
+<link rel="stylesheet" href="net-panel.css" />
+<link rel="stylesheet" href="race.css" />
 <link rel="stylesheet" href="freecell.css" />
 <script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -32,11 +34,51 @@
       <button class="btn" type="button" id="undoBtn">Undo</button>
       <button class="btn" type="button" id="hintBtn">Hint</button>
       <button class="btn" type="button" id="autoBtn" hidden>Auto finish</button>
+      <button class="btn" type="button" id="raceBtn" aria-expanded="false">Race a friend</button>
       <span class="spacer"></span>
       <span class="stat">Moves <b id="moves">0</b></span>
       <span class="stat cells">Cells free <b id="cells">4</b></span>
       <span class="stat">Home <b id="home">0</b></span>
     </div>
+
+    <!-- Racing. Closed until somebody asks for it. The markup is the same
+         on all five solitaires and the code behind it is race.js. -->
+    <section class="netpanel" id="racepanel" hidden aria-labelledby="raceHead">
+      <h2 id="raceHead">Race the same deal</h2>
+      <p class="netlede">One of you starts a race and reads out the code, the other types it in. You both get the identical deal and play your own board, so nobody is waiting on anybody. First to clear it wins. Starting a race deals a new board.</p>
+
+      <div class="netrow" id="raceStart">
+        <button class="btn primary" type="button" id="raceHostBtn">Start a race</button>
+        <button class="btn" type="button" id="raceJoinShow">Join with a code</button>
+      </div>
+
+      <div class="netrow" id="raceHostRow" hidden>
+        <div class="codebox">
+          <span class="codelabel">Your code</span>
+          <output class="code" id="raceCode" aria-live="polite">------</output>
+        </div>
+        <button class="btn" type="button" id="raceCopy">Copy code</button>
+        <button class="btn" type="button" id="raceHostCancel">Cancel</button>
+      </div>
+
+      <div class="netrow" id="raceJoinRow" hidden>
+        <label class="codebox">
+          <span class="codelabel">Their code</span>
+          <input class="codefield" type="text" id="raceCodeIn" inputmode="latin" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="8" placeholder="ABCDEF" />
+        </label>
+        <button class="btn primary" type="button" id="raceJoinBtn">Join</button>
+        <button class="btn" type="button" id="raceJoinCancel">Cancel</button>
+      </div>
+
+      <div class="netrow" id="raceLive" hidden>
+        <button class="btn" type="button" id="raceAgain">Deal another race</button>
+        <button class="btn" type="button" id="raceLeave">Leave the race</button>
+      </div>
+
+      <p class="netstatus" id="raceStatus" aria-live="polite"></p>
+    </section>
+
+    <div class="racestrip" id="racestrip" hidden role="status" aria-live="polite"></div>
 
     <div class="winbar" id="winbar" hidden>
       <div>
@@ -109,6 +151,8 @@
 <script src="hp-cards.js"></script>
 <script src="games.js"></script>
 <script src="sol-core.js"></script>
+<script src="net-core.js"></script>
+<script src="race.js"></script>
 <script src="freecell.js"></script>
 </body>
 </html>

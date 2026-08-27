@@ -1,0 +1,49 @@
+/* ============================================================
+   race.css — the strip that says how the other one is doing.
+
+   The panel itself is net-panel.css, shared with Reversi and
+   Hearts. This is only the scoreboard.
+
+   It says a NUMBER and not a bar. "Nine cards home" is something
+   a player can act on, and a bar three fifths full is something
+   they have to squint at and convert. The one comparative line at
+   the bottom does the converting for them, once.
+   ============================================================ */
+
+.racestrip{
+  margin:0 0 12px; padding:10px 14px;
+  border:1px solid var(--line); border-radius:14px; background:var(--panel);
+}
+.racestrip[hidden]{display:none}
+
+.racerow{
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+  padding:3px 0;
+}
+.racewho{
+  font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); min-width:4.2em;
+}
+.racemain{font-size:1.3rem; font-variant-numeric:tabular-nums; color:var(--ink)}
+.raceof{font-size:.82rem; color:var(--muted)}
+.racemoves{
+  margin-left:auto; font-family:var(--mono); font-size:.7rem; letter-spacing:.06em;
+  color:var(--muted); white-space:nowrap;
+}
+.racerow.done .racemain{color:var(--accent)}
+.racerow.done .racewho{color:var(--accent)}
+.racetag{
+  font-family:var(--mono); font-size:.62rem; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:1px 8px;
+}
+.raceline{
+  margin:6px 0 0; padding-top:6px; border-top:1px solid var(--line);
+  font-size:.86rem; color:var(--ink);
+}
+
+/* On a narrow phone the moves count stops competing with the number
+   that actually matters and drops onto its own line. */
+@media (max-width: 430px){
+  .racewho{min-width:3.4em}
+  .racemoves{margin-left:0; flex-basis:100%}
+}

@@ -546,6 +546,7 @@
      RENDER
      ============================================================ */
   var els = {};
+  var race = null;
 
   function pileHost(kind, key) {
     var d = document.createElement('div');
@@ -947,6 +948,56 @@
     els.winNew.addEventListener('click', function () { newGame(S.draw); });
     els.stuckNew.addEventListener('click', function () { newGame(S.draw); say('New game dealt.'); });
     els.stuckUndo.addEventListener('click', function () { if (undo()) { render(); save(); say('Move undone.'); } });
+
+    /* ---------- racing ----------
+       The whole feature rests on something that was already here for
+       the tests: this game deals the same board twice from the same
+       seed. race.js never looks at a card, it only asks for a deal and
+       for one number saying how far along we are. */
+    race = window.HPRace.create({
+      game: 'klondike',
+      total: 52,
+      label: 'cards home',
+      variant: function () { return S.draw; },
+      deal: function (seed, variant) { newGame(variant === 3 ? 3 : 1, seed); },
+      progress: function () {
+        return {
+          main: (function () { var n = 0; SUITS.forEach(function (k) { n += S.f[k].length; }); return n; })(),
+          moves: S.moves,
+          done: !!S.won,
+          /* Exactly what the player can see, rather than running the
+             dead-end search again on the race's account. */
+          stuck: !!(els.stuckbar && !els.stuckbar.hidden)
+        };
+      },
+      say: say,
+      onResize: render,
+      els: {
+        toggle: document.getElementById('raceBtn'),
+        panel: document.getElementById('racepanel'),
+        start: document.getElementById('raceStart'),
+        host: document.getElementById('raceHostRow'),
+        join: document.getElementById('raceJoinRow'),
+        live: document.getElementById('raceLive'),
+        status: document.getElementById('raceStatus'),
+        code: document.getElementById('raceCode'),
+        codeIn: document.getElementById('raceCodeIn'),
+        hostBtn: document.getElementById('raceHostBtn'),
+        joinShowBtn: document.getElementById('raceJoinShow'),
+        joinBtn: document.getElementById('raceJoinBtn'),
+        copyBtn: document.getElementById('raceCopy'),
+        hostCancel: document.getElementById('raceHostCancel'),
+        joinCancel: document.getElementById('raceJoinCancel'),
+        leaveBtn: document.getElementById('raceLeave'),
+        againBtn: document.getElementById('raceAgain'),
+        strip: document.getElementById('racestrip')
+      }
+    });
+
+    /* Every board change already goes through render, so the race reads
+       it there instead of being remembered at forty call sites. */
+    var baseRender = render;
+    render = function () { baseRender(); if (race) race.tick(); };
 
     var rt = null;
     window.addEventListener('resize', function () {
