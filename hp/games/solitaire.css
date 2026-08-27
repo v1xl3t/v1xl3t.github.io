@@ -110,6 +110,18 @@ body.dragging, body.dragging *{cursor:grabbing !important}
   0%,100%{outline-offset:3px}
   50%{outline-offset:7px}
 }
+/* On a phone the outermost pile sits about 8px from the edge, and the ring is
+   drawn outside the pile, so a 7px pulse plus a 3px stroke has its right edge
+   shaved off. An outline never adds to scroll width, so nothing catches this
+   except measuring the ring itself. Pull it in at narrow widths. It stays
+   outside the card, which is the part that matters, it just breathes less. */
+@media (max-width: 430px){
+  .pile.hint-src, .pile.hint-dst{outline-offset:2px}
+  @keyframes hintpulse{
+    0%,100%{outline-offset:2px}
+    50%{outline-offset:4px}
+  }
+}
 
 /* ---------- rules ---------- */
 .rules{margin-top:26px}

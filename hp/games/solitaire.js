@@ -73,17 +73,20 @@
     if (undoStack.length > UNDO_MAX) undoStack.shift();
   }
 
-  /* ---------- rules ---------- */
-  function canFound(id, suitKey) {
+  /* ---------- rules ----------
+     Every rule takes the board it is judging as its first argument, so the
+     game and the "is this deal finished" analysis can never drift apart. The
+     short wrappers underneath each one ask about the board being played, which
+     is what the rest of the file wants nearly every time. */
+  function canFoundOn(B, id, suitKey) {
     if (suitOf(id) !== suitKey) return false;
-    var pile = S.f[suitKey];
-    return valOf(id) === pile.length + 1;
+    return valOf(id) === B.f[suitKey].length + 1;
   }
-  function foundationFor(id) {
-    return canFound(id, suitOf(id)) ? suitOf(id) : null;
+  function foundationForIn(B, id) {
+    return canFoundOn(B, id, suitOf(id)) ? suitOf(id) : null;
   }
-  function canStack(id, col) {
-    var pile = S.t[col];
+  function canStackOn(B, id, col) {
+    var pile = B.t[col];
     if (!pile.length) return valOf(id) === 13;          // only a king opens an empty column
     var top = pile[pile.length - 1];
     if (!top.u) return false;
@@ -93,8 +96,8 @@
   /* The face-up run a player can pick up from a tableau index. Face-up runs are
      always valid by construction, but validate anyway. A corrupt save should
      refuse to be picked up rather than teleport cards. */
-  function runFrom(col, idx) {
-    var pile = S.t[col];
+  function runFromIn(B, col, idx) {
+    var pile = B.t[col];
     if (idx < 0 || idx >= pile.length || !pile[idx].u) return null;
     var ids = [pile[idx].i];
     for (var k = idx + 1; k < pile.length; k++) {
@@ -106,6 +109,11 @@
     return ids;
   }
 
+  function canFound(id, suitKey) { return canFoundOn(S, id, suitKey); }
+  function foundationFor(id) { return foundationForIn(S, id); }
+  function canStack(id, col) { return canStackOn(S, id, col); }
+  function runFrom(col, idx) { return runFromIn(S, col, idx); }
+
   /* ---------- moves ---------- */
   function flipIfNeeded(col) {
     var pile = S.t[col];
@@ -114,6 +122,7 @@
 
   function drawStock() {
     pushUndo();
+    clearHint();
     if (!S.stock.length) {
       if (!S.waste.length) { undoStack.pop(); return false; }
       // recycle: the waste goes back under the stock in the order it came out
@@ -141,6 +150,7 @@
     } else return false;
 
     pushUndo();
+    clearHint();   // the board is about to change, a stale arrow points at nothing
     // take
     if (src.kind === 'waste') S.waste.pop();
     else if (src.kind === 'found') S.f[src.s].pop();
@@ -234,10 +244,270 @@
 
   function undo() {
     stopAuto();
+    clearHint();
     if (!undoStack.length) return false;
     restore(undoStack.pop());
     sel = null;
     return true;
+  }
+
+  /* ============================================================
+     WHAT IS STILL ON THE TABLE
+
+     Two questions share one enumeration. "Is anything left" decides
+     whether the game is actually over, and "what would you do"
+     answers the hint. Building the list once keeps the two answers
+     from ever disagreeing, which is the failure that would matter,
+     a game calling itself dead while the hint points at a move.
+
+     "Are there legal moves" turns out to be the wrong question, which
+     Vi's board on 2026-08-13 proved. It had exactly one move, a six
+     of diamonds that could slide onto a seven of spades and back
+     again, forever, while nothing turned over and nothing went home.
+     Legal, endless, and finished. Counting that as alive would mean
+     the game never admits a dead deal.
+
+     So the question asked here is "can this deal still get anywhere",
+     and the only two things that count as getting anywhere are a card
+     turning face up and a card reaching a foundation. Shuffling
+     between columns is not an answer, it is a step, so the shuffles
+     get walked to see whether any sequence of them reaches one.
+
+     One legal move is left out of the enumeration entirely, a
+     foundation card pulled back down into the tableau. It can always
+     be undone and redone, so it would make every search infinite
+     while adding nothing a player wants suggested.
+
+     Nothing here mutates the board being played. The walk works on
+     copies, so the hint cannot cost you a card.
+     ============================================================ */
+
+  /* gain is the ranking, not the rules. Higher is a better hint.
+     Turning a face down card over beats everything else, because that
+     is the only move that adds information to the board. */
+  function movesIn(B) {
+    var out = [];
+    var c, d, i, pile, ids;
+
+    if (B.waste.length) {
+      var w = B.waste[B.waste.length - 1];
+      var wf = foundationForIn(B, w);
+      if (wf) out.push({ src: { kind: 'waste' }, dest: { kind: 'found', s: wf }, gain: 80 });
+      for (c = 0; c < 7; c++) {
+        if (canStackOn(B, w, c)) out.push({ src: { kind: 'waste' }, dest: { kind: 'tab', col: c }, gain: 60 });
+      }
+    }
+
+    for (c = 0; c < 7; c++) {
+      pile = B.t[c];
+      if (!pile.length) continue;
+
+      var top = pile[pile.length - 1];
+      if (top.u) {
+        var tf = foundationForIn(B, top.i);
+        // sending the last card of a column home opens the column, which is worth more
+        if (tf) out.push({
+          src: { kind: 'tab', col: c, idx: pile.length - 1 },
+          dest: { kind: 'found', s: tf },
+          gain: pile.length === 1 ? 85 : 75
+        });
+      }
+
+      for (i = 0; i < pile.length; i++) {
+        if (!pile[i].u) continue;
+        ids = runFromIn(B, c, i);
+        if (!ids) continue;
+        var flips = i > 0 && !pile[i - 1].u;   // moving this run turns a card over
+        var wholePile = i === 0;               // nothing underneath, the column empties
+        for (d = 0; d < 7; d++) {
+          if (d === c || !canStackOn(B, ids[0], d)) continue;
+          if (wholePile && !B.t[d].length) continue;   // one empty column into another
+          out.push({
+            src: { kind: 'tab', col: c, idx: i },
+            dest: { kind: 'tab', col: d },
+            gain: flips ? 100 : (wholePile ? 55 : 40)
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  /* Walk the deck the way a player would, one deal at a time, and ask after
+     each deal whether the card now showing has anywhere to go. Draw three only
+     ever shows every third card, and turning the pile over is what changes
+     which third, so simulating the deals is more honest than arithmetic. The
+     copies mean the real stock never moves. */
+  function deckMoveIn(B) {
+    var stock = B.stock.slice(), waste = B.waste.slice();
+    var total = stock.length + waste.length;
+    if (!total) return false;
+
+    // one full lap is every deal plus the turn over, and two laps covers a
+    // starting waste that is mid pass
+    var laps = 2 * (Math.ceil(total / Math.max(1, B.draw)) + 2);
+    for (var step = 0; step < laps; step++) {
+      if (!stock.length) {
+        if (!waste.length) return false;
+        while (waste.length) stock.push(waste.pop());
+      } else {
+        var n = Math.min(B.draw, stock.length);
+        for (var k = 0; k < n; k++) waste.push(stock.pop());
+      }
+      if (!waste.length) continue;
+      var top = waste[waste.length - 1];
+      if (foundationForIn(B, top)) return true;
+      for (var c = 0; c < 7; c++) if (canStackOn(B, top, c)) return true;
+    }
+    return false;
+  }
+
+  /* The two things that count as the deal getting somewhere. Note that the
+     flipping move is only ever the run starting at a column's first face up
+     card, because that is the only run with anything hidden underneath it. */
+  function hasProgress(B) {
+    var c, pile, i;
+    if (B.waste.length && foundationForIn(B, B.waste[B.waste.length - 1])) return true;
+    for (c = 0; c < 7; c++) {
+      pile = B.t[c];
+      if (!pile.length) continue;
+      var top = pile[pile.length - 1];
+      if (top.u && foundationForIn(B, top.i)) return true;
+      for (i = 0; i < pile.length && !pile[i].u; i++) { /* find the first face up card */ }
+      if (i === 0 || i >= pile.length) continue;      // nothing hidden under this column
+      var ids = runFromIn(B, c, i);
+      if (!ids) continue;
+      for (var d = 0; d < 7; d++) if (d !== c && canStackOn(B, ids[0], d)) return true;
+    }
+    return false;
+  }
+
+  /* Only the tableau changes during the walk, so the key only has to describe
+     the tableau. The deck and the foundations are the same in every state the
+     walk can reach. */
+  function tabKey(B) {
+    var s = '';
+    for (var c = 0; c < 7; c++) {
+      var p = B.t[c];
+      for (var k = 0; k < p.length; k++) s += (p[k].u ? '' : '#') + p[k].i;
+      s += '|';
+    }
+    return s;
+  }
+
+  function withTableau(B) {
+    return {
+      stock: B.stock, waste: B.waste, f: B.f, draw: B.draw,
+      t: B.t.map(function (col) { return col.map(function (x) { return { i: x.i, u: x.u }; }); })
+    };
+  }
+
+  /* Depth first over column-to-column shuffles, looking for any state where
+     something finally turns over or goes home. The visited set is what keeps
+     the six of diamonds from sliding back and forth forever, and the node cap
+     is the backstop. Hitting the cap reports "no", which is the safe direction
+     to be wrong in, because the bar it raises has an undo button on it and the
+     board underneath is still playable. */
+  var WALK_CAP = 4000;
+
+  function progressReachable(B) {
+    var seen = Object.create(null);
+    var stack = [B];
+    var nodes = 0;
+    while (stack.length && nodes++ < WALK_CAP) {
+      var cur = stack.pop();
+      var key = tabKey(cur);
+      if (seen[key]) continue;
+      seen[key] = true;
+
+      if (hasProgress(cur) || deckMoveIn(cur)) return true;
+
+      var list = movesIn(cur);
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i];
+        if (m.src.kind !== 'tab' || m.dest.kind !== 'tab') continue;
+        var nxt = withTableau(cur);
+        var from = nxt.t[m.src.col];
+        var ids = from.slice(m.src.idx).map(function (x) { return x.i; });
+        from.length = m.src.idx;
+        if (from.length && !from[from.length - 1].u) from[from.length - 1].u = true;
+        for (var j = 0; j < ids.length; j++) nxt.t[m.dest.col].push({ i: ids[j], u: true });
+        stack.push(nxt);
+      }
+    }
+    return false;
+  }
+
+  function boardMoves() { return movesIn(S); }
+  function deckMove() { return deckMoveIn(S); }
+
+  /* null while the deal is alive, otherwise how it died. The two are told
+     apart on the page because they feel different to a player, one is a wall
+     and the other is a treadmill. */
+  function deadEnd() {
+    if (S.won) return null;
+    var moves = boardMoves().length;
+    if (!moves && !deckMove()) return 'none';
+    return progressReachable(S) ? null : 'nowhere';
+  }
+
+  function anyMove() { return !S.won && deadEnd() === null; }
+
+  function bestMove() {
+    var list = boardMoves();
+    if (!list.length) return null;
+    list.sort(function (a, b) { return b.gain - a.gain; });
+    return list[0];
+  }
+
+  /* ---------- the hint ----------
+     A hint points, it does not play. It lights the pile a card comes from and
+     the pile it can go to, says the same thing out loud for a screen reader,
+     and fades on its own so the board does not stay decorated. */
+  var hint = null;          // {src:'tab:2', dst:'found:H'}
+  var hintTimer = null;
+
+  function pileKey(x) {
+    if (x.kind === 'waste') return 'waste';
+    if (x.kind === 'stock') return 'stock';
+    if (x.kind === 'found') return 'found:' + x.s;
+    if (x.kind === 'tab') return 'tab:' + x.col;
+    return null;
+  }
+
+  function nameAt(src) {
+    var ids = srcIds(src);
+    return ids && ids.length ? C.label(card(ids[0])) : 'that card';
+  }
+
+  function hintWords(m) {
+    var who = nameAt(m.src);
+    if (m.dest.kind === 'found') return 'Send the ' + who + ' home to its foundation.';
+    if (!S.t[m.dest.col].length) return 'Move the ' + who + ' into the empty column.';
+    var dp = S.t[m.dest.col];
+    return 'Move the ' + who + ' onto the ' + C.label(card(dp[dp.length - 1].i)) + '.';
+  }
+
+  function clearHint() {
+    if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
+    hint = null;
+  }
+
+  function showHint() {
+    stopAuto();
+    clearHint();
+    var m = bestMove();
+    if (m) {
+      hint = { src: pileKey(m.src), dst: pileKey(m.dest) };
+      say(hintWords(m));
+    } else if (deckMove()) {
+      hint = { src: 'stock', dst: 'stock' };
+      say('Deal from the deck, something in there can be played.');
+    } else {
+      say('No moves left. Undo, or deal a new game.');
+    }
+    render();
+    hintTimer = setTimeout(function () { hintTimer = null; hint = null; render(); }, 4200);
   }
 
   /* ---------- persistence ---------- */
@@ -264,6 +534,7 @@
 
   function newGame(draw, seed) {
     stopAuto();
+    clearHint();
     S = freshState(draw != null ? draw : (S ? S.draw : 1),
                    seed != null ? seed : (Date.now() ^ Math.floor(Math.random() * 0xffffff)) >>> 0);
     undoStack = [];
@@ -381,16 +652,51 @@
       host.style.height = Math.round(y + ch) + 'px';
     }
 
+    /* --- the hint lights piles, so it has to be wiped every paint --- */
+    els.board.querySelectorAll('.hint-src, .hint-dst').forEach(function (n) {
+      n.classList.remove('hint-src', 'hint-dst');
+    });
+    if (hint) {
+      var hs = els.board.querySelector('[data-pile="' + hint.src + '"]');
+      var hd = els.board.querySelector('[data-pile="' + hint.dst + '"]');
+      if (hs) hs.classList.add('hint-src');
+      if (hd && hd !== hs) hd.classList.add('hint-dst');
+    }
+
     /* --- chrome --- */
+    var dead = deadEnd();
     els.moves.textContent = String(S.moves);
     els.left.textContent = String(S.stock.length + S.waste.length);
     els.undoBtn.disabled = !undoStack.length;
+    els.hintBtn.disabled = S.won || !!dead;
     els.autoBtn.hidden = !autoAvailable();
     els.win.hidden = !S.won;
+    els.stuck.hidden = !dead;
+    els.stuckUndo.disabled = !undoStack.length;
     els.d1.setAttribute('aria-pressed', String(S.draw === 1));
     els.d3.setAttribute('aria-pressed', String(S.draw === 3));
+    if (dead) {
+      els.stuckTitle.textContent = DEAD[dead].title;
+      els.stuckWhy.textContent = DEAD[dead].why;
+    }
     if (S.won) say('You cleared the board in ' + S.moves + ' moves.');
+    else if (dead) say(DEAD[dead].title + '. ' + DEAD[dead].why);
   }
+
+  /* Two ways a deal ends short, and they do not feel the same. One is a wall,
+     you try things and nothing is legal. The other is a treadmill, moves keep
+     working and the board never actually changes. The second is the one that
+     makes a player doubt themselves, so it gets said plainly. */
+  var DEAD = {
+    none: {
+      title: 'No moves left',
+      why: 'Nothing on the board is legal any more, and the deck is out. The deal is finished, not you.'
+    },
+    nowhere: {
+      title: 'Nothing left that goes anywhere',
+      why: 'Cards can still slide between columns, but no matter which order you do it in, nothing new turns over and nothing else reaches a foundation. This deal is done. That is the deal, not your play.'
+    }
+  };
 
   var lastSaid = '';
   function say(msg) {
@@ -634,10 +940,13 @@
 
     els.newBtn.addEventListener('click', function () { newGame(S.draw); say('New game dealt.'); });
     els.undoBtn.addEventListener('click', function () { if (undo()) { render(); save(); say('Move undone.'); } });
+    els.hintBtn.addEventListener('click', showHint);
     els.autoBtn.addEventListener('click', function () { autoFinish(false); });
     els.d1.addEventListener('click', function () { setDraw(1); });
     els.d3.addEventListener('click', function () { setDraw(3); });
     els.winNew.addEventListener('click', function () { newGame(S.draw); });
+    els.stuckNew.addEventListener('click', function () { newGame(S.draw); say('New game dealt.'); });
+    els.stuckUndo.addEventListener('click', function () { if (undo()) { render(); save(); say('Move undone.'); } });
 
     var rt = null;
     window.addEventListener('resize', function () {
@@ -672,12 +981,18 @@
     els.moves = document.getElementById('moves');
     els.left = document.getElementById('left');
     els.undoBtn = document.getElementById('undoBtn');
+    els.hintBtn = document.getElementById('hintBtn');
     els.autoBtn = document.getElementById('autoBtn');
     els.newBtn = document.getElementById('newBtn');
     els.d1 = document.getElementById('draw1');
     els.d3 = document.getElementById('draw3');
     els.win = document.getElementById('winbar');
     els.winNew = document.getElementById('winNew');
+    els.stuck = document.getElementById('stuckbar');
+    els.stuckTitle = document.getElementById('stuckTitle');
+    els.stuckWhy = document.getElementById('stuckWhy');
+    els.stuckNew = document.getElementById('stuckNew');
+    els.stuckUndo = document.getElementById('stuckUndo');
     els.live = document.getElementById('live');
 
     if (!load()) newGame(1);
@@ -700,6 +1015,12 @@
     undoDepth: function () { return undoStack.length; },
     autoFinish: autoFinish,
     autoAvailable: autoAvailable,
+    anyMove: anyMove,
+    deadEnd: deadEnd,
+    boardMoves: boardMoves,
+    deckMove: deckMove,
+    bestMove: bestMove,
+    hint: function () { showHint(); return hint; },
     move: function (src, dest) { var r = apply(src, dest); if (r) { render(); save(); } return r; },
     sendToFoundation: function (src) { var r = sendToFoundation(src); if (r) { render(); save(); } return r; },
     /* Stack the deck so a test can reach a win in a bounded number of steps

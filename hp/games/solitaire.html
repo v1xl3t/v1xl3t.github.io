@@ -29,6 +29,7 @@
     <div class="controls">
       <button class="btn primary" type="button" id="newBtn">New game</button>
       <button class="btn" type="button" id="undoBtn">Undo</button>
+      <button class="btn" type="button" id="hintBtn">Hint</button>
       <button class="btn" type="button" id="autoBtn" hidden>Auto finish</button>
       <div class="seg" role="group" aria-label="Cards per deal">
         <button type="button" id="draw1" aria-pressed="true">Draw 1</button>
@@ -45,6 +46,17 @@
         <p>Every card is home. That is the whole climb, bottom to top.</p>
       </div>
       <button class="btn primary" type="button" id="winNew">Deal again</button>
+    </div>
+
+    <div class="stuckbar" id="stuckbar" hidden>
+      <div>
+        <h2 id="stuckTitle">No moves left</h2>
+        <p id="stuckWhy">The deal is finished, not you. Walk a few moves back, or take a fresh one.</p>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" id="stuckUndo">Undo</button>
+        <button class="btn primary" type="button" id="stuckNew">Deal again</button>
+      </div>
     </div>
 
     <div class="board" id="board">
@@ -77,6 +89,7 @@
         <li>Tap the deck to turn cards over. When it runs out, tap it again to turn the pile back over.</li>
         <li>Drag a card, or tap it once to pick it up and tap where you want it. Tap the same card twice to send it straight to its foundation.</li>
         <li>Undo walks back through your last eighty moves. Your game is saved in this browser, so closing the tab does not lose it.</li>
+        <li>Hint lights one move you can still make. When there is genuinely nothing left, the game says so rather than letting you hunt.</li>
       </ul>
     </details>
 
