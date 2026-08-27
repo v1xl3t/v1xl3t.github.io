@@ -570,27 +570,66 @@
     }
   }
 
+  /* ---------- everything from the wire is suspect ----------
+     Not because a friend you read six letters to is going to attack
+     you, but because the rank lookups take a card id on trust and
+     throw on anything else, so one malformed message is a crashed
+     page rather than a bad move. Cheap to check, and it turns a whole
+     class of "the game just died" into a line in the status area.
+
+     Nothing here is a defence against a HOST who cheats. A host can
+     see every hand and there is no fixing that without a server. This
+     only stops a bad message wrecking the page. */
+  function cardsOnly(a) {
+    return Array.isArray(a) ? a.filter(K.isCardId) : [];
+  }
+  function intIn(n, lo, hi, fallback) {
+    n = Math.round(Number(n));
+    return (isFinite(n) && n >= lo && n <= hi) ? n : fallback;
+  }
+  var PHASES = { pass: 1, play: 1, handover: 1, gameover: 1 };
+
+  function sane(msg) {
+    var pub = msg && msg.pub;
+    if (!pub) return false;
+    if (!PHASES[pub.phase]) return false;
+    if (!Array.isArray(pub.sizes) || pub.sizes.length !== SEATS) return false;
+    if (!Array.isArray(pub.taken) || pub.taken.length !== SEATS) return false;
+    if (!Array.isArray(pub.scores) || pub.scores.length !== SEATS) return false;
+    if (!Array.isArray(pub.seatKind) || pub.seatKind.length !== SEATS) return false;
+    if (intIn(msg.seat, 0, SEATS - 1, -1) < 0) return false;
+    return true;
+  }
+
   function applyState(msg) {
+    if (!sane(msg)) {
+      netStatus('That message from the table did not make sense, so it was ignored.');
+      return;
+    }
     var pub = msg.pub;
-    mySeat = msg.seat;
-    S.handNo = pub.handNo;
-    S.passDir = pub.passDir;
+    mySeat = intIn(msg.seat, 0, SEATS - 1, 0);
+    S.handNo = intIn(pub.handNo, 0, 9999, 0);
+    S.passDir = intIn(pub.passDir, 0, 3, 0);
     S.phase = pub.phase;
-    S.scores = pub.scores;
-    S.taken = pub.taken;
-    S.trick = pub.trick;
-    S.leader = pub.leader;
-    S.turn = pub.turn;
-    S.broken = pub.broken;
-    S.handScores = pub.handScores;
-    S.lastTrick = pub.lastTrick;
-    S.seatKind = pub.seatKind;
-    S.target = pub.target;
-    S.waiting = pub.waiting;
+    S.scores = pub.scores.map(function (n) { return intIn(n, -999, 9999, 0); });
+    S.taken = pub.taken.map(cardsOnly);
+    S.trick = (Array.isArray(pub.trick) ? pub.trick : []).filter(function (t) {
+      return t && K.isCardId(t.id) && intIn(t.p, 0, SEATS - 1, -1) >= 0;
+    }).map(function (t) { return { p: intIn(t.p, 0, SEATS - 1, 0), id: t.id }; });
+    S.leader = intIn(pub.leader, -1, SEATS - 1, -1);
+    S.turn = intIn(pub.turn, -1, SEATS - 1, -1);
+    S.broken = !!pub.broken;
+    S.handScores = pub.handScores || null;
+    S.lastTrick = pub.lastTrick || null;
+    S.seatKind = pub.seatKind.map(function (k) { return k === 'person' ? 'person' : 'bot'; });
+    S.target = intIn(pub.target, 1, 9999, 100);
+    S.waiting = intIn(pub.waiting, 0, SEATS, 0);
+    var myHand = cardsOnly(msg.hand);
     S.hands = pub.sizes.map(function (n, p) {
-      if (p === mySeat) return msg.hand.slice();
+      if (p === mySeat) return myHand;
       var out = [];
-      for (var i = 0; i < n; i++) out.push(HIDDEN);
+      var many = intIn(n, 0, 52, 0);
+      for (var i = 0; i < many; i++) out.push(HIDDEN);
       return out;
     });
     /* Picks are the guest's own business and the host never sends them
@@ -599,7 +638,7 @@
     if (S.phase !== 'pass') { S.picked = []; wantPass = [null, null, null, null]; }
     if (msg.given) {
       S.given = [];
-      S.given[mySeat] = msg.given;
+      S.given[mySeat] = cardsOnly(msg.given);
       sayGiven();
       S.given = null;
     }
@@ -1224,6 +1263,16 @@
       };
     },
     seatIsPerson: seatIsPerson,
+    /* Drive the wire path directly, so a suite can hand this browser
+       exactly what a hostile or broken host would send. There is no
+       other way to test the checks, because every honest path builds a
+       well formed message by construction. */
+    wireMessage: function (msg, from) {
+      var wasRole = netRole, wasOpen = netOpen;
+      netRole = 'guest'; netOpen = true;
+      try { onMessage(msg, from || 'test'); }
+      finally { netRole = wasRole; netOpen = wasOpen; }
+    },
     submitPass: submitPass,
     waitingOn: waitingOn,
     packPublic: packPublic,

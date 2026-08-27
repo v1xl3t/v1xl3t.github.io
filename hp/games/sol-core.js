@@ -44,6 +44,15 @@
   function isRed(id) { return C.suit(suitOf(id)).red; }
   function card(id) { return { id: id, s: suitOf(id), r: rankOf(id), v: valOf(id) }; }
 
+  /* Is this actually a card id, rather than merely a string.
+     Only matters where cards arrive from somewhere this browser does
+     not control, which today means a message from another player. The
+     rank lookups take an id on trust and throw on anything else, so an
+     unchecked id from the wire is a crashed page rather than a bad
+     move. */
+  var CARD_RE = /^[SHCD][A2-9TJQK]$/;
+  function isCardId(id) { return typeof id === 'string' && CARD_RE.test(id); }
+
   /* A repeatable shuffle, handed back as ids rather than card objects.
      HPCards.deck() yields objects because that is what the card painter
      wants, but a game's state should hold the smallest thing that
@@ -333,6 +342,7 @@
 
   root.HPSolCore = {
     suitOf: suitOf, rankOf: rankOf, valOf: valOf, isRed: isRed, card: card,
+    isCardId: isCardId,
     shuffled: shuffled,
     Store: Store, Undo: Undo, Speaker: Speaker, Hint: Hint, Table: Table,
     sizeBoard: sizeBoard, reachable: reachable

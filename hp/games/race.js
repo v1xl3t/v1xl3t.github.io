@@ -255,7 +255,11 @@
 
       if (msg.t === 'deal') {
         if (msg.game !== game) { onEvent('error', { reason: 'game' }); return; }
-        seed = msg.seed;
+        if (typeof msg.seed !== 'number' || !isFinite(msg.seed)) {
+          status('That deal did not make sense, so it was ignored.');
+          return;
+        }
+        seed = msg.seed >>> 0;
         them = null;
         result = '';
         opts.deal(msg.seed, msg.variant);
@@ -265,7 +269,14 @@
       }
 
       if (msg.t === 'p') {
-        them = { main: msg.main, moves: msg.moves, done: msg.done, stuck: msg.stuck };
+        /* Numbers from the wire, coerced. They are only ever painted
+           with textContent so nothing can be smuggled in, but a string
+           where a count should be reads as nonsense on the strip. */
+        var num = function (n) {
+          n = Math.round(Number(n));
+          return isFinite(n) && n >= 0 ? n : 0;
+        };
+        them = { main: num(msg.main), moves: num(msg.moves), done: !!msg.done, stuck: !!msg.stuck };
         if (role === 'host') settle();
         paint();
         return;
