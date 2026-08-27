@@ -26,7 +26,7 @@
 
    WHAT THIS IS NOT
 
-     It is not private from the broker. PeerJS signalling goes
+     It is not private from the broker. PeerJS signaling goes
      through a public matchmaking service to introduce the two
      browsers, which sees the room code and the addresses while
      they shake hands. After that the game data goes browser to
@@ -35,6 +35,29 @@
      and the payload is a board, so this is a thing to know
      rather than a thing to fix. It also means the service can be
      down, which is why every game must still play offline.
+
+   ADDRESSES, AND WHY THIS FILE NOW REFUSES TO CONNECT
+
+     A direct browser to browser connection tells each side the
+     other's address. That is not a bug in this file, it is how
+     peer to peer works, and the only way around it is to send
+     every packet through a relay instead, so that all either side
+     ever learns is the relay's address.
+
+     A relay is a TURN server. There is no code only version of
+     this. So this file now asks for RELAY ONLY, and if it has no
+     relay to use it does not connect at all.
+
+     It FAILS CLOSED, deliberately. The tempting thing is to try
+     the relay and quietly fall back to a direct connection when
+     there is not one, which would work beautifully and would also
+     hand out the address the relay existed to hide. A privacy
+     setting that turns itself off when it is inconvenient is not
+     a privacy setting.
+
+     To turn online play back on, put a relay in turn.json beside
+     this file. The shape is in turn.example.json. Nothing else
+     needs to change.
 
      It is not cheat proof. The host's browser holds the whole
      game, and in a game with hidden cards that means the host
@@ -56,6 +79,44 @@
      them can never race to append the same script tag. */
   var libState = 'idle';        // idle | loading | ready | failed
   var waiting = [];
+
+  /* ---------- the relay ----------
+     Read once, from a file rather than from code, so swapping relay or
+     adding credentials is editing one small JSON file and not going
+     through a build. Absent or empty means there is no relay, which
+     means no online play. */
+  var turnState = 'idle';       // idle | loading | ready | none
+  var turnConf = null;
+  var turnWaiting = [];
+
+  function ensureTurn(cb) {
+    if (turnState === 'ready') { cb(turnConf); return; }
+    if (turnState === 'none') { cb(null); return; }
+    turnWaiting.push(cb);
+    if (turnState === 'loading') return;
+    turnState = 'loading';
+    var done = function (conf) {
+      turnConf = conf;
+      turnState = conf ? 'ready' : 'none';
+      var list = turnWaiting; turnWaiting = [];
+      list.forEach(function (fn) { fn(turnConf); });
+    };
+    var req;
+    try { req = fetch('turn.json', { cache: 'no-store' }); }
+    catch (e) { done(null); return; }
+    req.then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var list = j && Array.isArray(j.iceServers) ? j.iceServers.filter(function (s) {
+          /* A STUN server is not a relay. It tells you your own address,
+             which is the opposite of the job. Only turn: and turns:
+             count. */
+          var u = [].concat(s && s.urls || []).join(' ');
+          return /(^|\s)turns?:/.test(u);
+        }) : [];
+        done(list.length ? { iceServers: list } : null);
+      })
+      .catch(function () { done(null); });
+  }
 
   function ensureLib(src, cb) {
     if (libState === 'ready' || typeof root.Peer === 'function') { libState = 'ready'; cb(true); return; }
@@ -139,10 +200,12 @@
     function host(attempt) {
       ensureLib(SRC, function (ok) {
         if (!ok) { emit('error', { reason: 'lib' }); return; }
+        ensureTurn(function (conf) {
+        if (!conf) { emit('error', { reason: 'norelay' }); return; }
         drop();
         role = 'host';
         myCode = makeCode();
-        try { peer = new root.Peer(idFor(myCode), { debug: 0 }); }
+        try { peer = new root.Peer(idFor(myCode), peerOpts(conf)); }
         catch (e) { emit('error', { reason: 'start' }); return; }
 
         peer.on('open', function () { emit('code', myCode); });
@@ -160,7 +223,19 @@
           if (type === 'unavailable-id' && (attempt || 0) < 3) { host((attempt || 0) + 1); return; }
           emit('error', { reason: type });
         });
+        });
       });
+    }
+
+    /* Relay only, always. See the note at the top about failing closed. */
+    function peerOpts(conf) {
+      return {
+        debug: 0,
+        config: {
+          iceServers: conf.iceServers,
+          iceTransportPolicy: 'relay'
+        }
+      };
     }
 
     function join(code) {
@@ -168,10 +243,12 @@
       if (want.length < 4) { emit('error', { reason: 'short' }); return; }
       ensureLib(SRC, function (ok) {
         if (!ok) { emit('error', { reason: 'lib' }); return; }
+        ensureTurn(function (conf) {
+        if (!conf) { emit('error', { reason: 'norelay' }); return; }
         drop();
         role = 'guest';
         myCode = want;
-        try { peer = new root.Peer(undefined, { debug: 0 }); }
+        try { peer = new root.Peer(undefined, peerOpts(conf)); }
         catch (e) { emit('error', { reason: 'start' }); return; }
         peer.on('open', function () {
           var c;
@@ -187,6 +264,7 @@
         peer.on('error', function (e) {
           var type = e && e.type ? e.type : 'unknown';
           emit('error', { reason: type === 'peer-unavailable' ? 'nocode' : type });
+        });
         });
       });
     }
@@ -235,6 +313,10 @@
       /* Reports whether the library is unusable without forcing a
          download, so a button can decline before it promises anything. */
       libFailed: function () { return libState === 'failed'; },
+      /* Whether there is a relay to play through. A game can ask before
+         it offers a button that cannot work. */
+      hasRelay: function (cb) { ensureTurn(function (c) { cb(!!c); }); },
+      relayReady: function () { return turnState === 'ready'; },
       clean: clean
     };
   }

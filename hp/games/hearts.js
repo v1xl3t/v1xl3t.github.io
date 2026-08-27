@@ -694,6 +694,7 @@
      would say it. An unknown reason still gets a sentence rather than
      a code, because a code helps nobody sitting at the table. */
   function reasonText(reason) {
+    if (reason === 'norelay') return 'Online play is off because there is no relay set up. A direct connection would tell the other player your address, so it does not make one. Everything else here works as normal.';
     if (reason === 'lib') return 'Online play could not start because its code did not load. The game against the computer still works.';
     if (reason === 'nocode') return 'No table is waiting on that code. Check the letters, or ask for a fresh one.';
     if (reason === 'short') return 'That code looks too short. It is six characters.';

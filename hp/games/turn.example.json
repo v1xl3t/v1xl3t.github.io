@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "Copy this to turn.json to switch online play back on.",
+    "",
+    "A TURN server is a relay. With one, the only address either player",
+    "ever learns is the relay's, which is the whole point. Without one,",
+    "net-core.js refuses to connect rather than quietly falling back to a",
+    "direct connection and handing out addresses.",
+    "",
+    "Two free ways to get one, both needing an account, neither of which",
+    "Contan will make for you.",
+    "",
+    "  Cloudflare Realtime TURN. 1,000 GB free, wants a card on file.",
+    "  https://www.cloudflare.com/products/turn-sfu/",
+    "",
+    "  Open Relay by Metered. 20 GB a month free, wants a signup, no card",
+    "  mentioned. https://www.metered.ca/tools/openrelay/",
+    "",
+    "For scale: these games send a few kilobytes a move, so a whole",
+    "evening of Hearts is well under a megabyte. 20 GB a month is",
+    "thousands of games.",
+    "",
+    "Only turn: and turns: entries are used. A stun: entry is ignored on",
+    "purpose, because STUN tells you your own address, which is the",
+    "opposite of the job."
+  ],
+  "iceServers": [
+    {
+      "urls": ["turn:YOUR-RELAY-HOST:80", "turns:YOUR-RELAY-HOST:443"],
+      "username": "YOUR-USERNAME",
+      "credential": "YOUR-CREDENTIAL"
+    }
+  ]
+}

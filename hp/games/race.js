@@ -55,6 +55,7 @@
 
     /* ---------- what a person is told ---------- */
     function reasonText(reason) {
+      if (reason === 'norelay') return 'Racing is off because there is no relay set up. A direct connection would tell the other player your address, so it does not make one. The game itself works as normal.';
       if (reason === 'lib') return 'Racing could not start because its code did not load. The game itself is unaffected.';
       if (reason === 'nocode') return 'No race is waiting on that code. Check the letters, or ask for a fresh one.';
       if (reason === 'short') return 'That code looks too short. It is six characters.';
