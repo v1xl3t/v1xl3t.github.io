@@ -49,6 +49,31 @@
       "url": "/?for=swe",
       "title": "Portfolio, software view",
       "added": "2026-08-26"
+    },
+    "AISE": {
+      "url": "/?for=aise",
+      "title": "Portfolio, AI solutions view",
+      "added": "2026-08-27"
+    },
+    "FDE": {
+      "url": "/?for=fde",
+      "title": "Portfolio, forward-deployed view",
+      "added": "2026-08-27"
+    },
+    "AUDIO": {
+      "url": "/?for=audio",
+      "title": "Portfolio, audio view",
+      "added": "2026-08-27"
+    },
+    "HW": {
+      "url": "/?for=hardware",
+      "title": "Portfolio, hardware view",
+      "added": "2026-08-27"
+    },
+    "MAKE": {
+      "url": "/?for=creative",
+      "title": "Portfolio, creative tech view",
+      "added": "2026-08-27"
     }
   }
 }

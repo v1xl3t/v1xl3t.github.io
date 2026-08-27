@@ -37,6 +37,9 @@ const SLUG_RE = /^[A-Z0-9]{1,8}$/;
 const RESERVED = new Set(['INDEX', 'LINKS', 'ADMIN', 'NEW', 'API']);
 
 const load = () => (existsSync(DATA) ? JSON.parse(readFileSync(DATA, 'utf8')) : { links: {} });
+/* The site mark, read from the homepage so the two cannot drift apart. Inline,
+   so the index costs no extra request. */
+const ICON = readFileSync(join(ROOT, 'index.html'), 'utf8').split('<link rel="icon" href="')[1].split('"')[0];
 const save = (d) => writeFileSync(DATA, JSON.stringify(d, null, 2) + '\n');
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
@@ -95,6 +98,8 @@ function indexPage(links) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Short links</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0f16">
+<link rel="icon" href="${ICON}">
 <style>
   :root { color-scheme: dark light; --ink:#e6eaf0; --bg:#0e1116; --soft:#9aa5b4; --line:#2a313c; }
   @media (prefers-color-scheme: light) { :root { --ink:#15202b; --bg:#eef1f4; --soft:#55606d; --line:#d7dee6; } }

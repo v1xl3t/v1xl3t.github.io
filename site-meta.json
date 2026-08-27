@@ -1,0 +1,85 @@
+{
+  "_comment": "Per-page metadata. .github/scripts/ogcards.mjs renders a share card for each entry into media/og/, and each page's head points at it. Add a page here, rerun the generator, and paste the head block. /s/ is deliberately absent: shortlinks.mjs generates that page, and two generators cannot own one file.",
+  "site": "https://vi-ellis.com",
+  "author": "Vi Ellis",
+  "pages": {
+    "/": {
+      "title": "Vi Ellis",
+      "card": "Engineer, product developer, composer",
+      "desc": "Vi Ellis, applied computer scientist, hardware product developer, and award-winning composer. Production AI agents on the Claude API, full-pipeline hardware, GDC-showcased game audio.",
+      "accent": "both"
+    },
+    "/apps/": {
+      "title": "Things you can play with",
+      "card": "Eleven built things, all live in the browser",
+      "desc": "A directory of the tools and toys Vi Ellis has shipped, from a browser 3D modeller to a drum play-along, all running without an install.",
+      "accent": "green"
+    },
+    "/cadence/": {
+      "title": "CADence",
+      "card": "Precise 3D modelling in the browser",
+      "desc": "A browser 3D modeller that makes professional-grade CAD as approachable as a toy. Every shape is an editable recipe of exact parameters, and it slices its own models for printing.",
+      "accent": "green"
+    },
+    "/perch/": {
+      "title": "Perch",
+      "card": "A gentler way to keep track of yourself",
+      "desc": "A gamified self-care tracker that rewards showing up rather than streaks you can break.",
+      "accent": "violet"
+    },
+    "/ghostnote/": {
+      "title": "Ghost Note",
+      "card": "Drop in a song, get a drum chart",
+      "desc": "A free browser drum play-along. Drag in any audio file, onset detection writes an editable chart, then play it on a MIDI kit.",
+      "accent": "green"
+    },
+    "/anim/": {
+      "title": "Layerloop",
+      "card": "Layered and stated pixel animation",
+      "desc": "A browser tool for pixel animation with layers, frames and states, built for game art that has to react.",
+      "accent": "violet"
+    },
+    "/resume/": {
+      "title": "Résumé Studio",
+      "card": "Build a résumé from a career library",
+      "desc": "A no-install résumé editor. Import your career history, tag it by skill and industry, then tick boxes to build a tailored résumé. Nothing leaves your browser.",
+      "accent": "both"
+    },
+    "/primes/": {
+      "title": "Primes",
+      "card": "A fractal grown from prime numbers",
+      "desc": "A generative L-system by Vi Ellis that grows a recursive fractal out of the distribution of prime numbers. Featured in Dezeen.",
+      "accent": "green"
+    },
+    "/datavis/": {
+      "title": "Sound of Data",
+      "card": "A dataset you can hear",
+      "desc": "A generative sketch by Vi Ellis that turns a dataset into sound and motion, drawn live in the browser.",
+      "accent": "violet"
+    },
+    "/chatbot/": {
+      "title": "Chatbot",
+      "card": "An early conversational experiment",
+      "desc": "An early conversational interface experiment by Vi Ellis, kept online as it was built.",
+      "accent": "violet"
+    },
+    "/hp/": {
+      "title": "HACKING PARADISE",
+      "card": "A studio and publishing collective",
+      "desc": "A media-arts collective for makers who find the unexpected route. We build, we ship, and we climb together.",
+      "accent": "violet"
+    },
+    "/legoset/": {
+      "title": "Legoset",
+      "card": "A collective",
+      "desc": "Legoset, a collective. Music, radio and merch.",
+      "accent": "green"
+    },
+    "/resume.html": {
+      "title": "Vi Ellis",
+      "card": "Résumé, one page",
+      "desc": "The one-page résumé for Vi Ellis: applied AI, hardware product development, and award-winning composition.",
+      "accent": "both"
+    }
+  }
+}

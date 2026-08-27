@@ -29,6 +29,11 @@ jobs:
       - name: Short links match s/links.json
         run: node .github/scripts/shortlinks.mjs check
 
+      # Share metadata, sitemap and robots all come out of site-meta.json. A
+      # page described there but never regenerated would ship without its card.
+      - name: Page metadata matches site-meta.json
+        run: node .github/scripts/pagemeta.mjs check
+
       # Patterns are salted hashes, never plaintext, because this repo is public
       # and a gate that names what it is looking for defeats itself. Hits print a
       # file and line only, so the CI log stays clean too.
