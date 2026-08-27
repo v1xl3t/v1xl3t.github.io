@@ -129,6 +129,27 @@
     var court = r.v >= 11;
     if (court) el.classList.add('pipcourt');
     el.style.setProperty('--hpc-pip-ch', '"' + (court ? r.label : s.pip) + '"');
+
+    /* The watermark is the one place on a play card with room for a mark
+       rather than a symbol, so when the HP suit glyphs are loaded it
+       takes one. The CORNER pips stay the plain characters on purpose.
+       They are what you read at speed in a fanned column at 34px, and
+       the whole point of the two scale card was that legibility beats
+       decoration wherever the two disagree.
+
+       Court cards keep their letter, since a jack's watermark is what
+       tells you it is a jack.
+
+       An SVG rather than a text node, which also happens to be the
+       honest spelling for the contrast auditor: it cannot tell
+       decoration from content, and it is right not to. */
+    if (!court && root.HPGlyphs) {
+      var mark = root.HPGlyphs.make(card.s, { className: 'hpc-mark' });
+      if (mark) {
+        el.classList.add('hasmark');
+        el.appendChild(mark);
+      }
+    }
     return el;
   }
 

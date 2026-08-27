@@ -298,6 +298,21 @@ a.hpc:focus-visible, button.hpc:focus-visible{outline:3px solid var(--hpc-neon);
   font-weight:800; font-size:44cqw; opacity:.2; letter-spacing:-.04em;
 }
 
+/* The HP suit mark, when hp-glyphs.js is on the page. It sits exactly
+   where the character watermark did and the character is turned off
+   underneath it, so a page without the glyphs looks the way it always
+   did and a page with them is branded. */
+.hpc.play.up.hasmark::after{content:""}
+.hpc.play.up .hpc-mark{
+  position:absolute; inset:0; margin:auto;
+  width:58cqw; height:58cqw;
+  opacity:.2; pointer-events:none;
+  color:currentColor;
+}
+/* A little more presence in light, where the paper is bright and a
+   twenty percent stroke disappears into it. */
+:root[data-theme="light"] .hpc.play.up .hpc-mark{opacity:.26}
+
 /* --- face down --- */
 .hpc.play.down{
   background:var(--hpc-weave);
