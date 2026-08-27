@@ -1,0 +1,31 @@
+/* ============================================================
+   FreeCell, only what is different.
+
+   Everything generic lives in sol-core.css. This file is short on
+   purpose, and if it starts growing rules about piles or drag
+   layers, those belong upstairs.
+   ============================================================ */
+
+.board{--cols:8}
+
+/* ---------- the top lane ----------
+   Four cells then four foundations, and a player has to read which
+   is which at a glance because putting a card in the wrong one is
+   the difference between a move and a mistake. A hairline between
+   the two groups does that without a label taking up a row. */
+.pile.cell .hpc-slot{opacity:.7}
+.pile.found-first::before{
+  content:""; position:absolute; left:calc(var(--gap) * -0.5 - 1px); top:6%; bottom:6%;
+  width:1px; background:var(--line);
+}
+
+/* A card that is not the head of a movable run cannot be picked up,
+   so it does not pretend it can. Nothing is dimmed. In FreeCell every
+   card is face up and readable, and greying out two thirds of the
+   board to say "not this one" costs far more than it explains. */
+.board .hpc.stuckcard{cursor:default}
+
+/* ---------- the arithmetic ----------
+   How many cards you can move is the whole game, so it is a counter
+   on the bar rather than something to work out in your head. */
+.stat.cells b{color:var(--accent)}

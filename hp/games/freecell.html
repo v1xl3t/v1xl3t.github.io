@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>FreeCell &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Free FreeCell solitaire in the browser. Every card face up, four cells, undo, drag or tap, and it keeps your game if you close the tab." />
+<meta name="theme-color" content="#0b0913" />
+<link rel="stylesheet" href="hp-cards.css" />
+<link rel="stylesheet" href="games.css" />
+<link rel="stylesheet" href="sol-core.css" />
+<link rel="stylesheet" href="freecell.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body class="hpc-scope">
+
+<a class="skip" href="#board">Skip to the board</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main>
+  <div class="gamewrap">
+
+    <div class="controls">
+      <button class="btn primary" type="button" id="newBtn">New game</button>
+      <button class="btn" type="button" id="undoBtn">Undo</button>
+      <button class="btn" type="button" id="hintBtn">Hint</button>
+      <button class="btn" type="button" id="autoBtn" hidden>Auto finish</button>
+      <span class="spacer"></span>
+      <span class="stat">Moves <b id="moves">0</b></span>
+      <span class="stat cells">Cells free <b id="cells">4</b></span>
+      <span class="stat">Home <b id="home">0</b></span>
+    </div>
+
+    <div class="winbar" id="winbar" hidden>
+      <div>
+        <h2>Cleared</h2>
+        <p>Fifty two cards, nothing hidden, nothing lucky. That one was yours.</p>
+      </div>
+      <button class="btn primary" type="button" id="winNew">Deal again</button>
+    </div>
+
+    <div class="stuckbar" id="stuckbar" hidden>
+      <div>
+        <h2 id="stuckTitle">No moves left</h2>
+        <p id="stuckWhy">The deal is finished, not you. Walk a few moves back, or take a fresh one.</p>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" id="stuckUndo">Undo</button>
+        <button class="btn primary" type="button" id="stuckNew">Deal again</button>
+      </div>
+    </div>
+
+    <div class="board" id="board">
+      <div class="lane top">
+        <div class="pile cell" data-pile="free:0"></div>
+        <div class="pile cell" data-pile="free:1"></div>
+        <div class="pile cell" data-pile="free:2"></div>
+        <div class="pile cell" data-pile="free:3"></div>
+        <div class="pile found-first" data-pile="found:S"></div>
+        <div class="pile" data-pile="found:H"></div>
+        <div class="pile" data-pile="found:C"></div>
+        <div class="pile" data-pile="found:D"></div>
+      </div>
+      <div class="lane" id="tableau">
+        <div class="pile col" data-pile="tab:0"></div>
+        <div class="pile col" data-pile="tab:1"></div>
+        <div class="pile col" data-pile="tab:2"></div>
+        <div class="pile col" data-pile="tab:3"></div>
+        <div class="pile col" data-pile="tab:4"></div>
+        <div class="pile col" data-pile="tab:5"></div>
+        <div class="pile col" data-pile="tab:6"></div>
+        <div class="pile col" data-pile="tab:7"></div>
+      </div>
+    </div>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ul>
+        <li>Build the four foundations up from the ace to the king, one suit each.</li>
+        <li>Build the eight columns down, always alternating red and black.</li>
+        <li>The four cells on the left hold one card each. Anything can go in one, and getting it back out is your problem.</li>
+        <li>Any card can move into an empty column, not just a king.</li>
+        <li>You are only ever moving one card. Moving a run is the game staging it through your free cells, so the number it will carry is the free cells plus one, doubled for every empty column. Fill all four cells and you can move exactly one card.</li>
+        <li>Every card is face up from the first second, so there is nothing to discover and no luck left after the deal.</li>
+        <li>Drag a card, or tap it once to pick it up and tap where you want it. Tap the same card twice to send it straight to its foundation.</li>
+        <li>Undo walks back through your last eighty moves. Your game is saved in this browser, so closing the tab does not lose it.</li>
+        <li>Hint lights one move you can still make. When a deal genuinely cannot reach a foundation any more, the game says so rather than letting you hunt.</li>
+      </ul>
+    </details>
+
+  </div>
+</main>
+
+<div class="draglayer" id="draglayer" hidden></div>
+<p class="live" id="live" role="status" aria-live="polite"></p>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">More games</a></p>
+</div></footer>
+
+<script src="hp-cards.js"></script>
+<script src="games.js"></script>
+<script src="sol-core.js"></script>
+<script src="freecell.js"></script>
+</body>
+</html>
