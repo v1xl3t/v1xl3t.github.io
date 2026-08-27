@@ -2,11 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vi Ellis</title>
-<link rel="canonical" href="https://vi-ellis.com/">
 <meta name="robots" content="noindex">
+<link rel="canonical" href="https://vi-ellis.com/">
 <meta http-equiv="refresh" content="0; url=/">
-<script>location.replace("/" + location.hash);</script>
+<!--
+  This used to be a second, byte-identical copy of the homepage, with the same
+  title and the same description, which left two files to keep in step and let a
+  search engine pick between them at random. It forwards now, the same way /c/
+  and /r/ do, so older links keep working and there is one page to maintain.
+
+  Query and fragment are carried across, so /portfolio/?for=swe still lands on
+  the software view.
+-->
+<style>
+  html { color-scheme: dark light; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center;
+         font:16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+</style>
 </head>
-<body><a href="/">Continue to vi-ellis.com</a></body>
+<body>
+<p><noscript>This link needs JavaScript, or follow it directly. </noscript><a id="go" href="/">Opening the portfolio…</a></p>
+<script>
+  var target = "/" + (location.search || "") + (location.hash || "");
+  document.getElementById("go").href = target;
+  location.replace(target);
+</script>
+</body>
 </html>

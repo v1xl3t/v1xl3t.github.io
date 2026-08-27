@@ -1795,7 +1795,8 @@ html[data-theme="light"] .media-note{
      until the re-releases are up.                                            */
   (function(){
     var CREDIT_LINKS = {
-      "Night Shift":   "https://necro.world",
+      /* "Night Shift" linked to necro.world, which no longer resolves at all, so
+         it is left as plain text until there is somewhere real to point it. */
       "Squid FunK":    "https://www.youtube.com/watch?v=Ls8j0vaMnYY",
       "Highway Star":  "https://www.youtube.com/watch?v=VXdD8l1IUPY",
       "HAIKU: The Story of a Wilting Trillium":
@@ -1914,7 +1915,17 @@ html[data-theme="light"] .media-note{
         if (vid) return { type: "video", src: vid, poster: t.getAttribute("data-poster") || "", cap: t.getAttribute("data-cap") || "" };
         return { type: "image", src: t.getAttribute("data-full"), cap: t.getAttribute("data-cap") || "" };
       });
-      thumbs.forEach(function(t, i){ t.addEventListener("click", function(){ open(items, i); }); });
+      thumbs.forEach(function(t, i){
+        t.addEventListener("click", function(){ open(items, i); });
+        /* The caption is already written for the lightbox. Without this a screen
+           reader reads out "button" once per thumbnail and nothing else. */
+        if (!t.getAttribute("aria-label")) {
+          var cap = items[i].cap || "";
+          t.setAttribute("aria-label", cap
+            ? (items[i].type === "video" ? "Play video: " : "View image: ") + cap
+            : (items[i].type === "video" ? "Play video" : "View image"));
+        }
+      });
     });
 
     btnClose.addEventListener("click", close);

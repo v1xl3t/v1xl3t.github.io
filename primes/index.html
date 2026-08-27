@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.2.0/p5.js"></script>
+    <!-- p5 is vendored here rather than pulled from cdnjs. The CDN copy was the
+         3.5 MB unminified build, and it also handed every visitor to this page
+         over to a third party that could change or withdraw it without notice.
+         Same version, minified, served from this domain. -->
+    <script src="vendor/p5.min.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A generative L-system by Vi Ellis that grows a fractal out of the distribution of prime numbers." />
+    <meta name="theme-color" content="#ffffff" />
     <title>Primes, an L-system visualization by Vi Ellis</title>
   </head>
   <body>
@@ -23,6 +30,11 @@
         letter-spacing: .04em; z-index: 50;
       }
       .walker { font-size: 34px; animation: waddle 1.1s ease-in-out infinite; }
+      /* The loader waddles and the trail pulses. Neither carries information,
+         so both stop for anyone who has asked for less movement. */
+      @media (prefers-reduced-motion: reduce) {
+        .walker, .trail i, .pulse { animation: none !important; }
+      }
       @keyframes waddle {
         0%, 100% { transform: translateX(-14px) rotate(-6deg); }
         50%      { transform: translateX(14px)  rotate(6deg) translateY(-4px); }
