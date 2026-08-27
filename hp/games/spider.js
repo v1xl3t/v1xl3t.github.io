@@ -48,6 +48,7 @@
   var sel = null;
   var els = {};
   var race = null;
+  var keys = null;
   var say = function () {};
   var hint = null;
 
@@ -535,7 +536,7 @@
     els.stock.classList.toggle('dead', !S.stock.length);
     if (S.stock.length) {
       els.stock.appendChild(C.back({
-        label: rows + ' row' + (rows === 1 ? '' : 's') + ' left to deal. Tap to deal one.'
+        label: rows + ' row' + (rows === 1 ? '' : 's') + ' left to deal'
       }));
     } else {
       els.stock.appendChild(C.slot('☆', { label: 'Nothing left to deal.' }));
@@ -838,6 +839,46 @@
        it there instead of being remembered at forty call sites. */
     var baseRender = render;
     render = function () { baseRender(); if (race) race.tick(); };
+
+    /* ---------- playing without a pointer ----------
+       This adds a way to POINT, not a way to play. The game already
+       works by tapping a card and then tapping where it goes, so the
+       keyboard hands that same handler whatever it is pointing at,
+       parsed by the game's own parser. Nothing about the rules is
+       written twice. */
+    keys = window.HPKeys.attach({
+      board: els.board,
+      say: say,
+      activate: function (key, idx, pileEl, cardEl) {
+        handleTap(infoFrom(cardEl || pileEl));
+      },
+      cancel: function () { sel = null; render(); },
+      shortcuts: {
+        n: function () { newGame(); say('New game dealt.'); },
+        u: function () { if (undo()) { render(); save(); say('Move undone.'); } },
+        h: function () { showHint(); },
+        r: function () { document.getElementById('raceBtn').click(); },
+        d: function () { handleTap({ kind: 'stock' }); },
+      },
+      helpBtn: document.getElementById('keysBtn'),
+      help: [
+        { keys: ['Arrow keys'], what: 'Move around the board. Up and down walk the cards inside a column before leaving it' },
+        { keys: ['Enter', 'Space'], what: 'Pick a card up, or put down what you are holding. The same thing a tap does' },
+        { keys: ['Esc'], what: 'Put down what you are holding' },
+        { keys: ['Home', 'End'], what: 'Jump to the first or last pile in the row' },
+        { keys: ['N'], what: 'New game' },
+        { keys: ['U'], what: 'Undo' },
+        { keys: ['H'], what: 'Hint' },
+        { keys: ['R'], what: 'Race a friend' },
+        { keys: ['D'], what: 'Deal a row onto every column' },
+        { keys: ['?'], what: 'This list' }
+      ]
+    });
+
+    /* The ring has to be redrawn whenever the board is, or it points at
+       a card that has moved. */
+    var beforeKeys = render;
+    render = function () { beforeKeys(); if (keys) keys.repaint(); };
 
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 120); });

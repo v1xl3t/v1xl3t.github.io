@@ -1232,6 +1232,21 @@
     els.joinCancel.addEventListener('click', function () { showNetRow('start'); netStatus(''); });
     els.leaveBtn.addEventListener('click', function () { leaveTable(false); });
 
+    /* Every card in your hand is a real button, so Tab already reaches
+       them and Enter already plays them. Hearts wants the help dialog
+       and none of the pointing. */
+    window.HPKeys.attach({
+      board: els.board,
+      helpOnly: true,
+      helpBtn: document.getElementById('keysBtn'),
+      help: [
+        { keys: ['Tab'], what: 'Move through your hand, and out to the buttons' },
+        { keys: ['Enter', 'Space'], what: 'Play the card you are on, or choose it to pass' },
+        { keys: ['Shift', 'Tab'], what: 'Go back the other way' },
+        { keys: ['?'], what: 'This list' }
+      ]
+    });
+
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 120); });
   }

@@ -10,6 +10,7 @@
      be dead weight on a page that wants to open instantly. -->
 <link rel="stylesheet" href="games.css" />
 <link rel="stylesheet" href="net-panel.css" />
+<link rel="stylesheet" href="kbd.css" />
 <link rel="stylesheet" href="reversi.css" />
 <script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -30,6 +31,7 @@
 
     <div class="controls">
       <button class="btn primary" type="button" id="newBtn">New game</button>
+      <button class="kbtn" type="button" id="keysBtn" aria-haspopup="dialog" aria-label="Keyboard controls and accessibility">i</button>
       <div class="seg" role="group" aria-label="Who is playing">
         <button type="button" id="modePass" aria-pressed="true">Two players</button>
         <button type="button" id="modeNet" aria-pressed="false">Online</button>
@@ -128,6 +130,7 @@
 </div></footer>
 
 <script src="games.js"></script>
+<script src="kbd.js"></script>
 <script src="net-core.js"></script>
 <script src="reversi.js"></script>
 </body>

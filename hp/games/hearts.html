@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="sol-core.css" />
 <link rel="stylesheet" href="hp-glyphs.css" />
 <link rel="stylesheet" href="net-panel.css" />
+<link rel="stylesheet" href="kbd.css" />
 <link rel="stylesheet" href="hearts.css" />
 <script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -32,6 +33,7 @@
     <div class="controls">
       <button class="btn primary" type="button" id="newBtn">New game</button>
       <button class="btn" type="button" id="onlineBtn" aria-expanded="false">Play online</button>
+      <button class="kbtn" type="button" id="keysBtn" aria-haspopup="dialog" aria-label="Keyboard controls and accessibility">i</button>
       <span class="spacer"></span>
       <span class="stat">Hand <b id="handNo">1</b></span>
       <span class="stat">Hearts <b id="brokenTag">not yet</b></span>
@@ -158,6 +160,7 @@
 <script src="games.js"></script>
 <script src="sol-core.js"></script>
 <script src="hp-glyphs.js"></script>
+<script src="kbd.js"></script>
 <script src="net-core.js"></script>
 <script src="hearts.js"></script>
 </body>

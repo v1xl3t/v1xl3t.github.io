@@ -872,6 +872,22 @@
     bind();
     render();
     maybeAI();
+
+    /* Reversi already plays by keyboard, so it wants the help dialog
+       and none of the pointing. Installing the key handler as well
+       would put two things in a fight over the arrow keys. */
+    window.HPKeys.attach({
+      board: els.grid,
+      helpOnly: true,
+      helpBtn: document.getElementById('keysBtn'),
+      help: [
+        { keys: ['Arrow keys'], what: 'Move around the sixty four squares' },
+        { keys: ['Enter', 'Space'], what: 'Play the square you are on' },
+        { keys: ['Home', 'End'], what: 'Jump to the start or end of a row' },
+        { keys: ['Tab'], what: 'Reach the buttons, the board and the online panel' },
+        { keys: ['?'], what: 'This list' }
+      ]
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
