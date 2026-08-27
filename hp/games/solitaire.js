@@ -27,20 +27,20 @@
   'use strict';
 
   var C = window.HPCards;
+  var K = window.HPSolCore;
   var KEY = 'hp-solitaire-v1';
+  var store = K.Store(KEY, 1);
   var SUITS = ['S', 'H', 'C', 'D'];
-  var UNDO_MAX = 80;
 
-  /* ---------- card helpers ---------- */
-  function suitOf(id) { return id.charAt(0); }
-  function rankOf(id) { return id.slice(1); }
-  function valOf(id) { return C.rank(rankOf(id)).v; }
-  function isRed(id) { return C.suit(suitOf(id)).red; }
-  function card(id) { return { id: id, s: suitOf(id), r: rankOf(id), v: valOf(id) }; }
+  /* ---------- card helpers ----------
+     These live in sol-core now, along with everything else five other
+     games were already sharing. The local copies were written before
+     there was anywhere to put them. */
+  var suitOf = K.suitOf, rankOf = K.rankOf, valOf = K.valOf, isRed = K.isRed, card = K.card;
 
   /* ---------- state ---------- */
   var S = null;
-  var undoStack = [];
+  var undoStack = K.Undo(80);
   var sel = null;          // {kind, col, idx, s} plus .ids
   var lastTap = { id: null, at: 0 };
   var autoTimer = null;
@@ -68,10 +68,10 @@
     var o = JSON.parse(json);
     S.stock = o.stock; S.waste = o.waste; S.f = o.f; S.t = o.t; S.moves = o.moves; S.won = o.won;
   }
-  function pushUndo() {
-    undoStack.push(snapshot());
-    if (undoStack.length > UNDO_MAX) undoStack.shift();
-  }
+  /* The stack itself is sol-core's. What a snapshot IS stays here,
+     because that is the one part that knows what a Klondike board looks
+     like. */
+  function pushUndo() { undoStack.push(snapshot()); }
 
   /* ---------- rules ----------
      Every rule takes the board it is judging as its first argument, so the
@@ -245,8 +245,9 @@
   function undo() {
     stopAuto();
     clearHint();
-    if (!undoStack.length) return false;
-    restore(undoStack.pop());
+    var snap = undoStack.pop();
+    if (!snap) return false;
+    restore(snap);
     sel = null;
     return true;
   }
@@ -511,25 +512,20 @@
   }
 
   /* ---------- persistence ---------- */
+  /* The wrapping, the private mode failure and the version check are all
+     sol-core's. What a Klondike save CONTAINS is still decided here. */
   function save() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ v: 1, draw: S.draw, seed: S.seed, s: snapshot(), u: undoStack }));
-    } catch (e) { /* private mode or full, the game still plays */ }
+    store.write({ draw: S.draw, seed: S.seed, s: snapshot(), u: undoStack.all() });
   }
   function load() {
-    var raw;
-    try { raw = localStorage.getItem(KEY); } catch (e) { return false; }
-    if (!raw) return false;
-    try {
-      var o = JSON.parse(raw);
-      if (!o || o.v !== 1 || !o.s) return false;
-      S = { v: 1, draw: o.draw === 3 ? 3 : 1, seed: o.seed || 0 };
-      restore(o.s);
-      undoStack = Array.isArray(o.u) ? o.u.slice(-UNDO_MAX) : [];
-      // a save written by a broken run should not brick the page
-      if (!S.t || S.t.length !== 7 || !S.f) return false;
-      return true;
-    } catch (e) { return false; }
+    var o = store.read();
+    if (!o || !o.s) return false;
+    S = { v: 1, draw: o.draw === 3 ? 3 : 1, seed: o.seed || 0 };
+    try { restore(o.s); } catch (e) { return false; }
+    undoStack.load(o.u);
+    // a save written by a broken run should not brick the page
+    if (!S.t || S.t.length !== 7 || !S.f) return false;
+    return true;
   }
 
   function newGame(draw, seed) {
@@ -537,7 +533,7 @@
     clearHint();
     S = freshState(draw != null ? draw : (S ? S.draw : 1),
                    seed != null ? seed : (Date.now() ^ Math.floor(Math.random() * 0xffffff)) >>> 0);
-    undoStack = [];
+    undoStack.clear();
     sel = null;
     render(); save();
   }
@@ -556,19 +552,7 @@
     return d;
   }
 
-  function sizeBoard() {
-    var board = els.board;
-    var w = board.clientWidth;
-    var gap = Math.max(4, Math.min(10, Math.round(w * 0.014)));
-    var cw = Math.floor((w - gap * 6) / 7);
-    cw = Math.max(38, Math.min(104, cw));
-    var ch = Math.round(cw * 1.4);
-    board.style.setProperty('--cw', cw + 'px');
-    board.style.setProperty('--ch', ch + 'px');
-    board.style.setProperty('--gap', gap + 'px');
-    board.style.setProperty('--fan', Math.round(cw * 0.3) + 'px');
-    return { cw: cw, ch: ch, gap: gap };
-  }
+  function sizeBoard() { return K.sizeBoard(els.board, 7); }
 
   function render() {
     var size = sizeBoard();
@@ -669,12 +653,12 @@
     var dead = deadEnd();
     els.moves.textContent = String(S.moves);
     els.left.textContent = String(S.stock.length + S.waste.length);
-    els.undoBtn.disabled = !undoStack.length;
+    els.undoBtn.disabled = !undoStack.depth();
     els.hintBtn.disabled = S.won || !!dead;
     els.autoBtn.hidden = !autoAvailable();
     els.win.hidden = !S.won;
     els.stuck.hidden = !dead;
-    els.stuckUndo.disabled = !undoStack.length;
+    els.stuckUndo.disabled = !undoStack.depth();
     els.d1.setAttribute('aria-pressed', String(S.draw === 1));
     els.d3.setAttribute('aria-pressed', String(S.draw === 3));
     if (dead) {
@@ -700,12 +684,7 @@
     }
   };
 
-  var lastSaid = '';
-  function say(msg) {
-    if (msg === lastSaid) return;
-    lastSaid = msg;
-    els.live.textContent = msg;
-  }
+  var say = function () {};   /* replaced with a real one at boot */
 
   /* ============================================================
      INPUT
@@ -794,136 +773,51 @@
     render();
   }
 
-  /* ---------- drag ---------- */
-  var drag = null;
+  /* ---------- drag ----------
+     sol-core's Table does this now, for all six card games. Klondike had
+     its own copy, written before there was one to share, and the copy in
+     here is where both of the drag bugs that copy exists to prevent were
+     found in the first place: reading the drop destination AFTER tearing
+     the ghost down, and letting the ghost answer "what is under the
+     finger" with itself.
 
-  function startDrag(src, e, rect) {
-    var ids = srcIds(src);
-    if (!ids) return;
-    var board = els.board;
-    var cw = parseInt(getComputedStyle(board).getPropertyValue('--cw'), 10);
-    var chh = parseInt(getComputedStyle(board).getPropertyValue('--ch'), 10);
-    els.dragLayer.style.setProperty('--dcw', cw + 'px');
-    els.dragLayer.style.setProperty('--dch', chh + 'px');
-    els.dragLayer.innerHTML = '';
-    var step = Math.round(chh * 0.28);
-    ids.forEach(function (id, i) {
-      var n = C.play(card(id));
-      n.style.top = (i * step) + 'px';
-      n.style.left = '0px';
-      n.style.zIndex = String(i + 1);
-      els.dragLayer.appendChild(n);
-    });
-    drag = {
-      src: src, ids: ids,
-      dx: e.clientX - rect.left, dy: e.clientY - rect.top,
-      hover: null
-    };
-    els.dragLayer.hidden = false;
-    moveGhost(e);
-    document.body.classList.add('dragging');
-  }
-
-  function moveGhost(e) {
-    var x = e.clientX - drag.dx, y = e.clientY - drag.dy;
-    var kids = els.dragLayer.children;
-    for (var i = 0; i < kids.length; i++) {
-      kids[i].style.transform = 'translate(' + x + 'px,' + y + 'px)';
-    }
-  }
-
-  /* Takes the drag explicitly rather than reading the module level one. It used
-     to read the module level `drag`, and endDrag nulls that before asking for a
-     destination, so every single drop threw and silently did nothing while the
-     highlight during the drag looked perfect. */
-  function hoverTarget(e, d) {
-    if (!d) return null;
-    var wasHidden = els.dragLayer.hidden;
-    els.dragLayer.hidden = true;
-    var under = document.elementFromPoint(e.clientX, e.clientY);
-    els.dragLayer.hidden = wasHidden;
-    if (!under || !under.closest) return null;
-    var dest = destFromInfo(infoFrom(under));
-    if (!dest) return null;
-    if (dest.kind === 'found') return d.ids.length === 1 && canFound(d.ids[0], dest.s) ? dest : null;
-    if (dest.kind === 'tab') {
-      if (d.src.kind === 'tab' && d.src.col === dest.col) return null;
-      return canStack(d.ids[0], dest.col) ? dest : null;
-    }
-    return null;
-  }
-
-  function paintHover(dest) {
-    els.board.querySelectorAll('.hpc.drop').forEach(function (n) { n.classList.remove('drop'); });
-    if (!dest) return;
-    var host = dest.kind === 'found' ? els.found[dest.s] : els.cols[dest.col];
-    var last = host.lastElementChild;
-    if (last) last.classList.add('drop');
-  }
-
-  function endDrag(e, commit) {
-    var d = drag; drag = null;
-    var moved = false;
-    // ask where it landed BEFORE tearing the ghost down, so the answer and the
-    // teardown cannot get tangled up with each other
-    var dest = (d && commit) ? hoverTarget(e, d) : null;
-    document.body.classList.remove('dragging');
-    els.dragLayer.hidden = true;
-    els.dragLayer.innerHTML = '';
-    if (!d) return false;
-    if (dest) moved = apply(d.src, dest);
-    paintHover(null);
-    if (moved) { sel = null; render(); save(); }
-    else render();
-    return moved;
-  }
-
+     What stays here is the only part that is Klondike, which is what may
+     be picked up and where it may land. */
   function bind() {
-    var down = null;
-
-    els.board.addEventListener('pointerdown', function (e) {
-      if (e.button != null && e.button !== 0) return;
-      if (S.won) return;
-      stopAuto();
-      var info = infoFrom(e.target);
-      if (!info) return;
-      var src = srcFromInfo(info);
-      down = {
-        x: e.clientX, y: e.clientY, info: info, src: src,
-        rect: info.cardEl ? info.cardEl.getBoundingClientRect() : null,
-        id: e.pointerId
-      };
-      if (src && info.cardEl) {
-        // capture so a fast drag that leaves the card still reaches us
-        try { els.board.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-      }
-    });
-
-    els.board.addEventListener('pointermove', function (e) {
-      if (!down || e.pointerId !== down.id) return;
-      if (!drag) {
-        var dist = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
-        if (dist < 7 || !down.src || !down.rect) return;
-        startDrag(down.src, e, down.rect);
-      }
-      e.preventDefault();
-      moveGhost(e);
-      var t = hoverTarget(e, drag);
-      if (t !== drag.hover) { drag.hover = t; paintHover(t); }
-    });
-
-    function up(e) {
-      if (!down || e.pointerId !== down.id) return;
-      var d = down; down = null;
-      try { els.board.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-      if (drag) { endDrag(e, true); return; }
-      handleTap(d.info);
-    }
-    els.board.addEventListener('pointerup', up);
-    els.board.addEventListener('pointercancel', function (e) {
-      if (!down || e.pointerId !== down.id) return;
-      down = null;
-      if (drag) endDrag(e, false);
+    K.Table({
+      board: els.board,
+      layer: els.dragLayer,
+      frozen: function () { return S.won; },
+      onDown: function (e) {
+        stopAuto();
+        var info = infoFrom(e.target);
+        if (!info) return null;
+        var src = srcFromInfo(info);
+        return {
+          tap: info, src: src,
+          ids: src ? srcIds(src) : null,
+          rect: info.cardEl ? info.cardEl.getBoundingClientRect() : null
+        };
+      },
+      destOf: function (el, d) {
+        var dest = destFromInfo(infoFrom(el));
+        if (!dest || !d.src) return null;
+        if (dest.kind === 'found') return d.ids.length === 1 && canFound(d.ids[0], dest.s) ? dest : null;
+        if (dest.kind === 'tab') {
+          if (d.src.kind === 'tab' && d.src.col === dest.col) return null;
+          return canStack(d.ids[0], dest.col) ? dest : null;
+        }
+        return null;
+      },
+      hostFor: function (dest) {
+        return dest.kind === 'found' ? els.found[dest.s] : els.cols[dest.col];
+      },
+      onDrop: function (d, dest) {
+        var moved = dest ? apply(d.src, dest) : false;
+        if (moved) { sel = null; render(); save(); }
+        else render();
+      },
+      onTap: function (info) { handleTap(info); }
     });
 
     /* There is deliberately no dblclick listener. Pointer events already fire
@@ -1088,6 +982,7 @@
     els.stuckNew = document.getElementById('stuckNew');
     els.stuckUndo = document.getElementById('stuckUndo');
     els.live = document.getElementById('live');
+    say = K.Speaker(els.live);
 
     if (!load()) newGame(1);
     else render();
@@ -1106,7 +1001,7 @@
     deal: function (seed, draw) { newGame(draw || 1, seed); },
     draw: function () { if (drawStock()) { render(); save(); } },
     undo: function () { if (undo()) { render(); save(); return true; } return false; },
-    undoDepth: function () { return undoStack.length; },
+    undoDepth: function () { return undoStack.depth(); },
     autoFinish: autoFinish,
     autoAvailable: autoAvailable,
     anyMove: anyMove,
