@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Reversi &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Free Reversi, also called Othello, in the browser. Pass and play on one device, play a friend over the internet with a short code, or take on the computer." />
+<meta name="theme-color" content="#0b0913" />
+<!-- No hp-cards.css here. Reversi deals no cards, so the deck stylesheet would
+     be dead weight on a page that wants to open instantly. -->
+<link rel="stylesheet" href="games.css" />
+<link rel="stylesheet" href="reversi.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body>
+
+<a class="skip" href="#board">Skip to the board</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main>
+  <div class="gamewrap">
+
+    <div class="controls">
+      <button class="btn primary" type="button" id="newBtn">New game</button>
+      <div class="seg" role="group" aria-label="Who is playing">
+        <button type="button" id="modePass" aria-pressed="true">Two players</button>
+        <button type="button" id="modeNet" aria-pressed="false">Online</button>
+        <button type="button" id="modeAI" aria-pressed="false">Computer</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="stat">Move <b id="moveNo">1</b></span>
+    </div>
+
+    <p class="note" id="note" hidden></p>
+
+    <!-- Online play. Hidden until somebody asks for it, and every word in here
+         is written for two people who are on a phone call, not on a website. -->
+    <section class="netpanel" id="netpanel" hidden aria-labelledby="netHead">
+      <h2 id="netHead">Play a friend over the internet</h2>
+      <p class="netlede">One of you starts a game and reads out the code, the other types it in. No accounts, no friend list, nothing kept. The game runs straight between your two browsers.</p>
+
+      <div class="netrow" id="netStart">
+        <button class="btn primary" type="button" id="hostBtn">Start a game</button>
+        <button class="btn" type="button" id="joinShowBtn">Join with a code</button>
+      </div>
+
+      <div class="netrow" id="netHost" hidden>
+        <div class="codebox">
+          <span class="codelabel">Your code</span>
+          <output class="code" id="codeOut" aria-live="polite">------</output>
+        </div>
+        <button class="btn" type="button" id="copyBtn">Copy code</button>
+        <button class="btn" type="button" id="hostCancel">Cancel</button>
+      </div>
+
+      <form class="netrow" id="netJoin" hidden>
+        <label class="codelabel" for="codeIn">Invite code</label>
+        <input class="codefield" id="codeIn" type="text" inputmode="latin" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="ABC123" />
+        <button class="btn primary" type="submit" id="joinBtn">Join</button>
+        <button class="btn" type="button" id="joinCancel">Cancel</button>
+      </form>
+
+      <div class="netrow" id="netLive" hidden>
+        <span class="stat">You are <b id="youAre">Void</b></span>
+        <button class="btn" type="button" id="leaveBtn">Leave the game</button>
+        <button class="btn" type="button" id="localBtn" hidden>Keep playing on this device</button>
+      </div>
+
+      <p class="netstatus" id="netStatus" role="status" aria-live="polite"></p>
+    </section>
+
+    <div class="tally" id="tally">
+      <span class="side" id="sideVoid" data-side="1">
+        <span class="pip dark" aria-hidden="true"></span>
+        <span class="sname">Void</span>
+        <b class="scount" id="countVoid">2</b>
+      </span>
+      <span class="turnline" id="turnline">Void to move</span>
+      <span class="side" id="sidePromise" data-side="2">
+        <span class="pip light" aria-hidden="true"></span>
+        <span class="sname">Promise</span>
+        <b class="scount" id="countPromise">2</b>
+      </span>
+    </div>
+
+    <div class="board" id="board">
+      <div class="grid" id="grid" role="grid" aria-label="Reversi board, eight by eight"></div>
+    </div>
+
+    <div class="winbar" id="winbar" hidden>
+      <div>
+        <h2 id="winTitle">Game over</h2>
+        <p id="winText">Nobody can move.</p>
+      </div>
+      <button class="btn primary" type="button" id="winNew">Play again</button>
+    </div>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ul>
+        <li>Void goes first and plays the dark discs. Promise plays the light ones.</li>
+        <li>A move has to trap at least one of the other side's discs in a straight line between the disc you place and a disc you already own.</li>
+        <li>Every disc you trap flips to your color, in every direction at once.</li>
+        <li>The squares you can play are marked. If you have no legal move your turn passes automatically.</li>
+        <li>The game ends when neither side can move. Whoever owns more discs wins.</li>
+        <li>A corner can never be flipped, so it is worth far more than the one disc it looks like.</li>
+        <li>Arrow keys walk the board, Enter or space plays the square you are on, and the board is saved in this browser so closing the tab does not lose it.</li>
+      </ul>
+    </details>
+
+  </div>
+</main>
+
+<p class="live" id="live" role="status" aria-live="polite"></p>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">More games</a></p>
+</div></footer>
+
+<script src="games.js"></script>
+<script src="reversi.js"></script>
+</body>
+</html>
