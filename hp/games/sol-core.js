@@ -97,11 +97,22 @@
      Done in JS because a cascade of nineteen cards has to shrink its
      own overlap to fit the screen, and CSS cannot measure a pile.
      Writes the custom properties every board rule is expressed in. */
+  var MIN_READABLE = 34;
+
   function sizeBoard(board, cols) {
     var w = board.clientWidth;
     var gap = Math.max(4, Math.min(10, Math.round(w * 0.014)));
     var cw = Math.floor((w - gap * (cols - 1)) / cols);
-    cw = Math.max(34, Math.min(104, cw));
+    /* Take the space out of the gaps before taking it out of the cards.
+       Ten columns on a 390px phone spend 45px on gaps, which is enough
+       to push the cards under the width their rank stops reading at, and
+       clamping the card without shrinking the gap does not make it fit,
+       it makes the board wider than the screen. */
+    while (cw < MIN_READABLE && gap > 2) {
+      gap--;
+      cw = Math.floor((w - gap * (cols - 1)) / cols);
+    }
+    cw = Math.max(30, Math.min(104, cw));
     var ch = Math.round(cw * 1.4);
     board.style.setProperty('--cw', cw + 'px');
     board.style.setProperty('--ch', ch + 'px');

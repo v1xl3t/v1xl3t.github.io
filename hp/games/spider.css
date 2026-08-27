@@ -1,0 +1,40 @@
+/* ============================================================
+   Spider, only what is different.
+
+   Ten columns is the difference. Everything generic is in
+   sol-core.css.
+   ============================================================ */
+
+.board{--cols:10}
+
+/* ---------- the top lane ----------
+   The deck takes one column, then a gap, then the eight finished
+   runs share the remaining eight. They are markers rather than
+   piles, since a finished run leaves the board for good and there
+   is nothing left to look at but the fact that it happened. */
+.donerow{
+  grid-column:3 / -1;
+  display:flex; align-items:center; gap:10px;
+  height:var(--ch); flex-wrap:wrap;
+}
+.donerow .run{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; border-radius:50%;
+  border:1px solid var(--line); color:var(--muted);
+  font-size:.9rem; line-height:1;
+}
+.donerow .run.won{
+  border-color:var(--accent-ink); color:var(--ink);
+  background:var(--panel); font-size:1.05rem;
+}
+
+/* The deck cannot be dealt while a column is empty, which is the
+   rule that makes Spider hard. Saying so with a mark on the deck
+   beats a player tapping it three times and concluding it is
+   broken. The message says the same thing out loud. */
+.pile.stock.blocked .hpc{opacity:.55}
+.pile.stock.dead .hpc.empty .hpc-slot{opacity:.18}
+
+/* A card that is face up but not the head of a group cannot be
+   picked up, so it says so with the cursor and nothing else. */
+.board .hpc.stuckcard{cursor:default}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Spider &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Free Spider solitaire in the browser. One, two or four suits, ten columns, eight runs to finish. Undo, drag or tap, and it keeps your game if you close the tab." />
+<meta name="theme-color" content="#0b0913" />
+<link rel="stylesheet" href="hp-cards.css" />
+<link rel="stylesheet" href="games.css" />
+<link rel="stylesheet" href="sol-core.css" />
+<link rel="stylesheet" href="spider.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body class="hpc-scope">
+
+<a class="skip" href="#board">Skip to the board</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main>
+  <div class="gamewrap">
+
+    <div class="controls">
+      <button class="btn primary" type="button" id="newBtn">New game</button>
+      <button class="btn" type="button" id="dealBtn">Deal a row</button>
+      <button class="btn" type="button" id="undoBtn">Undo</button>
+      <button class="btn" type="button" id="hintBtn">Hint</button>
+      <div class="seg" role="group" aria-label="How many suits">
+        <button type="button" id="suit1" aria-pressed="true">1 suit</button>
+        <button type="button" id="suit2" aria-pressed="false">2 suits</button>
+        <button type="button" id="suit4" aria-pressed="false">4 suits</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="stat">Moves <b id="moves">0</b></span>
+      <span class="stat">Runs <b id="runs">0</b></span>
+      <span class="stat">Rows left <b id="rows">5</b></span>
+    </div>
+
+    <div class="winbar" id="winbar" hidden>
+      <div>
+        <h2>Cleared</h2>
+        <p>All eight runs, king down to ace. Spider does not give those away.</p>
+      </div>
+      <button class="btn primary" type="button" id="winNew">Deal again</button>
+    </div>
+
+    <div class="stuckbar" id="stuckbar" hidden>
+      <div>
+        <h2 id="stuckTitle">No moves left</h2>
+        <p id="stuckWhy">The deal is finished, not you. Walk a few moves back, or take a fresh one.</p>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" id="stuckUndo">Undo</button>
+        <button class="btn primary" type="button" id="stuckNew">Deal again</button>
+      </div>
+    </div>
+
+    <div class="board" id="board">
+      <div class="lane top">
+        <div class="pile stock" data-pile="stock"></div>
+        <div class="pile spacer"></div>
+        <div class="donerow" id="donerow" role="group" aria-label="Runs finished"></div>
+      </div>
+      <div class="lane" id="tableau">
+        <div class="pile col" data-pile="tab:0"></div>
+        <div class="pile col" data-pile="tab:1"></div>
+        <div class="pile col" data-pile="tab:2"></div>
+        <div class="pile col" data-pile="tab:3"></div>
+        <div class="pile col" data-pile="tab:4"></div>
+        <div class="pile col" data-pile="tab:5"></div>
+        <div class="pile col" data-pile="tab:6"></div>
+        <div class="pile col" data-pile="tab:7"></div>
+        <div class="pile col" data-pile="tab:8"></div>
+        <div class="pile col" data-pile="tab:9"></div>
+      </div>
+    </div>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ul>
+        <li>Two decks, ten columns, and eight runs to finish. A run is a king down to an ace all in one suit, and it leaves the board the moment it is complete.</li>
+        <li>Build downward on any card one rank higher. Suit does not matter for where a card may land.</li>
+        <li>Suit does matter for what travels together. Cards move as a group only when they are already one suit in descending order, so a nine of hearts on a ten of spades is a legal place to put it and not a group you can pick up later.</li>
+        <li>Any card can go into an empty column, and an empty column is the most valuable thing on the board.</li>
+        <li>Tap the deck to deal one card onto every column. There are five rows of ten, and you cannot deal at all while any column is empty, which is the rule that makes this game hard.</li>
+        <li>One suit is a puzzle you can learn. Four is a fight. Two is where most people live. Changing it starts a new game, because the suit count is the difficulty.</li>
+        <li>Drag a card, or tap it once to pick it up and tap the column you want. Undo walks back through your last eighty moves, including the row you wish you had not dealt.</li>
+      </ul>
+    </details>
+
+  </div>
+</main>
+
+<div class="draglayer" id="draglayer" hidden></div>
+<p class="live" id="live" role="status" aria-live="polite"></p>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">More games</a></p>
+</div></footer>
+
+<script src="hp-cards.js"></script>
+<script src="games.js"></script>
+<script src="sol-core.js"></script>
+<script src="spider.js"></script>
+</body>
+</html>
