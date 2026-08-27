@@ -138,34 +138,6 @@
 .grid.locked .cell{cursor:default}
 .grid.locked .cell.legal::after{opacity:.35}
 
-/* ---------- online panel ---------- */
-.netpanel{
-  border:1px solid var(--line); border-radius:16px; background:var(--panel);
-  padding:clamp(14px,3vw,20px); margin:0 0 14px;
-}
-.netpanel[hidden]{display:none}
-.netpanel h2{font-size:1.1rem; margin:0 0 6px}
-.netlede{margin:0 0 14px; color:var(--muted); font-size:.92rem; max-width:64ch}
-.netrow{display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin:0 0 4px}
-.netrow[hidden]{display:none}
-.netstatus{margin:10px 0 0; color:var(--ink); font-size:.92rem; min-height:1.4em}
-.netstatus:empty{display:none}
-
-.codebox{display:flex; flex-direction:column; gap:2px}
-.codelabel{font-family:var(--mono); font-size:.66rem; letter-spacing:.2em; text-transform:uppercase;
-  color:var(--accent)}
-.code{
-  font-family:var(--mono); font-size:1.5rem; letter-spacing:.22em; font-weight:700;
-  color:var(--ink); line-height:1.2; word-break:break-all;
-}
-.codefield{
-  font-family:var(--mono); font-size:1rem; letter-spacing:.18em; text-transform:uppercase;
-  color:var(--ink); background:var(--bg-2); border:1px solid var(--line); border-radius:10px;
-  min-height:var(--tap); padding:0 12px; width:min(100%, 11ch);
-}
-.codefield::placeholder{color:var(--muted); opacity:1}
-.codefield:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
-
 /* ---------- end of game ---------- */
 .winbar{
   margin:14px 0 0; border:1px solid var(--accent-ink); border-radius:14px;

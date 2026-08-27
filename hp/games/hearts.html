@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="hp-cards.css" />
 <link rel="stylesheet" href="games.css" />
 <link rel="stylesheet" href="sol-core.css" />
+<link rel="stylesheet" href="net-panel.css" />
 <link rel="stylesheet" href="hearts.css" />
 <script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -29,17 +30,55 @@
 
     <div class="controls">
       <button class="btn primary" type="button" id="newBtn">New game</button>
+      <button class="btn" type="button" id="onlineBtn" aria-expanded="false">Play online</button>
       <span class="spacer"></span>
       <span class="stat">Hand <b id="handNo">1</b></span>
       <span class="stat">Hearts <b id="brokenTag">not yet</b></span>
     </div>
 
     <div class="scoreboard" role="group" aria-label="Scores">
-      <div class="sc"><span>You</span><b id="score0">0</b></div>
-      <div class="sc"><span>Void</span><b id="score1">0</b></div>
-      <div class="sc"><span>Promise</span><b id="score2">0</b></div>
-      <div class="sc"><span>Abyss</span><b id="score3">0</b></div>
+      <div class="sc"><span id="scoreName0">You</span><b id="score0">0</b></div>
+      <div class="sc"><span id="scoreName1">Abyss</span><b id="score1">0</b></div>
+      <div class="sc"><span id="scoreName2">Promise</span><b id="score2">0</b></div>
+      <div class="sc"><span id="scoreName3">Paradise</span><b id="score3">0</b></div>
     </div>
+
+    <!-- Online play. Closed until somebody asks for it, and every word in
+         here is written for people who are on a phone call, not on a
+         website. -->
+    <section class="netpanel" id="netpanel" hidden aria-labelledby="netHead">
+      <h2 id="netHead">Play the others over the internet</h2>
+      <p class="netlede">One of you starts a table and reads out the code, the others type it in. Up to four people, and the computer plays any seat still empty. No accounts, no friend list, nothing kept.</p>
+
+      <div class="netrow" id="netStart">
+        <button class="btn primary" type="button" id="hostBtn">Start a table</button>
+        <button class="btn" type="button" id="joinShowBtn">Join with a code</button>
+      </div>
+
+      <div class="netrow" id="netHost" hidden>
+        <div class="codebox">
+          <span class="codelabel">Your code</span>
+          <output class="code" id="codeOut" aria-live="polite">------</output>
+        </div>
+        <button class="btn" type="button" id="copyBtn">Copy code</button>
+        <button class="btn" type="button" id="hostCancel">Cancel</button>
+      </div>
+
+      <div class="netrow" id="netJoin" hidden>
+        <label class="codebox">
+          <span class="codelabel">Their code</span>
+          <input class="codefield" type="text" id="codeIn" inputmode="latin" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="8" placeholder="ABCDEF" />
+        </label>
+        <button class="btn primary" type="button" id="joinBtn">Join</button>
+        <button class="btn" type="button" id="joinCancel">Cancel</button>
+      </div>
+
+      <div class="netrow" id="netLive" hidden>
+        <button class="btn" type="button" id="leaveBtn">Leave the table</button>
+      </div>
+
+      <p class="netstatus" id="netStatus" aria-live="polite"></p>
+    </section>
 
     <div class="passbar" id="passbar" hidden>
       <div>
@@ -62,18 +101,18 @@
 
     <div class="board" id="board">
       <div class="seats">
-        <div class="seat" data-seat="1">
-          <span class="seat-name">Void</span>
+        <div class="seat" data-slot="1">
+          <span class="seat-name">Abyss</span>
           <span class="seat-where">on your left</span>
           <span class="seat-meta"><b class="seat-n">13</b> cards, <b class="seat-pts">0</b> points</span>
         </div>
-        <div class="seat" data-seat="2">
+        <div class="seat" data-slot="2">
           <span class="seat-name">Promise</span>
           <span class="seat-where">across</span>
           <span class="seat-meta"><b class="seat-n">13</b> cards, <b class="seat-pts">0</b> points</span>
         </div>
-        <div class="seat" data-seat="3">
-          <span class="seat-name">Abyss</span>
+        <div class="seat" data-slot="3">
+          <span class="seat-name">Paradise</span>
           <span class="seat-where">on your right</span>
           <span class="seat-meta"><b class="seat-n">13</b> cards, <b class="seat-pts">0</b> points</span>
         </div>
@@ -100,6 +139,7 @@
         <li>Nothing that scores may be played on the very first trick, and hearts cannot be led until one has already been played on somebody else's trick.</li>
         <li>Take every single point in a hand and you have shot the moon. The twenty six goes to everyone else instead, which is either the best thing that will happen to you all evening or a near miss that ends the game.</li>
         <li>First to a hundred ends it, and the lowest score wins. There is no undo here, unlike the rest of the table, because taking a trick back would mean unseeing three other hands.</li>
+        <li>Play online and one of you starts a table and reads out a six character code. Up to four people can sit down, and the computer plays any seat still empty. Whoever started the table is running the game, so if they close the tab everybody else goes back to playing the computer. Somebody who leaves mid hand is taken over by the computer rather than ending it for the other three.</li>
       </ul>
     </details>
 
@@ -116,6 +156,7 @@
 <script src="hp-cards.js"></script>
 <script src="games.js"></script>
 <script src="sol-core.js"></script>
+<script src="net-core.js"></script>
 <script src="hearts.js"></script>
 </body>
 </html>

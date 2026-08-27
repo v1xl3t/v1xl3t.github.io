@@ -29,10 +29,29 @@
 
   var C = window.HPCards;
   var K = window.HPSolCore;
-  var YOU = 0;
+  /* Which seat this browser drives. Zero on your own, and whatever the
+     host deals you online, which is why it is a variable and not the
+     constant it started as. */
+  var mySeat = 0;
   var SEATS = 4;
-  var NAMES = ['You', 'Void', 'Promise', 'Abyss'];
+
+  /* The names belong to the SEATS, not to the players, so everybody at
+     the table sees the same four and two people can talk about a hand
+     without working out whose left is whose. Your own seat is drawn as
+     "You" wherever you happen to be sitting.
+
+     Two below and two above, which is the table this game is played on. */
+  var SEAT_NAMES = ['Void', 'Abyss', 'Promise', 'Paradise'];
   var WHERE = ['', 'on your left', 'across', 'on your right'];
+
+  /* Your own seat is always "You", wherever you are sitting, and the
+     other three keep their own names so two people at the same table
+     can talk about a hand without working out whose left is whose. */
+  function nameOf(p) { return p === mySeat ? 'You' : SEAT_NAMES[p]; }
+  function lowerNameOf(p) { return p === mySeat ? 'you' : SEAT_NAMES[p]; }
+  /* Where a seat sits relative to yours. Offset one is on your left,
+     whichever chair you happen to be in. */
+  function seatAtOffset(off) { return (mySeat + off) % SEATS; }
   var QS = 'SQ';
   var C2 = 'C2';
   var PASS_DIRS = ['left', 'right', 'across', 'nobody'];
@@ -43,6 +62,27 @@
   var els = {};
   var say = function () {};
   var timer = null;
+
+  /* ---------- online ----------
+     The host holds the whole game and is the only authority. Guests
+     send what they would like to do and are told what happened. A seat
+     with nobody in it is played by the computer, and a seat somebody
+     leaves goes back to being played by the computer rather than
+     ending everyone else's game. */
+  var Net = window.HPNet.create({ tag: 'hphe1-', max: 3 });
+  var netRole = '';           /* 'host' | 'guest' | '' */
+  var netOpen = false;
+  var seatOf = {};            /* peer id  ->  seat number, host only */
+  var peerAt = [null, null, null, null];   /* seat -> peer id, host only */
+  var wantPass = [null, null, null, null]; /* what each human chose to pass */
+
+  function online() { return netOpen && !!netRole; }
+  function iAmHost() { return netRole === 'host'; }
+  /* Bots run in exactly one browser, the one that owns the game. On
+     your own that is you. Online it is the host, and a guest that ran
+     them too would be playing a second game nobody can see. */
+  function iDriveTheTable() { return !online() || iAmHost(); }
+  function seatIsPerson(p) { return !!(S && S.seatKind && S.seatKind[p] === 'person'); }
 
   /* ============================================================
      STATE
@@ -64,6 +104,10 @@
       turn: -1,
       broken: false,
       picked: [],
+      given: null,
+      /* Who is a person and who is the computer, kept in the state
+         because a guest cannot work it out and has to be told. */
+      seatKind: ['person', 'bot', 'bot', 'bot'],
       lastTrick: null,
       handScores: null,
       phase: 'pass',
@@ -157,7 +201,12 @@
     return hand.slice();
   }
 
-  function legal(p) { return legalIn(S, p); }
+  /* A guest holds its own cards and nobody else's, so asking what
+     another seat may play has no honest answer and gets none. */
+  function legal(p) {
+    if (online() && !iAmHost() && p !== mySeat) return [];
+    return legalIn(S, p);
+  }
 
   function trickWinner(trick) {
     var led = K.suitOf(trick[0].id);
@@ -218,26 +267,86 @@
     return scored.slice(0, 3).map(function (x) { return x.id; });
   }
 
-  function doPass() {
-    if (S.passDir === 3) { startPlay(); return; }
-    var out = [S.picked.slice(), botPass(1), botPass(2), botPass(3)];
+  /* One seat has chosen its three. On your own that is only ever you.
+     Online every person at the table chooses at the same time, and
+     nobody's cards move until the last of them has, so the round does
+     not turn into three people watching one person think. */
+  function submitPass(seat, ids) {
+    if (!iDriveTheTable()) return false;
+    if (S.phase !== 'pass' || S.passDir === 3) return false;
+    if (!Array.isArray(ids) || ids.length !== 3) return false;
+    /* A guest could send anything. Only cards that are actually in that
+       seat's hand, and no card twice. */
+    var hand = S.hands[seat];
+    var seen = {};
+    for (var i = 0; i < 3; i++) {
+      if (hand.indexOf(ids[i]) < 0 || seen[ids[i]]) return false;
+      seen[ids[i]] = 1;
+    }
+    wantPass[seat] = ids.slice();
+    if (seat === mySeat) S.picked = ids.slice();
+    tryPass();
+    return true;
+  }
+
+  function waitingOn() {
+    var n = 0;
+    for (var p = 0; p < SEATS; p++) if (seatIsPerson(p) && !wantPass[p]) n++;
+    return n;
+  }
+
+  function tryPass() {
+    if (!iDriveTheTable()) return;
+    if (S.passDir === 3) { clearPicks(); startPlay(); return; }
+    if (waitingOn() > 0) { render(); save(); pushState(); return; }
+
+    var out = [];
+    for (var p = 0; p < SEATS; p++) out.push(wantPass[p] || botPass(p));
     var incoming = [[], [], [], []];
-    for (var p = 0; p < SEATS; p++) {
-      var to = passTargetOf(p, S.passDir);
-      out[p].forEach(function (id) {
-        var at = S.hands[p].indexOf(id);
-        if (at >= 0) S.hands[p].splice(at, 1);
-        incoming[to].push(id);
-      });
+    for (var a = 0; a < SEATS; a++) {
+      var to = passTargetOf(a, S.passDir);
+      /* Captured per seat, because the closure below runs after the
+         loop variable has moved on. */
+      (function (from, dest, cards) {
+        cards.forEach(function (id) {
+          var at = S.hands[from].indexOf(id);
+          if (at >= 0) S.hands[from].splice(at, 1);
+          incoming[dest].push(id);
+        });
+      })(a, to, out[a]);
     }
     for (var q = 0; q < SEATS; q++) {
       Array.prototype.push.apply(S.hands[q], incoming[q]);
       sortHand(S.hands[q]);
     }
-    S.picked = [];
-    var got = incoming[YOU].map(function (id) { return C.label(K.card(id)); }).join(', ');
-    say('You passed three ' + PASS_DIRS[S.passDir] + ' and were given ' + got + '.');
+    clearPicks();
+    S.given = incoming.map(function (cards) { return cards.slice(); });
+    sayGiven();
     startPlay();
+  }
+
+  function clearPicks() {
+    S.picked = [];
+    wantPass = [null, null, null, null];
+  }
+
+  function sayGiven() {
+    if (!S.given || !S.given[mySeat]) return;
+    var got = S.given[mySeat].map(function (id) { return C.label(K.card(id)); }).join(', ');
+    say('You passed three ' + PASS_DIRS[S.passDir] + ' and were given ' + got + '.');
+  }
+
+  /* What the Pass button does. A guest asks, the host decides. */
+  function doPass() {
+    if (S.passDir === 3) { if (iDriveTheTable()) { clearPicks(); startPlay(); } return; }
+    if (S.picked.length !== 3) return;
+    if (online() && !iAmHost()) {
+      wantPass[mySeat] = S.picked.slice();
+      Net.send({ t: 'pass', v: PROTO, ids: S.picked.slice() });
+      render();
+      return;
+    }
+    submitPass(mySeat, S.picked.slice());
   }
 
   function startPlay() {
@@ -246,8 +355,8 @@
     }
     S.phase = 'play';
     S.trick = [];
-    render(); save();
-    if (S.turn !== YOU) scheduleBot();
+    render(); save(); pushState();
+    if (!seatIsPerson(S.turn)) scheduleBot();
   }
 
   /* ============================================================
@@ -276,7 +385,7 @@
     S.trick = [];
     S.leader = w;
     S.turn = w;
-    if (!S.hands[YOU].length) endHand();
+    if (!S.hands[mySeat].length) endHand();
     return true;
   }
 
@@ -292,16 +401,22 @@
     var seed = (S.seed * 1103515245 + 12345) >>> 0;
     var scores = S.scores.slice();
     var handNo = S.handNo + 1;
+    var kinds = S.seatKind.slice();
     S = freshHand(seed, handNo, scores);
+    S.seatKind = kinds.slice();
+    wantPass = [null, null, null, null];
     if (S.passDir === 3) startPlay();
-    else { render(); save(); }
+    else { render(); save(); pushState(); }
   }
 
   function newGame(seed) {
     stopBots();
+    var kinds = S ? S.seatKind.slice() : ['person', 'bot', 'bot', 'bot'];
     S = freshHand(seed != null ? seed : (Date.now() ^ Math.floor(Math.random() * 0xffffff)) >>> 0,
       0, [0, 0, 0, 0]);
-    render(); save();
+    S.seatKind = kinds;
+    wantPass = [null, null, null, null];
+    render(); save(); pushState();
   }
 
   /* ============================================================
@@ -378,6 +493,7 @@
 
   function scheduleBot() {
     stopBots();
+    if (!iDriveTheTable()) return;
     timer = setTimeout(step, 520);
   }
 
@@ -385,18 +501,283 @@
      drive it without waiting for the clock. */
   function step() {
     timer = null;
+    if (!iDriveTheTable()) return;
     if (S.phase !== 'play') return;
     if (S.trick.length === SEATS) {
       settleTrick();
-      render(); save();
-      if (S.phase === 'play' && S.turn !== YOU) scheduleBot();
+      render(); save(); pushState();
+      if (S.phase === 'play' && !seatIsPerson(S.turn)) scheduleBot();
       return;
     }
-    if (S.turn === YOU) { render(); return; }
+    if (seatIsPerson(S.turn)) { render(); pushState(); return; }
     playCard(S.turn, botChoice(S.turn));
-    render(); save();
+    render(); save(); pushState();
     if (S.trick.length === SEATS) { timer = setTimeout(step, 900); return; }
-    if (S.turn !== YOU) scheduleBot();
+    if (!seatIsPerson(S.turn)) scheduleBot();
+  }
+
+  /* ============================================================
+     ONLINE
+
+     Host authoritative, and the shape is the same one Reversi uses.
+     The host holds the only real game. Guests send what they would
+     like to do and are told what happened, so there is exactly one
+     copy of the rules running and two browsers can never disagree
+     about a board.
+
+     What makes this different from Reversi is that the cards are
+     hidden, so the state cannot simply be broadcast. Every guest is
+     sent the public half plus its OWN hand and nothing else, which is
+     what net-core's sendTo exists for. What is public is genuinely
+     public: the trick on the table, every card already taken, the
+     scores, and how many cards each seat is holding. Nothing else
+     leaves the host.
+
+     A seat nobody is sitting in is played by the computer. A seat
+     somebody leaves goes back to being played by the computer rather
+     than ending the game for the other three, which is the only
+     answer that is fair to the people still there.
+     ============================================================ */
+  var PROTO = 1;
+  var HIDDEN = '__';        /* a card a guest is not allowed to see */
+
+  function packPublic() {
+    return {
+      handNo: S.handNo, passDir: S.passDir, phase: S.phase,
+      scores: S.scores.slice(),
+      taken: S.taken.map(function (t) { return t.slice(); }),
+      trick: S.trick.map(function (t) { return { p: t.p, id: t.id }; }),
+      leader: S.leader, turn: S.turn, broken: S.broken,
+      handScores: S.handScores, lastTrick: S.lastTrick,
+      seatKind: S.seatKind.slice(),
+      sizes: S.hands.map(function (h) { return h.length; }),
+      waiting: waitingOn(),
+      target: S.target
+    };
+  }
+
+  function pushState() {
+    if (!online() || !iAmHost()) return;
+    var pub = packPublic();
+    for (var p = 0; p < SEATS; p++) {
+      var id = peerAt[p];
+      if (!id) continue;
+      Net.sendTo(id, {
+        t: 'state', v: PROTO, seat: p, pub: pub,
+        hand: S.hands[p].slice(),
+        given: S.given ? S.given[p] : null
+      });
+    }
+  }
+
+  function applyState(msg) {
+    var pub = msg.pub;
+    mySeat = msg.seat;
+    S.handNo = pub.handNo;
+    S.passDir = pub.passDir;
+    S.phase = pub.phase;
+    S.scores = pub.scores;
+    S.taken = pub.taken;
+    S.trick = pub.trick;
+    S.leader = pub.leader;
+    S.turn = pub.turn;
+    S.broken = pub.broken;
+    S.handScores = pub.handScores;
+    S.lastTrick = pub.lastTrick;
+    S.seatKind = pub.seatKind;
+    S.target = pub.target;
+    S.waiting = pub.waiting;
+    S.hands = pub.sizes.map(function (n, p) {
+      if (p === mySeat) return msg.hand.slice();
+      var out = [];
+      for (var i = 0; i < n; i++) out.push(HIDDEN);
+      return out;
+    });
+    /* Picks are the guest's own business and the host never sends them
+       back, so anything still chosen here is only cleared when the
+       passing round is over. */
+    if (S.phase !== 'pass') { S.picked = []; wantPass = [null, null, null, null]; }
+    if (msg.given) {
+      S.given = [];
+      S.given[mySeat] = msg.given;
+      sayGiven();
+      S.given = null;
+    }
+    render();
+  }
+
+  function seatFor(peerId) {
+    if (seatOf[peerId] != null) return seatOf[peerId];
+    for (var p = 1; p < SEATS; p++) {
+      if (peerAt[p] == null) {
+        peerAt[p] = peerId;
+        seatOf[peerId] = p;
+        S.seatKind[p] = 'person';
+        return p;
+      }
+    }
+    return -1;
+  }
+
+  function freeSeat(peerId) {
+    var p = seatOf[peerId];
+    if (p == null) return;
+    peerAt[p] = null;
+    delete seatOf[peerId];
+    S.seatKind[p] = 'bot';
+    wantPass[p] = null;
+  }
+
+  function seatsTaken() {
+    var n = 0;
+    for (var p = 0; p < SEATS; p++) if (S.seatKind[p] === 'person') n++;
+    return n;
+  }
+
+  /* Every reason the transport can hand back, said the way a person
+     would say it. An unknown reason still gets a sentence rather than
+     a code, because a code helps nobody sitting at the table. */
+  function reasonText(reason) {
+    if (reason === 'lib') return 'Online play could not start because its code did not load. The game against the computer still works.';
+    if (reason === 'nocode') return 'No table is waiting on that code. Check the letters, or ask for a fresh one.';
+    if (reason === 'short') return 'That code looks too short. It is six characters.';
+    if (reason === 'timeout') return 'That took too long. The other browser may have closed the table.';
+    if (reason === 'browser-incompatible') return 'This browser cannot make a direct connection. The game against the computer still works.';
+    if (reason === 'network' || reason === 'server-error' || reason === 'socket-error' || reason === 'socket-closed') {
+      return 'The matchmaking service could not be reached. The game against the computer still works.';
+    }
+    return 'The connection failed. The game against the computer still works.';
+  }
+
+  function netStatus(msg) { if (els.netStatus) els.netStatus.textContent = msg || ''; }
+
+  function netEvent(kind, data, from) {
+    if (kind === 'code') {
+      els.codeOut.textContent = data;
+      netStatus('Read this code out. Up to three others can join, and the computer plays any seat still empty.');
+      return;
+    }
+
+    if (kind === 'open') {
+      netOpen = true;
+      if (iAmHost()) {
+        var seat = seatFor(data.id);
+        if (seat < 0) return;
+        /* Nobody has committed to a hand yet, so deal a fresh one and
+           everybody starts together. Joining later means taking over
+           the seat the computer was playing, mid hand. */
+        if (S.phase === 'pass' && waitingOn() === seatsTaken()) newGame(S.seed);
+        showNetRow('live');
+        netStatus(seatsTaken() + ' of 4 seats have somebody in them. The computer plays the rest.');
+        say('Somebody joined and took ' + SEAT_NAMES[seat] + '.');
+        render(); pushState();
+      } else {
+        Net.send({ t: 'hi', v: PROTO });
+        netStatus('Connected. Waiting for the table.');
+        showNetRow('live');
+        render();
+      }
+      return;
+    }
+
+    if (kind === 'data') { onMessage(data, from); return; }
+
+    if (kind === 'closed') {
+      if (iAmHost()) {
+        var left = seatOf[data.id];
+        freeSeat(data.id);
+        if (left != null) {
+          netStatus(seatsTaken() + ' of 4 seats have somebody in them. The computer took ' + SEAT_NAMES[left] + ' back.');
+          say('Somebody left. The computer is playing ' + SEAT_NAMES[left] + ' now.');
+        }
+        if (!Net.isOpen()) netOpen = Net.isOpen();
+        render(); pushState();
+        /* Their seat is a bot now, so if it was their turn the table
+           has to start moving again on its own. */
+        if (S.phase === 'play' && !seatIsPerson(S.turn)) scheduleBot();
+        return;
+      }
+      if (!netOpen) return;
+      netStatus('The table closed. Start your own, or play the computer.');
+      say('The table closed.');
+      showNetRow('start');
+      goSolo();
+      return;
+    }
+
+    if (kind === 'error') {
+      netStatus(reasonText(data && data.reason));
+      showNetRow('start');
+      Net.close();
+      goSolo();
+    }
+  }
+
+  function onMessage(msg, from) {
+    if (!msg || msg.v !== PROTO) return;
+
+    if (iAmHost()) {
+      var seat = seatOf[from];
+      if (seat == null) return;
+      if (msg.t === 'hi') { pushState(); return; }
+      if (msg.t === 'pass') { submitPass(seat, msg.ids); return; }
+      if (msg.t === 'play') {
+        /* The host runs the rules. A guest asking for a card it may not
+           play is told nothing changed, which is what a guest who has
+           fallen behind by one message looks like. */
+        if (S.phase !== 'play' || S.turn !== seat) { pushState(); return; }
+        if (!playCard(seat, msg.id)) { pushState(); return; }
+        render(); save(); pushState();
+        if (S.trick.length === SEATS) { timer = setTimeout(step, 900); return; }
+        if (!seatIsPerson(S.turn)) scheduleBot();
+        return;
+      }
+      if (msg.t === 'again') {
+        if (S.phase === 'gameover') newGame();
+        else if (S.phase === 'handover') nextHand();
+        return;
+      }
+      return;
+    }
+
+    if (msg.t === 'state') { applyState(msg); return; }
+    if (msg.t === 'bye') {
+      netStatus('The host closed the table. Your own is still here.');
+      showNetRow('start');
+      goSolo();
+    }
+  }
+
+  function showNetRow(which) {
+    els.netStart.hidden = which !== 'start';
+    els.netHost.hidden = which !== 'host';
+    els.netJoin.hidden = which !== 'join';
+    els.netLive.hidden = which !== 'live';
+  }
+
+  /* Back to your own table against the computer. The seat map has to be
+     wiped as well as the connection, because newGame deliberately keeps
+     it across deals so a table survives a fresh hand, and a guest that
+     kept the HOST's map would sit down alone still believing two of the
+     three empty seats had people in them. */
+  function goSolo() {
+    stopBots();
+    netOpen = false;
+    netRole = '';
+    mySeat = 0;
+    seatOf = {};
+    peerAt = [null, null, null, null];
+    wantPass = [null, null, null, null];
+    if (S) S.seatKind = ['person', 'bot', 'bot', 'bot'];
+    newGame();
+  }
+
+  function leaveTable(silent) {
+    if (!silent) Net.send(iAmHost() ? { t: 'bye', v: PROTO } : { t: 'bye', v: PROTO });
+    Net.close();
+    showNetRow('start');
+    netStatus('');
+    goSolo();
   }
 
   /* ============================================================
@@ -416,9 +797,18 @@
     var size = K.sizeBoard(els.board, 8);
     var top = els.board.getBoundingClientRect().top;
     var avail = Math.max(360, window.innerHeight - top - 20);
-    /* Two cards tall in total now, one for the trick and one for the
-       hand, plus about two hundred pixels of seats, labels and gaps. */
-    var ch = Math.floor((avail - 200) / 2);
+    /* Two cards tall in total, one for the trick and one for the hand.
+       Everything else is MEASURED rather than guessed, because it is
+       the part that changes: the seats grow a line when a seat says it
+       is the computer, and opening the online panel moves the whole
+       board down the page. A guessed constant was wrong by about a
+       hundred pixels with the panel open, which is a hand hanging off
+       the bottom of the screen. */
+    var overhead = 60 +
+      (els.seatsRow ? els.seatsRow.offsetHeight : 70) +
+      (els.youSeat ? els.youSeat.offsetHeight : 60) +
+      (els.lastLine ? els.lastLine.offsetHeight + 28 : 45);
+    var ch = Math.floor((avail - overhead) / 2);
     ch = Math.max(56, Math.min(size.ch, ch));
     var cw = Math.max(34, Math.round(ch / 1.4));
     ch = Math.round(cw * 1.4);
@@ -430,24 +820,39 @@
   function render() {
     var size = sizeFor();
 
-    /* --- the seats --- */
-    for (var p = 1; p < SEATS; p++) {
-      var seat = els.seats[p];
+    /* --- the seats ---
+       Drawn by where they sit relative to YOU rather than by seat
+       number, so online everybody sees their own three opponents on
+       their own left, across and right. The slot is fixed, the seat in
+       it is not. */
+    for (var off = 1; off < SEATS; off++) {
+      var p = seatAtOffset(off);
+      var seat = els.slots[off];
+      seat.dataset.seat = String(p);
+      seat.querySelector('.seat-name').textContent = SEAT_NAMES[p];
+      seat.querySelector('.seat-where').textContent =
+        WHERE[off] + (S.seatKind[p] === 'bot' ? ', computer' : '');
       seat.querySelector('.seat-n').textContent = String(S.hands[p].length);
       seat.querySelector('.seat-pts').textContent = String(
         S.taken[p].reduce(function (a, id) { return a + pointsOf(id); }, 0));
       seat.classList.toggle('turn', S.turn === p && S.phase === 'play');
+      seat.classList.toggle('bot', S.seatKind[p] === 'bot');
     }
+    els.youSeat.dataset.seat = String(mySeat);
+    els.youSeat.querySelector('.seat-name').textContent = 'You' +
+      (online() ? ' (' + SEAT_NAMES[mySeat] + ')' : '');
     els.youPts.textContent = String(
-      S.taken[YOU].reduce(function (a, id) { return a + pointsOf(id); }, 0));
-    els.youSeat.classList.toggle('turn', S.turn === YOU && S.phase === 'play');
+      S.taken[mySeat].reduce(function (a, id) { return a + pointsOf(id); }, 0));
+    els.youSeat.classList.toggle('turn', S.turn === mySeat && S.phase === 'play');
 
     /* --- the trick --- */
     els.trick.innerHTML = '';
-    for (var i = 0; i < SEATS; i++) {
+    for (var k = 0; k < SEATS; k++) {
+      var i = seatAtOffset(k);
       var slot = document.createElement('div');
       slot.className = 'trickslot';
       var played = null;
+      /* eslint-disable-next-line no-loop-func */
       S.trick.forEach(function (t) { if (t.p === i) played = t; });
       if (played) {
         var node = C.play(K.card(played.id));
@@ -456,21 +861,21 @@
       }
       var tag = document.createElement('span');
       tag.className = 'trickwho';
-      tag.textContent = i === YOU ? 'You' : NAMES[i];
+      tag.textContent = nameOf(i);
       slot.appendChild(tag);
       els.trick.appendChild(slot);
     }
 
     /* --- your hand --- */
     els.hand.innerHTML = '';
-    var playable = S.phase === 'play' && S.turn === YOU ? legal(YOU) : [];
-    S.hands[YOU].forEach(function (id) {
+    var playable = S.phase === 'play' && S.turn === mySeat ? legal(mySeat) : [];
+    S.hands[mySeat].forEach(function (id) {
       var node = C.play(K.card(id), { tag: 'button' });
       node.dataset.card = id;
       if (S.phase === 'pass') {
         if (S.picked.indexOf(id) >= 0) node.classList.add('picked');
       } else if (S.phase === 'play') {
-        if (S.turn === YOU) {
+        if (S.turn === mySeat) {
           if (playable.indexOf(id) >= 0) node.classList.add('free');
           else node.classList.add('barred');
         }
@@ -482,10 +887,22 @@
     /* --- the bars --- */
     els.passbar.hidden = S.phase !== 'pass';
     if (S.phase === 'pass') {
-      els.passWhy.textContent = 'Choose three cards to pass ' + PASS_DIRS[S.passDir] + '.';
-      els.passBtn.textContent = 'Pass three ' + PASS_DIRS[S.passDir];
-      els.passBtn.disabled = S.picked.length !== 3;
-      els.passCount.textContent = S.picked.length + ' of 3 chosen';
+      var mine = wantPass[mySeat];
+      var waiting = online() ? (iAmHost() ? waitingOn() : (S.waiting || 0)) : 0;
+      if (mine && waiting > 0) {
+        /* Everybody chooses at once, so the only honest thing to show
+           somebody who has already chosen is who is still thinking. */
+        els.passWhy.textContent = 'Waiting for ' + waiting + ' other ' +
+          (waiting === 1 ? 'player' : 'players') + ' to choose.';
+        els.passBtn.textContent = 'Chosen';
+        els.passBtn.disabled = true;
+        els.passCount.textContent = 'Yours are in';
+      } else {
+        els.passWhy.textContent = 'Choose three cards to pass ' + PASS_DIRS[S.passDir] + '.';
+        els.passBtn.textContent = 'Pass three ' + PASS_DIRS[S.passDir];
+        els.passBtn.disabled = S.picked.length !== 3;
+        els.passCount.textContent = S.picked.length + ' of 3 chosen';
+      }
     }
 
     els.overbar.hidden = S.phase !== 'handover' && S.phase !== 'gameover';
@@ -493,19 +910,19 @@
       var hs = S.handScores;
       var line;
       if (hs.shooter >= 0) {
-        line = (hs.shooter === YOU ? 'You shot the moon.' : NAMES[hs.shooter] + ' shot the moon.') +
+        line = (hs.shooter === mySeat ? 'You shot the moon.' : SEAT_NAMES[hs.shooter] + ' shot the moon.') +
           ' Twenty six to everyone else.';
       } else {
         line = 'This hand, ' + [0, 1, 2, 3].map(function (i) {
-          return (i === YOU ? 'you' : NAMES[i]) + ' ' + hs.add[i];
+          return lowerNameOf(i) + ' ' + hs.add[i];
         }).join(', ') + '.';
       }
       els.overWhy.textContent = line;
       if (S.phase === 'gameover') {
         var low = Math.min.apply(null, S.scores);
         var winners = [0, 1, 2, 3].filter(function (i) { return S.scores[i] === low; });
-        els.overTitle.textContent = winners.indexOf(YOU) >= 0 && winners.length === 1
-          ? 'You win' : (winners.length > 1 ? 'A tie at the bottom' : NAMES[winners[0]] + ' wins');
+        els.overTitle.textContent = winners.indexOf(mySeat) >= 0 && winners.length === 1
+          ? 'You win' : (winners.length > 1 ? 'A tie at the bottom' : SEAT_NAMES[winners[0]] + ' wins');
         els.overBtn.textContent = 'New game';
       } else {
         els.overTitle.textContent = 'Hand ' + (S.handNo + 1) + ' finished';
@@ -514,12 +931,16 @@
     }
 
     /* --- the scoreboard --- */
-    for (var q = 0; q < SEATS; q++) els.score[q].textContent = String(S.scores[q]);
+    for (var q = 0; q < SEATS; q++) {
+      var seatQ = seatAtOffset(q);
+      els.scoreName[q].textContent = nameOf(seatQ);
+      els.score[q].textContent = String(S.scores[seatQ]);
+    }
     els.handNo.textContent = String(S.handNo + 1);
     els.brokenTag.textContent = S.broken ? 'broken' : 'not yet';
 
     els.lastLine.textContent = S.lastTrick
-      ? (S.lastTrick.winner === YOU ? 'You took' : NAMES[S.lastTrick.winner] + ' took') +
+      ? (S.lastTrick.winner === mySeat ? 'You took' : SEAT_NAMES[S.lastTrick.winner] + ' took') +
         ' the last trick' + (S.lastTrick.points ? ' and ' + S.lastTrick.points + ' point' +
         (S.lastTrick.points === 1 ? '' : 's') : ', clean') + '.'
       : '';
@@ -529,7 +950,7 @@
      overlaps and the overlap is worked out from what is actually
      there rather than assumed. The last card is always whole. */
   function fanHand(size) {
-    var n = S.hands[YOU].length;
+    var n = S.hands[mySeat].length;
     els.hand.style.setProperty('--cw', size.cw + 'px');
     els.hand.style.setProperty('--ch', size.ch + 'px');
     if (!n) { els.hand.style.height = '0px'; return; }
@@ -561,12 +982,23 @@
       return;
     }
     if (S.phase !== 'play') return;
-    if (S.turn !== YOU) { say('Wait for your turn.'); return; }
-    if (legal(YOU).indexOf(id) < 0) { say(whyNot(id)); return; }
-    playCard(YOU, id);
-    render(); save();
+    if (S.turn !== mySeat) { say('Wait for your turn.'); return; }
+    if (legal(mySeat).indexOf(id) < 0) { say(whyNot(id)); return; }
+
+    /* A guest asks and waits. It could put the card down straight away
+       and look faster, but then two browsers would each hold an opinion
+       about the board, and the moment they disagreed there would be no
+       way to tell which one was right. One copy of the rules, one
+       answer. */
+    if (online() && !iAmHost()) {
+      Net.send({ t: 'play', v: PROTO, id: id });
+      return;
+    }
+
+    playCard(mySeat, id);
+    render(); save(); pushState();
     if (S.trick.length === SEATS) { timer = setTimeout(step, 900); return; }
-    scheduleBot();
+    if (!seatIsPerson(S.turn)) scheduleBot();
   }
 
   /* A card refusing to be played without saying why is the single most
@@ -581,7 +1013,7 @@
       }
     } else {
       var led = ledSuitIn(S);
-      if (hasSuit(S.hands[YOU], led) && K.suitOf(id) !== led) {
+      if (hasSuit(S.hands[mySeat], led) && K.suitOf(id) !== led) {
         return 'You have to follow ' + C.suit(led).name.toLowerCase() + '.';
       }
     }
@@ -609,11 +1041,29 @@
     els.board = document.getElementById('board');
     els.trick = document.getElementById('trick');
     els.hand = document.getElementById('hand');
-    els.seats = [null];
-    for (var p = 1; p < SEATS; p++) els.seats.push(document.querySelector('.seat[data-seat="' + p + '"]'));
-    els.youSeat = document.querySelector('.seat[data-seat="0"]');
-    els.youPts = document.querySelector('.seat[data-seat="0"] .seat-pts');
+    els.seatsRow = document.querySelector('.seats');
+    els.slots = [null];
+    for (var p = 1; p < SEATS; p++) els.slots.push(document.querySelector('.seat[data-slot="' + p + '"]'));
+    els.youSeat = document.querySelector('.seat.you');
+    els.youPts = els.youSeat.querySelector('.seat-pts');
     els.score = [0, 1, 2, 3].map(function (i) { return document.getElementById('score' + i); });
+    els.scoreName = [0, 1, 2, 3].map(function (i) { return document.getElementById('scoreName' + i); });
+    els.onlineBtn = document.getElementById('onlineBtn');
+    els.netpanel = document.getElementById('netpanel');
+    els.netStart = document.getElementById('netStart');
+    els.netHost = document.getElementById('netHost');
+    els.netJoin = document.getElementById('netJoin');
+    els.netLive = document.getElementById('netLive');
+    els.netStatus = document.getElementById('netStatus');
+    els.codeOut = document.getElementById('codeOut');
+    els.codeIn = document.getElementById('codeIn');
+    els.hostBtn = document.getElementById('hostBtn');
+    els.joinShowBtn = document.getElementById('joinShowBtn');
+    els.joinBtn = document.getElementById('joinBtn');
+    els.copyBtn = document.getElementById('copyBtn');
+    els.hostCancel = document.getElementById('hostCancel');
+    els.joinCancel = document.getElementById('joinCancel');
+    els.leaveBtn = document.getElementById('leaveBtn');
     els.handNo = document.getElementById('handNo');
     els.brokenTag = document.getElementById('brokenTag');
     els.lastLine = document.getElementById('lastLine');
@@ -633,7 +1083,7 @@
     if (!load()) newGame();
     else {
       render();
-      if (S.phase === 'play' && S.turn !== YOU) scheduleBot();
+      if (S.phase === 'play' && S.turn !== mySeat) scheduleBot();
     }
 
     els.hand.addEventListener('click', function (e) {
@@ -641,14 +1091,83 @@
       if (card && card.dataset.card) tapCard(card.dataset.card);
     });
 
-    els.newBtn.addEventListener('click', function () { newGame(); say('New game dealt.'); });
+    els.newBtn.addEventListener('click', function () {
+      if (online() && !iAmHost()) { say('Whoever started the table deals.'); return; }
+      newGame();
+      say('New game dealt.');
+      pushState();
+    });
     els.passBtn.addEventListener('click', function () {
       if (S.picked.length === 3) { doPass(); }
     });
     els.overBtn.addEventListener('click', function () {
+      if (online() && !iAmHost()) { Net.send({ t: 'again', v: PROTO }); return; }
       if (S.phase === 'gameover') newGame();
       else nextHand();
+      pushState();
     });
+
+    /* ---------- the online panel ---------- */
+    Net.on(netEvent);
+
+    els.onlineBtn.addEventListener('click', function () {
+      if (Net.libFailed()) { say(reasonText('lib')); return; }
+      var open = els.netpanel.hidden;
+      els.netpanel.hidden = !open;
+      els.onlineBtn.setAttribute('aria-expanded', String(open));
+      if (open && !netRole) showNetRow('start');
+      /* The panel is tall, and the board is sized against whatever room
+         is left below it, so opening it without a redraw pushes your own
+         hand off the bottom of the screen. */
+      render();
+    });
+
+    els.hostBtn.addEventListener('click', function () {
+      netRole = 'host';
+      mySeat = 0;
+      seatOf = {};
+      peerAt = [null, null, null, null];
+      showNetRow('host');
+      els.codeOut.textContent = '------';
+      netStatus('Starting a table.');
+      Net.host();
+    });
+
+    els.joinShowBtn.addEventListener('click', function () {
+      showNetRow('join');
+      netStatus('');
+      els.codeIn.value = '';
+      els.codeIn.focus();
+    });
+
+    els.joinBtn.addEventListener('click', function () {
+      netRole = 'guest';
+      netStatus('Looking for that table.');
+      Net.join(els.codeIn.value);
+    });
+
+    els.codeIn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); els.joinBtn.click(); }
+    });
+
+    els.copyBtn.addEventListener('click', function () {
+      var code = els.codeOut.textContent;
+      /* The clipboard is not always allowed, and a button that silently
+         does nothing is worse than one that admits it. */
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(function () {
+            netStatus('Code copied. Read it out or paste it to them.');
+          }, function () { netStatus('Could not copy it. The code is ' + code + '.'); });
+          return;
+        }
+      } catch (e) { /* fall through */ }
+      netStatus('Could not copy it. The code is ' + code + '.');
+    });
+
+    els.hostCancel.addEventListener('click', function () { leaveTable(true); });
+    els.joinCancel.addEventListener('click', function () { showNetRow('start'); netStatus(''); });
+    els.leaveBtn.addEventListener('click', function () { leaveTable(false); });
 
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 120); });
@@ -664,7 +1183,7 @@
       render(); save();
     },
     legal: legal,
-    play: function (id) { var r = playCard(YOU, id); if (r) { render(); save(); } return r; },
+    play: function (id) { var r = playCard(mySeat, id); if (r) { render(); save(); } return r; },
     playFor: function (p, id) { var r = playCard(p, id); if (r) { render(); save(); } return r; },
     botChoice: botChoice,
     botPlay: function () { var id = botChoice(S.turn); return playCard(S.turn, id) ? id : null; },
@@ -684,17 +1203,31 @@
       var guard = 0;
       while (S.phase === 'play' && guard++ < (limit || 400)) {
         if (S.trick.length === SEATS) { settleTrick(); continue; }
-        if (S.turn === YOU) break;
+        if (S.turn === mySeat) break;
         playCard(S.turn, botChoice(S.turn));
       }
       render(); save();
       return S.phase;
     },
     autoPlayYou: function () {
-      var opts = legal(YOU);
-      return opts.length ? playCard(YOU, opts[0]) : false;
+      var opts = legal(mySeat);
+      return opts.length ? playCard(mySeat, opts[0]) : false;
     },
-    clearSave: function () { store.clear(); }
+    clearSave: function () { store.clear(); },
+
+    /* ---------- online, for the suite ---------- */
+    netState: function () {
+      return {
+        role: netRole, open: netOpen, mySeat: mySeat,
+        seatKind: S ? S.seatKind.slice() : null,
+        seats: peerAt.slice(), waiting: S && S.waiting
+      };
+    },
+    seatIsPerson: seatIsPerson,
+    submitPass: submitPass,
+    waitingOn: waitingOn,
+    packPublic: packPublic,
+    doPass: function () { doPass(); }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
