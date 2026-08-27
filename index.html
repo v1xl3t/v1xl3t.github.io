@@ -210,7 +210,38 @@ html[data-theme="light"] .theme-toggle .sun{display:block}
 }
 
 /* ============================= HERO ============================= */
-.hero{position:relative; padding:clamp(56px,9vw,118px) 0 clamp(40px,6vw,72px); overflow:hidden}
+/* Top padding was up to 118px, which pushed the proof and the buttons off a
+   900px screen and left the first view holding a headline and nothing to do. */
+/* ---------------- filter bar + copy this view ---------------- */
+.filter-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+.filter-bar .filters{ flex:1 1 auto; }
+.copy-view{
+  display:inline-flex; align-items:center; gap:7px; flex:0 0 auto;
+  min-height:38px; padding:8px 14px; cursor:pointer;
+  font:inherit; font-size:13px; color:var(--muted);
+  background:transparent; border:1px dashed var(--border-soft); border-radius:99px;
+  transition:color .18s ease, border-color .18s ease;
+}
+.copy-view:hover{ color:var(--text); border-color:var(--accent); border-style:solid; }
+.copy-view:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.copy-view.done{ color:var(--accent); border-color:var(--accent); border-style:solid; }
+@media (max-width:640px){ .copy-view span{ display:none } .copy-view{ padding:8px 12px } }
+@media print{ .copy-view, .filter-bar{ display:none !important } }
+
+/* ---------------- hero proof strip ---------------- */
+.proof{
+  list-style:none; margin:22px 0 0; padding:0;
+  display:flex; flex-wrap:wrap; gap:10px 26px; align-items:flex-start;
+}
+.proof li{ display:flex; flex-direction:column; gap:1px; max-width:23ch; }
+.proof b{
+  font-size:clamp(17px,2.2vw,21px); font-weight:800; letter-spacing:-.015em;
+  color:var(--accent); font-variant-numeric:tabular-nums; line-height:1.15;
+}
+.proof span{ font-size:12.5px; color:var(--muted); line-height:1.35; }
+@media (max-width:600px){ .proof{ gap:12px 18px } .proof li{ max-width:100% } }
+
+.hero{position:relative; padding:clamp(40px,6vw,76px) 0 clamp(40px,6vw,72px); overflow:hidden}
 #heroCanvas{
   position:absolute; inset:0; width:100%; height:100%;
   z-index:0; opacity:.45;
@@ -327,6 +358,10 @@ section{padding:clamp(56px,8vw,96px) 0; position:relative}
   color:var(--accent); background:transparent;
 }
 .filter.view-note:hover{ background:var(--accent-dim); color:var(--text) }
+/* In the light theme the accent violet lands at 4.39:1 against the tinted
+   ground this note sits on, just under AA. Only this control needs the darker
+   violet, so it is scoped here rather than shifting the accent site-wide. */
+html[data-theme="light"] .filter.view-note{ color:#8630a8; border-color:#8630a8 }
 .filter.view-note::after{ content:" \2192"; opacity:.75 }
 .filter[aria-pressed="true"] .count{opacity:.7}
 
@@ -887,6 +922,18 @@ html[data-theme="light"] .media-note{
     a.brand { min-height: 44px; display: inline-flex; align-items: center; }
   }
 
+/* On a laptop the hero is taller than the screen, so the proof and the buttons
+   land below the fold and the first view is a headline with nothing to act on.
+   Only tighten where that actually happens: a wide but short viewport. Tall
+   screens and phones keep the original rhythm. */
+@media (min-width:860px) and (max-height:1100px){
+  .hero{ padding-top:clamp(24px,3vh,44px); padding-bottom:clamp(28px,4vh,52px) }
+  h1.hero-title{ font-size:clamp(34px,4.3vw,54px); margin-top:.4em; max-width:18ch }
+  .hero .lede{ font-size:16px; margin-top:.7em }
+  .proof{ margin-top:16px }
+  .cta-row{ margin-top:18px }
+}
+
 /* ============================================================
    PRINT
    Hiring managers print this page and save it as PDF, and until now it printed
@@ -1000,6 +1047,14 @@ html[data-theme="light"] .media-note{
       </a>
     </div>
 
+    <!-- Three numbers, one per discipline, for the reader deciding in ninety
+         seconds. Swapped to match the role view when one is active. -->
+    <ul class="proof" id="proof">
+      <li><b>4 days to 5 hours</b><span>document turnaround, production AI agent</span></li>
+      <li><b>31</b><span>shipped game and film credits</span></li>
+      <li><b>GDC 2024</b><span>audio tool showcased, San Francisco</span></li>
+    </ul>
+
     <div class="pillars">
       <div class="pillar reveal" style="--pc:var(--accent)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg></div>
@@ -1032,6 +1087,7 @@ html[data-theme="light"] .media-note{
     <h2 class="section-title reveal" id="work-title">Things I've shipped</h2>
     <p class="section-sub reveal">Filter by discipline. Each project in short, what it is, my role, and what came of it.</p>
 
+    <div class="filter-bar">
     <div class="filters reveal" role="group" aria-label="Filter projects by discipline">
       <button class="filter" data-filter="all" aria-pressed="true">All <span class="count">17</span></button>
       <button class="filter" data-filter="ai" aria-pressed="false">AI &amp; Engineering <span class="count">9</span></button>
@@ -1039,6 +1095,13 @@ html[data-theme="light"] .media-note{
       <button class="filter" data-filter="web" aria-pressed="false">Web &amp; Design <span class="count">2</span></button>
       <button class="filter" data-filter="hardware" aria-pressed="false">Hardware &amp; CAD <span class="count">4</span></button>
       <button class="filter" data-filter="teaching" aria-pressed="false">Teaching <span class="count">1</span></button>
+    </div>
+      <!-- Aim this page at one person: the filter and the role view are both in
+           the URL, so this hands you the exact thing you are looking at. -->
+      <button class="copy-view" id="copyView" type="button" title="Copy a link to exactly this view">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        <span>Copy this view</span>
+      </button>
     </div>
 
     <div class="grid" id="workGrid">
@@ -1683,13 +1746,63 @@ html[data-theme="light"] .media-note{
     try {
       var q = new URLSearchParams(location.search);
       var forParam = (q.get("for") || "").toLowerCase().trim();
-      if (forParam && applyView(forParam)) return;
+      if (forParam && applyView(forParam)) { setProof(forParam); return; }
+      setProof("default");
       clearView();
       selectFilter((q.get("lane") || "all").toLowerCase().trim());
     } catch (e) {}
   }
+  /* Proof numbers follow the front door the visitor came through, so an audio
+     recruiter is not led with a document-turnaround statistic. */
+  var PROOF = {
+    "default": [["4 days to 5 hours","document turnaround, production AI agent"],
+                ["31","shipped game and film credits"],
+                ["GDC 2024","audio tool showcased, San Francisco"]],
+    swe:      [["4 days to 5 hours","document turnaround, production AI agent"],
+               ["27 of 27","deliverables in one automated run"],
+               ["20+","client datasets scored and ranked"]],
+    aise:     [["4 days to 5 hours","document turnaround, production AI agent"],
+               ["27 of 27","deliverables in one automated run"],
+               ["5 days","concept to a system non-engineers ran"]],
+    fde:      [["5 days","concept to a system non-engineers ran"],
+               ["13","facilitators trained on the tooling"],
+               ["20+","client datasets scored and ranked"]],
+    audio:    [["31","shipped game and film credits"],
+               ["Silver, Tokyo 2022","Best Composer, Tokyo Film Awards"],
+               ["GDC 2024","audio tool showcased, San Francisco"]],
+    hardware: [["300+","MIDI controller units produced"],
+               ["End to end","circuit, firmware, enclosure, overlay"],
+               ["GDC 2024","showcased in San Francisco"]],
+    creative: [["Hammer Museum","installation modelled and simulated"],
+               ["Dezeen","computational artwork featured"],
+               ["31","shipped game and film credits"]]
+  };
+  function setProof(key){
+    var list = PROOF[key] || PROOF["default"], ul = document.getElementById("proof");
+    if (!ul) return;
+    ul.innerHTML = list.map(function(row){
+      return "<li><b>" + row[0] + "</b><span>" + row[1] + "</span></li>";
+    }).join("");
+  }
+
   syncFromUrl();
   window.addEventListener("popstate", syncFromUrl);
+
+  /* Copy this view. The filter and the role view both live in the URL now, so
+     there is a real thing to copy. */
+  var copyBtn = document.getElementById("copyView");
+  if (copyBtn) copyBtn.addEventListener("click", function(){
+    var url = location.href;
+    var label = copyBtn.querySelector("span");
+    var was = label ? label.textContent : "";
+    function done(){
+      copyBtn.classList.add("done");
+      if (label) label.textContent = "Link copied";
+      setTimeout(function(){ copyBtn.classList.remove("done"); if (label) label.textContent = was; }, 1800);
+    }
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function(){ window.prompt("Copy this link:", url); });
+    else window.prompt("Copy this link:", url);
+  });
 
   /* ---------- masonry layout for the work grid ----------
      Each visible card drops into the shortest column, so expanding one card
