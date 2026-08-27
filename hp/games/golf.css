@@ -1,0 +1,29 @@
+/* ============================================================
+   Golf, only what is different.
+
+   Everything generic is in sol-core.css.
+   ============================================================ */
+
+.board{--cols:7}
+
+/* ---------- the ring on a playable card ----------
+   The one affordance in the game. Working out seven adjacencies in
+   your head every single turn is arithmetic, not a decision, so the
+   board does that part.
+
+   An outline rather than a border, so it cannot shift a card by a
+   pixel, and it is drawn INSIDE the card because the card at the
+   bottom of a column has the board edge right under it and an
+   outward ring would be clipped there. */
+.board .hpc.fits{outline:3px solid var(--accent-ink); outline-offset:-3px; border-radius:8px}
+
+/* A buried card is still perfectly readable, it just cannot be
+   picked up, so it says so with the cursor and nothing else. Dimming
+   four fifths of the board to mark the one card you can touch costs
+   far more than it explains. */
+.board .hpc.buried{cursor:default}
+
+/* The deck fades out rather than vanishing, because an empty deck is
+   the thing that ends the game and it should still be a shape on the
+   board when it does. */
+.pile.stock.dead .hpc.empty .hpc-slot{opacity:.18}
