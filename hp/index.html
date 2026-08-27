@@ -116,6 +116,33 @@ body.light .readscrim{background:rgba(247,244,254,0)}
   background:radial-gradient(60% 55% at 50% 44%, #fff, rgba(255,255,255,0) 72%)}
 
 /* diver cursor: a little guy whose state tracks the fall */
+/* ---------------- depth gauge ---------------- */
+.gauge{
+  position:fixed; right:clamp(12px,2.4vw,26px); top:50%; transform:translateY(-50%);
+  z-index:48; display:flex; flex-direction:column; align-items:center; gap:10px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  color:var(--hp-ink, #ece2fb); opacity:.62; transition:opacity .4s ease;
+  pointer-events:none; user-select:none;
+}
+body.paradise .gauge{ color:var(--hp-ink-dark, #241f38) }
+.gauge-track{
+  width:2px; height:min(34vh,240px); border-radius:2px;
+  background:currentColor; opacity:.22; position:relative;
+}
+.gauge-fill{
+  position:absolute; left:-1px; top:0; width:4px; border-radius:2px;
+  height:0%; background:currentColor; opacity:.85;
+}
+.gauge-read{ font-size:13px; letter-spacing:.06em; font-variant-numeric:tabular-nums; }
+.gauge-unit{ opacity:.55; margin-left:2px; font-size:10.5px }
+.gauge-stage{
+  font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; opacity:.6;
+  writing-mode:vertical-rl; text-orientation:mixed; max-height:11em; overflow:hidden;
+}
+@media (max-width:640px){ .gauge{ right:8px; opacity:.45 } .gauge-track{ height:22vh } .gauge-stage{ display:none } }
+@media (prefers-reduced-motion:reduce){ .gauge-fill{ transition:none } }
+@media print{ .gauge{ display:none } }
+
 .diver{position:fixed; top:0; left:0; width:54px; height:74px; z-index:50;
   pointer-events:none; transform:translate(-50%,-50%); will-change:left,top;
   perspective:240px}   /* gives the right-click barrel roll real depth instead of a flat squash */
@@ -532,6 +559,17 @@ footer a{color:var(--accent); text-decoration:none}
 <div class="whiteout" id="whiteout" aria-hidden="true"></div>
 <div class="speedlines" id="speedlines" aria-hidden="true"></div>
 <svg class="trail" id="trail" aria-hidden="true" preserveAspectRatio="none"></svg>
+
+<!-- The page already says SCROLL TO DESCEND, and the scrollbar was the only
+     thing telling you how far down you were. This is that, made legible: depth
+     while you fall, altitude once the chute opens, and the name of where you
+     are. Decorative, so it is hidden from assistive tech, which reads the real
+     section headings instead. -->
+<div class="gauge" id="gauge" aria-hidden="true">
+  <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
+  <div class="gauge-read"><span id="gaugeNum">0</span><span class="gauge-unit">m</span></div>
+  <div class="gauge-stage" id="gaugeStage">the edge</div>
+</div>
 
 <div class="diver" id="diver" data-stage="dive" aria-hidden="true">
   <svg viewBox="0 0 54 74" width="54" height="74">
@@ -1049,6 +1087,14 @@ footer a{color:var(--accent); text-decoration:none}
     return "halo";
   }
   var ticking=false;
+  var gauge = document.getElementById("gauge"),
+      gaugeNum = document.getElementById("gaugeNum"),
+      gaugeStage = document.getElementById("gaugeStage"),
+      gaugeFill = document.getElementById("gaugeFill");
+  var GAUGE_WORDS = { dive:"falling", flail:"the abyss", chute:"caught",
+                      wings:"climbing", wing:"climbing",
+                      halo:"the promise", spark:"the promise" };
+
   function onScroll(){
     if (ticking) return; ticking=true;
     requestAnimationFrame(function(){
@@ -1087,6 +1133,20 @@ footer a{color:var(--accent); text-decoration:none}
       // the diver's state tracks the fall
       var stage = diverStage(f);
       if (diver) diver.setAttribute("data-stage", stage);
+
+      /* The gauge reads the same progress the diver does. Depth increases while
+         you are falling and turns into altitude once the chute is out, which is
+         the moment the page stops being an abyss and starts being a promise. */
+      if (gauge){
+        var descend = Math.min(1, f / 0.62);              // the fall
+        var climb   = Math.max(0, (f - 0.62) / 0.38);     // the rise
+        var reading = f < 0.62 ? Math.round(descend * 1200)
+                               : Math.round(climb * 900);
+        // "-0" at the top of the page reads like a glitch rather than a depth
+        gaugeNum.textContent = reading === 0 ? "0" : (f < 0.62 ? "-" : "+") + reading;
+        gaugeStage.textContent = GAUGE_WORDS[stage] || stage;
+        gaugeFill.style.height = (f * 100).toFixed(1) + "%";
+      }
       // background speedlines intensify toward the chute deploy; the sketchy wake trail is
       // restricted to the START of the dive only (Vi cut the long falling trail).
       trailActive = !reduce && (stage === "dive");

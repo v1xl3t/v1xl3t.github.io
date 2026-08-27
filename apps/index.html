@@ -110,6 +110,21 @@ h1{ margin:0; font-size:clamp(2rem,1.4rem+2.6vw,3rem); letter-spacing:-.02em; li
    does not silently do that again. */
 .tile:nth-child(9){animation-delay:.61s} .tile:nth-child(10){animation-delay:.68s}
 .tile:nth-child(11){animation-delay:.75s} .tile:nth-child(12){animation-delay:.82s}
+/* A still of a 3D modeller is the least persuasive way to show a 3D modeller.
+   The preview sits over the still and only loads when someone shows interest,
+   so the page still costs one jpg per tile until then. A browser that will not
+   play webm simply keeps showing the jpg, which is what it shows today. */
+.shotwrap{ position:relative; display:block; }
+.shotvid{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; object-position:top; border-radius:14px;
+  opacity:0; transition:opacity .28s ease; pointer-events:none; z-index:2;
+  border:1px solid var(--line-soft); background:var(--card-2);
+}
+.shotwrap.playing .shotvid{ opacity:1; }
+@media (prefers-reduced-motion: reduce){ .shotvid{ display:none } }
+@media print{ .shotvid{ display:none } }
+
 .tile .shot{
   width:100%; aspect-ratio:1/1; object-fit:cover; object-position:top; display:block;
   border-radius:14px; border:1px solid var(--line-soft); margin-bottom:14px;
@@ -228,7 +243,10 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
     </a>
 
     <a class="tile" href="/cadence/">
-      <img class="shot" src="thumbs/cadence.jpg" alt="CADence preview" loading="lazy">
+      <span class="shotwrap">
+        <img class="shot" src="thumbs/cadence.jpg" alt="CADence preview" loading="lazy">
+        <video class="shotvid" src="/media/apps/cadence.webm" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+      </span>
       <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
       <h2>CADence</h2>
       <p>A browser 3D modeler that makes precise CAD as approachable as a toy.</p>
@@ -236,7 +254,10 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
     </a>
 
     <a class="tile" href="/anim/">
-      <img class="shot" src="thumbs/layerloop.jpg" alt="Layerloop preview" loading="lazy">
+      <span class="shotwrap">
+        <img class="shot" src="thumbs/layerloop.jpg" alt="Layerloop preview" loading="lazy">
+        <video class="shotvid" src="/media/apps/layerloop.webm" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+      </span>
       <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
       <h2>Layerloop</h2>
       <p>Layered, stated pixel animation in the browser. Draw, loop, export.</p>
@@ -244,7 +265,10 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
     </a>
 
     <a class="tile" href="/perch/">
-      <img class="shot" src="thumbs/perch.jpg" alt="Perch preview" loading="lazy">
+      <span class="shotwrap">
+        <img class="shot" src="thumbs/perch.jpg" alt="Perch preview" loading="lazy">
+        <video class="shotvid" src="/media/apps/perch.webm" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+      </span>
       <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-4 0-7 3-7 7 0 5 7 11 7 11s7-6 7-11c0-4-3-7-7-7z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
       <h2>Perch</h2>
       <p>A cozy goal arcade. Waddle a little bird between machines, turn daily wins into tickets, and trade them for treats.</p>
@@ -252,7 +276,10 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
     </a>
 
     <a class="tile" href="/ghostnote/">
-      <img class="shot" src="thumbs/ghostnote.jpg" alt="Ghost Note preview" loading="lazy">
+      <span class="shotwrap">
+        <img class="shot" src="thumbs/ghostnote.jpg" alt="Ghost Note preview" loading="lazy">
+        <video class="shotvid" src="/media/apps/ghostnote.webm" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+      </span>
       <span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
       <h2>Ghost Note</h2>
       <p>Drop in a track and it writes the drum chart for you, then play it on a MIDI kit. The chart is editable, and your audio never leaves the tab.</p>
@@ -330,6 +357,48 @@ html[data-theme="light"] .theme-toggle .moon{ display:none }
       sync();
     });
   })();
+</script>
+<script>
+/* Play a tile's preview while the pointer is over it or the link has keyboard
+   focus, and on first tap for touch, where there is no hover. Nothing is
+   fetched until then: the videos are preload="none". */
+(function () {
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) return;
+
+  Array.prototype.forEach.call(document.querySelectorAll(".shotwrap"), function (wrap) {
+    var vid = wrap.querySelector(".shotvid");
+    var tile = wrap.closest(".tile");
+    if (!vid || !tile) return;
+
+    var playing = false;
+    function start() {
+      if (playing) return;
+      playing = true;
+      wrap.classList.add("playing");
+      var go = vid.play();
+      if (go && go.catch) go.catch(function () { wrap.classList.remove("playing"); playing = false; });
+    }
+    function stop() {
+      playing = false;
+      wrap.classList.remove("playing");
+      try { vid.pause(); vid.currentTime = 0; } catch (e) {}
+    }
+
+    tile.addEventListener("mouseenter", start);
+    tile.addEventListener("mouseleave", stop);
+    tile.addEventListener("focus", start);
+    tile.addEventListener("blur", stop);
+
+    /* Touch: the first tap previews, the second follows the link. Only when the
+       device really has no hover, so a laptop with a touchscreen is unaffected. */
+    if (window.matchMedia && matchMedia("(hover: none)").matches) {
+      tile.addEventListener("click", function (e) {
+        if (!playing) { e.preventDefault(); start(); }
+      });
+    }
+  });
+})();
 </script>
 </body>
 </html>

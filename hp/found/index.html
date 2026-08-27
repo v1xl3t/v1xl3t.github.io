@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You found the door</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0f16">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Cdefs%3E%3ClinearGradient%20id='vg'%20gradientUnits='userSpaceOnUse'%20x1='3'%20y1='-3'%20x2='61'%20y2='67'%3E%3Cstop%20offset='0'%20stop-color='%233dfd7a'/%3E%3Cstop%20offset='1'%20stop-color='%239d7bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='64'%20height='64'%20rx='19'%20fill='url(%23vg)'/%3E%3Ctext%20x='32'%20y='45'%20text-anchor='middle'%20font-family='-apple-system,BlinkMacSystemFont,Segoe%20UI,Roboto,Helvetica,Arial,sans-serif'%20font-weight='800'%20font-size='34'%20letter-spacing='-1'%20fill='%2306210f'%3EVi%3C/text%3E%3C/svg%3E">
+<!--
+  Reached by typing a word that is not on any menu. /404.html knows two of them.
+
+  Nothing here is load-bearing: it is a room, not a feature. If you are reading
+  the source looking for the words, that counts as finding them.
+-->
+<style>
+  :root{ --ink:#ece2fb; --dim:#8d84a8; --bg:#0a0f16; --red:#ff5a6a; --gold:#ffe6a3; }
+  @media (prefers-color-scheme: light){ :root{ --ink:#241f38; --dim:#5b5478; --bg:#efeaf9; --red:#c2101f; --gold:#8a6a12; } }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    background:var(--bg); color:var(--ink); display:grid; place-items:center; padding:28px;
+    font:16px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; text-align:center;
+    overflow-x:hidden;
+  }
+  main{max-width:31rem; position:relative; z-index:1}
+  .eyebrow{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+           letter-spacing:.24em; text-transform:uppercase; color:var(--dim); margin:0 0 18px}
+  h1{margin:0 0 6px; font-size:clamp(30px,7vw,46px); letter-spacing:-.02em; line-height:1.05}
+  h1 .star{color:var(--red)}
+  p{margin:0 0 16px; color:var(--dim)}
+  p.line{color:var(--ink); font-style:italic}
+  .row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:26px}
+  a.btn{display:inline-flex; align-items:center; min-height:44px; padding:10px 18px; border-radius:99px;
+        border:1px solid color-mix(in srgb, var(--ink) 24%, transparent); color:var(--ink); text-decoration:none}
+  a.btn:hover{border-color:var(--red)}
+  a.btn:focus-visible{outline:2px solid var(--red); outline-offset:3px}
+  a.btn.primary{background:var(--red); border-color:var(--red); color:#fff}
+  canvas{position:fixed; inset:0; width:100%; height:100%; z-index:0; opacity:.5; pointer-events:none}
+  @media (prefers-reduced-motion:reduce){ canvas{display:none} }
+</style>
+</head>
+<body>
+<canvas id="dust" aria-hidden="true"></canvas>
+<main>
+  <p class="eyebrow">Unlisted</p>
+  <h1>You found the door<span class="star">.</span></h1>
+  <p class="line">Everyone who gets here got here the same way. They went looking.</p>
+  <p>There is no prize behind it, which is the point. HACKING PARADISE is for people
+     who try the handle on a door nobody told them about.</p>
+  <div class="row">
+    <a class="btn primary" href="/hp/">Read the rest</a>
+    <a class="btn" href="/hp/games/">Play something</a>
+    <a class="btn" href="/">Vi Ellis</a>
+  </div>
+</main>
+<script>
+/* Slow drifting motes. Ambient only, and it does not run for anyone who has
+   asked for less movement. */
+(function(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var c = document.getElementById("dust"), x = c.getContext("2d"), dots = [], raf;
+  function size(){ c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio;
+                   x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+  function seed(){ dots = []; var n = Math.min(70, Math.round(innerWidth/22));
+    for (var i=0;i<n;i++) dots.push({x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+      r:Math.random()*1.7+.4, s:Math.random()*.22+.05, a:Math.random()*.5+.15}); }
+  function ink(){ return getComputedStyle(document.documentElement).getPropertyValue("--ink").trim() || "#ece2fb"; }
+  function tick(){
+    x.clearRect(0,0,innerWidth,innerHeight);
+    var col = ink();
+    for (var i=0;i<dots.length;i++){ var d=dots[i];
+      d.y -= d.s; if (d.y < -4){ d.y = innerHeight+4; d.x = Math.random()*innerWidth; }
+      x.globalAlpha = d.a; x.fillStyle = col;
+      x.beginPath(); x.arc(d.x, d.y, d.r, 0, 6.283); x.fill();
+    }
+    x.globalAlpha = 1;
+    raf = requestAnimationFrame(tick);
+  }
+  size(); seed(); tick();
+  addEventListener("resize", function(){ size(); seed(); });
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden) cancelAnimationFrame(raf); else raf = requestAnimationFrame(tick);
+  });
+})();
+</script>
+</body>
+</html>

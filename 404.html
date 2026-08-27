@@ -98,6 +98,12 @@
     return true;
   }
 
+  /* Two words that are on no menu and in no index. Yes, they are readable in
+     this file: an easter egg you have to read the source to find is still an
+     easter egg, and the kind of person who reads the source is the audience. */
+  var UNLISTED = { ABYSS: '/hp/found/', DESCEND: '/hp/found/' };
+  if (UNLISTED[slug]) { location.replace(UNLISTED[slug]); return; }
+
   fetch('/s/links.json', { cache: 'no-cache' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {

@@ -1,0 +1,10 @@
+{
+  "_comment": "Drop clips into media/audio/ and add an entry keyed by the exact card heading. The player appears only for cards listed here, so an empty list ships nothing. Twenty to forty seconds is the right length: enough to hear the idea, short enough that nobody has to commit.",
+  "_example": {
+    "HAIKU: The Story of a Wilting Trillium (OST)": {
+      "src": "/media/audio/haiku.mp3",
+      "label": "Main theme, 0:32"
+    }
+  },
+  "tracks": {}
+}
