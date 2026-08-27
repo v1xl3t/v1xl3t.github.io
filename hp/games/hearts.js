@@ -42,6 +42,23 @@
 
      Two below and two above, which is the table this game is played on. */
   var SEAT_NAMES = ['Void', 'Abyss', 'Promise', 'Paradise'];
+
+  /* Each seat carries a suit, and the pairing is the founding poem.
+     Void and Abyss are the black suits, below. Promise and Paradise
+     are the red ones, above. Vi picked it and it lands exactly on the
+     split the poem already had. */
+  var SEAT_SUITS = ['S', 'C', 'H', 'D'];
+
+  /* Put a seat's glyph in front of its name. Rebuilt rather than
+     moved, because the same seat appears in two places at once and one
+     node cannot be in both. */
+  function glyphInto(el, seat) {
+    if (!window.HPGlyphs) return;
+    var old = el.querySelector('.hpg');
+    if (old) old.remove();
+    var g = window.HPGlyphs.make(SEAT_SUITS[seat]);
+    if (g) el.insertBefore(g, el.firstChild);
+  }
   var WHERE = ['', 'on your left', 'across', 'on your right'];
 
   /* Your own seat is always "You", wherever you are sitting, and the
@@ -577,7 +594,7 @@
      page rather than a bad move. Cheap to check, and it turns a whole
      class of "the game just died" into a line in the status area.
 
-     Nothing here is a defence against a HOST who cheats. A host can
+     Nothing here is a defense against a HOST who cheats. A host can
      see every hand and there is no fixing that without a server. This
      only stops a bad message wrecking the page. */
   function cardsOnly(a) {
@@ -868,7 +885,10 @@
       var p = seatAtOffset(off);
       var seat = els.slots[off];
       seat.dataset.seat = String(p);
-      seat.querySelector('.seat-name').textContent = SEAT_NAMES[p];
+      var nameEl = seat.querySelector('.seat-name');
+      nameEl.textContent = SEAT_NAMES[p];
+      seat.dataset.suit = SEAT_SUITS[p];
+      glyphInto(nameEl, p);
       seat.querySelector('.seat-where').textContent =
         WHERE[off] + (S.seatKind[p] === 'bot' ? ', computer' : '');
       seat.querySelector('.seat-n').textContent = String(S.hands[p].length);
@@ -878,8 +898,10 @@
       seat.classList.toggle('bot', S.seatKind[p] === 'bot');
     }
     els.youSeat.dataset.seat = String(mySeat);
-    els.youSeat.querySelector('.seat-name').textContent = 'You' +
-      (online() ? ' (' + SEAT_NAMES[mySeat] + ')' : '');
+    els.youSeat.dataset.suit = SEAT_SUITS[mySeat];
+    var youName = els.youSeat.querySelector('.seat-name');
+    youName.textContent = 'You' + (online() ? ' (' + SEAT_NAMES[mySeat] + ')' : '');
+    glyphInto(youName, mySeat);
     els.youPts.textContent = String(
       S.taken[mySeat].reduce(function (a, id) { return a + pointsOf(id); }, 0));
     els.youSeat.classList.toggle('turn', S.turn === mySeat && S.phase === 'play');
@@ -973,6 +995,8 @@
     for (var q = 0; q < SEATS; q++) {
       var seatQ = seatAtOffset(q);
       els.scoreName[q].textContent = nameOf(seatQ);
+      els.scoreName[q].parentNode.dataset.suit = SEAT_SUITS[seatQ];
+      glyphInto(els.scoreName[q], seatQ);
       els.score[q].textContent = String(S.scores[seatQ]);
     }
     els.handNo.textContent = String(S.handNo + 1);

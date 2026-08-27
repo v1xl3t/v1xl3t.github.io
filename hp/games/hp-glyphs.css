@@ -1,0 +1,33 @@
+/* ============================================================
+   hp-glyphs.css — how the four suit glyphs are stroked.
+
+   Everything inherits currentColor, so a glyph is whatever color
+   the thing around it already is and no game has to be told about
+   suit colors twice.
+   ============================================================ */
+
+.hpg{
+  width:1em; height:1em; display:inline-block; vertical-align:-0.14em;
+  overflow:visible;
+}
+.hpg path{
+  fill:none; stroke:currentColor;
+  stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round;
+}
+/* a lighter stroke for a thing that is fading or falling away */
+.hpg path.soft{stroke-opacity:.55; stroke-width:1.45}
+/* the half that has not arrived yet */
+.hpg path.wait{stroke-dasharray:2.6 2.3; stroke-opacity:.8}
+.hpg path.fl{fill:currentColor; stroke:none}
+
+/* Bigger glyphs need a thinner line, or a 48px one looks like a
+   marker drawing and a 16px one looks like a hairline. */
+.hpg.big path{stroke-width:1.25}
+.hpg.big path.soft{stroke-width:1.05}
+
+/* The boil is a preference, and it is honored in hp-glyphs.js rather
+   than here. `display:none` on an <animate> does not reliably stop
+   SMIL, and the selector this used to carry pointed at `.hpg animate`,
+   which never matched anything, because the animation lives in the one
+   injected filter and not inside any glyph. Not creating the element
+   is the only version that is certainly true. */

@@ -19,7 +19,8 @@
 .sc{display:flex; flex-direction:column; gap:2px; align-items:center; min-width:0}
 .sc span{
   font-family:var(--mono); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+  color:var(--muted); max-width:100%;
+  display:inline-flex; align-items:center; gap:4px; min-width:0;
 }
 .sc b{font-size:1.25rem; font-variant-numeric:tabular-nums}
 
@@ -44,7 +45,19 @@
 .seat-name{
   font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
   color:var(--accent);
+  display:inline-flex; align-items:center; gap:5px;
 }
+
+/* ---------- the seat glyphs ----------
+   The glyph takes the suit's own color and the name keeps the accent,
+   so the two below and the two above read apart at a glance without
+   anybody being told which is which. Sized in ems so it tracks
+   whatever text it is sitting next to. */
+.seat-name .hpg, .sc span .hpg{width:1.4em; height:1.4em; flex:0 0 auto}
+[data-suit="S"] .hpg, [data-suit="C"] .hpg{color:var(--ink)}
+[data-suit="H"] .hpg, [data-suit="D"] .hpg{color:var(--hpc-red, #d5455f)}
+:root[data-theme="light"] [data-suit="S"] .hpg,
+:root[data-theme="light"] [data-suit="C"] .hpg{color:var(--ink)}
 .seat-where{
   font-family:var(--mono); font-size:.6rem; letter-spacing:.06em; color:var(--muted);
 }
