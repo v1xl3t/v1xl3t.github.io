@@ -1,0 +1,128 @@
+/* ============================================================
+   Hearts, and here almost all of it is different.
+
+   sol-core.css draws columns in a grid, and this game has no
+   columns. What it keeps from there is the controls row, the card
+   sizing variables, the bars and the live region. The table, the
+   seats and the fanned hand are local, because nothing else on
+   this table has an opponent.
+   ============================================================ */
+
+.board{--cols:8; padding-bottom:20px}
+
+/* ---------- the scoreboard ---------- */
+.scoreboard{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;
+  margin:0 0 12px; padding:10px 12px;
+  border:1px solid var(--line); border-radius:14px; background:var(--panel);
+}
+.sc{display:flex; flex-direction:column; gap:2px; align-items:center; min-width:0}
+.sc span{
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+}
+.sc b{font-size:1.25rem; font-variant-numeric:tabular-nums}
+
+/* ---------- the seats ----------
+   Three chips in the order they sit, left, across, right.
+
+   They were a diamond around the trick to begin with, which reads
+   beautifully and costs THREE card heights to show four cards. On a
+   phone that pushed your own hand off the bottom of the screen, on
+   the one game where your hand is the only thing you control. A row
+   of four with a name under each says who played what just as
+   clearly and costs one. */
+.seats{
+  display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;
+  margin-bottom:10px;
+}
+.seat{
+  display:flex; flex-direction:column; gap:1px; align-items:center; text-align:center;
+  padding:8px 6px; border:1px solid transparent; border-radius:12px; min-width:0;
+}
+.seat.you{margin-top:10px}
+.seat-name{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--accent);
+}
+.seat-where{
+  font-family:var(--mono); font-size:.6rem; letter-spacing:.06em; color:var(--muted);
+}
+.seat-meta{font-size:.78rem; color:var(--muted)}
+.seat-meta b{color:var(--ink); font-variant-numeric:tabular-nums}
+
+/* Whose turn it is has to be readable at a glance, because the table
+   moves on its own and a player who looks away needs to find their
+   place again without counting cards. */
+.seat.turn{border-color:var(--accent-ink); background:var(--panel)}
+
+/* ---------- the trick ---------- */
+.trick{
+  display:grid; grid-template-columns:repeat(4, var(--cw));
+  gap:calc(var(--gap) * 2); justify-content:center;
+  min-height:calc(var(--ch) + 22px);
+}
+.trickslot{position:relative; width:var(--cw); height:var(--ch)}
+.trickslot .hpc{position:absolute; inset:0; width:var(--cw); height:var(--ch)}
+.trickwho{
+  position:absolute; left:-6px; right:-6px; bottom:-16px;
+  font-family:var(--mono); font-size:.58rem; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--muted); text-align:center;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* The card that set the suit is what every other card in the trick is
+   measured against, so it says so. */
+.trickslot .hpc.inled{outline:2px solid var(--accent-ink); outline-offset:-2px; border-radius:8px}
+
+.lastline{
+  margin:22px 0 6px; min-height:1.2em; text-align:center;
+  font-size:.84rem; color:var(--muted);
+}
+
+/* ---------- your hand ----------
+   Thirteen cards is wider than a phone, so they overlap, and the
+   overlap is worked out in JS from the width that is actually there.
+   Every card is a button, because a hand is a set of choices and a
+   keyboard should reach them. */
+.hand{position:relative; margin:0 auto}
+.hand .hpc{
+  position:absolute; top:0; width:var(--cw); height:var(--ch);
+  transition:transform .12s ease;
+  padding:0; border:0; background:none; cursor:pointer;
+}
+.hand .hpc:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px; z-index:99 !important}
+
+/* A card you have chosen to pass lifts out of the fan. Color alone
+   would be lost in a row of thirteen overlapping cards, and the lift
+   survives being half covered by the card next to it. */
+.hand .hpc.picked{transform:translateY(-18px)}
+.hand .hpc.picked::after{
+  content:""; position:absolute; inset:0; border-radius:8px;
+  outline:3px solid var(--accent-ink); outline-offset:-3px;
+}
+
+/* During your turn the cards the rules will not accept step back
+   rather than being hidden. They are still readable, still tappable,
+   and tapping one says which rule stopped it, because "nothing
+   happened" is the worst answer a card game can give. */
+.hand .hpc.barred{filter:saturate(.55) brightness(.9)}
+:root[data-theme="light"] .hand .hpc.barred{filter:saturate(.6) brightness(.97)}
+.hand .hpc.free{transform:translateY(-6px)}
+.hand .hpc.free:hover{transform:translateY(-14px)}
+
+/* ---------- the two bars ---------- */
+.passbar, .overbar{
+  margin:0 0 12px; border:1px solid var(--line); border-radius:14px;
+  padding:14px 16px; background:var(--panel);
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+}
+.overbar{border-color:var(--accent-ink)}
+.passbar[hidden], .overbar[hidden]{display:none}
+.passbar h2, .overbar h2{margin:0; font-size:1.1rem}
+.passbar p, .overbar p{margin:4px 0 0; color:var(--muted); font-size:.9rem; max-width:52ch}
+
+@media (max-width: 560px){
+  .seat{padding:6px 3px}
+  .seat-meta{font-size:.68rem}
+  .seat-where{font-size:.55rem}
+}

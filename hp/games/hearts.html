@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Hearts &middot; HACKING☆PARADISE</title>
+<meta name="description" content="Free Hearts in the browser against three opponents. Passing, shooting the moon, and a card that tells you why it will not be played. Keeps your game if you close the tab." />
+<meta name="theme-color" content="#0b0913" />
+<link rel="stylesheet" href="hp-cards.css" />
+<link rel="stylesheet" href="games.css" />
+<link rel="stylesheet" href="sol-core.css" />
+<link rel="stylesheet" href="hearts.css" />
+<script>try{var t=localStorage.getItem('hp-games-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body class="hpc-scope">
+
+<a class="skip" href="#board">Skip to the table</a>
+<div class="voidbg" aria-hidden="true"><span class="a"></span><span class="b"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../"><b>HACKING☆PARADISE</b></a>
+  <a class="tb-btn" href="./">Games</a>
+  <button class="tb-btn" type="button" data-theme-toggle>Paradise</button>
+</div></header>
+
+<main>
+  <div class="gamewrap">
+
+    <div class="controls">
+      <button class="btn primary" type="button" id="newBtn">New game</button>
+      <span class="spacer"></span>
+      <span class="stat">Hand <b id="handNo">1</b></span>
+      <span class="stat">Hearts <b id="brokenTag">not yet</b></span>
+    </div>
+
+    <div class="scoreboard" role="group" aria-label="Scores">
+      <div class="sc"><span>You</span><b id="score0">0</b></div>
+      <div class="sc"><span>Void</span><b id="score1">0</b></div>
+      <div class="sc"><span>Promise</span><b id="score2">0</b></div>
+      <div class="sc"><span>Abyss</span><b id="score3">0</b></div>
+    </div>
+
+    <div class="passbar" id="passbar" hidden>
+      <div>
+        <h2>Pass three</h2>
+        <p id="passWhy">Choose three cards to pass left.</p>
+      </div>
+      <div class="row">
+        <span class="stat" id="passCount">0 of 3 chosen</span>
+        <button class="btn primary" type="button" id="passBtn" disabled>Pass three left</button>
+      </div>
+    </div>
+
+    <div class="overbar" id="overbar" hidden>
+      <div>
+        <h2 id="overTitle">Hand finished</h2>
+        <p id="overWhy"></p>
+      </div>
+      <button class="btn primary" type="button" id="overBtn">Next hand</button>
+    </div>
+
+    <div class="board" id="board">
+      <div class="seats">
+        <div class="seat" data-seat="1">
+          <span class="seat-name">Void</span>
+          <span class="seat-where">on your left</span>
+          <span class="seat-meta"><b class="seat-n">13</b> cards, <b class="seat-pts">0</b> points</span>
+        </div>
+        <div class="seat" data-seat="2">
+          <span class="seat-name">Promise</span>
+          <span class="seat-where">across</span>
+          <span class="seat-meta"><b class="seat-n">13</b> cards, <b class="seat-pts">0</b> points</span>
+        </div>
+        <div class="seat" data-seat="3">
+          <span class="seat-name">Abyss</span>
+          <span class="seat-where">on your right</span>
+          <span class="seat-meta"><b class="seat-n">13</b> cards, <b class="seat-pts">0</b> points</span>
+        </div>
+      </div>
+
+      <div class="trick" id="trick" role="group" aria-label="The trick"></div>
+
+      <div class="seat you" data-seat="0">
+        <span class="seat-name">You</span>
+        <span class="seat-meta"><b class="seat-pts">0</b> points this hand</span>
+      </div>
+
+      <p class="lastline" id="lastLine"></p>
+      <div class="hand" id="hand" role="group" aria-label="Your hand"></div>
+    </div>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ul>
+        <li>Four players, thirteen cards each, and the aim is to take as few points as possible.</li>
+        <li>Every heart is one point and the queen of spades is thirteen, so a hand is worth twenty six between everybody.</li>
+        <li>Before each hand you pass three cards. Left, then right, then across, then a hand where nobody passes at all and you are stuck with what you were dealt.</li>
+        <li>The two of clubs opens the hand. Follow the suit that was led if you can, and if you cannot, play anything.</li>
+        <li>Nothing that scores may be played on the very first trick, and hearts cannot be led until one has already been played on somebody else's trick.</li>
+        <li>Take every single point in a hand and you have shot the moon. The twenty six goes to everyone else instead, which is either the best thing that will happen to you all evening or a near miss that ends the game.</li>
+        <li>First to a hundred ends it, and the lowest score wins. There is no undo here, unlike the rest of the table, because taking a trick back would mean unseeing three other hands.</li>
+      </ul>
+    </details>
+
+  </div>
+</main>
+
+<p class="live" id="live" role="status" aria-live="polite"></p>
+
+<footer><div class="wrap">
+  <p>HACKING☆PARADISE</p>
+  <p><a href="./">More games</a></p>
+</div></footer>
+
+<script src="hp-cards.js"></script>
+<script src="games.js"></script>
+<script src="sol-core.js"></script>
+<script src="hearts.js"></script>
+</body>
+</html>
