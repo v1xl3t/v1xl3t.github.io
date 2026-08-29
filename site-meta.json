@@ -80,12 +80,6 @@
       "card": "Résumé, one page",
       "desc": "The one-page résumé for Vi Ellis: applied AI, hardware product development, and award-winning composition.",
       "accent": "both"
-    },
-    "/emanuel/": {
-      "title": "Emanuel",
-      "card": "Masked mourners in the desert",
-      "desc": "A looping desert scene. Rows of robed figures stand in the dusk, each wearing a pale mask painted with a teardrop, while the sand keeps drifting past them.",
-      "accent": "violet"
     }
   }
 }
