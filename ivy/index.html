@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ivy · your work as one vine</title>
+<meta name="description" content="A to-do board drawn as a growing vine. Newest work at the top, finished work falls to the ground. Everything stays in your browser.">
+<meta name="color-scheme" content="light dark">
+
+<meta property="og:title" content="Ivy">
+<meta property="og:description" content="A to-do board drawn as a growing vine. Everything stays in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://vi-ellis.com/ivy/">
+
+<!-- THE PRIVACY SWITCH.
+     With this flag set, store.js loads its local half: the board lives in
+     this browser's own storage, the edits are applied in the page, and the
+     app makes no network request of any kind after the files below have
+     loaded. There is no server, no account, and nothing to breach. A share
+     link carries the whole board inside the URL fragment, which browsers
+     never send to a server, not even the one serving this page. -->
+<script>window.IVY_LOCAL = true;</script>
+
+<link rel="stylesheet" href="./ivy.css">
+</head>
+<body>
+
+<div class="marble" aria-hidden="true">
+  <svg width="100%" height="100%" preserveAspectRatio="none">
+    <defs>
+
+      <filter id="mb-cloud" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0011 0.0022" numOctaves="4" seed="7" result="n"/>
+        <feColorMatrix in="n" type="matrix"
+          values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0.7 0.4 0.2 0 0.0"/>
+        <feGaussianBlur stdDeviation="5"/>
+      </filter>
+
+
+      <filter id="mb-vein" x="-25%" y="-25%" width="150%" height="150%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0032" numOctaves="4" seed="21" result="f"/>
+        <feTurbulence type="fractalNoise" baseFrequency="0.0055" numOctaves="2" seed="4" result="d"/>
+        <feDisplacementMap in="f" in2="d" scale="16" xChannelSelector="R" yChannelSelector="G" result="w"/>
+        <feColorMatrix in="w" type="luminanceToAlpha" result="a"/>
+        <feComponentTransfer in="a">
+          <feFuncA type="table" tableValues="0 0 0.85 0 0 0 0.6 0 0 1 0 0 0 0.7 0 0 0.5 0 0"/>
+        </feComponentTransfer>
+        <feGaussianBlur stdDeviation="0.55"/>
+      </filter>
+
+
+      <filter id="mb-vein2" x="-25%" y="-25%" width="150%" height="150%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0021" numOctaves="3" seed="53" result="f"/>
+        <feTurbulence type="fractalNoise" baseFrequency="0.004" numOctaves="2" seed="9" result="d"/>
+        <feDisplacementMap in="f" in2="d" scale="22" xChannelSelector="R" yChannelSelector="G" result="w"/>
+        <feColorMatrix in="w" type="luminanceToAlpha" result="a"/>
+        <feComponentTransfer in="a">
+          <feFuncA type="table" tableValues="0 0 0 0 0 0 0 0 0.95 0 0 0 0 0 0 0 0 0"/>
+        </feComponentTransfer>
+        <feGaussianBlur stdDeviation="0.9"/>
+      </filter>
+
+      <filter id="mb-grain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="11"/>
+        <feColorMatrix type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.3 0.3 0.3 0 -0.145"/>
+      </filter>
+    </defs>
+
+    <rect class="mb-base"  width="100%" height="100%"/>
+    <rect class="mb-cloud" width="100%" height="100%" filter="url(#mb-cloud)"/>
+
+    <g transform="rotate(-24 720 450)">
+      <rect class="mb-vein"  x="-900" y="-900" width="3400" height="2800" filter="url(#mb-vein)"/>
+      <rect class="mb-vein2" x="-900" y="-900" width="3400" height="2800" filter="url(#mb-vein2)"/>
+    </g>
+    <rect class="mb-grain" width="100%" height="100%" filter="url(#mb-grain)"/>
+  </svg>
+</div>
+
+<svg class="vine" id="vine" aria-hidden="true"></svg>
+
+<div class="hits" id="hits"></div>
+
+<div class="reach" id="reach"></div>
+
+<header class="chrome" id="chrome">
+  <h1 class="mark">Ivy<span class="sub">your work as one vine</span></h1>
+  <div class="tools">
+    <label class="find">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 14 14"/></svg>
+      <input id="q" type="search" placeholder="find" autocomplete="off" spellcheck="false">
+    </label>
+    <button class="tool" id="lensbtn" type="button" aria-expanded="false" aria-haspopup="true">
+      <span id="lenslabel">All growth</span>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5"/></svg>
+    </button>
+    <div class="zoomer" role="group" aria-label="Zoom the vine">
+      <button class="tool zbtn" id="zoomout" type="button" title="Zoom out (minus key)" aria-label="Zoom out">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8h9.6"/></svg>
+      </button>
+      <button class="tool zlevel" id="zoomfit" type="button" title="Fit the whole vine on one screen (F). Press again for full size." aria-label="Fit the whole vine on one screen"><span id="zoomval">100%</span></button>
+      <button class="tool zbtn" id="zoomin" type="button" title="Zoom in (plus key)" aria-label="Zoom in">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
+      </button>
+    </div>
+    <button class="tool" id="newbtn" type="button" title="Plant a new item">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
+    </button>
+    <button class="tool" id="groundbtn" type="button" title="The ground, where finished growth falls" aria-expanded="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 12.5h13"/><path d="M4.6 9.4c1.8.9 3.6.3 4.4-1.2.8-1.5.3-3.4-1.5-4.3C5.7 3 3.9 3.6 3.1 5.1c-.8 1.5-.3 3.4 1.5 4.3Z"/><path d="M3.1 5.1 9 8.2"/></svg>
+    </button>
+    <button class="tool" id="themebtn" type="button" title="Light or dark marble">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="4"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.1 3.1l1.1 1.1M11.8 11.8l1.1 1.1M12.9 3.1l-1.1 1.1M4.2 11.8l-1.1 1.1"/></svg>
+    </button>
+
+    <button class="tool" id="sharebtn" type="button" hidden title="Copy a link that carries this whole board">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="12" cy="3.6" r="2.1"/><circle cx="4" cy="8" r="2.1"/><circle cx="12" cy="12.4" r="2.1"/><path d="M5.9 7 10.1 4.6M5.9 9l4.2 2.4"/></svg>
+    </button>
+    <button class="tool" id="closebtn" type="button" title="Close the board and stop the server">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+    </button>
+  </div>
+  <p class="count" id="count"></p>
+</header>
+
+<div class="lens" id="lens" hidden></div>
+
+<div class="rail" id="rail">
+  <div class="rail-line"></div>
+  <div class="rail-ticks" id="railticks"></div>
+  <div class="rail-grip" id="railgrip"><span id="gripdate"></span></div>
+</div>
+
+<div class="plate-wrap" id="platewrap" hidden>
+  <div class="plate-scrim" id="platescrim"></div>
+  <svg class="leaders" id="leaders" aria-hidden="true"></svg>
+  <article class="plate" id="plate" role="dialog" aria-modal="true" aria-labelledby="plate-title" tabindex="-1"></article>
+</div>
+
+<div class="nothing" id="nothing" hidden>
+  <svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 44V16M20 16C20 16 12 6 4 8c0 0 1 12 16 8M20 22c0 0 7-11 15-9 0 0-1 12-15 9"/></svg>
+  <p id="nothing-what"></p>
+  <button class="act ghost" id="nothing-back" type="button">Show the whole vine</button>
+</div>
+
+<section class="ground" id="ground" hidden aria-labelledby="ground-title">
+  <div class="ground-sky" aria-hidden="true"></div>
+  <div class="ground-sheet">
+    <header class="ground-head">
+      <div class="ground-titles">
+        <h2 id="ground-title">The ground</h2>
+        <p class="ground-sub" id="ground-sub"></p>
+      </div>
+      <button class="tool" id="groundshut" type="button" aria-label="Back to the vine">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </header>
+    <div class="ground-tools">
+      <label class="find">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 14 14"/></svg>
+        <input id="gq" type="search" placeholder="find in the litter" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="autofall">
+        <span>Finished growth falls by itself</span>
+      </label>
+    </div>
+    <div class="ground-sweep" id="groundsweep" hidden></div>
+
+    <section class="ground-privacy" id="groundprivacy" hidden></section>
+    <div class="litter" id="litter"></div>
+  </div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="./ivy.js"></script>
+</body>
+</html>
