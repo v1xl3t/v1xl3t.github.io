@@ -1040,7 +1040,7 @@ body::-webkit-scrollbar { width: 0; height: 0; }
 #vine .branch.dropping-branch {
   transform-box: fill-box;
   transform-origin: center;
-  animation: driftBranch 1400ms cubic-bezier(.4, .05, .55, 1) forwards;
+  animation: driftBranch 1100ms cubic-bezier(.4, .05, .55, 1) forwards;
 }
 @keyframes driftBranch {
   0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }

@@ -598,18 +598,15 @@ function branch(n, world, hw, labelled = true) {
   }));
 
 
-  if (n.alive) {
-    const tip = 34 - n.depth * 3.4 + (n.it.priority === "p1" ? 6 : 0);
-    leafAt(g, pts, 1, tip, n.side, 0, n.id);
-    if (n.depth === 0) {
-      leafAt(g, pts, 0.46, tip * 0.44, -n.side, 0.5, n.id + "a");
-      leafAt(g, pts, 0.74, tip * 0.36, n.side, -0.4, n.id + "b");
-    } else if (n.depth === 1) {
-      leafAt(g, pts, 0.6, tip * 0.4, -n.side, 0.4, n.id + "a");
-    }
-  } else {
 
-    g.appendChild(el("circle", { class: "nub", cx: n.x, cy: n.y, r: 3.4 }));
+  const tip = 34 - n.depth * 3.4 + (n.it.priority === "p1" ? 6 : 0);
+  const autumn = !n.alive;
+  leafAt(g, pts, 1, tip, n.side, 0, n.id, autumn);
+  if (n.depth === 0) {
+    leafAt(g, pts, 0.46, tip * 0.44, -n.side, 0.5, n.id + "a", autumn);
+    leafAt(g, pts, 0.74, tip * 0.36, n.side, -0.4, n.id + "b", autumn);
+  } else if (n.depth === 1) {
+    leafAt(g, pts, 0.6, tip * 0.4, -n.side, 0.4, n.id + "a", autumn);
   }
 
 
@@ -1755,16 +1752,19 @@ function dropVisual(id) {
     g.classList.add("dropping-fast");
     return 320;
   }
+
   const leaves = $$(".leafg", g);
+  let after = 0;
   if (leaves.length) {
     leaves.forEach((l, i) => {
       l.style.animationDelay = (i * 90) + "ms";
       l.classList.add("dropping");
     });
-    return 1500 + leaves.length * 90;
+    after = leaves.length * 90 + 320;
   }
+  g.style.animationDelay = after + "ms";
   g.classList.add("dropping-branch");
-  return 1400;
+  return after + 1100;
 }
 
 function letFall(it, note) {
