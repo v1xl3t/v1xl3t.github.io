@@ -115,10 +115,12 @@ function visibleSet() {
   const q = S.query.trim().toLowerCase();
 
   return S.items.filter((it) =>
-    (!it.archived || S.falling.has(it.id)) && (S.hold.has(it.id) || matches(it, lens, q)));
+    (!onGround(it) || S.falling.has(it.id)) && (S.hold.has(it.id) || matches(it, lens, q)));
 }
 
-const litter = () => S.items.filter((it) => it.archived && !S.falling.has(it.id));
+const onGround = (it) => it.archived && !isActive(it);
+
+const litter = () => S.items.filter((it) => onGround(it) && !S.falling.has(it.id));
 
 const readyToFall = () => S.items.filter((it) => !it.archived && !isActive(it));
 
@@ -1183,8 +1185,25 @@ function renderPlate(it) {
       const note = `${plainTitle(it.title).slice(0, 34)} is now ${S.doc.statuses[to].label.toLowerCase().replace("blocked on vi", "blocked on you")}`;
 
       const finishing = S.autofall && !it.archived && !ACTIVE.includes(to);
-      send([{ type: "patch", id: it.id, fields: finishing ? { status: to, archived: true } : { status: to } }],
-        finishing ? note + ", and it fell" : note);
+
+      const reviving = it.archived && ACTIVE.includes(to);
+      const fields = { status: to };
+      if (finishing) fields.archived = true;
+      if (reviving) fields.archived = false;
+      const ops = [{ type: "patch", id: it.id, fields }];
+      const said = finishing ? note + ", and it fell"
+        : reviving ? note + ", and it grew back onto the vine"
+        : note;
+
+      if (finishing && !S.falling.has(it.id)) {
+        const ms = dropVisual(it.id);
+        if (ms) {
+          S.falling.add(it.id);
+          setTimeout(() => { S.falling.delete(it.id); send(ops, said); }, ms);
+          return;
+        }
+      }
+      send(ops, said);
     };
   });
 
@@ -1729,22 +1748,37 @@ function monthLabel(m) {
   return `${names[Number(mo) - 1] || m} ${y}`;
 }
 
+function dropVisual(id) {
+  const g = $(`#vine .branch[data-id="${CSS.escape(id)}"]`);
+  if (!g) return 0;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    g.classList.add("dropping-fast");
+    return 320;
+  }
+  const leaves = $$(".leafg", g);
+  if (leaves.length) {
+    leaves.forEach((l, i) => {
+      l.style.animationDelay = (i * 90) + "ms";
+      l.classList.add("dropping");
+    });
+    return 1500 + leaves.length * 90;
+  }
+  g.classList.add("dropping-branch");
+  return 1400;
+}
+
 function letFall(it, note) {
-  const g = $(`#vine .branch[data-id="${CSS.escape(it.id)}"]`);
-  const leaves = g ? $$(".leafg", g) : [];
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (S.falling.has(it.id)) return;
   const write = () => {
     S.falling.delete(it.id);
     send([{ type: "patch", id: it.id, fields: { archived: true } }],
       note || `${plainTitle(it.title).slice(0, 34)} fell to the ground`);
   };
-  if (!leaves.length) { write(); return; }
+  const ms = dropVisual(it.id);
+  if (!ms) { write(); return; }
   S.falling.add(it.id);
-  leaves.forEach((l, i) => {
-    l.style.animationDelay = (i * 90) + "ms";
-    l.classList.add("dropping");
-  });
-  setTimeout(write, reduce ? 320 : 1500 + leaves.length * 90);
+  setTimeout(write, ms);
 }
 
 function regrow(it) {

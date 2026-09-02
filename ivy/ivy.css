@@ -1036,9 +1036,27 @@ body::-webkit-scrollbar { width: 0; height: 0; }
   55%  { transform: translate(-16px, 250px) rotate(-26deg); opacity: .85; }
   100% { transform: translate(10px, 520px) rotate(52deg); opacity: 0; }
 }
+
+#vine .branch.dropping-branch {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: driftBranch 1400ms cubic-bezier(.4, .05, .55, 1) forwards;
+}
+@keyframes driftBranch {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  30%  { transform: translate(6px, 70px) rotate(9deg); opacity: .95; }
+  65%  { transform: translate(-9px, 220px) rotate(-7deg); opacity: .7; }
+  100% { transform: translate(5px, 470px) rotate(14deg); opacity: 0; }
+}
+
+#vine .branch.dropping-fast, .leafg.dropping-fast {
+  animation: fade 300ms linear forwards;
+}
+@keyframes fade { to { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .leafg.dropping { animation: fade 260ms linear forwards; }
-  @keyframes fade { to { opacity: 0; } }
+  #vine .branch.dropping-branch { animation: fade 300ms linear forwards; }
 }
 
 @media (max-width: 560px) {
