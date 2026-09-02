@@ -1196,7 +1196,10 @@ function renderPlate(it) {
         const ms = dropVisual(it.id);
         if (ms) {
           S.falling.add(it.id);
-          setTimeout(() => { S.falling.delete(it.id); send(ops, said); }, ms);
+          setTimeout(async () => {
+            S.falling.delete(it.id);
+            if (!(await send(ops, said))) clearDrop(it.id);
+          }, ms);
           return;
         }
       }
@@ -1253,7 +1256,7 @@ async function send(ops, note) {
   S.saving = true;
   try {
     const res = await store.ops(S.doc.revision, ops);
-    if (!res.ok) { toast(res.message, true); return; }
+    if (!res.ok) { toast(res.message, true); return false; }
     const j = res.doc;
 
     const wasOn = S.nodes.map((n) => n.id);
@@ -1272,8 +1275,10 @@ async function send(ops, note) {
     else { $("#platewrap").hidden = true; }
     if (S.ground) renderGround();
     toast(note || "Saved");
+    return true;
   } catch (e) {
     toast("could not reach the board, " + e.message, true);
+    return false;
   } finally {
     S.saving = false;
   }
@@ -1767,13 +1772,25 @@ function dropVisual(id) {
   return after + 1100;
 }
 
+function clearDrop(id) {
+  const g = $(`#vine .branch[data-id="${CSS.escape(id)}"]`);
+  if (!g) return;
+  g.classList.remove("dropping-branch", "dropping-fast");
+  g.style.animationDelay = "";
+  for (const l of $$(".leafg", g)) {
+    l.classList.remove("dropping", "dropping-fast");
+    l.style.animationDelay = "";
+  }
+}
+
 function letFall(it, note) {
 
   if (S.falling.has(it.id)) return;
-  const write = () => {
+  const write = async () => {
     S.falling.delete(it.id);
-    send([{ type: "patch", id: it.id, fields: { archived: true } }],
+    const ok = await send([{ type: "patch", id: it.id, fields: { archived: true } }],
       note || `${plainTitle(it.title).slice(0, 34)} fell to the ground`);
+    if (!ok) clearDrop(it.id);
   };
   const ms = dropVisual(it.id);
   if (!ms) { write(); return; }
