@@ -141,6 +141,10 @@ export class SliceView {
     this.restoreModel();
     this.group.visible = false;
     this.renderStale();
+    // The model just moved, so whether it still fits the bed may have moved with
+    // it. Cheap, and it means scaling an oversized part down clears the warning
+    // without waiting for another slice.
+    this.refreshAdvice();
     this.onVisibility(false);
   }
 
@@ -213,6 +217,7 @@ export class SliceView {
       if (showing) this.hideModel();
       else this.restoreModel();
       this.renderStale();
+      this.refreshAdvice();
       this.onOpen();
     } else {
       this.restoreModel();
@@ -498,11 +503,52 @@ export class SliceView {
   refreshAdvice() {
     const host = this.el.querySelector('#sl-advice');
     if (!host) return;
+    let s = null;
     let msgs = [];
-    try { msgs = validate(this.readSettings()); } catch (err) { msgs = [err.message]; }
-    host.innerHTML = msgs.map((m) => `<div class="sl-msg warn">${escapeHtml(m)}</div>`).join('');
-    host.hidden = !msgs.length;
+    try { s = this.readSettings(); msgs = validate(s); } catch (err) { msgs = [err.message]; }
+    // Whether the part fits the machine belongs here too, and it used not to be.
+    // The fit test lived only inside placeOnBed, which does not run until slicing
+    // does, so a model too big for the bed was sliced in full before anything said
+    // so. On Vi's chess set that was 440 layers, a 55 hour estimate and 47 seconds
+    // of waiting to be told the thing could never be printed. It is the same
+    // promise the comment above makes about layer heights, applied to the one
+    // number that decides whether there is any point starting.
+    const fit = s ? this.modelBedWarnings(s) : [];
+    host.innerHTML = [
+      ...fit.map((m) => `<div class="sl-msg bad">${escapeHtml(m)}</div>`),
+      ...msgs.map((m) => `<div class="sl-msg warn">${escapeHtml(m)}</div>`),
+    ].join('');
+    host.hidden = !(fit.length || msgs.length);
     this.refreshPrintButton();
+  }
+
+  /**
+   * Does the model fit the machine, asked BEFORE the slice rather than after.
+   *
+   * Measured off the scene's own bounding box rather than by gathering the print
+   * mesh, because this runs every time a setting changes and gathering builds a
+   * whole new vertex array. A Box3 over the visible solids is cheap and gives the
+   * same three numbers placeOnBed would.
+   *
+   * The viewport is Y up and the printer is Z up, so the model's Y extent is the
+   * machine's height and its Z extent is the bed depth. Getting that pair the
+   * wrong way round would pass a tall thin part and fail a wide flat one, which
+   * is why it is spelled out rather than left to the reader.
+   *
+   * Wording is deliberately the same as oversizeReasons so the advice before the
+   * slice and the warning after it never disagree with each other.
+   */
+  modelBedWarnings(s) {
+    const solids = this.doc.list.filter((o) => o.mesh && o.mesh.visible && o.role !== 'hole');
+    if (!solids.length) return [];
+    const box = new THREE.Box3();
+    for (const o of solids) {
+      o.mesh.updateWorldMatrix(true, false);
+      box.union(new THREE.Box3().setFromObject(o.mesh));
+    }
+    if (box.isEmpty()) return [];
+    const v = box.getSize(new THREE.Vector3());
+    return oversizeReasons({ size: { w: v.x, d: v.z, h: v.y } }, s);
   }
 
   /**

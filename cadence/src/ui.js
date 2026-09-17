@@ -49,7 +49,7 @@ export class Inspector {
     // A fresh panel is a fresh history step. Without this a color burst that
     // was still settling when the selection changed would fold the next edit
     // into the previous one's undo node.
-    this._colorStep = false;
+    this._closeColorStep();
 
     const isBool = obj.kind === 'boolean';
     const schema = PARAM_SCHEMA[obj.kind] || [];
@@ -419,6 +419,15 @@ export class Inspector {
     this.body.querySelectorAll('input[data-bind]').forEach((input) => {
       const evt = input.type === 'color' || input.type === 'text' ? 'input' : 'change';
       input.addEventListener(evt, () => this._apply(obj, input));
+      // A colour picker fires 'input' continuously while the pointer is dragged
+      // and 'change' once the value is committed, which is the honest end of the
+      // interaction. Closing the undo step there rather than on a timer is what
+      // makes a SLOW drag round the wheel one undo step instead of one per shade.
+      if (input.type === 'color') {
+        const close = () => this._closeColorStep();
+        input.addEventListener('change', close);
+        input.addEventListener('blur', close);
+      }
     });
 
     // Typing a driving dimension re-solves the sketch and rebuilds the solid.
@@ -572,8 +581,14 @@ export class Inspector {
       this.doc.commit(targets.length > 1 ? `Color ${targets.length} objects` : 'Color');
       if (targets.length > 1) notice = `${targets.length} objects are ${hex}.`;
     }
+    // A backstop only. The step is normally closed by 'change' or 'blur' on the
+    // picker, see _wire. This catches the case where neither ever arrives, and
+    // it is deliberately long, because the old 250ms window was itself the bug.
+    // Dragging slowly round the wheel put more than 250ms between shades, so
+    // every shade opened its own undo step and one Ctrl+Z walked back one shade
+    // at a time, which is exactly what the comment above promises it does not.
     clearTimeout(this._colorTimer);
-    this._colorTimer = setTimeout(() => { this._colorStep = false; }, 250);
+    this._colorTimer = setTimeout(() => { this._colorStep = false; }, 4000);
 
     for (const t of targets) t.setColor(hex);
     input.nextElementSibling.textContent = hex;
@@ -582,6 +597,19 @@ export class Inspector {
     // reads it, so one 'change' per drag tick settles the history without
     // making the outliner rebuild itself eight times a frame.
     return notice;
+  }
+
+  /**
+   * End the current colour undo step.
+   *
+   * Called when the picker commits or loses focus, and whenever the panel is
+   * rebuilt, since a fresh panel is a fresh history step. Anything that opens
+   * the next colour burst will then commit again, which is what makes each
+   * separate visit to the picker its own single undo.
+   */
+  _closeColorStep() {
+    clearTimeout(this._colorTimer);
+    this._colorStep = false;
   }
 
   _apply(obj, input) {
