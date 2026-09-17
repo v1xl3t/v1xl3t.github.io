@@ -119,17 +119,27 @@ const gizmo = new TransformControls(camera, renderer.domElement);
 gizmo.setSize(COARSE_POINTER ? 1.5 : 0.9);
 gizmo.addEventListener('dragging-changed', (e) => {
   orbit.enabled = !e.value;
-  if (!e.value) scaleDrag = null;                                  // drag over, forget the anchor
+  if (!e.value) { scaleDrag = null; groupDrag = null; }             // drag over, forget the anchors
 });
 gizmo.addEventListener('mouseDown', () => {                        // one history step per drag
   doc.commit({ translate: 'Move', rotate: 'Rotate', scale: 'Scale' }[gizmo.getMode()] || 'Transform');
+  // Order matters. beginGroupDrag reads the planted face out of scaleDrag to
+  // find the pivot the whole selection has to scale about, so the scale anchor
+  // is taken first and the group snapshot second.
   scaleDrag = beginScaleDrag();
+  groupDrag = beginGroupDrag();
 });
-gizmo.addEventListener('mouseUp', () => { scaleDrag = null; });
+gizmo.addEventListener('mouseUp', () => { scaleDrag = null; groupDrag = null; });
 gizmo.addEventListener('objectChange', () => {
   plantScaledFace();                       // before anything reads the transform
+  const moved = applyGroupDrag();          // the rest of the selection follows the primary
   const obj = doc.selected;
   if (obj) doc.dispatchEvent(new CustomEvent('change', { detail: obj }));
+  // Every object the drag moved has to say so, not just the one the gizmo is
+  // bolted to. doc.touch is the same 'change' event the line above dispatches,
+  // and it is what keeps the Inspector, the material styling and the history
+  // settle-debounce aware that these objects are mid-edit.
+  for (const o of moved) doc.touch(o);
 });
 scene.add(gizmo);
 
@@ -197,6 +207,204 @@ function plantScaledFace() {
     p.addScaledVector(AXIS_VEC[a].clone().applyQuaternion(d.quat), (d.scale0[a] - d.mesh.scale[a]) * f);
   }
   d.mesh.position.copy(p);
+}
+
+// --- a drag moves the WHOLE selection ------------------------------------
+// TransformControls writes to exactly one mesh, and Vi's biggest gripe with the
+// app was the consequence. She could shift-click five parts, drag, and watch one
+// of them leave the other four behind. The model has had real multi-select since
+// the beginning (doc.selection), so nothing about the document needed changing.
+// What was missing is the view honouring it.
+//
+// The shape of the fix is the one plantScaledFace already uses, for the same
+// reason. Snapshot every selected mesh ONCE at drag start, then on every move
+// event derive the primary's delta from its own snapshot and rebuild each
+// follower from ITS snapshot. Never nudge a follower by a per-frame increment.
+// A drag is a hundred move events and incremental nudging accumulates rounding,
+// which shows up as a group that slowly shears apart over a long drag.
+//
+// The pivot. Rotation and non-uniform scale need a shared centre, and the
+// defensible one is where the gizmo actually sits, which is the primary's own
+// origin. Scale is the interesting case. plantScaledFace deliberately keeps the
+// face opposite the grabbed handle nailed to its world position, so the primary
+// is NOT scaling about its origin, it is scaling about that planted face. Give
+// the followers the primary's raw position delta and the group shears, because
+// half of that delta is planted-face correction that means nothing to an object
+// sitting somewhere else. Give them the planted face as the pivot instead and
+// the whole selection becomes one similarity transform about the stationary
+// plane, the way a group of parts grows when you drag one wall of the bounding
+// box. The primary's own planted position falls out of exactly that same
+// equation, which is the check that says the two rules agree rather than merely
+// coexist. The uniform XYZ handle plants nothing and scales about the origin,
+// so there the pivot is just the primary's origin and the same code covers it.
+let groupDrag = null;
+
+// Is one rotation nothing more than a re-labelling of the axes?
+//
+// This exists because of the second half of that scale story, and it is worth
+// spelling out. The per-axis ratio the drag produces is measured along the
+// PRIMARY's local axes. Writing it straight into a follower's mesh.scale only
+// works while the follower is turned the same way as the primary, because
+// mesh.scale is applied along the FOLLOWER's own axes. Vi's chess set is the
+// counterexample. Twenty two pieces sit unrotated, Group 2 is yawed 90 degrees
+// about Y, and an X drag on the whole selection grew Group 2 along world Z
+// while its world X stayed where it was.
+//
+// The honest general answer is that a Mesh cannot express this. Stretching a
+// body along an axis that is not one of its own is a shear, a mesh carries
+// position, quaternion and scale, and no combination of those three is a shear.
+// So there are two cases and they get answered separately.
+//
+// The one that matters in practice is a quarter turn. If the relative rotation
+// sends every follower axis onto a primary axis, up to sign, then there is no
+// shear at all, only a renaming. Follower axis j lies along primary axis i, so
+// the stretch that belongs to it is the ratio on i. That is what this returns,
+// the index i for each follower axis j, or null when the rotation is a genuine
+// angle and the stretch cannot be honoured.
+//
+// The tolerance is deliberately tight. A file that stores a right angle as
+// 1.5708 rad is off by about four parts in a million, which this accepts, while
+// a real tilt of even a twentieth of a degree is rejected and gets told about
+// rather than quietly turned into wrong geometry.
+const AXIS_TOL = 1e-4;
+
+function axisPermutation(q) {
+  const e = new THREE.Matrix4().makeRotationFromQuaternion(q).elements;   // column major
+  const map = [];
+  for (let j = 0; j < 3; j++) {
+    let hit = -1;
+    for (let i = 0; i < 3; i++) {
+      const v = Math.abs(e[j * 4 + i]);
+      if (Math.abs(v - 1) <= AXIS_TOL) { if (hit >= 0) return null; hit = i; }
+      else if (v > AXIS_TOL) return null;
+    }
+    if (hit < 0) return null;
+    map.push(hit);
+  }
+  return map;
+}
+
+function beginGroupDrag() {
+  const primary = doc.selected;
+  if (!primary || !primary.mesh || doc.selection.size < 2) return null;
+  // The relative rotation of each follower, worked out once here rather than on
+  // every move event. Nothing in it can change mid-drag, because a scale drag
+  // writes scale and position and never a quaternion.
+  const q0inv = primary.mesh.quaternion.clone().invert();
+  const followers = doc.selectedObjects
+    .filter((o) => o && o.mesh && o !== primary)
+    .map((o) => ({
+      obj: o,
+      pos0: o.mesh.position.clone(),
+      quat0: o.mesh.quaternion.clone(),
+      scale0: o.mesh.scale.clone(),
+      axisMap: axisPermutation(q0inv.clone().multiply(o.mesh.quaternion)),
+    }));
+  if (!followers.length) return null;
+
+  const mesh = primary.mesh;
+  const mode = gizmo.getMode();
+  // Where the selection pivots. The primary's origin, except during a planted
+  // scale, where it is the world position of the face plantScaledFace is about
+  // to hold still.
+  const pivot = mesh.position.clone();
+  if (mode === 'scale' && scaleDrag && scaleDrag.mesh === mesh) {
+    for (const a of scaleDrag.axes) {
+      const f = scaleDrag.plant[a];
+      if (!f) continue;                     // that face already sits on the origin
+      pivot.addScaledVector(AXIS_VEC[a].clone().applyQuaternion(scaleDrag.quat), f * scaleDrag.scale0[a]);
+    }
+  }
+
+  return {
+    mode, primary, followers, pivot,
+    movedObjects: followers.map((f) => f.obj),
+    pos0: mesh.position.clone(),
+    quat0: mesh.quaternion.clone(),
+    scale0: mesh.scale.clone(),
+  };
+}
+
+// The "nothing followed" answer, shared rather than allocated per move event.
+// objectChange fires on the order of a hundred times in one drag.
+const NO_FOLLOWERS = [];
+
+// Rebuild every follower from its drag-start pose plus the primary's delta.
+// Returns the objects it moved so the caller can announce them, an empty array
+// when there is no group drag, which is the single-selection case and is left
+// bit-for-bit as it was.
+function applyGroupDrag() {
+  const g = groupDrag;
+  if (!g || g.primary.mesh !== gizmo.object) return NO_FOLLOWERS;
+  const mesh = g.primary.mesh;
+
+  if (g.mode === 'rotate') {
+    // The rotation the primary has picked up since the drag began, in world
+    // terms. Followers take the same turn about themselves and orbit the pivot.
+    const dq = mesh.quaternion.clone().multiply(g.quat0.clone().invert());
+    for (const f of g.followers) {
+      f.obj.mesh.quaternion.copy(dq).multiply(f.quat0);
+      f.obj.mesh.position.copy(f.pos0).sub(g.pivot).applyQuaternion(dq).add(g.pivot);
+    }
+  } else if (g.mode === 'scale') {
+    // Per-axis ratio, read off the primary. The guard is for a zero start scale,
+    // which cannot be recovered from by ratio and is left alone rather than
+    // turned into a NaN that would poison the follower's transform for good.
+    const r = new THREE.Vector3(
+      g.scale0.x ? mesh.scale.x / g.scale0.x : 1,
+      g.scale0.y ? mesh.scale.y / g.scale0.y : 1,
+      g.scale0.z ? mesh.scale.z / g.scale0.z : 1,
+    );
+    // The ratio is expressed along the primary's axes, so a follower's offset
+    // from the pivot is rotated into the primary's frame, stretched there, and
+    // rotated back. With nothing rotated this is the plain componentwise
+    // multiply you would write by hand, and it stays correct when the primary
+    // is turned.
+    const inv = g.quat0.clone().invert();
+    // A uniform scale is the same number on all three axes, so which axis is
+    // which stops mattering and every follower can take it whatever its
+    // rotation. That is the XYZ handle, and it keeps working exactly as it did.
+    const uniform = Math.abs(r.x - r.y) <= 1e-9 && Math.abs(r.y - r.z) <= 1e-9;
+    let sheared = 0;
+    let shearedName = '';
+    for (const f of g.followers) {
+      const m = f.axisMap;
+      if (m) {
+        // Follower axis j lies along primary axis m[j], so it takes the ratio
+        // that belongs to m[j]. A follower turned the same way as the primary
+        // has the identity map here and comes out of this the plain
+        // componentwise multiply it always was.
+        f.obj.mesh.scale.set(
+          f.scale0.x * r.getComponent(m[0]),
+          f.scale0.y * r.getComponent(m[1]),
+          f.scale0.z * r.getComponent(m[2]),
+        );
+      } else if (uniform) {
+        f.obj.mesh.scale.set(f.scale0.x * r.x, f.scale0.y * r.y, f.scale0.z * r.z);
+      } else {
+        // A real angle between this part and the primary, and a stretch on one
+        // axis only. There is no scale that does what was asked, so the part
+        // keeps the shape it had and still travels with the group, and the
+        // status line says so. Writing a plausible looking wrong number here is
+        // the bug this whole block exists to stop.
+        sheared++;
+        shearedName = f.obj.name || shearedName;
+      }
+      f.obj.mesh.position.copy(f.pos0).sub(g.pivot).applyQuaternion(inv).multiply(r).applyQuaternion(g.quat0).add(g.pivot);
+    }
+    // Once per drag, not once per move event.
+    if (sheared && !g.shearTold) {
+      g.shearTold = true;
+      flash(sheared === 1
+        ? `${shearedName || 'One part'} is turned at an angle to the part you are dragging, so a stretch on one axis would shear it. It moved with the group and kept its own size.`
+        : `${sheared} parts are turned at an angle to the part you are dragging, so a stretch on one axis would shear them. They moved with the group and kept their own size.`);
+    }
+  } else {
+    const d = mesh.position.clone().sub(g.pos0);
+    for (const f of g.followers) f.obj.mesh.position.copy(f.pos0).add(d);
+  }
+
+  return g.movedObjects;
 }
 
 applySnap(true);
@@ -1036,8 +1244,11 @@ function nudgeSelection(key, shift, repeat) {
   else if (key === 'arrowdown') shift ? (d.y = -step) : (d.z = step);
   else return;
   if (!repeat) doc.commit('Nudge');
-  for (const o of doc.selectedObjects) o.mesh.position.add(d);
-  if (doc.selected) doc.touch(doc.selected);
+  // Touch every object the nudge moved. This used to move the whole selection
+  // and then announce only the primary, so the Inspector and the render-mode
+  // styling never heard about the other objects, and the history settle-debounce
+  // was being kept alive by one object standing in for all of them.
+  for (const o of doc.selectedObjects) { o.mesh.position.add(d); doc.touch(o); }
   setStatus();
 }
 

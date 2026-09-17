@@ -192,16 +192,36 @@ export class SliceView {
     // stub with no visible way to explain itself.
     if (open) this.setCollapsed(false);
     // A stale plan keeps its numbers on screen, marked as stale, but its
-    // toolpaths stay off: a picture of the wrong model is worse than no picture.
-    this.group.visible = open && !!this.plan && !this.stale;
+    // toolpaths stay off, because a picture of the wrong model is worse than no
+    // picture.
+    const showing = open && !!this.plan && !this.stale;
+    this.group.visible = showing;
     if (open) {
-      if (!this.stale) this.hideModel();
+      // The model only steps aside when there is something to put in its place.
+      //
+      // Opening the panel used to hide every mesh right here, before anything
+      // had been sliced. Slicing is manual, so on a fresh open there is no plan
+      // and no preview, and the two hidden things added up to an empty
+      // viewport with nothing in it and no explanation. Vi hit exactly that,
+      // "the objects disappeared when I opened the slicer", and nothing brought
+      // them back until she pressed Slice.
+      //
+      // So the hide now happens where the toolpaths appear, in buildPreview,
+      // and this branch only has to agree with whatever state the plan is
+      // already in. Reopening onto a live preview hides the model again,
+      // reopening onto a stale or absent one leaves it alone.
+      if (showing) this.hideModel();
+      else this.restoreModel();
       this.renderStale();
       this.onOpen();
     } else {
       this.restoreModel();
     }
-    this.onVisibility(open);
+    // What this reports is whether the PREVIEW is on screen, not whether the
+    // panel is. They are different states now that the panel can be open over a
+    // model that is still fully visible, and the dimension chips want the
+    // first one, they are only in the way when the solid they annotate is.
+    this.onVisibility(showing);
   }
 
   // ---- the model gets out of the way ------------------------------------
@@ -718,7 +738,16 @@ export class SliceView {
   // -------------------------------------------------------------- preview
   buildPreview() {
     this.disposePreview();
-    if (!this.plan || !this.plan.layers.length) return;
+    if (!this.plan || !this.plan.layers.length) {
+      // A plan with nothing in it draws nothing, so there is no preview for the
+      // model to stand behind. Putting the solids back here keeps the one rule
+      // this class has, which is that the model is only ever hidden while
+      // toolpaths are on screen in its place.
+      this.group.visible = false;
+      this.restoreModel();
+      this.onVisibility(false);
+      return;
+    }
 
     const [dx, dy, dz] = this.placement?.offset || [0, 0, 0];
     // The exact inverse of the Y-up to Z-up rotation io.js baked in, plus the
@@ -770,6 +799,9 @@ export class SliceView {
     this.group.visible = this.visible;
     this.setLayer(this.ranges.length - 1);
     if (this.group.visible) {
+      // This is the ONE moment the solids are allowed to disappear, because it
+      // is the only moment there is something to see instead of them. Every
+      // other path either leaves them alone or puts them back.
       this.hideModel();
       this.onVisibility(true);
       // Frame the TOOLPATHS, not the group: the group also holds the build
@@ -852,16 +884,64 @@ export class SliceView {
   }
 
   // --------------------------------------------------------------- output
+  /**
+   * Save the G-code, and make an oversized slice say so in both places it can.
+   *
+   * The USB path below already refuses to stream a job that does not fit, and
+   * that refusal is right, but it only guards the printer for as long as this
+   * tab is open. A saved .gcode file outlives the tab that made it. It gets
+   * copied onto an SD card, it sits in a downloads folder for a month, it gets
+   * handed to somebody who was never in the room when the panel said the model
+   * was 399mm across on a 220mm bed. Before this, nothing in the file said a
+   * word about it, and the first thing that noticed was the gantry hitting the
+   * frame.
+   *
+   * Saving is still allowed and the button stays enabled, which is the whole
+   * judgment here. The slicer's own note calls an oversized result a file for
+   * inspection only, and inspecting the layers of a part you are about to
+   * scale down or cut into pieces is a real reason to want it. Taking Save
+   * away would remove something useful to protect against something the file
+   * can warn about itself. So the file goes out, and it goes out shouting, in
+   * three ways at once. The panel says it, the download is named so the misfit
+   * is visible in a file listing before anything opens it, and the first thing
+   * inside the file is a block of comments that cannot be missed.
+   *
+   * There is deliberately no confirmation dialog. The dangerous act is feeding
+   * the file to a machine, not writing it to disk, and the file now carries
+   * its own warning to that machine.
+   */
   saveGcode() {
     if (!this.gcode) { this.flash('Slice something first.'); return; }
-    const blob = new Blob([this.gcode], { type: 'text/plain' });
+
+    const misfit = !!(this.placement && this.placement.fits === false);
+    // Prepending rather than asking the emitter to include it keeps this.gcode
+    // the exact bytes the USB path streams, and keeps a fitting model's file
+    // byte for byte what it was before this existed.
+    const text = misfit ? oversizeBanner(this.placement, this.settings) + this.gcode : this.gcode;
+    const stem = `${this.settings.qualityId}-${this.settings.materialId}`;
+
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cadence-${this.settings.qualityId}-${this.settings.materialId}.gcode`;
+    a.download = misfit ? `cadence-DOES-NOT-FIT-${stem}.gcode` : `cadence-${stem}.gcode`;
     a.click();
     URL.revokeObjectURL(url);
-    this.flash('G-code saved.');
+
+    const host = this.el.querySelector('#sl-printer');
+    if (misfit) {
+      const why = oversizeReasons(this.placement, this.settings).join(', and ');
+      if (host) {
+        host.innerHTML = `<div class="sl-msg bad">Saved, and this model does not fit the ${escapeHtml(this.settings.machineName)}${why ? `, because ${escapeHtml(why)}` : ''}. The file is for inspection only and it says so in a warning at the top, so do not send it to a printer. Scale the model down or cut it into pieces that fit, then slice again.</div>`;
+      }
+      this.flash('G-code saved, and it does not fit the printer. Read the warning at the top of the file.');
+    } else {
+      // A fitting save clears whatever an earlier oversized one left behind,
+      // so the panel never shows a warning about a model that has since been
+      // scaled down and resliced.
+      if (host) host.innerHTML = '';
+      this.flash('G-code saved.');
+    }
   }
 
   async startPrint() {
@@ -928,6 +1008,77 @@ function makeLines(pos, col, opacity) {
 }
 
 const fmtSize = (s) => (s ? `${s.w.toFixed(1)} × ${s.d.toFixed(1)} × ${s.h.toFixed(1)}mm` : '—');
+
+/**
+ * Say, in one sentence per axis, exactly which way the model overruns.
+ *
+ * This deliberately recomputes the comparison rather than reading the list
+ * placeOnBed() already built. Slicing normally happens in a worker, and the
+ * worker posts back only the offset, the size and the fits flag, so
+ * `placement.warnings` is present on the main thread fallback path and
+ * undefined every other time. A warning whose reason silently disappears
+ * depending on whether a Worker started is worse than no reason at all, so the
+ * wording is kept here and derived from numbers that always survive the trip.
+ * It is deliberately word for word what placeOnBed() says, and if one of them
+ * is ever reworded the other should follow.
+ */
+function oversizeReasons(placement, s) {
+  const size = placement && placement.size;
+  if (!size) return [];
+  const out = [];
+  if (size.w > s.bedWidth || size.d > s.bedDepth) {
+    out.push(`the model is ${size.w.toFixed(1)} x ${size.d.toFixed(1)}mm and the bed is ${s.bedWidth} x ${s.bedDepth}mm`);
+  }
+  if (size.h > s.bedHeight) {
+    out.push(`the model is ${size.h.toFixed(1)}mm tall and this machine can reach ${s.bedHeight}mm`);
+  }
+  return out;
+}
+
+/**
+ * The block of comments that goes at the very top of a saved G-code file when
+ * the sliced model does not fit the machine.
+ *
+ * Every line here is a G-code comment. A comment starts with a semicolon and
+ * runs to the end of the line, and comment lines ahead of the first command
+ * are legal everywhere, so this cannot turn a valid file into an invalid one.
+ * It sits ABOVE the CADence header rather than inside it on purpose, because
+ * the readers that matter only ever see the beginning. A firmware file preview
+ * shows the first handful of lines, a text editor opens on line one, and a
+ * person checking a file they were handed scrolls no further than the top of
+ * the screen. Buried on line forty it would be true and useless.
+ *
+ * The wording names the three facts somebody needs to act, which model size
+ * was sliced, which machine it was sliced for, and what that machine can
+ * actually reach, followed by the slicer's own reasons in the slicer's own
+ * words so the file and the panel never disagree with each other.
+ */
+function oversizeBanner(placement, s) {
+  const rule = ';' + '='.repeat(74);
+  const size = placement && placement.size;
+  const lines = [
+    rule,
+    '; WARNING, THIS MODEL DOES NOT FIT THE PRINTER. DO NOT PRINT THIS FILE.',
+    rule,
+    '; CADence sliced it anyway so the layers could be inspected, and inspection',
+    '; is the only thing this file is good for.',
+    ';',
+    `; Model size, ${size ? `${size.w.toFixed(1)} x ${size.d.toFixed(1)} x ${size.h.toFixed(1)}mm` : 'unknown'}`,
+    `; Machine, ${s.machineName}`,
+    `; Build volume, ${s.bedWidth} x ${s.bedDepth} x ${s.bedHeight}mm`,
+  ];
+  for (const w of oversizeReasons(placement, s)) lines.push(`; Reason, ${w}`);
+  lines.push(
+    ';',
+    '; Moves in this file reach past the edges of that build volume. Running it',
+    '; will drive the toolhead into the frame and can damage the printer. Scale',
+    '; the model down or cut it into pieces that fit, slice again, and print the',
+    '; file you get from that instead.',
+    rule,
+    '',
+  );
+  return lines.join('\n');
+}
 
 /**
  * Answer "did my supports actually happen" in one line.

@@ -46,6 +46,10 @@ export class Inspector {
     }
     this.empty.hidden = true;
     this.body.hidden = false;
+    // A fresh panel is a fresh history step. Without this a color burst that
+    // was still settling when the selection changed would fold the next edit
+    // into the previous one's undo node.
+    this._colorStep = false;
 
     const isBool = obj.kind === 'boolean';
     const schema = PARAM_SCHEMA[obj.kind] || [];
@@ -89,6 +93,14 @@ export class Inspector {
     const meta = isBool
       ? `Type: <b>group</b> · <b>${obj.children?.length ?? 0}</b> parts baked · id <b>${obj.id}</b>`
       : `Type: <b>${obj.kind}</b> · id <b>${obj.id}</b>`;
+
+    // With several things selected the panel still shows one of them, so say
+    // which of these controls reach the rest. Without this line a color that
+    // repaints eight objects and a depth field that moves one look identical.
+    const count = this.doc.selection.size;
+    const batchNote = count > 1
+      ? `<div class="meta batch-note"><b>${count}</b> objects selected. Color and ${ROLE_LABELS.solid} / ${ROLE_LABELS.hole} change all of them, everything else changes <b>${esc(obj.name)}</b>.</div>`
+      : '';
 
     const roleRow = `
       <div class="field">
@@ -139,6 +151,7 @@ export class Inspector {
     this.body.innerHTML = `
       <div class="meta">${meta}</div>
       <div class="meta" id="bbox-readout">${this._bboxText(obj)}</div>
+      ${batchNote}
 
       <div class="field">
         <label>Name</label>
@@ -454,10 +467,21 @@ export class Inspector {
     });
     this.body.querySelectorAll('button[data-role]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        obj.setRole(btn.dataset.role);
-        this.doc.touch(obj);
+        const role = btn.dataset.role;
+        const targets = this._targets(obj);
+        this.doc.commit(targets.length > 1 ? `${ROLE_LABELS[role]} ${targets.length} objects` : ROLE_LABELS[role]);
+        for (const t of targets) {
+          t.setRole(role);
+          this.doc.touch(t);
+        }
         this.onChange(obj);
         this.render();           // reflect color + active state
+        // setRole resets each object's color to the role's default, which is
+        // deliberate for one object and worth saying out loud for eight,
+        // because a mixed selection loses every color it was carrying.
+        if (targets.length > 1) {
+          this.onNotice?.(`${targets.length} objects are ${role === 'hole' ? 'cutting' : 'solid'}, back in the default ${role === 'hole' ? 'cut' : 'add'} color.`);
+        }
       });
     });
     this.body.querySelectorAll('input[data-exact]').forEach((input) => {
@@ -505,12 +529,68 @@ export class Inspector {
     });
   }
 
+  /**
+   * Who an Inspector edit lands on.
+   *
+   * The panel is drawn from the primary selection, because one object's worth
+   * of fields is all that fits and all that makes sense. The document's
+   * selection can hold many though, and Vi's report was that "selecting
+   * multiple and changing color or add/cut only applies to one". Those two
+   * properties are the ones every object has in the same form, so they are the
+   * ones that batch.
+   *
+   * Dimensions deliberately do not. A box's width and a sphere's radius are not
+   * the same field, and writing one into the other is not a batch edit, it is a
+   * wrong edit. Name does not either, since eight objects called the same thing
+   * is worse than the typing it saved.
+   */
+  _targets(obj) {
+    const sel = this.doc.selectedObjects;
+    return sel.length > 1 && sel.includes(obj) ? sel : [obj];
+  }
+
+  /**
+   * Paint the whole selection, and make the whole batch one undo step.
+   *
+   * A color input fires 'input' continuously while the pointer is dragged
+   * around the picker, and each of those is a step in the sense that a mouse
+   * move is. The history arms once per burst here and lets its own settle
+   * debounce fold the drag into a single node, so undo gives back the color
+   * you started from rather than walking the wheel backwards one shade at a
+   * time.
+   *
+   * Returns the message the caller should say once it has finished, rather than
+   * saying it here. onChange rewrites the status line with the selection
+   * summary, so a notice raised now would be gone a line of code later.
+   */
+  _applyColor(obj, input) {
+    const hex = input.value;
+    const targets = this._targets(obj);
+    let notice = '';
+    if (!this._colorStep) {
+      this._colorStep = true;
+      this.doc.commit(targets.length > 1 ? `Color ${targets.length} objects` : 'Color');
+      if (targets.length > 1) notice = `${targets.length} objects are ${hex}.`;
+    }
+    clearTimeout(this._colorTimer);
+    this._colorTimer = setTimeout(() => { this._colorStep = false; }, 250);
+
+    for (const t of targets) t.setColor(hex);
+    input.nextElementSibling.textContent = hex;
+    // Only the primary is touched, by the caller, and once is enough. A color
+    // is painted straight onto each material and nothing in the Objects panel
+    // reads it, so one 'change' per drag tick settles the history without
+    // making the outliner rebuild itself eight times a frame.
+    return notice;
+  }
+
   _apply(obj, input) {
     const bind = input.dataset.bind;
     const num = parseFloat(input.value);
+    let notice = '';
 
     if (bind === 'name') { obj.name = input.value; }
-    else if (bind === 'color') { obj.setColor(input.value); input.nextElementSibling.textContent = input.value; }
+    else if (bind === 'color') { notice = this._applyColor(obj, input); }
     else if (bind.startsWith('dim:')) {
       if (Number.isNaN(num)) return;
       obj.params[bind.slice(4)] = num;
@@ -522,6 +602,8 @@ export class Inspector {
 
     this.doc.touch(obj);
     this.onChange(obj);
+    // Last, because onChange writes the selection summary over the status line.
+    if (notice) this.onNotice?.(notice);
   }
 
   // Update field values without rebuilding DOM — used while the gizmo drags.

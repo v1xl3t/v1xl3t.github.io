@@ -317,6 +317,11 @@ html[data-ui="paper"] {
   --bg: #eef0f3; --panel: #ffffffe6; --panel-solid: #ffffff;
   --border: #d3d8e0; --text: #1b2230; --muted: #5d6675;
   --accent: #255ada; --accent-dim: #bcd2ff;
+  /* The root --danger is tuned for the dark skins, and on a near white panel it
+     falls to 2.7 to 1, well under the 4.5 a warning has to clear. This is the
+     same red the Paper axis labels already use, so the palette gains nothing
+     new and every danger message becomes readable. */
+  --danger: #b4231f;
 }
 html[data-ui="paper"] button { background: #f3f5f8; }
 html[data-ui="paper"] button:hover { background: #e9edf3; }
@@ -347,6 +352,11 @@ html[data-ui="plush"] {
   --bg: #fceaf4; --panel: #fbe3f0e6; --panel-solid: #fbe3f0;
   --border: #f0c4dd; --text: #4a2a3f; --muted: #7d5068;
   --accent: #b32d7d; --accent-dim: #f7d3e8;
+  /* Same reason as Paper. On this pink panel the root --danger reads 2.27 to 1,
+     which is the worst in the app. A shade darker than Paper's, because the
+     pink panel sits lighter than white once the message tint is mixed over it,
+     and Paper's red lands a hair under 4.5 against the 12 percent tint. */
+  --danger: #a81f1a;
 }
 html[data-ui="plush"] button { background: #f9dcee; }
 html[data-ui="plush"] button:hover { background: #f5cbe4; }
