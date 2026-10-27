@@ -36,7 +36,14 @@
   <a id="go" href="https://cadchad.com/">CADchad is now at cadchad.com</a>
 </p>
 <script>
-  var target = 'https://cadchad.com/' + (location.search || '') + (location.hash || '');
+  // The app moved off the root of cadchad.com to /app/ on 2026-10-27. The
+  // landing page forwards payload-bearing links there by itself, so this
+  // works either way, but sending them direct saves a hop on exactly the
+  // links that matter most. Anything WITHOUT a payload goes to the landing
+  // page, which is where a person who typed the old address wants to be.
+  var q = location.search || '', h = location.hash || '';
+  var carries = /[#&]d=[A-Za-z0-9_-]/.test(h) || /[?&](models?=|view=render)/.test(q);
+  var target = 'https://cadchad.com/' + (carries ? 'app/' : '') + q + h;
   document.getElementById('go').href = target;
   location.replace(target);
 </script>

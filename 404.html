@@ -69,7 +69,17 @@
          redirect hop while Pages put the slash back. The ORIGINAL pathname is
          used for the tail so a directory stays a directory. */
       var tail = location.pathname.slice(base.length);
-      location.replace(MOVED[base] + tail + (location.search || '') + (location.hash || ''));
+      var q = location.search || '', h = location.hash || '';
+      /* CADchad's app moved off the root to /app/ on 2026-10-27. A bare
+         /cadence/ belongs on the landing page, but a link CARRYING a design
+         or a render deep link belongs in the app, and sending it straight
+         there saves a hop. Assets keep their tail, because src/, vendor/ and
+         models/ stayed at the root of the new domain. */
+      if (base === '/cadence' && (tail === '' || tail === '/') &&
+          (/[#&]d=[A-Za-z0-9_-]/.test(h) || /[?&](models?=|view=render)/.test(q))) {
+        tail = '/app/';
+      }
+      location.replace(MOVED[base] + tail + q + h);
       return;
     }
   }
