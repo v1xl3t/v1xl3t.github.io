@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HACKING PARADISE</title>
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="https://hackingparadise.com/found/">
+<meta http-equiv="refresh" content="0; url=https://hackingparadise.com/found/">
+<!--
+  Moved to https://hackingparadise.com/found/ on 2026-10-26.
+
+  This file exists so the path answers 200 rather than 404. The 404 router
+  forwards moved subpaths too, but GitHub Pages serves 404.html with a real
+  404 status, so a crawler drops the URL instead of following it and a visitor
+  with JavaScript off sees a dead end. A shim here gives both of them a
+  canonical and a working link.
+
+  Query and fragment are rebuilt onto the new origin by the script, because
+  the meta refresh above does not carry them.
+-->
+<style>
+  html { color-scheme: dark light; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+         font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 24px; text-align: center; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<p>
+  <noscript>This page has moved. </noscript>
+  <a id="go" href="https://hackingparadise.com/found/">HACKING PARADISE is now at hackingparadise.com</a>
+</p>
+<script>
+  var target = 'https://hackingparadise.com/found/' + (location.search || '') + (location.hash || '');
+  document.getElementById('go').href = target;
+  location.replace(target);
+</script>
+</body>
+</html>
