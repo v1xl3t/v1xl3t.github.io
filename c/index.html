@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CADence</title>
+<title>CADchad</title>
 <meta name="robots" content="noindex">
 <!--
-  Short alias for CADence share links.
+  Short alias for CADchad share links.
 
-  `https://vi-ellis.com/cadence/#d=` spends 32 characters before a design
+  `https://vi-ellis.com/cadence/#d=` spent 32 characters before a design
   exists. At roughly six characters per part, that is two or three parts of a
   hundred character budget gone to the address bar. `vi-ellis.com/c/#` is 16.
 
@@ -29,11 +29,13 @@
 </style>
 </head>
 <body>
-<p><noscript>This short link needs JavaScript. </noscript><a id="go" href="/cadence/">Opening CADence…</a></p>
+<p><noscript>This short link needs JavaScript. </noscript><a id="go" href="https://cadchad.com/">Opening CADchad…</a></p>
 <script>
   // Keep the query too, so `?v=2` style cache-busting still works through the
   // alias rather than being silently dropped.
-  var target = '/cadence/' + (location.search || '') + (location.hash || '');
+  // Repointed 2026-10-26: the app lives at cadchad.com now. Old /c/#d= links
+  // keep working because the fragment is rebuilt onto the new origin here.
+  var target = 'https://cadchad.com/' + (location.search || '') + (location.hash || '');
   document.getElementById('go').href = target;
   location.replace(target);
 </script>

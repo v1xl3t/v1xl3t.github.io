@@ -1,7 +1,8 @@
 // app.js — the wiring.
 //
 // Everything the test suite needs to drive is hung on window.playalong, the way
-// CADence exposes window.cadence, so the suite can push a synthetic click track
+// CADchad exposes window.cadchad (window.cadence is still aliased), so the
+// suite can push a synthetic click track
 // through the real pipeline instead of a pretend one.
 
 import { analyze, analyzeBuffer, downmix, estimateMeter, DEFAULTS } from './analyze.js';

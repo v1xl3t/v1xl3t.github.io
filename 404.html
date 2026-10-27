@@ -56,6 +56,24 @@
   var path = location.pathname.replace(/\/+$/, '');
   document.getElementById('what').textContent = path + location.search;
 
+  /* Paths that moved to their own domain on 2026-10-26. Only the index of
+     each has a shim file, so every SUBPATH lands here instead, and this is
+     what carries it across rather than showing a stranger a 404. The tail,
+     the query and the fragment are all rebuilt onto the new origin, because
+     /hp/games/ and a /cadence/#d= share link both have to keep working. */
+  var MOVED = { '/cadence': 'https://cadchad.com', '/hp': 'https://hackingparadise.com' };
+  for (var base in MOVED) {
+    if (path === base || path.indexOf(base + '/') === 0) {
+      /* `path` has had its trailing slash stripped at the top of this script,
+         which matters: /hp/games/ would forward to /games and cost an extra
+         redirect hop while Pages put the slash back. The ORIGINAL pathname is
+         used for the tail so a directory stays a directory. */
+      var tail = location.pathname.slice(base.length);
+      location.replace(MOVED[base] + tail + (location.search || '') + (location.hash || ''));
+      return;
+    }
+  }
+
   var m = path.match(/^\/s\/([^\/]+)$/i);
   if (!m) return;
 

@@ -107,16 +107,13 @@ jobs:
       # pixels. Until that is done this reports without blocking, because a gate
       # that red-lights unrelated CADence pushes gets switched off by everyone,
       # and then it protects nothing.
-      - name: HP contrast ratchet (scroll-depth sweep)
-        continue-on-error: true
-        run: |
-          python3 -m http.server 8080 >/dev/null 2>&1 &
-          SRV=$!
-          sleep 2
-          node .github/scripts/hp-contrast-gate.mjs http://localhost:8080
-          STATUS=$?
-          kill $SRV 2>/dev/null || true
-          exit $STATUS
+      # HP contrast ratchet: REMOVED 2026-10-26. The page moved to
+      # hackingparadise.com and this repo serves only a noindex shim at /hp/,
+      # so there is nothing here for the gate to measure. The script and its
+      # baseline moved to that repo under gate/, with a note explaining why it
+      # is not wired into CI there yet: it already failed against the original
+      # page before the move, so the baseline is stale and re-recording it is
+      # Vi's call, not a thing to do silently.
 
       # Phone width and Vi's vertical desktop monitor. Nothing may need zooming
       # or sideways scrolling on a vertical viewport.

@@ -1,5 +1,5 @@
 {
-  "_comment": "Per-page metadata. .github/scripts/ogcards.mjs renders a share card for each entry into media/og/, and each page's head points at it. Add a page here, rerun the generator, and paste the head block. /s/ is deliberately absent: shortlinks.mjs generates that page, and two generators cannot own one file.",
+  "_comment": "Per-page metadata. .github/scripts/ogcards.mjs renders a share card for each entry into media/og/, and each page's head points at it. Add a page here, rerun the generator, and paste the head block. /s/ is deliberately absent: shortlinks.mjs generates that page, and two generators cannot own one file.  /cadence/ and /hp/ were removed on 2026-10-26: they moved to cadchad.com and hackingparadise.com and are now noindex shims here. A page listed in this file gets a generated meta block and a sitemap entry, which is the opposite of what a shim wants.",
   "site": "https://vi-ellis.com",
   "author": "Vi Ellis",
   "pages": {
@@ -13,12 +13,6 @@
       "title": "Things you can play with",
       "card": "Eleven built things, all live in the browser",
       "desc": "A directory of the tools and toys Vi Ellis has shipped, from a browser 3D modeller to a drum play-along, all running without an install.",
-      "accent": "green"
-    },
-    "/cadence/": {
-      "title": "CADence",
-      "card": "Precise 3D modelling in the browser",
-      "desc": "A browser 3D modeller that makes professional-grade CAD as approachable as a toy. Every shape is an editable recipe of exact parameters, and it slices its own models for printing.",
       "accent": "green"
     },
     "/perch/": {
@@ -61,12 +55,6 @@
       "title": "Chatbot",
       "card": "An early conversational experiment",
       "desc": "An early conversational interface experiment by Vi Ellis, kept online as it was built.",
-      "accent": "violet"
-    },
-    "/hp/": {
-      "title": "HACKING PARADISE",
-      "card": "A studio and publishing collective",
-      "desc": "A media-arts collective for makers who find the unexpected route. We build, we ship, and we climb together.",
       "accent": "violet"
     },
     "/legoset/": {
