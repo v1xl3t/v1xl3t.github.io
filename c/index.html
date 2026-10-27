@@ -29,13 +29,16 @@
 </style>
 </head>
 <body>
-<p><noscript>This short link needs JavaScript. </noscript><a id="go" href="https://cadchad.com/">Opening CADchad…</a></p>
+<p><noscript>This short link needs JavaScript. </noscript><a id="go" href="https://cadchad.com/app/">Opening CADchad…</a></p>
 <script>
   // Keep the query too, so `?v=2` style cache-busting still works through the
   // alias rather than being silently dropped.
+  // Repointed 2026-10-27: the app moved from the root of cadchad.com to
+  // /app/. The landing page forwards #d= there anyway, but this link only
+  // ever carries a design, so it skips the hop.
   // Repointed 2026-10-26: the app lives at cadchad.com now. Old /c/#d= links
   // keep working because the fragment is rebuilt onto the new origin here.
-  var target = 'https://cadchad.com/' + (location.search || '') + (location.hash || '');
+  var target = 'https://cadchad.com/app/' + (location.search || '') + (location.hash || '');
   document.getElementById('go').href = target;
   location.replace(target);
 </script>
