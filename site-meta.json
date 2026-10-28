@@ -2,6 +2,94 @@
   "_comment": "Per-page metadata. .github/scripts/ogcards.mjs renders a share card for each entry into media/og/, and each page's head points at it. Add a page here, rerun the generator, and paste the head block. /s/ is deliberately absent: shortlinks.mjs generates that page, and two generators cannot own one file.  /cadence/ and /hp/ were removed on 2026-10-26: they moved to cadchad.com and hackingparadise.com and are now noindex shims here. A page listed in this file gets a generated meta block and a sitemap entry, which is the opposite of what a shim wants.",
   "site": "https://vi-ellis.com",
   "author": "Vi Ellis",
+  "gating": {
+    "_comment": "Tier 1 of the gating system, board item t9272. Every page that must stay out of search is registered here with its TIER, and .github/scripts/pagemeta.mjs writes the robots tag from this table. Never hand-edit a robots meta tag, edit this manifest and rerun the generator. pagemeta check fails if a page carries noindex without being registered, which is what stops a new unfinished subpage from shipping crawlable. A path may appear in pages OR here, never both.",
+    "_tierNote": "A bare noindex already implies follow, so shim, placeholder and utility are the same directive today and differ only in recorded intent. draft and sealed add nofollow because an unfinished page should not hand a crawler its outbound links either.",
+    "_disallowTrap": "robotsDisallow stops a crawler fetching the path at all, which also stops it ever reading the noindex. That is right for a path that was never indexed and wrong for one you are trying to get REMOVED from an index. To deindex, leave it crawlable and let the noindex be seen.",
+    "tiers": {
+      "shim": {
+        "robots": "noindex, follow",
+        "why": "A redirect page. Follow so the destination still gets discovered."
+      },
+      "placeholder": {
+        "robots": "noindex, follow",
+        "why": "Announced but not built. No content worth indexing."
+      },
+      "utility": {
+        "robots": "noindex, follow",
+        "why": "Infrastructure, such as the 404 router."
+      },
+      "draft": {
+        "robots": "noindex, nofollow",
+        "why": "Real but unfinished work. Out of search, readable by anyone holding the URL. This is the DEFAULT tier for anything merely unfinished."
+      },
+      "sealed": {
+        "robots": "noindex, nofollow",
+        "why": "Tier 2. The page ships as ciphertext and a passphrase derives the key in the browser. See .github/scripts/seal.mjs."
+      }
+    },
+    "robotsDisallow": [
+      "/s/",
+      "/c/",
+      "/r/",
+      "/portfolio/",
+      "/arcade/"
+    ],
+    "indexed": [
+      "/legoset/members.html",
+      "/legoset/radio.html"
+    ],
+    "_indexedNote": "Deliberately crawlable, but with no generated share card so they do not belong in pages. Both are linked from /legoset/, which is itself indexed, so a crawler reaches them either way and noindexing them would be a lie about intent.",
+    "undecided": {},
+    "_undecidedNote": "Open decisions, reported on every run and never failed, because the call is Vi's. Resolve by moving the entry into pages, gating.indexed or gating.unlisted.",
+    "unlisted": {
+      "/404.html": "utility",
+      "/animator/": "placeholder",
+      "/arcade/": "shim",
+      "/c/": "shim",
+      "/cadence/": "shim",
+      "/daw/": "placeholder",
+      "/hp/": "shim",
+      "/hp/found/": "shim",
+      "/hp/games/": "shim",
+      "/hp/games/cards.html": "shim",
+      "/hp/games/freecell.html": "shim",
+      "/hp/games/golf.html": "shim",
+      "/hp/games/hearts.html": "shim",
+      "/hp/games/pyramid.html": "shim",
+      "/hp/games/reversi.html": "shim",
+      "/hp/games/solitaire.html": "shim",
+      "/hp/games/spider.html": "shim",
+      "/hp/invite/": "shim",
+      "/hp/judah.html": "shim",
+      "/hp/robby.html": "shim",
+      "/hp/shinobi-necro.html": "shim",
+      "/hp/violet.html": "shim",
+      "/ivy/": "sealed",
+      "/legoset/merch.html": "placeholder",
+      "/portfolio/": "shim",
+      "/r/": "shim",
+      "/s/": "shim",
+      "/s/AISE/": "shim",
+      "/s/APPS/": "shim",
+      "/s/AUDIO/": "shim",
+      "/s/CAD/": "shim",
+      "/s/CV/": "shim",
+      "/s/FDE/": "shim",
+      "/s/GN/": "shim",
+      "/s/HP/": "shim",
+      "/s/HW/": "shim",
+      "/s/MAKE/": "shim",
+      "/s/PDF/": "shim",
+      "/s/PERCH/": "shim",
+      "/s/RS/": "shim",
+      "/s/SWE/": "shim",
+      "/s/WORK/": "shim",
+      "/studio/": "placeholder",
+      "/v2/": "draft",
+      "/v2/skins/": "draft"
+    }
+  },
   "pages": {
     "/": {
       "title": "Vi Ellis",

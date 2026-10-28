@@ -1,3 +1,7 @@
 
 # A relay credential is a secret and belongs to whoever set it up.
 hp/games/turn.json
+
+# Tier 2 gating, board item t9272. Plaintext sources for sealed pages. Only
+# the encrypted output belongs in the repo. A file in here has never shipped.
+_vault/
