@@ -391,4 +391,34 @@
 
 
 
-<div style="position:relative;z-index:50;text-align:center;padding:46px 0 30px;font-family:'Open Sans Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.3em;color:#F8BBD0;text-shadow:2px 2px 0 rgba(0,0,0,.55)">SITE BY VI ELLIS MMXVII</div></body></html>
+<div style="position:relative;z-index:50;text-align:center;padding:46px 0 30px;font-family:'Open Sans Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.3em;color:#F8BBD0;text-shadow:2px 2px 0 rgba(0,0,0,.55)">SITE BY VI ELLIS MMXVII</div>
+<!-- Contrast plate, added 2026-10-29. The pink headings measured 1.84:1
+     against the noise photograph, under the 3:1 WCAG AA requires for large
+     text. A plate keeps the pink exactly as Vi drew it and puts a steady
+     ground behind it instead. #faa7c6 on #1a1016 is 10.1:1.
+     Scoped to the INNER rich-text span, which is the only thing on these
+     pages that carries the pink. -->
+<style>
+  /* The hand written footer credit. Same problem, different pink: #f8bbd0 at
+     13px measured 1.61:1 on the noise, and small text needs 4.5:1. It already
+     carried a text-shadow, which helps a human but which the gate correctly
+     does not credit, because a shadow does not change the colour behind the
+     glyphs. A hugging plate does. #f8bbd0 on #1a1016 is 11.5:1.
+     The inline style has to be overridden, hence the !important: the outer
+     spacing is kept as margin so the footer does not move. */
+  div[style*="#F8BBD0"]{
+    background-color:#1a1016;
+    width:fit-content;
+    border-radius:3px;
+    padding:7px 14px !important;
+    margin:39px auto 23px !important;
+  }
+  .vxui-rich-text__text .vxui-rich-text__text{
+    background-color:#1a1016;
+    padding:0 .2em;
+    border-radius:3px;
+    -webkit-box-decoration-break:clone;
+    box-decoration-break:clone;
+  }
+</style>
+</body></html>

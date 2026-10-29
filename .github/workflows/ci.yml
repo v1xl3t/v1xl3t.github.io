@@ -68,12 +68,17 @@ jobs:
           exit $STATUS
 
       # Legibility gate. Every text node, both themes, real composited backgrounds.
+      # --all reads the page list from site-meta.json instead of hardcoding it
+      # here, so a page added to the manifest is gated from the moment it
+      # exists. Measured 2026-10-29: these two gates ran on / and /apps/ while
+      # eleven pages were indexed, and of the nine they never looked at, two
+      # were failing WCAG AA. The protection looked total and was partial.
       - name: WCAG AA contrast gate (both themes)
         run: |
           python3 -m http.server 8080 >/dev/null 2>&1 &
           SRV=$!
           sleep 2
-          node .github/scripts/contrast.mjs http://localhost:8080 / /apps/
+          node .github/scripts/contrast.mjs http://localhost:8080 --all
           STATUS=$?
           kill $SRV 2>/dev/null || true
           exit $STATUS
@@ -131,7 +136,7 @@ jobs:
           python3 -m http.server 8080 >/dev/null 2>&1 &
           SRV=$!
           sleep 2
-          node .github/scripts/viewport.mjs http://localhost:8080 / /apps/
+          node .github/scripts/viewport.mjs http://localhost:8080 --all
           STATUS=$?
           kill $SRV 2>/dev/null || true
           exit $STATUS

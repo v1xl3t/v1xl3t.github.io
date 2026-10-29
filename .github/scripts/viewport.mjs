@@ -9,11 +9,27 @@
 // sideways" is useless without knowing what is sticking out.
 //
 // Usage: node .github/scripts/viewport.mjs http://localhost:8080 [path ...]
+import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const BASE = process.argv[2] || 'http://localhost:8080';
 const PATHS = process.argv.slice(3);
-const PAGES = PATHS.length ? PATHS : ['/', '/apps/'];
+/* Live but unlisted, so not in the manifest, and still a page a person can
+   open. /ivy/ is the sealed lock screen. */
+const EXTRA_PAGES = ['/ivy/'];
+/* --all means every page the manifest says is public, read from
+   site-meta.json rather than listed here, so a page added to the manifest is
+   gated from the moment it exists. Measured 2026-10-29: this gate ran on two
+   URLs while eleven pages were indexed, and two of the nine it never looked
+   at were failing. Scope is not announced, so it is derived. */
+function manifestPages() {
+  const meta = JSON.parse(readFileSync(new URL('../../site-meta.json', import.meta.url), 'utf8'));
+  const g = meta.gating || {};
+  return [...Object.keys(meta.pages || {}), ...(g.indexed || []), ...EXTRA_PAGES].sort();
+}
+
+const PAGES = PATHS.includes('--all') ? manifestPages()
+            : PATHS.length ? PATHS : ['/', '/apps/'];
 
 // phone, and a vertical desktop monitor (1080x1920 rotated)
 const SHAPES = [
