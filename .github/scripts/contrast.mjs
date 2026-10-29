@@ -91,6 +91,19 @@ const AUDIT = () => {
     if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return;
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
+
+    // Screen reader only text. The standard sr-only recipe hides text with a 1px
+    // box plus clip: rect(0 0 0 0) and overflow hidden, which none of the checks
+    // above catch, so this gate measured it as if it were on screen and reported
+    // black on black at 1:1. WCAG applies to text a sighted person can SEE, so a
+    // visually hidden heading has no contrast requirement at all.
+    //
+    // This mattered more than a stray number. An accessibility gate that fails a
+    // page FOR having a screen reader heading pushes you to delete the heading,
+    // which makes the page worse for the people the gate exists to protect.
+    // Found 2026-10-29 on /datavis/, whose only two "failures" were one sr-only h1.
+    const clipped = cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(50%)';
+    if (clipped && r.width <= 2 && r.height <= 2) return;
     const fg = parse(cs.color); if (!fg) return;
 
     // Gradient text (background-clip:text) is painted by the background image, not
