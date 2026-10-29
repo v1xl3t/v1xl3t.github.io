@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Added 2026-10-29. This is a SCRAPED Wix archive and two of its pages were still
+     pulling CSS, page data and a YouTube thumbnail from static.parastorage.com,
+     siteassets.parastorage.com and i.ytimg.com at render time. That handed every
+     visitor's IP to Wix and to Google, carried Sweet Cream's Wix siteId in the query
+     string, and painted a live Wix "Get Started" advert across the top of the page.
+     A policy beats deleting tags one at a time: the references are spread across
+     markup AND runtime JSON, so a surgical edit can half-work and look finished. This
+     cannot half-work, the browser refuses the request whoever makes it. Everything
+     this archive legitimately needs is already local. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-src 'self'; img-src 'self' data: blob:">
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SPRAY PAINT PERFUME | Sweet Cream</title>

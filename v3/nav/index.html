@@ -153,13 +153,17 @@ html[data-nav="c"] .tabbtn{
 html[data-nav="c"] .tabbtn .dot{writing-mode:horizontal-tb; background:var(--accent); color:var(--ink); padding:0 .3em; font-weight:600}
 .drawer{display:none}
 html[data-nav="c"] .drawer{
-  display:block; position:fixed; inset:0 0 0 auto; width:min(21rem,88vw); z-index:57;
+  /* top, not inset:0. The prototype bar is sticky at the top of the page and
+     would otherwise cover this drawer's heading and its close button, which
+     made option C look broken in a comparison it is supposed to win or lose
+     on its merits. The offset is prototype chrome and goes away with it. */
+  display:block; position:fixed; top:var(--protoh,0px); right:0; bottom:0; width:min(21rem,88vw); z-index:57;
   background:var(--paper); border-left:3px solid var(--ink); transform:translateX(100%);
   transition:transform .24s ease; overflow-y:auto; padding:1rem .9rem 2rem;
 }
 html[data-nav="c"].drawopen .drawer{transform:none}
 html[data-nav="c"].drawopen .scrim{display:block}
-.scrim{display:none; position:fixed; inset:0; background:rgba(25,20,25,.5); z-index:56; border:0}
+.scrim{display:none; position:fixed; top:var(--protoh,0px); left:0; right:0; bottom:0; background:rgba(25,20,25,.5); z-index:56; border:0}
 .drawer h2{font-family:var(--disp); font-size:1rem; text-transform:uppercase; letter-spacing:.06em; margin:0 0 .7rem}
 .drawer .close{position:absolute; right:.6rem; top:.6rem; font-family:var(--mono); font-size:13px;
   background:transparent; border:2px solid var(--ink); color:var(--ink); cursor:pointer; padding:.35rem .5rem; min-height:40px; min-width:40px}
@@ -400,6 +404,8 @@ html{scroll-behavior:smooth}
   });
   function dockH(){
     root.style.setProperty("--dockh", root.getAttribute("data-nav") === "b" ? (flipbar.offsetHeight + "px") : "0px");
+    var bar = document.querySelector(".proto");
+    root.style.setProperty("--protoh", (bar ? bar.offsetHeight : 0) + "px");
   }
 
   /* ---------- nav C, the drawer ---------- */

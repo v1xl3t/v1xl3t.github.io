@@ -67,6 +67,32 @@ jobs:
           kill $SRV 2>/dev/null || true
           exit $STATUS
 
+      # Privacy gate. A third party that ANSWERS a request has the visitor's IP
+      # before first paint, which is why the fonts are self-hosted and the CDNs
+      # are vendored. The hole was the scraped Sweet Cream archive: 2 of its 17
+      # pages still pulled CSS, page data and a YouTube thumbnail from Wix and
+      # Google, carrying Sweet Cream's Wix siteId along with them. Found
+      # 2026-10-29 only by booting EVERY page, because the two obvious ones were
+      # clean. A leak is a response, not an attempt, so a blocked request does
+      # not count against the page that refused it.
+      - name: Nothing leaves the origin
+        run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          SRV=$!
+          sleep 2
+          node .github/scripts/origin-check.mjs http://localhost:8080
+          STATUS=$?
+          kill $SRV 2>/dev/null || true
+          exit $STATUS
+
+      # Thumbnail wiring. Browser free, so it runs with the cheap checks in
+      # spirit but needs nothing installed. It catches a card with no thumb, a
+      # thumb with no card, and a filename that contradicts its own card, which
+      # is exactly how cadence.jpg outlived the CADchad rename. It canNOT tell
+      # whether a shot still LOOKS like the live app. That is what "shoot" is for.
+      - name: /apps/ thumbnail wiring
+        run: node .github/scripts/apps-thumbs.mjs check
+
       # Legibility gate. Every text node, both themes, real composited backgrounds.
       # --all reads the page list from site-meta.json instead of hardcoding it
       # here, so a page added to the manifest is gated from the moment it
