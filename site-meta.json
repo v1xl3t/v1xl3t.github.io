@@ -87,7 +87,8 @@
       "/s/WORK/": "shim",
       "/studio/": "placeholder",
       "/v2/": "draft",
-      "/v2/skins/": "draft"
+      "/v2/skins/": "draft",
+      "/v3/nav/": "draft"
     }
   },
   "pages": {

@@ -17,8 +17,16 @@ import { chromium } from 'playwright';
 const BASE = process.argv[2] || 'http://localhost:8080';
 const PATHS = process.argv.slice(3);
 /* Live but unlisted, so not in the manifest, and still a page a person can
-   open. /ivy/ is the sealed lock screen. */
-const EXTRA_PAGES = ['/ivy/'];
+   open. /ivy/ is the sealed lock screen. /v2/ and /v3/nav/ are drafts in the
+   gating manifest's unlisted table, which --all does NOT read, so until
+   2026-10-29 the zine Vi is about to promote had never been measured here. */
+const EXTRA_PAGES = [
+  '/ivy/', '/v2/',
+  /* The nav study has three mechanisms and two of them have an open state.
+     One URL would have measured one of five, so each is addressable. */
+  '/v3/nav/?nav=a', '/v3/nav/?nav=b', '/v3/nav/?nav=b&open=1',
+  '/v3/nav/?nav=c', '/v3/nav/?nav=c&open=1',
+];
 /* --all means every page the manifest says is public, read from
    site-meta.json rather than listed here, so a page added to the manifest is
    gated from the moment it exists. Measured 2026-10-29: this gate ran on two
