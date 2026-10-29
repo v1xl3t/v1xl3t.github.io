@@ -20,10 +20,12 @@ const PATHS = process.argv.slice(3);
    2026-10-29 the zine Vi is about to promote had never been measured here. */
 const EXTRA_PAGES = [
   '/ivy/', '/v2/',
-  /* The nav study has three mechanisms and two of them have an open state.
-     One URL would have measured one of five, so each is addressable. */
-  '/v3/nav/?nav=a', '/v3/nav/?nav=b', '/v3/nav/?nav=b&open=1',
-  '/v3/nav/?nav=c', '/v3/nav/?nav=c&open=1',
+  /* /v3/ ships three navigation options and two of them have an open state, so
+     each is its own URL. One URL would have measured one of five. Depth is a
+     separate axis and the ordinary gates cannot sample it, which is what
+     v3-contrast.mjs is for. */
+  '/v3/?nav=rail', '/v3/?nav=dock', '/v3/?nav=dock&open=1',
+  '/v3/?nav=drawer', '/v3/?nav=drawer&open=1',
 ];
 /* --all means every page the manifest says is public, read from
    site-meta.json rather than listed here, so a page added to the manifest is
