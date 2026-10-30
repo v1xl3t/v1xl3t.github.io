@@ -19,13 +19,14 @@ const PATHS = process.argv.slice(3);
    gating manifest's unlisted table, which --all does NOT read, so until
    2026-10-29 the zine Vi is about to promote had never been measured here. */
 const EXTRA_PAGES = [
-  '/ivy/', '/v2/',
-  /* /v3/ ships three navigation options and two of them have an open state, so
+  '/ivy/',
+  /* REMOVED 2026-10-29: /v2/ and /v3/ no longer exist on this site. The v3
+     shell moved to hackingparadise.com. The comment below is kept for
+     provenance only, because it explains why the list ever had query strings
+     in it. /v3/ shipped three navigation options and two had an open state, so
      each is its own URL. One URL would have measured one of five. Depth is a
      separate axis and the ordinary gates cannot sample it, which is what
      v3-contrast.mjs is for. */
-  '/v3/?nav=rail', '/v3/?nav=dock', '/v3/?nav=dock&open=1',
-  '/v3/?nav=drawer', '/v3/?nav=drawer&open=1',
 ];
 /* --all means every page the manifest says is public, read from
    site-meta.json rather than listed here, so a page added to the manifest is
@@ -94,7 +95,20 @@ for (const path of PAGES) {
       });
       let res;
       try {
-        await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 30000 });
+        /* A MISSING PAGE MUST FAIL HERE.
+           On 2026-10-29 this gate reported "OK" for five /v3/ URLs that had
+           already been deleted. A 404 body is short and narrow, so it passes a
+           horizontal-scroll check perfectly, and the list went on asserting
+           that deleted pages were fine. A gate that cannot tell "this is good"
+           from "this is not there" is worse than no gate, because it reports
+           confidence it does not have. */
+        const resp = await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 30000 });
+        if (resp && resp.status() >= 400) {
+          console.log(`   FAIL  ${path} returned HTTP ${resp.status()}. It is in the page list but not on disk.`);
+          failures++;
+          await page.close();
+          continue;
+        }
         if (theme === 'light') {
           await page.evaluate(() => { const b = document.getElementById('themeToggle'); if (b) b.click(); });
           await page.waitForTimeout(250);

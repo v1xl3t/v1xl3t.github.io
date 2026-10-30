@@ -21,13 +21,15 @@ const PATHS = process.argv.slice(3);
    gating manifest's unlisted table, which --all does NOT read, so until
    2026-10-29 the zine Vi is about to promote had never been measured here. */
 const EXTRA_PAGES = [
-  '/ivy/', '/v2/',
-  /* /v3/ ships three navigation options and two of them have an open state, so
+  '/ivy/',
+  /* REMOVED 2026-10-29: /v2/ and /v3/ are gone from the site. The v3 shell was
+     moved to hackingparadise.com, where gate/feed-contrast.mjs now does the
+     crossfade sampling that v3-contrast.mjs used to do here. The old comment
+     explaining the three navigation options is kept below for provenance only.
+     /v3/ shipped three navigation options and two had an open state, so
      each is its own URL. One URL would have measured one of five. Depth is a
      separate axis and the ordinary gates cannot sample it, which is what
      v3-contrast.mjs is for. */
-  '/v3/?nav=rail', '/v3/?nav=dock', '/v3/?nav=dock&open=1',
-  '/v3/?nav=drawer', '/v3/?nav=drawer&open=1',
 ];
 /* --all means every page the manifest says is public, read from
    site-meta.json rather than listed here, so a page added to the manifest is
@@ -190,7 +192,20 @@ for (const path of PAGES) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
     let res = [];
     try {
-      await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 45000 });
+      /* A MISSING PAGE MUST FAIL HERE.
+         A 404 body is a heading and a link on the site's own background, and it
+         passes a contrast sweep comfortably. So a page that has been deleted or
+         renamed keeps reporting "contrast OK" from this list forever. The sister
+         gate viewport.mjs was doing exactly that for five deleted /v3/ URLs on
+         2026-10-29. Not finding the page is a different outcome from the page
+         being fine, and the gate has to say so. */
+      const resp = await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 45000 });
+      if (resp && resp.status() >= 400) {
+        console.log(`${path} [${theme}] -- FAIL: HTTP ${resp.status()}, listed but not on disk`);
+        process.exitCode = 1;
+        await page.close();
+        continue;
+      }
       await page.evaluate(t => document.documentElement.setAttribute('data-theme', t), theme);
       await page.evaluate(() => document.querySelectorAll('details').forEach(d => (d.open = true)));
       await page.evaluate(async () => {
@@ -220,6 +235,15 @@ for (const path of PAGES) {
 }
 
 await browser.close();
+/* The summary has to agree with the exit code. A page that 404d, or that threw
+   on load, sets process.exitCode above without adding a contrast issue, and
+   this used to print "Contrast gate passed in both themes" anyway while
+   exiting 1. A human reads the last line, CI reads the exit code, and the two
+   disagreeing is how a real failure gets waved through. */
+if (total === 0 && process.exitCode) {
+  console.log(`\nFAILED: no contrast issues, but one or more pages could not be measured. See above.`);
+  process.exit(1);
+}
 if (total > 0) {
   console.log(`\nFAILED: ${total} contrast issue(s). Text must clear WCAG AA (4.5:1, or 3:1 for large text).`);
   process.exit(1);

@@ -1,7 +1,7 @@
 // Lightbox contrast gate.
 //
 // The site-wide contrast gate only measures text that is actually rendered, and
-// the media modal stays hidden until you click a thumbnail, so its caption, hint
+// the media modal stays hidden until you click a gallery's main image, so its caption, hint
 // and counter were never audited. That is exactly how the caption shipped
 // dark-on-dark in light mode: the modal keeps a dark scrim in BOTH themes, but
 // its text inherited the light theme's dark ink.
@@ -93,10 +93,17 @@ for (const theme of ['dark', 'light']) {
       await page.waitForTimeout(300);
     }
 
-    const thumb = page.locator('.thumb:not(.thumb-video)').first();
-    if (!await thumb.count()) throw new Error('no image thumbnail found to open the lightbox');
-    await thumb.scrollIntoViewIfNeeded();
-    await thumb.click();
+    /* The MAIN image opens the viewer, not a thumbnail.
+       Until 2026-10-29 a thumbnail click opened the modal directly, and this
+       gate clicked one. Each gallery now has a large main image above the row,
+       the thumbnails only CHOOSE which image is shown, and the main one is
+       what zooms. This gate failed the moment that shipped, correctly, because
+       its way in no longer existed. Opening from .gal-main is also the path a
+       reader actually takes. */
+    const opener = page.locator('.gal-main').first();
+    if (!await opener.count()) throw new Error('no gallery main image found to open the lightbox');
+    await opener.scrollIntoViewIfNeeded();
+    await opener.click();
     await page.waitForSelector('#mediaModal.open', { timeout: 5000 });
     await page.waitForTimeout(400);
   } catch (e) {

@@ -532,7 +532,34 @@ table.credits{width:100%; min-width:440px; border-collapse:collapse;
 }
 
 /* ---------------- card media thumbnails ---------------- */
-.thumbs{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0}
+/* ---------- project gallery: main image, thumbnails under it ---------- */
+.gal-main{
+  display:block; width:100%; margin:16px 0 0; padding:0; cursor:zoom-in;
+  position:relative; aspect-ratio:16/10; overflow:hidden;
+  border-radius:var(--radius-sm); border:1px solid var(--border-soft);
+  background:var(--bg-2);
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+.gal-main img{width:100%; height:100%; object-fit:contain; display:block}
+.gal-main:hover, .gal-main:focus-visible{border-color:var(--accent); box-shadow:0 10px 26px -14px var(--accent-glow); outline:none}
+.gal-cap{
+  position:absolute; left:0; right:0; bottom:0; padding:10px 12px;
+  font-size:12px; line-height:1.4; text-align:left; color:#e7eef6;
+  background:linear-gradient(to top, rgba(4,18,29,.86), rgba(4,18,29,0));
+  opacity:0; transition:opacity .2s ease; pointer-events:none;
+}
+.gal-main:hover .gal-cap, .gal-main:focus-visible .gal-cap{opacity:1}
+.gal-main.is-video::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e7eef6'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center/52px no-repeat;
+  filter:drop-shadow(0 2px 10px rgba(4,18,29,.7));
+}
+/* A gallery of one does not need a row of one to choose from. */
+.thumbs.solo{display:none}
+.thumb.sel{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.thumb.sel::after{opacity:0}
+
+.thumbs{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 0}
 .thumb{
   position:relative; flex:0 0 auto;
   width:86px; height:64px; padding:0; cursor:zoom-in;
@@ -2291,24 +2318,83 @@ html[data-theme="light"] .media-note{
     }
     function step(dir){ if (gallery.length < 2) return; index = (index + dir + gallery.length) % gallery.length; render(); }
 
+    /* ---------- main image above the thumbnail row ----------
+       A bare row of 86x64 thumbnails makes the reader do the work: eleven
+       postage stamps and no way to see any of them without opening a modal.
+       So each group grows a large main image and the thumbnails become what
+       chooses it, which is the pattern Vi pointed at on the Sweet Cream
+       product page. The row stays a row, it just stops being the only view.
+
+       Behaviour, deliberately split:
+         thumbnail click -> swap the main image, no modal
+         main click      -> open the lightbox at whatever is showing
+       Clicking a thumbnail used to open the modal immediately, which is one
+       interaction doing two jobs and gave no way to simply LOOK at an image.
+
+       object-fit is contain, not cover. These are screenshots and renders, and
+       cropping a screenshot to fill a box is how you cut the toolbar off the
+       thing you were trying to show. The box is a fixed aspect ratio so the
+       card does not change height when the selection changes. */
     Array.prototype.slice.call(document.querySelectorAll(".thumbs")).forEach(function(group){
       var thumbs = Array.prototype.slice.call(group.querySelectorAll(".thumb"));
+      if (!thumbs.length) return;
       var items = thumbs.map(function(t){
         var vid = t.getAttribute("data-video");
         if (vid) return { type: "video", src: vid, poster: t.getAttribute("data-poster") || "", cap: t.getAttribute("data-cap") || "" };
         return { type: "image", src: t.getAttribute("data-full"), cap: t.getAttribute("data-cap") || "" };
       });
+
+      var main = document.createElement("button");
+      main.type = "button";
+      main.className = "gal-main";
+      var mimg = document.createElement("img");
+      mimg.loading = "lazy";
+      mimg.decoding = "async";
+      main.appendChild(mimg);
+      var mcap = document.createElement("span");
+      mcap.className = "gal-cap";
+      main.appendChild(mcap);
+      group.parentNode.insertBefore(main, group);
+
+      /* One image is not a gallery. Show it large and drop the row of one. */
+      if (items.length === 1) group.classList.add("solo");
+
+      var cur = 0;
+      function select(i, focusMain){
+        cur = i;
+        var it = items[i];
+        mimg.src = it.type === "video" ? (it.poster || "") : it.src;
+        mimg.alt = it.cap || "";
+        mcap.textContent = it.cap || "";
+        main.classList.toggle("is-video", it.type === "video");
+        main.setAttribute("aria-label",
+          (it.type === "video" ? "Play video: " : "Zoom image: ") + (it.cap || "project image"));
+        thumbs.forEach(function(t, k){
+          t.setAttribute("aria-pressed", k === i ? "true" : "false");
+          t.classList.toggle("sel", k === i);
+        });
+        if (focusMain) main.focus();
+      }
+
       thumbs.forEach(function(t, i){
-        t.addEventListener("click", function(){ open(items, i); });
+        t.addEventListener("click", function(){ select(i); });
         /* The caption is already written for the lightbox. Without this a screen
            reader reads out "button" once per thumbnail and nothing else. */
-        if (!t.getAttribute("aria-label")) {
-          var cap = items[i].cap || "";
-          t.setAttribute("aria-label", cap
-            ? (items[i].type === "video" ? "Play video: " : "View image: ") + cap
-            : (items[i].type === "video" ? "Play video" : "View image"));
-        }
+        var cap = items[i].cap || "";
+        t.setAttribute("aria-label", cap
+          ? (items[i].type === "video" ? "Show video: " : "Show image: ") + cap
+          : (items[i].type === "video" ? "Show video" : "Show image"));
       });
+
+      main.addEventListener("click", function(){ open(items, cur); });
+      /* Left and right move through the set without reaching for the mouse. */
+      main.addEventListener("keydown", function(e){
+        if (items.length < 2) return;
+        if (e.key === "ArrowRight") { e.preventDefault(); select((cur + 1) % items.length, true); }
+        if (e.key === "ArrowLeft")  { e.preventDefault(); select((cur - 1 + items.length) % items.length, true); }
+      });
+
+      select(0);
     });
 
     btnClose.addEventListener("click", close);

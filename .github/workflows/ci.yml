@@ -20,7 +20,7 @@ jobs:
           # Scope widened 2026-10-29. It covered two files while /v3/ was new prose
           # and went uncovered. /v2/ is deliberately excluded: it is the old
           # reference copy and its own title still carries one.
-          if grep -rIlP "[\x{2013}\x{2014}]" index.html apps/index.html v3/index.html v3/app.js ; then
+          if grep -rIlP "[\x{2013}\x{2014}]" index.html apps/index.html ; then
             echo "::error::Em or en dash found in the files listed above (use a hyphen)."
             exit 1
           fi
@@ -96,18 +96,6 @@ jobs:
       - name: /apps/ thumbnail wiring
         run: node .github/scripts/apps-thumbs.mjs check
 
-      # /v3/ paints its background as a continuous function of scroll depth, so
-      # the gate below samples one arbitrary moment of it and that is not enough.
-      # The dangerous place is the middle of a crossfade, where the background can
-      # pass straight through the luminance of a text colour. This samples nine
-      # depths across three skins and all three navigation options. Proven to have
-      # teeth by disabling safeInk and watching every combination go red.
-      - name: /v3/ contrast through the crossfade
-        run: |
-          python3 -m http.server 8080 >/dev/null 2>&1 &
-          SRV=$!
-          sleep 2
-          node .github/scripts/v3-contrast.mjs http://localhost:8080
           STATUS=$?
           kill $SRV 2>/dev/null || true
           exit $STATUS

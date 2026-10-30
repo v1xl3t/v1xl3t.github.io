@@ -85,10 +85,7 @@
       "/s/RS/": "shim",
       "/s/SWE/": "shim",
       "/s/WORK/": "shim",
-      "/studio/": "placeholder",
-      "/v2/": "draft",
-      "/v2/skins/": "draft",
-      "/v3/": "draft"
+      "/studio/": "placeholder"
     }
   },
   "pages": {
@@ -123,9 +120,9 @@
       "accent": "violet"
     },
     "/resume/": {
-      "title": "Résumé Studio",
-      "card": "Build a résumé from a career library",
-      "desc": "A no-install résumé editor. Import your career history, tag it by skill and industry, then tick boxes to build a tailored résumé. Nothing leaves your browser.",
+      "title": "R\u00e9sum\u00e9 Studio",
+      "card": "Build a r\u00e9sum\u00e9 from a career library",
+      "desc": "A no-install r\u00e9sum\u00e9 editor. Import your career history, tag it by skill and industry, then tick boxes to build a tailored r\u00e9sum\u00e9. Nothing leaves your browser.",
       "accent": "both"
     },
     "/primes/": {
@@ -154,8 +151,8 @@
     },
     "/resume.html": {
       "title": "Vi Ellis",
-      "card": "Résumé, one page",
-      "desc": "The one-page résumé for Vi Ellis: applied AI, hardware product development, and award-winning composition.",
+      "card": "R\u00e9sum\u00e9, one page",
+      "desc": "The one-page r\u00e9sum\u00e9 for Vi Ellis: applied AI, hardware product development, and award-winning composition.",
       "accent": "both"
     }
   }

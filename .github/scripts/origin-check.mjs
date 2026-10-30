@@ -38,7 +38,7 @@ function pages() {
      still a live page a person can open, and /v2/ and /v3/ both shipped a Google
      Fonts stylesheet because neither was ever in this list. Scope is not
      announced, so it is stated here. */
-  const DRAFTS = ['/v2/', '/v3/'];
+  const DRAFTS = [];  /* /v2/ and /v3/ removed from the site 2026-10-29 */
   const manifest = [...Object.keys(meta.pages || {}), ...((meta.gating || {}).indexed || []), ...DRAFTS];
   let archive = [];
   try {
