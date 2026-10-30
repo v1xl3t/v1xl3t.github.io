@@ -221,6 +221,17 @@ for (const path of PAGES) {
       await page.close();
       continue;
     }
+    /* THE LEGOSET ARCHIVE LOOK, Vi 2026-10-30. The archive keeps the original
+       pink-on-noise headings and footer credit exactly as the 2017 site had
+       them: she tried the contrast plates and found the page read worse. Only
+       those two things are excused, only under /legoset/, and every excused
+       element is still printed as a NOTE so the exemption is never silent.
+       Anything else on those pages that fails still fails. */
+    if (path.startsWith('/legoset/')) {
+      const archived = f => /vxui-rich-text__text/.test(f.cls) || /248,\s*187,\s*208/.test(f.color);
+      res.filter(archived).forEach(f => console.log(`   NOTE archive look, excused: ${f.ratio}:1 <${f.tag}> "${f.txt}"`));
+      res = res.filter(f => !archived(f));
+    }
     total += res.length;
     if (res.length) {
       console.log(`\n${path} [${theme}] -- ${res.length} contrast failure(s):`);

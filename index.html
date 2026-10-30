@@ -1356,19 +1356,6 @@ html[data-theme="light"] .media-note{
         <div class="links"><button class="run-inline" type="button" data-app="/sweetcream/site/" data-title="Sweet Cream"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/sweetcream/site/" target="_blank" rel="noopener">Open the site</a></div>
       </article>
 
-      <!-- LEGOSET -->
-      <article class="card reveal" data-lanes="web audio">
-        <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip">2017 · LEGOSET</span></div>
-        <h3>LEGOSET Collective</h3>
-        <p class="blurb">The site for LEGOSET, a now retired underground music label and collective. My first web design contract, built in 2017.</p>
-        <p class="outcome">The collective ran on this site for its whole run, and it is preserved here page for page.</p>
-        <div class="stack"><span>Web design</span><span>Visual identity</span><span>Wix</span></div>
-        <div class="thumbs">
-          <button class="thumb" type="button" data-full="media/legoset/lg-home.jpg" data-cap="The LEGOSET site home, a pink LEGO brick on static noise"><img src="media/legoset/lg-home.jpg" alt="LEGOSET site home, pink LEGO brick on static noise" loading="lazy"></button>
-        </div>
-        <div class="links"><button class="run-inline" type="button" data-app="/legoset/" data-title="LEGOSET Collective"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="/legoset/" target="_blank" rel="noopener">Live</a></div>
-      </article>
-
       <!-- AltaMed -->
       <article class="card reveal" data-lanes="web">
         <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip">2022 · AltaMed (formerly ChapCare)</span></div>
@@ -1478,12 +1465,12 @@ html[data-theme="light"] .media-note{
                     <tr><td class="c-title">Blink</td><td>Composer</td><td class="c-year">2026</td><td>Cassie Capello<span class="ct-meta">Multimedia short</span></td></tr>
                     <tr><td class="c-title">All Downhill</td><td>Composer</td><td class="c-year">2024</td><td>Wayne Nisbet<span class="ct-meta">Animated short</span></td></tr>
                     <tr><td class="c-title">Squid FunK</td><td>Composer, Sound Designer</td><td class="c-year">2024</td><td>Sweet Cream<span class="ct-meta">Animated short</span></td></tr>
-                    <tr><td class="c-title">Barry</td><td>Composer</td><td class="c-year">2023</td><td>Maxwell Alexander<span class="ct-meta">Short</span></td></tr>
-                    <tr><td class="c-title">Come Lay Down with Me</td><td>Composer</td><td class="c-year">2023</td><td>Cristobal Galvan<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title"><a href="https://www.imdb.com/title/tt30802819/" target="_blank" rel="noopener">Barry</a></td><td>Composer</td><td class="c-year">2023</td><td>Maxwell Alexander<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title"><a href="https://www.imdb.com/title/tt28628960/" target="_blank" rel="noopener">Come Lay Down with Me</a></td><td>Composer</td><td class="c-year">2023</td><td>Cristobal Galvan<span class="ct-meta">Short</span></td></tr>
                     <tr><td class="c-title">Highway Star</td><td>Composer, Sound Designer</td><td class="c-year">2023</td><td>Sweet Cream<span class="ct-meta">Short</span></td></tr>
-                    <tr><td class="c-title">Spray Paint Perfume Can</td><td>Composer, Sound Designer</td><td class="c-year">2023</td><td>Sweet Cream<span class="ct-meta">Advert</span></td></tr>
+                    <tr><td class="c-title"><a href="media/sweetcream/ad1.mp4" data-open-thumb="media/sweetcream/ad1.mp4">Spray Paint Perfume Can</a></td><td>Composer, Sound Designer</td><td class="c-year">2023</td><td>Sweet Cream<span class="ct-meta">Advert</span></td></tr>
                     <tr><td class="c-title">Torri's Thesis</td><td>Composer</td><td class="c-year">2023</td><td>Max Nieder<span class="ct-meta">Short</span></td></tr>
-                    <tr><td class="c-title">Death of the Lotus</td><td>Composer</td><td class="c-year">2022</td><td>Leo Trejo-Bien<span class="ct-meta">Short</span></td></tr>
+                    <tr><td class="c-title"><a href="https://www.imdb.com/title/tt23802798/" target="_blank" rel="noopener">Death of the Lotus</a></td><td>Composer</td><td class="c-year">2022</td><td>Leo Trejo-Bien<span class="ct-meta">Short</span></td></tr>
                     <tr><td class="c-title">HAIKU: The Story of a Wilting Trillium</td><td>Composer</td><td class="c-year">2022</td><td>Joseann Tejeda<span class="ct-meta">Short</span><span class="ct-note">Tokyo Film Awards Best Composer Silver · New Creators Best Original Music Nominee · IndieWrap 2023</span></td></tr>
                     <tr><td class="c-title">Just Crime</td><td>Composer</td><td class="c-year">2022</td><td>Kane Thompson<span class="ct-meta">Short</span></td></tr>
                     <tr><td class="c-title">Retrograde</td><td>Composer</td><td class="c-year">2022</td><td>Griffin Lamp<span class="ct-meta">Short</span></td></tr>
@@ -2762,6 +2749,21 @@ html[data-theme="light"] .media-note{
     }
   }
 })();
+</script>
+<script>
+/* A credit row can open a video that already lives in a project gallery, in
+   the same lightbox, by naming it in data-open-thumb. The href is the plain
+   file, so without JavaScript the link still plays the video. */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a[data-open-thumb]');
+  if (!a) return;
+  var t = document.querySelector('.thumb[data-video="' + a.getAttribute('data-open-thumb') + '"]');
+  if (!t) return;
+  e.preventDefault();
+  t.click();   // a thumbnail only selects; the main image above it opens the lightbox
+  var main = t.closest('.thumbs').previousElementSibling;
+  if (main && main.classList.contains('gal-main')) main.click();
+});
 </script>
 </body>
 </html>
