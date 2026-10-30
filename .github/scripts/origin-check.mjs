@@ -34,7 +34,12 @@ const ARGS = process.argv.slice(3).filter((a) => !a.startsWith('--'));
 function pages() {
   if (ARGS.length) return ARGS;
   const meta = JSON.parse(readFileSync(join(ROOT, 'site-meta.json'), 'utf8'));
-  const manifest = [...Object.keys(meta.pages || {}), ...((meta.gating || {}).indexed || [])];
+  /* The manifest's `pages` is only what is INDEXED. A draft in gating.unlisted is
+     still a live page a person can open, and /v2/ and /v3/ both shipped a Google
+     Fonts stylesheet because neither was ever in this list. Scope is not
+     announced, so it is stated here. */
+  const DRAFTS = ['/v2/', '/v3/'];
+  const manifest = [...Object.keys(meta.pages || {}), ...((meta.gating || {}).indexed || []), ...DRAFTS];
   let archive = [];
   try {
     archive = execSync('git ls-files sweetcream', { cwd: ROOT, encoding: 'utf8' })

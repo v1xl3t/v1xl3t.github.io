@@ -390,10 +390,25 @@
     if (modal.showModal) modal.showModal(); else window.open(u, "_blank", "noopener");
   });
   document.getElementById("appclose").addEventListener("click", function () { modal.close(); });
+
+  /* ================= gallery lightbox ================= */
+  var lb = document.getElementById("lightbox"), lbimg = document.getElementById("lbimg"),
+      lbcap = document.getElementById("lbcap");
+  document.addEventListener("click", function (e) {
+    var f = e.target.closest(".strip .frame");
+    if (!f) return;
+    lbimg.src = f.getAttribute("data-full");
+    lbimg.alt = f.getAttribute("data-cap") || "";
+    lbcap.textContent = f.getAttribute("data-cap") || "";
+    if (lb.showModal) lb.showModal(); else window.open(f.getAttribute("data-full"), "_blank", "noopener");
+  });
+  document.getElementById("lbclose").addEventListener("click", function () { lb.close(); });
+  lb.addEventListener("click", function (e) { if (e.target === lb) lb.close(); });
+  lb.addEventListener("close", function () { lbimg.src = ""; });
   modal.addEventListener("close", function () { frame.src = "about:blank"; });
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { closeDraw(); closeDock(); hideWin(); }
+    if (e.key === "Escape") { closeDraw(); closeDock(); hideWin(); if (lb.open) lb.close(); }
   });
 
   /* ================= scroll loop ================= */
@@ -412,7 +427,7 @@
   }
   addEventListener("scroll", onScroll, { passive: true });
   /* A hero arriving changes the geometry the colour is read from, so repaint. */
-  document.querySelectorAll(".shot img").forEach(function (img) {
+  document.querySelectorAll(".shot img, .strip img").forEach(function (img) {
     if (img.complete) return;
     img.addEventListener("load", function () { paint(); sync(); }, { once: true });
   });

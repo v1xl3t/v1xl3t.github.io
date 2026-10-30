@@ -6,9 +6,12 @@
 <title>Vi Ellis, selected work</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Twenty-two projects across applied AI, hardware, audio and the web, with three navigation options presented for a decision.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<!-- Fonts are SELF-HOSTED. A stylesheet from Google Fonts hands Google every
+     visitor's IP address before first paint, which is the same reason every CDN
+     on this site is vendored. This page shipped with the Google link by mistake,
+     copied from /v2, and origin-check caught it the moment /v3/ was added to the
+     gate's page list. Do not put it back. -->
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
 :root{
   --surface:#f3eee4;
@@ -59,6 +62,23 @@ a{color:var(--ink)}
 .shot{margin:1.4rem 0 0; border:2px solid var(--ink); background:var(--surface); line-height:0;
   aspect-ratio:16/10; overflow:hidden}
 .shot img{display:block; width:100%; height:100%; object-fit:cover; object-position:center top}
+/* The strip scrolls sideways INSIDE ITSELF, which is allowed and is not the page
+   scrolling sideways. It is its own scroll container, so the viewport gate reads
+   it correctly and Vi's no-horizontal-scroll rule is not broken by it. */
+.strip{display:flex; gap:.5rem; overflow-x:auto; overflow-y:hidden; margin:.5rem 0 0;
+  padding:.1rem .1rem .5rem; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch}
+.strip .frame{flex:0 0 auto; width:8.5rem; aspect-ratio:1/1; padding:0; cursor:pointer;
+  border:2px solid var(--ink); background:var(--surface); scroll-snap-align:start; overflow:hidden}
+.strip .frame img{display:block; width:100%; height:100%; object-fit:cover}
+.strip .frame:hover, .strip .frame:focus-visible{border-color:var(--accent)}
+.strip .more{flex:0 0 auto; align-self:center; font-family:var(--mono); font-size:12px; color:var(--muted); padding:0 .4rem}
+dialog.lightbox{padding:0; border:3px solid var(--ink); background:var(--surface); max-width:94vw; max-height:92vh}
+dialog.lightbox::backdrop{background:rgba(0,0,0,.72)}
+dialog.lightbox img{display:block; max-width:94vw; max-height:84vh; width:auto; height:auto}
+dialog.lightbox .lbbar{display:flex; gap:.5rem; align-items:center; padding:.45rem .6rem; border-top:3px solid var(--ink)}
+dialog.lightbox .lbbar p{margin:0; flex:1; font-family:var(--mono); font-size:12px}
+dialog.lightbox .lbbar button{font:inherit; font-family:var(--mono); font-size:12px; cursor:pointer;
+  border:2px solid var(--ink); background:transparent; color:var(--ink); padding:.35rem .6rem; min-height:40px}
 .tags{display:flex; flex-wrap:wrap; gap:.3rem; margin:0 0 .6rem}
 .tag{font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase;
   border:1px solid var(--accent); padding:.2rem .45rem; color:var(--muted)}
@@ -371,6 +391,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A production AI agent system on the Claude API that turns live data into submission-ready proposals and grant documents. Shipped solo on a three-layer skill architecture non-technical users operate.</p>
     
     <figure class="shot"><img src="/media/treotools/treotools-01.jpg" alt="Claude AI Skill Tree" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from Claude AI Skill Tree"><button class="frame" type="button" data-full="/media/treotools/treotools-02.jpg" data-cap="Claude AI Skill Tree"><img src="/media/treotools/treotools-02.jpg" alt="Claude AI Skill Tree, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/treotools/treotools-03.jpg" data-cap="Claude AI Skill Tree"><img src="/media/treotools/treotools-03.jpg" alt="Claude AI Skill Tree, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/treotools/treotools-04.jpg" data-cap="Claude AI Skill Tree"><img src="/media/treotools/treotools-04.jpg" alt="Claude AI Skill Tree, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/treotools/treotools-05.jpg" data-cap="Claude AI Skill Tree"><img src="/media/treotools/treotools-05.jpg" alt="Claude AI Skill Tree, image 5" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="cadchad" data-lanes="hardware ai creative" aria-labelledby="h-cadchad">
@@ -384,6 +405,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
 ><svg class="art" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3 v20 M3 13 h20" stroke="#8df0c2" stroke-width="1.6"/><circle cx="13" cy="13" r="9.5" fill="none" stroke="#8df0c2" stroke-width="1.3" opacity=".6"/></svg></span></p>
     <div class="acts"><button class="act run" type="button" data-app="https://cadchad.com/app/" data-title="CADchad"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="https://cadchad.com/" target="_blank" rel="noopener">Open it</a></div>
     <figure class="shot"><img src="/apps/thumbs/cadchad.jpg" alt="CADchad" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="midikey" data-lanes="hardware creative" aria-labelledby="h-midikey">
@@ -395,6 +417,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A buildable MIDI keyboard kit that teaches students to wire real circuitry. Circuit, USB-HID firmware, printed enclosure and laser-cut schematic overlay, end to end.</p>
     
     <figure class="shot"><img src="/media/keyboard/keyboard-01.jpg" alt="Arduino MIDI Keyboard" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from Arduino MIDI Keyboard"><button class="frame" type="button" data-full="/media/keyboard/keyboard-02.jpg" data-cap="Arduino MIDI Keyboard"><img src="/media/keyboard/keyboard-02.jpg" alt="Arduino MIDI Keyboard, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/keyboard/keyboard-03.png" data-cap="Arduino MIDI Keyboard"><img src="/media/keyboard/keyboard-03.png" alt="Arduino MIDI Keyboard, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/keyboard/keyboard-04.jpg" data-cap="Arduino MIDI Keyboard"><img src="/media/keyboard/keyboard-04.jpg" alt="Arduino MIDI Keyboard, image 4" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="gameaudio" data-lanes="audio ai creative" aria-labelledby="h-gameaudio">
@@ -406,6 +429,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A tool for scoring that reacts to play, built so a composer can hear the adaptive layer rather than imagine it.</p>
     
     <figure class="shot"><img src="/media/nightshift/nightshift-01.png" alt="Adaptive Game-Audio Tool" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from Adaptive Game-Audio Tool"><button class="frame" type="button" data-full="/media/nightshift/nightshift-02.png" data-cap="Adaptive Game-Audio Tool"><img src="/media/nightshift/nightshift-02.png" alt="Adaptive Game-Audio Tool, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/nightshift/nightshift-03.png" data-cap="Adaptive Game-Audio Tool"><img src="/media/nightshift/nightshift-03.png" alt="Adaptive Game-Audio Tool, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/nightshift/nightshift-04.png" data-cap="Adaptive Game-Audio Tool"><img src="/media/nightshift/nightshift-04.png" alt="Adaptive Game-Audio Tool, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/nightshift/nightshift-05.png" data-cap="Adaptive Game-Audio Tool"><img src="/media/nightshift/nightshift-05.png" alt="Adaptive Game-Audio Tool, image 5" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="treotools" data-lanes="ai" aria-labelledby="h-treotools">
@@ -417,6 +441,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">An internal suite that put the document pipeline in the hands of the team that needed it, without a developer in the loop.</p>
     
     <figure class="shot"><img src="/media/treotools/treotools-01.jpg" alt="TreoTools" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from TreoTools"><button class="frame" type="button" data-full="/media/treotools/treotools-02.jpg" data-cap="TreoTools"><img src="/media/treotools/treotools-02.jpg" alt="TreoTools, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/treotools/treotools-03.jpg" data-cap="TreoTools"><img src="/media/treotools/treotools-03.jpg" alt="TreoTools, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/treotools/treotools-04.jpg" data-cap="TreoTools"><img src="/media/treotools/treotools-04.jpg" alt="TreoTools, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/treotools/treotools-05.jpg" data-cap="TreoTools"><img src="/media/treotools/treotools-05.jpg" alt="TreoTools, image 5" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="kuka" data-lanes="hardware creative" aria-labelledby="h-kuka">
@@ -430,6 +455,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
 ><svg class="art" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3 v20 M3 13 h20" stroke="#8df0c2" stroke-width="1.6"/><circle cx="13" cy="13" r="9.5" fill="none" stroke="#8df0c2" stroke-width="1.3" opacity=".6"/></svg></span></p>
     
     <figure class="shot"><img src="/media/kuka/kuka-generative.png" alt="KUKA Robotic 3D-Printing Research" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from KUKA Robotic 3D-Printing Research"><button class="frame" type="button" data-full="/media/kuka/kuka-geometry-star.png" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-geometry-star.png" alt="KUKA Robotic 3D-Printing Research, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-math.png" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-math.png" alt="KUKA Robotic 3D-Printing Research, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-opening.jpg" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-opening.jpg" alt="KUKA Robotic 3D-Printing Research, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-pipeline.png" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-pipeline.png" alt="KUKA Robotic 3D-Printing Research, image 5" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-print-arm.jpg" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-print-arm.jpg" alt="KUKA Robotic 3D-Printing Research, image 6" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-print-floor.jpg" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-print-floor.jpg" alt="KUKA Robotic 3D-Printing Research, image 7" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-print-poster.jpg" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-print-poster.jpg" alt="KUKA Robotic 3D-Printing Research, image 8" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/kuka/kuka-sculpture-full.jpg" data-cap="KUKA Robotic 3D-Printing Research"><img src="/media/kuka/kuka-sculpture-full.jpg" alt="KUKA Robotic 3D-Printing Research, image 9" loading="lazy" decoding="async"></button><span class="more">+2</span></div>
   </div>
 </section>
 <section class="proj" id="primes" data-lanes="ai creative" aria-labelledby="h-primes">
@@ -441,6 +467,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">Prime distribution drawn as a growing L-system, so a number-theory pattern becomes something you watch rather than read.</p>
     <div class="acts"><button class="act run" type="button" data-app="/primes/" data-title="Primes / L-System Visualization"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/primes/">Open it</a></div>
     <figure class="shot"><img src="/media/primes/primes-01-dezeen.png" alt="Primes / L-System Visualization" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from Primes / L-System Visualization"><button class="frame" type="button" data-full="/media/primes/primes-02.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-02.jpg" alt="Primes / L-System Visualization, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-03.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-03.jpg" alt="Primes / L-System Visualization, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-04.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-04.jpg" alt="Primes / L-System Visualization, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-05.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-05.jpg" alt="Primes / L-System Visualization, image 5" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-06.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-06.jpg" alt="Primes / L-System Visualization, image 6" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-07.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-07.jpg" alt="Primes / L-System Visualization, image 7" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-08.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-08.jpg" alt="Primes / L-System Visualization, image 8" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/primes/primes-09.jpg" data-cap="Primes / L-System Visualization"><img src="/media/primes/primes-09.jpg" alt="Primes / L-System Visualization, image 9" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="datavis" data-lanes="ai audio creative" aria-labelledby="h-datavis">
@@ -452,6 +479,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">Sonification as a reading tool. A dataset becomes a piece you can hear the shape of.</p>
     <div class="acts"><button class="act run" type="button" data-app="/datavis/?lab=1" data-title="Musically-Represented Data"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/datavis/">Open it</a></div>
     <figure class="shot"><img src="/media/datavis/datavis-01.png" alt="Musically-Represented Data" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="haiku" data-lanes="audio" aria-labelledby="h-haiku">
@@ -462,6 +490,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <h2 id="h-haiku">HAIKU: The Story of a Wilting Trillium</h2>
     <p class="body">Original score and sound design for the short film.</p>
     <div class="acts"><a class="act" href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">Open it</a></div>
+    
     
   </div>
 </section>
@@ -476,6 +505,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
 ><svg class="art" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3 v20 M3 13 h20" stroke="#8df0c2" stroke-width="1.6"/><circle cx="13" cy="13" r="9.5" fill="none" stroke="#8df0c2" stroke-width="1.3" opacity=".6"/></svg></span></p>
     <div class="acts"><button class="act run" type="button" data-app="/sweetcream/site/" data-title="Sweet Cream"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/sweetcream/site/">Open it</a></div>
     <figure class="shot"><img src="/media/sweetcream/ad1-poster.jpg" alt="Sweet Cream" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from Sweet Cream"><button class="frame" type="button" data-full="/media/sweetcream/ad2-poster.jpg" data-cap="Sweet Cream"><img src="/media/sweetcream/ad2-poster.jpg" alt="Sweet Cream, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/sweetcream/highwaystar-poster.jpg" data-cap="Sweet Cream"><img src="/media/sweetcream/highwaystar-poster.jpg" alt="Sweet Cream, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/sweetcream/kidsuper-cosign.jpg" data-cap="Sweet Cream"><img src="/media/sweetcream/kidsuper-cosign.jpg" alt="Sweet Cream, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/sweetcream/squidfunk-poster.jpg" data-cap="Sweet Cream"><img src="/media/sweetcream/squidfunk-poster.jpg" alt="Sweet Cream, image 5" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="altamed" data-lanes="web" aria-labelledby="h-altamed">
@@ -487,6 +517,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A clinic-facing translator that opens on the homepage, built so front-desk staff could use it without training.</p>
     <div class="acts"><a class="act" href="https://www.altamed.org/" target="_blank" rel="noopener">Open it</a></div>
     <figure class="shot"><img src="/media/altamed/altamed-translator-01.jpg" alt="AltaMed English/Spanish Translator" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="wangshui" data-lanes="hardware creative" aria-labelledby="h-wangshui">
@@ -498,6 +529,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">Fabrication prototyping for a gallery installation, shown at the Hammer Museum.</p>
     <div class="acts"><button class="act run" type="button" data-app="https://cadchad.com/app/?view=render&amp;models=/models/wangshui/rvsn1.obj,/models/wangshui/rvsn2.obj,/models/wangshui/rvsn3.obj" data-title="WangShui: Gallery Installation Prototype"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="https://hammer.ucla.edu/exhibitions/2021/no-humans-involved" target="_blank" rel="noopener">Open it</a></div>
     <figure class="shot"><img src="/media/wangshui/wangshui-03.png" alt="WangShui: Gallery Installation Prototype" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from WangShui: Gallery Installation Prototype"><button class="frame" type="button" data-full="/media/wangshui/wangshui-04.png" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/wangshui-04.png" alt="WangShui: Gallery Installation Prototype, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/wangshui-05.jpg" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/wangshui-05.jpg" alt="WangShui: Gallery Installation Prototype, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/wangshui-gallery-poster.jpg" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/wangshui-gallery-poster.jpg" alt="WangShui: Gallery Installation Prototype, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/wangshui-sketch.jpg" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/wangshui-sketch.jpg" alt="WangShui: Gallery Installation Prototype, image 5" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/wangshui-solid.png" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/wangshui-solid.png" alt="WangShui: Gallery Installation Prototype, image 6" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/wangshui-wire.png" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/wangshui-wire.png" alt="WangShui: Gallery Installation Prototype, image 7" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/ws-room-sketch.jpg" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/ws-room-sketch.jpg" alt="WangShui: Gallery Installation Prototype, image 8" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/wangshui/ws-solid-left.png" data-cap="WangShui: Gallery Installation Prototype"><img src="/media/wangshui/ws-solid-left.png" alt="WangShui: Gallery Installation Prototype, image 9" loading="lazy" decoding="async"></button><span class="more">+3</span></div>
   </div>
 </section>
 <section class="proj" id="game203" data-lanes="teaching" aria-labelledby="h-game203">
@@ -511,6 +543,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
 ><svg class="art" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3 v20 M3 13 h20" stroke="#8df0c2" stroke-width="1.6"/><circle cx="13" cy="13" r="9.5" fill="none" stroke="#8df0c2" stroke-width="1.3" opacity=".6"/></svg></span></p>
     
     
+    
   </div>
 </section>
 <section class="proj" id="doc2leads" data-lanes="ai" aria-labelledby="h-doc2leads">
@@ -522,6 +555,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">The pipeline that reads a document and returns qualified leads, now the basis of a fixed-price consulting package.</p>
     
     <figure class="shot"><img src="/media/leads/leads-01.jpg" alt="Document-to-Leads Automation" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="credits" data-lanes="audio" aria-labelledby="h-credits">
@@ -532,6 +566,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <h2 id="h-credits">Game &amp; Film Credits</h2>
     <p class="body">Thirty-one shipped credits across games and film, in audio and music roles.</p>
     <div class="acts"><a class="act" href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">Open it</a></div>
+    
     
   </div>
 </section>
@@ -546,6 +581,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
 ><svg class="art" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3 v20 M3 13 h20" stroke="#8df0c2" stroke-width="1.6"/><circle cx="13" cy="13" r="9.5" fill="none" stroke="#8df0c2" stroke-width="1.3" opacity=".6"/></svg></span></p>
     <div class="acts"><button class="act run" type="button" data-app="/anim/" data-title="Layerloop"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/anim/">Open it</a></div>
     <figure class="shot"><img src="/apps/thumbs/layerloop.jpg" alt="Layerloop" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="ygogan" data-lanes="ai creative" aria-labelledby="h-ygogan">
@@ -557,6 +593,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A GAN trained on card art, running in the browser on onnxruntime-web.</p>
     <div class="acts"><a class="act" href="https://huggingface.co/spaces/v1xl3t/ygo-card-art-gan-demo" target="_blank" rel="noopener">Open it</a></div>
     <figure class="shot"><img src="/media/gan/gan-01.jpg" alt="GAN Image Generator" loading="lazy" decoding="async"></figure>
+    <div class="strip" role="group" aria-label="More from GAN Image Generator"><button class="frame" type="button" data-full="/media/gan/gan-02.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-02.jpg" alt="GAN Image Generator, image 2" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/gan-03.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-03.jpg" alt="GAN Image Generator, image 3" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/gan-04.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-04.jpg" alt="GAN Image Generator, image 4" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/gan-05.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-05.jpg" alt="GAN Image Generator, image 5" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/gan-06.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-06.jpg" alt="GAN Image Generator, image 6" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/gan-07.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-07.jpg" alt="GAN Image Generator, image 7" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/gan-08.jpg" data-cap="GAN Image Generator"><img src="/media/gan/gan-08.jpg" alt="GAN Image Generator, image 8" loading="lazy" decoding="async"></button><button class="frame" type="button" data-full="/media/gan/ygo-gan-comparison.jpg" data-cap="GAN Image Generator"><img src="/media/gan/ygo-gan-comparison.jpg" alt="GAN Image Generator, image 9" loading="lazy" decoding="async"></button></div>
   </div>
 </section>
 <section class="proj" id="perch" data-lanes="creative web" aria-labelledby="h-perch">
@@ -568,6 +605,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A gamified self-care tracker. Build habits, feed the bird, watch the world fill in.</p>
     <div class="acts"><button class="act run" type="button" data-app="/perch/" data-title="Perch"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/perch/">Open it</a></div>
     <figure class="shot"><img src="/apps/thumbs/perch.jpg" alt="Perch" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="ghostnote" data-lanes="audio ai" aria-labelledby="h-ghostnote">
@@ -579,6 +617,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">Drag in audio and onset detection makes an editable drum chart you can play along to on a real MIDI kit.</p>
     <div class="acts"><button class="act run" type="button" data-app="/ghostnote/" data-title="Ghost Note"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/ghostnote/">Open it</a></div>
     <figure class="shot"><img src="/apps/thumbs/ghostnote.jpg" alt="Ghost Note" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="resume" data-lanes="web ai" aria-labelledby="h-resume">
@@ -590,6 +629,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A career library that reads and writes xlsx in the browser, with résumé variants and a hand-written QR encoder.</p>
     <div class="acts"><button class="act run" type="button" data-app="/resume/" data-title="Résumé Studio"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/resume/">Open it</a></div>
     <figure class="shot"><img src="/apps/thumbs/resume.jpg" alt="Résumé Studio" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="chatbot" data-lanes="ai web" aria-labelledby="h-chatbot">
@@ -601,6 +641,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
     <p class="body">A small conversational interface built to test prompt and tool patterns in the open.</p>
     <div class="acts"><button class="act run" type="button" data-app="/chatbot/" data-title="Chatbot"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/chatbot/">Open it</a></div>
     <figure class="shot"><img src="/media/chatbot/chatbot-01.png" alt="Chatbot" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section>
 <section class="proj" id="legoset" data-lanes="web creative" aria-labelledby="h-legoset">
@@ -614,6 +655,7 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
 ><svg class="art" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3 v20 M3 13 h20" stroke="#8df0c2" stroke-width="1.6"/><circle cx="13" cy="13" r="9.5" fill="none" stroke="#8df0c2" stroke-width="1.3" opacity=".6"/></svg></span></p>
     <div class="acts"><button class="act run" type="button" data-app="/legoset/" data-title="Legoset"><span aria-hidden="true">▶</span> Try it here</button><a class="act" href="/legoset/">Open it</a></div>
     <figure class="shot"><img src="/media/legoset/lg-home.jpg" alt="Legoset" loading="lazy" decoding="async"></figure>
+    
   </div>
 </section></div>
 
@@ -660,6 +702,11 @@ html[data-skin="pastel"] .pickup.got-p, html[data-skin="cyber"] .pickup.got-c{
   </div>
   <iframe id="appframe" title="App preview" src="about:blank" loading="lazy"
     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"></iframe>
+</dialog>
+
+<dialog class="lightbox" id="lightbox" aria-label="Image">
+  <img id="lbimg" src="" alt="">
+  <div class="lbbar"><p id="lbcap"></p><button type="button" id="lbclose">Close</button></div>
 </dialog>
 
 <canvas id="trailc" aria-hidden="true"></canvas>
