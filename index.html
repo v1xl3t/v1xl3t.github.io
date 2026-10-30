@@ -270,8 +270,8 @@ html[data-theme="light"] .theme-toggle .sun{display:block}
   z-index:0; opacity:.45;
   /* Clear the top band so nothing animates behind the headline/lede; the wave
      lives in the lower portion of the hero where it won't fight the text. */
-  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, transparent 34%, #000 52%, #000 90%, transparent 100%);
-  mask-image:linear-gradient(to bottom, transparent 0%, transparent 34%, #000 52%, #000 90%, transparent 100%);
+  /* masked by JS to the .wave-band strip; fully hidden until that runs */
+  -webkit-mask-image:linear-gradient(transparent,transparent); mask-image:linear-gradient(transparent,transparent);
 }
 .hero .wrap{position:relative; z-index:1}
 
@@ -322,7 +322,9 @@ h1.hero-title .accent{
   display:grid; gap:14px;
   grid-template-columns:repeat(4,1fr);
 }
-@media (max-width:880px){ .pillars{grid-template-columns:repeat(2,1fr); margin-top:88px} }
+@media (max-width:880px){ .pillars{grid-template-columns:repeat(2,1fr)} }
+.wave-band{height:clamp(110px,13vw,170px)}
+.hero .pillars{margin-top:0}
 @media (max-width:460px){ .pillars{grid-template-columns:1fr} }
 .pillar{
   background:linear-gradient(180deg, var(--panel), var(--bg-2));
@@ -335,6 +337,9 @@ h1.hero-title .accent{
   content:""; position:absolute; top:0; left:0; right:0; height:3px;
   background:var(--pc, var(--accent)); opacity:.85;
 }
+.pillar{display:block; color:inherit; text-decoration:none}
+.pillar:hover{text-decoration:none}
+.pillar:focus-visible{outline:2px solid var(--pc,var(--accent)); outline-offset:3px}
 .pillar:hover{transform:translateY(-3px); border-color:var(--border); box-shadow:var(--shadow)}
 @media (prefers-reduced-motion: reduce){ .pillar:hover{transform:none} }
 .pillar .pi{
@@ -1105,27 +1110,32 @@ html[data-theme="light"] .media-note{
       <li><b>GDC 2024</b><span>audio tool showcased, San Francisco</span></li>
     </ul>
 
+    <!-- The waveform's own band. Vi's call 2026-10-30: the wave sits BELOW the
+         text on the page, never behind it, so it gets real space here and the
+         canvas is masked to exactly this strip at every width. -->
+    <div class="wave-band" aria-hidden="true"></div>
+
     <div class="pillars">
-      <div class="pillar reveal" style="--pc:var(--accent)">
+      <a class="pillar reveal" href="#work" data-lane="ai" style="--pc:var(--accent)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg></div>
         <h3>Applied AI &amp; Engineering</h3>
         <p>Production Claude API agents, RAG, LLM-as-judge review, internal React platforms.</p>
-      </div>
-      <div class="pillar reveal d1" style="--pc:var(--accent-3)">
+      </a>
+      <a class="pillar reveal d1" href="#work" data-lane="hardware" style="--pc:var(--accent-3)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg></div>
         <h3>Hardware &amp; CAD</h3>
         <p>Circuit, USB-HID firmware, CAD, and a buildable MIDI controller kit produced at scale.</p>
-      </div>
-      <div class="pillar reveal d2" style="--pc:var(--accent-2)">
+      </a>
+      <a class="pillar reveal d2" href="#work" data-lane="audio" style="--pc:var(--accent-2)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 16 3-9 2 4h6"/></svg></div>
         <h3>Audio &amp; Music</h3>
         <p>Award-winning scores and adaptive game-audio systems across 31 credits.</p>
-      </div>
-      <div class="pillar reveal d3" style="--pc:var(--accent-4)">
+      </a>
+      <a class="pillar reveal d3" href="#work" data-lane="teaching" style="--pc:var(--accent-4)">
         <div class="pi" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
         <h3>Teaching</h3>
         <p>University sound-design professor, teaching game audio from DAW fundamentals to adaptive systems.</p>
-      </div>
+      </a>
     </div>
   </div>
 </section>
@@ -1516,7 +1526,7 @@ html[data-theme="light"] .media-note{
     <h2 class="section-title reveal" id="press-title">Recognition</h2>
     <ul class="press-list">
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Silver, Best Composer, Tokyo Film Awards 2022</summary><p class="dl">Awarded for the original score of the short film <i>HAIKU</i>. The film also took a Best Original Music nomination at the 2022 New Creators Film Awards and was featured in IndieWrap's 2023 published short-film collection. <a href="https://www.imdb.com/name/nm14300781" target="_blank" rel="noopener">IMDb</a></p></details></li>
-      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Showcased at GDC San Francisco 2024</summary><p class="dl">An adaptive game-audio tool, built as an Unreal Engine 5 Blueprint system for an indie game studio, was showcased at the Game Developers Conference in San Francisco. It reshapes a human-composed score in real time, layering and resequencing hand-written stems and applying modulation and effects as the player moves.</p></details></li>
+      <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Showcased at GDC San Francisco 2024</summary><p class="dl">An adaptive game-audio tool, built as an Unreal Engine 5 Blueprint system for an indie game studio, was showcased at the Game Developers Conference in San Francisco. It reshapes a composition in real time, layering and resequencing hand-written stems and applying modulation and effects as the player moves.</p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Featured in Dezeen, 2023</summary><p class="dl">Computational design work was featured in Dezeen's School Shows. The generative piece computes natural numbers and runs an L-system through multiple iterations to grow fractal forms in the browser. <a href="https://www.dezeen.com/2023/03/03/woodbury-university-student-design-projects-dezeen-schoolshows/" target="_blank" rel="noopener">Dezeen</a> · <a href="/primes/" target="_blank" rel="noopener">Live demo</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Behind <i>Feast</i> at the Hammer Museum, 2021</summary><p class="dl">In December 2020 I modeled WangShui's sculpture concepts and built the gallery-simulation videos used to pitch <i>Feast</i> (2021), commissioned for <i>No Humans Involved</i> at the Hammer Museum, Los Angeles, curated by Erin Christovale. <a href="https://hammer.ucla.edu/exhibitions/2021/no-humans-involved" target="_blank" rel="noopener">Exhibition</a></p></details></li>
       <li class="reveal"><details><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Magna Cum Laude, Woodbury University</summary><p class="dl">B.S. in Applied Computer Science (Media Arts), 2023, with a 3.8 GPA. Recognized with the Best Thesis Award for the graduating class, Academic Excellence Awards in 2022 and 2023, and Dean's List every semester.</p></details></li>
@@ -1665,6 +1675,21 @@ html[data-theme="light"] .media-note{
     relayoutMasonry();
     return val;
   }
+
+  /* The four hero cards are doors into the work, Vi's ask 2026-10-30. A card
+     presses the matching filter, so the URL and back button behave exactly as
+     if the filter itself was clicked, then the page scrolls to #work. Without
+     JS the link still lands on #work. */
+  document.querySelectorAll(".hero .pillar[data-lane]").forEach(function(card){
+    card.addEventListener("click", function(e){
+      var btn = document.querySelector('.filter[data-filter="' + card.getAttribute("data-lane") + '"]');
+      if (!btn) return;
+      e.preventDefault();
+      btn.click();
+      var work = document.getElementById("work");
+      if (work) work.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    });
+  });
 
   filters.forEach(function(btn){
     btn.addEventListener("click", function(){
@@ -2529,22 +2554,18 @@ html[data-theme="light"] .media-note{
       // default wave band (62% of a now-very-tall hero) lands hidden BEHIND them.
       // Place the wave in the gap between the CTA buttons and the pillars and reveal
       // only that band. Desktop (>880px) keeps the original look + the CSS mask.
-      if (window.matchMedia("(max-width:880px)").matches){
-        var top0 = canvas.getBoundingClientRect().top;
-        var cta = document.querySelector(".hero .cta-row");
-        var pil = document.querySelector(".hero .pillars");
-        var gTop = cta ? (cta.getBoundingClientRect().bottom - top0) : H*0.42;
-        var gBot = pil ? (pil.getBoundingClientRect().top - top0) : H;
-        bandMid = (gTop + gBot) / 2;
-        bandAmp = Math.max(12, Math.min(40, (gBot - gTop)/2 - 8));
-        var pc = function(px){ return Math.max(0, Math.min(100, px/H*100)).toFixed(2) + "%"; };
-        var msk = "linear-gradient(to bottom, transparent " + pc(gTop-12) + ", #000 " + pc(gTop+6) +
-                  ", #000 " + pc(gBot-6) + ", transparent " + pc(gBot+12) + ")";
-        canvas.style.webkitMaskImage = msk; canvas.style.maskImage = msk;
-      } else {
-        bandMid = null;
-        canvas.style.webkitMaskImage = ""; canvas.style.maskImage = "";
-      }
+      // The wave lives ONLY in .wave-band, the empty strip between the stats and
+      // the pillar cards, at every width. Nothing is drawn behind text.
+      var top0 = canvas.getBoundingClientRect().top;
+      var band = document.querySelector(".hero .wave-band");
+      var gTop = band ? (band.getBoundingClientRect().top - top0) : H*0.6;
+      var gBot = band ? (band.getBoundingClientRect().bottom - top0) : H*0.8;
+      bandMid = (gTop + gBot) / 2;
+      bandAmp = Math.max(12, Math.min(60, (gBot - gTop)/2 - 10));
+      var pc = function(px){ return Math.max(0, Math.min(100, px/H*100)).toFixed(2) + "%"; };
+      var msk = "linear-gradient(to bottom, transparent " + pc(gTop) + ", #000 " + pc(gTop+14) +
+                ", #000 " + pc(gBot-14) + ", transparent " + pc(gBot) + ")";
+      canvas.style.webkitMaskImage = msk; canvas.style.maskImage = msk;
     }
 
     // A traveling, audio-like waveform for x in [0,1] → y offset in [-1,1].
