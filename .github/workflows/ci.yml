@@ -96,10 +96,6 @@ jobs:
       - name: /apps/ thumbnail wiring
         run: node .github/scripts/apps-thumbs.mjs check
 
-          STATUS=$?
-          kill $SRV 2>/dev/null || true
-          exit $STATUS
-
       # Legibility gate. Every text node, both themes, real composited backgrounds.
       # --all reads the page list from site-meta.json instead of hardcoding it
       # here, so a page added to the manifest is gated from the moment it
