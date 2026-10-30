@@ -1691,7 +1691,7 @@ async function importFile(file) {
       incoming = libFromNative(itemRows, bulletRows, []);
     } else if (k.includes("role_id") || k.includes("employer")) incoming = libFromSheets({ Roles: rows });
     else if (k.includes("id") && k.includes("org")) incoming = libFromNative(rows, [], []);
-    else throw new Error("That CSV has no column I recognise. Expected employer/title, or id/org.");
+    else throw new Error("That CSV has no column I recognize. Expected employer/title, or id/org.");
   } else {
     const j = JSON.parse(await file.text());
     if (j.items) incoming = normaliseLib(j);
@@ -2397,7 +2397,7 @@ byId("file").onchange = async e => {
     } else if (j.items) {
       LIB = LIB.items.length ? mergeLib(normaliseLib(j)) : normaliseLib(j);
       alert(`Loaded a career library, ${LIB.items.length} experiences.`);
-    } else throw new Error("unrecognised");
+    } else throw new Error("unrecognized");
     saveAll(); render();
   } catch (err) { alert("Could not read that file."); }
 };

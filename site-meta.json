@@ -98,7 +98,7 @@
     "/apps/": {
       "title": "Things you can play with",
       "card": "Eleven built things, all live in the browser",
-      "desc": "A directory of the tools and toys Vi Ellis has shipped, from a browser 3D modeller to a drum play-along, all running without an install.",
+      "desc": "A directory of the tools and toys Vi Ellis has shipped, from a browser 3D modeler to a drum play-along, all running without an install.",
       "accent": "green"
     },
     "/perch/": {
