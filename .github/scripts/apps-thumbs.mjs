@@ -154,6 +154,13 @@ for (const t of found) {
       const sels = ['.cm-skip', '[data-tour-skip]', '.tour-skip', '.onboarding-skip',
                     '[aria-label="Skip"]', '.cookie-accept', '#cookie-accept'];
       for (const s of sels) document.querySelectorAll(s).forEach((el) => el.click());
+      /* A welcome sheet that offers a choice, like Resume Studio's 'Start from
+         sample / Start blank', has no skip selector. Take the sample, which is
+         what shows the app with something in it. Found 2026-10-30 when the
+         reshoot caught the sheet instead of the editor. */
+      const pick = [...document.querySelectorAll('button')].find((el) =>
+        /^(start from sample|try the sample|load sample|got it|skip)$/i.test(el.textContent.trim()));
+      if (pick) pick.click();
     }).catch(() => {});
     await page.waitForTimeout(700);
     await page.screenshot({ path: out, type: 'jpeg', quality: 82 });
