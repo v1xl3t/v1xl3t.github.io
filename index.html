@@ -323,6 +323,10 @@ h1.hero-title .accent{
   grid-template-columns:repeat(4,1fr);
 }
 @media (max-width:880px){ .pillars{grid-template-columns:repeat(2,1fr)} }
+/* Apps joined the nav 2026-10-30, and between the hamburger breakpoint and
+   900px "Press & Awards" wrapped onto two lines. It is marked .opt, so it
+   steps aside in that band and stays reachable from the page itself. */
+@media (min-width:821px) and (max-width:899px){ .nav-links a.opt{display:none} }
 .wave-band{height:clamp(110px,13vw,170px)}
 .hero .pillars{margin-top:0}
 @media (max-width:460px){ .pillars{grid-template-columns:1fr} }
@@ -1061,9 +1065,9 @@ html[data-theme="light"] .media-note{
 
 <header id="top">
   <nav aria-label="Primary">
-    <a class="brand" href="#top" aria-label="Vi Ellis, home">
+    <a class="brand" href="#top" aria-label="Violet Ellis, home">
       <span class="mark" aria-hidden="true">Vi</span>
-      <span>Vi Ellis</span>
+      <span>Violet Ellis</span>
     </a>
     <div class="nav-right">
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light mode" title="Toggle theme">
@@ -1079,6 +1083,7 @@ html[data-theme="light"] .media-note{
         <a href="#about">About</a>
         <a class="opt" href="#press">Press &amp; Awards</a>
         <a href="ViEllis_Resume.pdf" target="_blank" rel="noopener">Resume</a>
+        <a href="/apps/">Apps</a>
         <a class="cta" href="#contact">Contact</a>
       </div>
     </div>
@@ -1200,6 +1205,32 @@ html[data-theme="light"] .media-note{
           <button class="thumb" type="button" data-full="apps/thumbs/anticipayt.jpg" data-cap="AnticiPayt, a money calendar that shows your balance on any day ahead"><img src="apps/thumbs/anticipayt.jpg" alt="AnticiPayt money calendar" loading="lazy"></button>
         </div>
         <div class="links"><button class="run-inline" type="button" data-app="https://anticipayt.com/app/?sample" data-title="AnticiPayt"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Run it here</button><a href="https://anticipayt.com/" target="_blank" rel="noopener">Live</a></div>
+      </article>
+
+      <!-- HACKING PARADISE -->
+      <article class="card reveal" data-lanes="web audio creative">
+        <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026 · Founder</span></div>
+        <h3>HACKING PARADISE</h3>
+        <p class="blurb">A multimedia group creating experimental technologies and art to promote human agency, and an independent record label releasing on two sides, ANALOG and DIGITAL.</p>
+        <p class="outcome">Live at hackingparadise.com. The site is a release feed generated from data, with a where-to-listen column for every record and SoundCloud players that load only when you press play.</p>
+        <div class="stack"><span>JavaScript</span><span>Static site generator</span><span>SoundCloud widget API</span><span>Privacy gates</span><span>Art direction</span></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="apps/thumbs/hackingparadise.jpg" data-cap="HACKING PARADISE, the collective's release feed"><img src="apps/thumbs/hackingparadise.jpg" alt="HACKING PARADISE release feed" loading="lazy"></button>
+        </div>
+        <div class="links"><a href="https://hackingparadise.com/" target="_blank" rel="noopener">Live</a></div>
+      </article>
+
+      <!-- RARE-DELETED -->
+      <article class="card reveal" data-lanes="web audio creative">
+        <div class="tags"><span class="chip lane" data-l="web">Web &amp; Design</span><span class="chip lane" data-l="audio">Audio &amp; Music</span><span class="chip ai-built" title="Built with AI coding assistance">AI-assisted build</span><span class="chip">2026 · HACKING PARADISE</span></div>
+        <h3>RARE-DELETED</h3>
+        <p class="blurb">The DIGITAL release channel of HACKING PARADISE, a rap, trap and alternative electronic label. Releasing records and demons from the void.</p>
+        <p class="outcome">Live at raredeleted.com. You scroll down into the void after a diver you can steer, and every artist card is its own player.</p>
+        <div class="stack"><span>JavaScript</span><span>Canvas</span><span>Device orientation</span><span>SoundCloud widget API</span><span>Art direction</span></div>
+        <div class="thumbs">
+          <button class="thumb" type="button" data-full="apps/thumbs/raredeleted.jpg" data-cap="RARE-DELETED, the descent into the void"><img src="apps/thumbs/raredeleted.jpg" alt="RARE-DELETED landing page" loading="lazy"></button>
+        </div>
+        <div class="links"><a href="https://raredeleted.com/" target="_blank" rel="noopener">Live</a></div>
       </article>
 
       <!-- 3 -->
